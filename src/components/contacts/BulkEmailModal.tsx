@@ -6,6 +6,7 @@ import {
   XCircle,
   Loader2,
   X,
+  Wand2,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -231,6 +232,55 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
   const [currentSendIndex, setCurrentSendIndex] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+
+  const handleGenerateWithAi = async () => {
+    if (!aiPrompt.trim()) return;
+
+    setIsGeneratingAi(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        alert("Sessão expirada. Faça login novamente.");
+        return;
+      }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            company_id: currentEntity.id,
+            topic: aiPrompt,
+            mode: "email_template_magic",
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao gerar com IA.");
+
+      if (data.html) {
+        setHtmlBody(data.html);
+        setAiPrompt("");
+      } else {
+        alert("Nenhum HTML retornado pela IA.");
+      }
+    } catch (err: any) {
+      console.error("AI Email Generation error:", err);
+      alert(err.message || "Erro ao gerar e-mail com IA. Tente novamente.");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -464,7 +514,37 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Corpo do E-mail (HTML)</label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Corpo do E-mail (HTML)</label>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="Escreva com IA (ex: Promoção de Natal)..."
+                    className="flex-1 sm:w-60 px-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 text-gray-800 dark:text-slate-100"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleGenerateWithAi();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={isGeneratingAi || !aiPrompt.trim()}
+                    onClick={handleGenerateWithAi}
+                    className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  >
+                    {isGeneratingAi ? (
+                      <Loader2 className="animate-spin" size={13} />
+                    ) : (
+                      <Wand2 size={13} />
+                    )}
+                    Gerar com IA
+                  </button>
+                </div>
+              </div>
               <textarea
                 ref={textareaRef}
                 value={htmlBody}

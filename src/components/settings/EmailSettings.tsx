@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mail, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Mail, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, Sparkles, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -7,6 +7,7 @@ import { useEntity } from '../../context/EntityContext';
 import { ResultModal } from '../ui/ResultModal';
 import axios from 'axios';
 import { API_BASE_URL } from '../../lib/constants';
+import { supabase } from '../../lib/supabase';
 
 const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -326,6 +327,55 @@ export function EmailSettings() {
     const [testing, setTesting] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
     const [testEmail, setTestEmail] = useState('');
+
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+
+    const handleGenerateWithAi = async () => {
+        if (!aiPrompt.trim()) return;
+
+        setIsGeneratingAi(true);
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+
+            if (!token) {
+                alert('Sessão expirada. Faça login novamente.');
+                return;
+            }
+
+            const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-copilot-magic`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        company_id: currentEntity.id,
+                        topic: aiPrompt,
+                        mode: 'email_template_magic'
+                    })
+                }
+            );
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao gerar com IA.');
+
+            if (data.html) {
+                setResendConfig(prev => ({ ...prev, email_html_template: data.html }));
+                setAiPrompt('');
+            } else {
+                alert('Nenhum HTML retornado pela IA.');
+            }
+        } catch (err: any) {
+            console.error('AI Email Generation error:', err);
+            alert(err.message || 'Erro ao gerar e-mail com IA. Tente novamente.');
+        } finally {
+            setIsGeneratingAi(false);
+        }
+    };
 
     const handleTestSend = async () => {
         if (!testEmail) {
@@ -775,7 +825,40 @@ export function EmailSettings() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Código HTML Customizado</label>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Código HTML Customizado</label>
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <input
+                                        type="text"
+                                        value={aiPrompt}
+                                        onChange={(e) => setAiPrompt(e.target.value)}
+                                        placeholder="Escreva com IA (ex: E-mail azul formal)..."
+                                        className="flex-1 sm:w-60 px-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-800 dark:text-slate-100"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleGenerateWithAi();
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={isGeneratingAi || !aiPrompt.trim()}
+                                        onClick={handleGenerateWithAi}
+                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                    >
+                                        {isGeneratingAi ? (
+                                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                        ) : (
+                                            <Wand2 size={13} />
+                                        )}
+                                        Gerar com IA
+                                    </button>
+                                </div>
+                            </div>
                             <textarea
                                 className="w-full h-[400px] font-mono text-xs p-4 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none shadow-inner"
                                 value={resendConfig.email_html_template}

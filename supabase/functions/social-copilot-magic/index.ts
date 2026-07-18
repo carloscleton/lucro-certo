@@ -160,6 +160,39 @@ Retorne APENAS o texto da mensagem.
       return new Response(JSON.stringify({ success: true, template: generatedTemplate }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (mode === 'email_template_magic') {
+      const emailPromptStr = `
+Você é um designer de e-mails profissionais e copywriter de elite para a empresa "${tradeName}".
+Nicho: "${niche}". Público-alvo: "${audience}". Tom de voz: "${tone}".
+
+TAREFA: Crie um template de e-mail em HTML completo, responsivo, moderno e esteticamente deslumbrante baseado no seguinte pedido do usuário: "${topic}".
+
+REGRAS OBRIGATÓRIAS DO HTML E COPY:
+1. DESIGN PREMIUM: Use design moderno, bordas arredondadas (12px-16px), cores harmoniosas adequadas ao tema, fontes limpas (Arial ou sans-serif), sombreamento sutil e espaçamento confortável.
+2. RESPONSIVIDADE: O e-mail deve ser centralizado e ter uma largura máxima de 600px, otimizado para celulares e desktops.
+3. CONTEÚDO E VARIÁVEIS: Inclua no HTML as variáveis dinâmicas apropriadas:
+   - {{companyName}} para o nome da empresa.
+   - {{name}} para o nome do destinatário.
+   - {{email}} para o e-mail do destinatário.
+   - {{phone}} para o telefone/whatsapp do destinatário.
+   Foque no conteúdo solicitado pelo usuário ("${topic}").
+4. ESTRUTURA: Retorne apenas o código HTML válido e completo (começando com <!DOCTYPE html> e fechando com </html>).
+5. Sem explicações ou blocos markdown de código (como \`\`\`html). Retorne APENAS o código HTML bruto pronto para ser renderizado.
+`;
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: emailPromptStr }], temperature: 0.7 })
+      });
+      const data = await res.json();
+      const generatedTemplate = data.choices?.[0]?.message?.content?.trim() || '';
+      let cleanHtml = generatedTemplate;
+      if (cleanHtml.startsWith('```')) {
+        cleanHtml = cleanHtml.replace(/^```html\s*/i, '').replace(/```$/, '');
+      }
+      return new Response(JSON.stringify({ success: true, html: cleanHtml.trim() }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     let generatedCaption = '';
     let publicUrl = null;
 
