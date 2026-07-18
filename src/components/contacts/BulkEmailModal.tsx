@@ -249,7 +249,17 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
 
     setIsUploadingImage(true);
     try {
-      const fileName = `email-campaigns/${Date.now()}-${file.name}`;
+      const parts = file.name.split('.');
+      const ext = parts.pop() || '';
+      const base = parts.join('.');
+      const cleanBase = base
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .replace(/-+/g, "-")
+        .toLowerCase();
+      const fileName = `email-campaigns/${Date.now()}-${cleanBase}.${ext}`;
+
       const { publicUrl } = await storageService.upload(file, "social_media_assets", fileName);
       setUploadedImageUrl(publicUrl);
     } catch (err: any) {
