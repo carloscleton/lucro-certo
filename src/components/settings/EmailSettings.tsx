@@ -227,120 +227,213 @@ export function EmailSettings() {
             </div>
 
             {/* Credenciais e Cota */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
-                        <ShieldCheck size={24} />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-gray-900 dark:text-white">Credenciais do Resend</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Configure sua API Key e domínio de remetente para permitir que a plataforma envie e-mails em seu nome.
-                        </p>
-                    </div>
-                </div>
-
-                {!resendConfig.apiKey && (
-                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 p-4 rounded-xl flex items-start gap-3">
-                        <AlertCircle className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" size={18} />
+            {resendConfig.provider === 'smtp' ? (
+                /* SMTP credentials card */
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                            <ShieldCheck size={24} />
+                        </div>
                         <div>
-                            <p className="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Servidor Padrão Ativo</p>
-                            <p className="text-xs text-blue-700 dark:text-blue-500 mt-0.5 font-bold">
-                                Sua empresa está utilizando o servidor de e-mail compartilhado da plataforma. Caso queira utilizar a sua própria marca e domínio personalizado como remetente (White-label), preencha sua API Key e E-mail de Remetente do Resend abaixo.
+                            <h4 className="font-bold text-gray-900 dark:text-white">Configuração do Servidor SMTP</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Insira as credenciais do seu e-mail para que o sistema realize os disparos diretamente através da sua conta.
                             </p>
                         </div>
                     </div>
-                )}
 
-                {resendConfig.apiKey && (
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
-                            <span>Consumo Mensal de E-mails</span>
-                            <span>
-                                {resendConfig.has_paid_plan ? (
-                                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
-                                        <ShieldCheck size={14} /> Plano Pago (Sem Limites)
-                                    </span>
-                                ) : (
-                                    `${resendConfig.sent_count} / 3.000`
-                                )}
-                            </span>
-                        </div>
-                        {!resendConfig.has_paid_plan && (
-                            <div className="w-full bg-gray-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                <div 
-                                    className={`h-full transition-all duration-500 rounded-full ${
-                                        resendConfig.sent_count >= 2700 
-                                            ? 'bg-rose-500' 
-                                            : resendConfig.sent_count >= 2000 
-                                                ? 'bg-amber-500' 
-                                                : 'bg-blue-650'
-                                    }`}
-                                    style={{ width: `${Math.min(100, (resendConfig.sent_count / 3000) * 100)}%` }}
-                                ></div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="relative">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Input
-                            label="Chave de API do Resend"
-                            type={showApiKey ? 'text' : 'password'}
-                            value={resendConfig.apiKey}
-                            onChange={(e: any) => setResendConfig({ ...resendConfig, apiKey: e.target.value })}
-                            placeholder="re_..."
+                            label="Servidor SMTP (Host)"
+                            value={resendConfig.smtp_host || ''}
+                            onChange={(e: any) => setResendConfig({ ...resendConfig, smtp_host: e.target.value })}
+                            placeholder="smtp.gmail.com"
                             preserveCase={true}
-                            helpText="Insira sua API Key gerada no painel do Resend (resend.com)."
+                            helpText="Endereço do servidor (ex: smtp.gmail.com para Gmail)."
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowApiKey(!showApiKey)}
-                            className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        >
-                            {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
+
+                        <Input
+                            label="Porta SMTP"
+                            type="number"
+                            value={resendConfig.smtp_port || 587}
+                            onChange={(e: any) => setResendConfig({ ...resendConfig, smtp_port: Number(e.target.value) })}
+                            placeholder="587"
+                            helpText="Geralmente 587 (TLS) ou 465 (SSL)."
+                        />
+
+                        <Input
+                            label="E-mail do Remetente"
+                            value={resendConfig.fromEmail || ''}
+                            onChange={(e: any) => setResendConfig({ ...resendConfig, fromEmail: e.target.value })}
+                            placeholder="Ex: Notas <empresa@gmail.com>"
+                            preserveCase={true}
+                            helpText="O mesmo e-mail do usuário de envio."
+                        />
                     </div>
 
-                    <Input
-                        label="E-mail do Remetente"
-                        value={resendConfig.fromEmail}
-                        onChange={(e: any) => setResendConfig({ ...resendConfig, fromEmail: e.target.value })}
-                        placeholder="Ex: Notas Fiscais <nfe@suaempresa.com.br>"
-                        preserveCase={true}
-                        helpText="Deve ser um domínio configurado e verificado no seu painel do Resend."
-                    />
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Input
+                            label="Usuário SMTP (E-mail)"
+                            value={resendConfig.smtp_user || ''}
+                            onChange={(e: any) => setResendConfig({ ...resendConfig, smtp_user: e.target.value })}
+                            placeholder="empresa@gmail.com"
+                            preserveCase={true}
+                            helpText="Seu endereço de e-mail completo."
+                        />
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-150 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Input
+                                label="Senha / Senha de App"
+                                type={showApiKey ? 'text' : 'password'}
+                                value={resendConfig.smtp_pass || ''}
+                                onChange={(e: any) => setResendConfig({ ...resendConfig, smtp_pass: e.target.value })}
+                                placeholder="Sua senha..."
+                                preserveCase={true}
+                                helpText="No Gmail, use uma 'Senha de App' gerada na sua Conta Google."
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-150 dark:border-slate-800">
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
                                 className="sr-only peer"
-                                checked={resendConfig.has_paid_plan || false}
-                                onChange={(e) => setResendConfig({ ...resendConfig, has_paid_plan: e.target.checked })}
+                                checked={resendConfig.smtp_secure || false}
+                                onChange={(e) => setResendConfig({ ...resendConfig, smtp_secure: e.target.checked })}
                             />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                         </label>
                         <div>
-                            <p className="text-sm font-bold text-gray-900 dark:text-white">Possuo Plano Pago no Resend</p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Ative para remover a trava de 3.000 envios de e-mail gratuitos da plataforma.</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">Conexão Segura (SSL/TLS)</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Ative obrigatoriamente se estiver utilizando a porta 465.</p>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                /* Credenciais e Cota Resend */
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                            <ShieldCheck size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">Credenciais do Resend</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Configure sua API Key e domínio de remetente para permitir que a plataforma envie e-mails em seu nome.
+                            </p>
                         </div>
                     </div>
 
-                    <a 
-                        href="https://resend.com/pricing" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs font-extrabold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
-                    >
-                        <ExternalLink size={14} />
-                        Fazer Upgrade no Resend
-                    </a>
+                    {!resendConfig.apiKey && (
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 p-4 rounded-xl flex items-start gap-3">
+                            <AlertCircle className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" size={18} />
+                            <div>
+                                <p className="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Servidor Padrão Ativo</p>
+                                <p className="text-xs text-blue-700 dark:text-blue-500 mt-0.5 font-bold">
+                                    Sua empresa está utilizando o servidor de e-mail compartilhado da plataforma. Caso queira utilizar a sua própria marca e domínio personalizado como remetente (White-label), preencha sua API Key e E-mail de Remetente do Resend abaixo.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {resendConfig.apiKey && (
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+                                <span>Consumo Mensal de E-mails</span>
+                                <span>
+                                    {resendConfig.has_paid_plan ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                                            <ShieldCheck size={14} /> Plano Pago (Sem Limites)
+                                        </span>
+                                    ) : (
+                                        `${resendConfig.sent_count} / 3.000`
+                                    )}
+                                </span>
+                            </div>
+                            {!resendConfig.has_paid_plan && (
+                                <div className="w-full bg-gray-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full transition-all duration-500 rounded-full ${
+                                            resendConfig.sent_count >= 2700 
+                                                ? 'bg-rose-500' 
+                                                : resendConfig.sent_count >= 2000 
+                                                    ? 'bg-amber-500' 
+                                                    : 'bg-blue-650'
+                                        }`}
+                                        style={{ width: `${Math.min(100, (resendConfig.sent_count / 3000) * 100)}%` }}
+                                    ></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="relative">
+                            <Input
+                                label="Chave de API do Resend"
+                                type={showApiKey ? 'text' : 'password'}
+                                value={resendConfig.apiKey}
+                                onChange={(e: any) => setResendConfig({ ...resendConfig, apiKey: e.target.value })}
+                                placeholder="re_..."
+                                preserveCase={true}
+                                helpText="Insira sua API Key gerada no painel do Resend (resend.com)."
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-3 top-[32px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+
+                        <Input
+                            label="E-mail do Remetente"
+                            value={resendConfig.fromEmail}
+                            onChange={(e: any) => setResendConfig({ ...resendConfig, fromEmail: e.target.value })}
+                            placeholder="Ex: Notas Fiscais <nfe@suaempresa.com.br>"
+                            preserveCase={true}
+                            helpText="Deve ser um domínio configurado e verificado no seu painel do Resend."
+                        />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-150 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={resendConfig.has_paid_plan || false}
+                                    onChange={(e) => setResendConfig({ ...resendConfig, has_paid_plan: e.target.checked })}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">Possuo Plano Pago no Resend</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Ative para remover a trava de 3.000 envios de e-mail gratuitos da plataforma.</p>
+                            </div>
+                        </div>
+
+                        <a 
+                            href="https://resend.com/pricing" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs font-extrabold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
+                        >
+                            <ExternalLink size={14} />
+                            Fazer Upgrade no Resend
+                        </a>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Template HTML */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6">
