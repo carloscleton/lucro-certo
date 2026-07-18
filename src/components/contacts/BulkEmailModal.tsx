@@ -17,6 +17,7 @@ import { useCompanies } from "../../hooks/useCompanies";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/constants";
 import { supabase } from "../../lib/supabase";
+import { storageService } from "../../lib/storageService";
 
 interface BulkEmailModalProps {
   isOpen: boolean;
@@ -237,6 +238,33 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
+  const [contentType, setContentType] = useState<"html" | "image">("html");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [imageLinkUrl, setImageLinkUrl] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const fileName = `email-campaigns/${Date.now()}-${file.name}`;
+      const { publicUrl } = await storageService.upload(file, "social_media_assets", fileName);
+      setUploadedImageUrl(publicUrl);
+    } catch (err: any) {
+      console.error("Error uploading image:", err);
+      setResultModal({
+        isOpen: true,
+        title: "Erro de Upload",
+        message: err.message || "Falha ao fazer upload da imagem. Tente novamente.",
+        type: "error",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const [resultModal, setResultModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -344,6 +372,46 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
 
   // Compilar HTML com mock data para o preview
   const getPreviewHtml = () => {
+    if (contentType === "image") {
+      return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+          <tr>
+            <td align="center" style="padding:10px;">
+              ${uploadedImageUrl ? (
+                imageLinkUrl ? `
+                <a href="${imageLinkUrl}" target="_blank" style="display:block;border:0;outline:none;text-decoration:none;">
+                  <img src="${uploadedImageUrl}" alt="Campanha" style="display:block;max-width:100%;height:auto;border-radius:12px;border:0;" />
+                </a>` : `
+                <img src="${uploadedImageUrl}" alt="Campanha" style="display:block;max-width:100%;height:auto;border-radius:12px;border:0;" />`
+              ) : `
+              <div style="padding:60px 40px;color:#94a3b8;font-weight:700;font-size:14px;border:2px dashed #cbd5e1;border-radius:12px;margin:10px;text-align:center;">
+                🖼️ Nenhuma imagem carregada ainda.
+              </div>`}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 40px;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                Enviado por <strong>${companyName}</strong>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+    }
+
     let preview = htmlBody;
     preview = preview.replace(/\{\{\s*companyName\s*\}\}/g, companyName);
     preview = preview.replace(/\{\{\s*name\s*\}\}/g, DUMMY_PLACEHOLDERS.name);
@@ -397,11 +465,13 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
       });
 
       // Compilar placeholders reais para esse contato
-      let compiledHtml = htmlBody;
-      compiledHtml = compiledHtml.replace(/\{\{\s*companyName\s*\}\}/g, companyName);
-      compiledHtml = compiledHtml.replace(/\{\{\s*name\s*\}\}/g, contact.name);
-      compiledHtml = compiledHtml.replace(/\{\{\s*email\s*\}\}/g, contact.email || "");
-      compiledHtml = compiledHtml.replace(/\{\{\s*phone\s*\}\}/g, contact.whatsapp || contact.phone || "");
+      let compiledHtml = contentType === "image" ? getPreviewHtml() : htmlBody;
+      if (contentType !== "image") {
+        compiledHtml = compiledHtml.replace(/\{\{\s*companyName\s*\}\}/g, companyName);
+        compiledHtml = compiledHtml.replace(/\{\{\s*name\s*\}\}/g, contact.name);
+        compiledHtml = compiledHtml.replace(/\{\{\s*email\s*\}\}/g, contact.email || "");
+        compiledHtml = compiledHtml.replace(/\{\{\s*phone\s*\}\}/g, contact.whatsapp || contact.phone || "");
+      }
 
       let compiledSubject = subject;
       compiledSubject = compiledSubject.replace(/\{\{\s*companyName\s*\}\}/g, companyName);
@@ -479,114 +549,199 @@ export function BulkEmailModal({ isOpen, onClose, selectedContacts, onSuccess }:
           </button>
         </div>
 
-        {/* 🌟 Templates presets */}
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Escolha uma Base de E-mail:</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map((key) => {
-              const temp = TEMPLATES[key];
-              const isSelected = selectedTemplateKey === key;
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleSelectTemplate(key)}
-                  className={`p-3 rounded-2xl border flex flex-col items-start gap-1 text-left transition-all ${
-                    isSelected
-                      ? "border-rose-500 bg-rose-50/20 dark:bg-rose-950/10 ring-1 ring-rose-500/20"
-                      : "border-gray-150 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-slate-600"
-                  }`}
-                >
-                  <p className="font-bold text-xs text-gray-900 dark:text-white leading-tight">{temp.name}</p>
-                  <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${temp.badgeColor}`}>
-                    {key}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Toggle content type */}
+        <div className="flex items-center gap-4 bg-gray-50 dark:bg-slate-900 p-2 rounded-2xl border border-gray-100 dark:border-slate-800 self-start">
+          <button
+            type="button"
+            onClick={() => setContentType("html")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              contentType === "html"
+                ? "bg-white dark:bg-slate-850 text-gray-900 dark:text-white shadow-sm border border-gray-150 dark:border-slate-750"
+                : "text-gray-500 hover:text-gray-950 dark:hover:text-gray-250"
+            }`}
+          >
+            💻 Editor de Código HTML / Presets
+          </button>
+          <button
+            type="button"
+            onClick={() => setContentType("image")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              contentType === "image"
+                ? "bg-white dark:bg-slate-855 text-gray-900 dark:text-white shadow-sm border border-gray-150 dark:border-slate-750"
+                : "text-gray-500 hover:text-gray-950 dark:hover:text-gray-250"
+            }`}
+          >
+            🖼️ Enviar Imagem Pronta / Flyer
+          </button>
         </div>
+
+        {/* 🌟 Templates presets */}
+        {contentType === "html" && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Escolha uma Base de E-mail:</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(Object.keys(TEMPLATES) as Array<keyof typeof TEMPLATES>).map((key) => {
+                const temp = TEMPLATES[key];
+                const isSelected = selectedTemplateKey === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleSelectTemplate(key)}
+                    className={`p-3 rounded-2xl border flex flex-col items-start gap-1 text-left transition-all ${
+                      isSelected
+                        ? "border-rose-500 bg-rose-50/20 dark:bg-rose-950/10 ring-1 ring-rose-500/20"
+                        : "border-gray-150 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    <p className="font-bold text-xs text-gray-900 dark:text-white leading-tight">{temp.name}</p>
+                    <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${temp.badgeColor}`}>
+                      {key}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 💻 Split Editor & Preview */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Left Column: Editor */}
-          <div className="space-y-4">
-            <Input
-              label="Assunto do E-mail"
-              value={subject}
-              onChange={(e: any) => setSubject(e.target.value)}
-              placeholder="Digite o assunto do e-mail..."
-              preserveCase={true}
-            />
+          {contentType === "html" ? (
+            <div className="space-y-4">
+              <Input
+                label="Assunto do E-mail"
+                value={subject}
+                onChange={(e: any) => setSubject(e.target.value)}
+                placeholder="Digite o assunto do e-mail..."
+                preserveCase={true}
+              />
 
-            {/* Dynamic Tags */}
-            <div className="space-y-1">
-              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Inserir Variável Dinâmica:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: "Nome", tag: "name" },
-                  { label: "E-mail", tag: "email" },
-                  { label: "Telefone", tag: "phone" },
-                  { label: "Sua Empresa", tag: "companyName" },
-                ].map((item) => (
-                  <button
-                    key={item.tag}
-                    type="button"
-                    onClick={() => handleInsertTag(item.tag)}
-                    className="px-2 py-1 bg-gray-50 hover:bg-gray-100 dark:bg-slate-900 dark:hover:bg-slate-950 border border-gray-200 dark:border-slate-700 text-[9px] font-bold text-gray-700 dark:text-gray-300 rounded-lg transition-all"
-                  >
-                    {"{{"}
-                    {item.tag}
-                    {"}}"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Corpo do E-mail (HTML)</label>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <input
-                    type="text"
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="Escreva com IA (ex: Promoção de Natal)..."
-                    className="flex-1 sm:w-60 px-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 text-gray-800 dark:text-slate-100"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleGenerateWithAi();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={isGeneratingAi || !aiPrompt.trim()}
-                    onClick={handleGenerateWithAi}
-                    className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                  >
-                    {isGeneratingAi ? (
-                      <Loader2 className="animate-spin" size={13} />
-                    ) : (
-                      <Wand2 size={13} />
-                    )}
-                    Gerar com IA
-                  </button>
+              {/* Dynamic Tags */}
+              <div className="space-y-1">
+                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                  Inserir Variável Dinâmica:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "Nome", tag: "name" },
+                    { label: "E-mail", tag: "email" },
+                    { label: "Telefone", tag: "phone" },
+                    { label: "Sua Empresa", tag: "companyName" },
+                  ].map((item) => (
+                    <button
+                      key={item.tag}
+                      type="button"
+                      onClick={() => handleInsertTag(item.tag)}
+                      className="px-2 py-1 bg-gray-50 hover:bg-gray-100 dark:bg-slate-900 dark:hover:bg-slate-950 border border-gray-200 dark:border-slate-700 text-[9px] font-bold text-gray-700 dark:text-gray-300 rounded-lg transition-all"
+                    >
+                      {"{{"}
+                      {item.tag}
+                      {"}}"}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <textarea
-                ref={textareaRef}
-                value={htmlBody}
-                onChange={(e) => setHtmlBody(e.target.value)}
-                className="w-full h-72 font-mono text-[11px] p-4 bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none resize-none shadow-inner"
-                placeholder="Escreva seu código HTML aqui..."
+
+              <div className="space-y-1.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Corpo do E-mail (HTML)</label>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <input
+                      type="text"
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Escreva com IA (ex: Promoção de Natal)..."
+                      className="flex-1 sm:w-60 px-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 text-gray-800 dark:text-slate-100"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleGenerateWithAi();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isGeneratingAi || !aiPrompt.trim()}
+                      onClick={handleGenerateWithAi}
+                      className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      {isGeneratingAi ? (
+                        <Loader2 className="animate-spin" size={13} />
+                      ) : (
+                        <Wand2 size={13} />
+                      )}
+                      Gerar com IA
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  ref={textareaRef}
+                  value={htmlBody}
+                  onChange={(e) => setHtmlBody(e.target.value)}
+                  className="w-full h-72 font-mono text-[11px] p-4 bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none resize-none shadow-inner"
+                  placeholder="Escreva seu código HTML aqui..."
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Input
+                label="Assunto do E-mail"
+                value={subject}
+                onChange={(e: any) => setSubject(e.target.value)}
+                placeholder="Digite o assunto do e-mail..."
+                preserveCase={true}
+              />
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Flyer ou Imagem da Campanha</label>
+                <div className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-6 text-center bg-gray-50 dark:bg-slate-900/50 flex flex-col items-center justify-center gap-3">
+                  {uploadedImageUrl ? (
+                    <div className="relative group rounded-xl overflow-hidden max-h-48 border border-gray-250">
+                      <img src={uploadedImageUrl} alt="Uploaded Campaign" className="max-w-full max-h-48 object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setUploadedImageUrl("")}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-650 text-white p-1.5 rounded-full transition-all shadow-md"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center gap-2 p-4 w-full">
+                      {isUploadingImage ? (
+                        <Loader2 className="animate-spin text-rose-500" size={32} />
+                      ) : (
+                        <Mail size={32} className="text-gray-400" />
+                      )}
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                        {isUploadingImage ? "Fazendo upload..." : "Clique para selecionar ou arraste uma imagem"}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium">Suporta PNG, JPG, JPEG, GIF (Máx. 5MB)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={isUploadingImage}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <Input
+                label="Link de Redirecionamento da Imagem (Opcional)"
+                value={imageLinkUrl}
+                onChange={(e: any) => setImageLinkUrl(e.target.value)}
+                placeholder="https://sua-pagina-de-vendas.com"
+                preserveCase={true}
               />
             </div>
-          </div>
+          )}
 
           {/* Right Column: Preview */}
           <div className="space-y-2 flex flex-col justify-between">
