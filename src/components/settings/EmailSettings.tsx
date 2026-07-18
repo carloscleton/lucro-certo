@@ -151,7 +151,7 @@ export function EmailSettings() {
                 provider: resendConfig.provider,
                 to: testEmail,
                 resendConfig,
-                companyName: currentCompany?.trade_name || currentCompany?.corporate_name || 'Minha Empresa'
+                companyName: currentCompany?.trade_name || currentCompany?.legal_name || 'Minha Empresa'
             });
 
             if (response.data.success) {
