@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mail, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -88,6 +88,174 @@ const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+
+const PRESETS: Record<string, string> = {
+  default: DEFAULT_HTML_TEMPLATE,
+  marketing: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Nota Fiscal e Agradecimento</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);padding:40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;">{{companyName}}</h1>
+              <p style="margin:8px 0 0;color:#c7d2fe;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">{{invoiceLabel}} Disponível</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:800;">Olá, {{clientName}}!</h2>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+                Agradecemos pela preferência e parceria! Sua <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong> já foi emitida e está anexada abaixo para sua consulta.
+              </p>
+              
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border:1px dashed #c084fc;border-radius:12px;margin-bottom:32px;">
+                <tr>
+                  <td style="padding:20px;text-align:center;">
+                    <p style="margin:0 0 4px;color:#7c3aed;font-size:11px;font-weight:800;text-transform:uppercase;">Documento</p>
+                    <p style="margin:0;color:#5b21b6;font-size:18px;font-weight:800;">{{invoiceLabel}} Nº {{invoiceNumber}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              {{#if pdfUrl}}
+              <div style="text-align:center;margin-bottom:16px;">
+                <a href="{{pdfUrl}}" target="_blank" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;">
+                  📄 Visualizar PDF da Nota
+                </a>
+              </div>
+              {{/if}}
+
+              {{#if xmlUrl}}
+              <div style="text-align:center;margin-bottom:24px;">
+                <a href="{{xmlUrl}}" target="_blank" style="display:inline-block;background:#f1f5f9;color:#475569;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid #e2e8f0;">
+                  📁 Baixar XML
+                </a>
+              </div>
+              {{/if}}
+
+              <hr style="border:none;border-top:1px solid #f1f5f9;margin:32px 0;" />
+              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
+                Enviado automaticamente por <strong>{{companyName}}</strong>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  cobranca: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Notificação de Nota Fiscal e Cobrança</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="background-color:#ef4444;height:6px;"></td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <div style="text-align:center;margin-bottom:32px;">
+                <span style="font-size:32px;line-height:1;">⚠️</span>
+                <h1 style="margin:12px 0 0;color:#1e293b;font-size:22px;font-weight:800;">Lembrete de Cobrança</h1>
+                <p style="margin:4px 0 0;color:#ef4444;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">{{invoiceLabel}} Nº {{invoiceNumber}}</p>
+              </div>
+              
+              <p style="margin:0 0 16px;color:#475569;font-size:15px;line-height:1.6;">
+                Olá, <strong>{{clientName}}</strong>,
+              </p>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+                Informamos que a <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong> no valor correspondente aos serviços prestados por <strong>{{companyName}}</strong> está disponível. Por favor, acesse o documento para verificar os detalhes da fatura e opções de pagamento.
+              </p>
+
+              {{#if pdfUrl}}
+              <div style="text-align:center;margin-bottom:16px;">
+                <a href="{{pdfUrl}}" target="_blank" style="display:inline-block;background:#ef4444;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;">
+                  💳 Visualizar Nota e Fatura
+                </a>
+              </div>
+              {{/if}}
+
+              {{#if xmlUrl}}
+              <div style="text-align:center;margin-bottom:24px;">
+                <a href="{{xmlUrl}}" target="_blank" style="display:inline-block;background:#f1f5f9;color:#475569;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid #e2e8f0;">
+                  📁 Baixar XML
+                </a>
+              </div>
+              {{/if}}
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
+              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;line-height:1.6;">
+                Se você já efetuou o pagamento desta fatura, favor desconsiderar este e-mail.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  parabens: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Nota Fiscal e Parabéns</title>
+</head>
+<body style="margin:0;padding:0;background:#fff5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(244,63,94,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#f43f5e 0%,#ec4899 100%);padding:48px;text-align:center;">
+              <span style="font-size:36px;display:block;margin-bottom:8px;line-height:1;">🎉</span>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:900;">Um Presente para Você!</h1>
+              <p style="margin:6px 0 0;color:#ffe4e6;font-size:12px;font-weight:700;text-transform:uppercase;">{{companyName}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="margin:0 0 16px;color:#f43f5e;font-size:20px;font-weight:800;">Olá, {{clientName}}!</h2>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+                Junto com a emissão do seu documento fiscal <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong>, gostaríamos de aproveitar para celebrar e deixar um agradecimento especial por sua fidelidade!
+              </p>
+
+              {{#if pdfUrl}}
+              <div style="text-align:center;margin-bottom:16px;">
+                <a href="{{pdfUrl}}" target="_blank" style="display:inline-block;background:#f43f5e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;">
+                  📄 Acessar PDF da Nota
+                </a>
+              </div>
+              {{/if}}
+
+              <hr style="border:none;border-top:1px solid #f1f5f9;margin:32px 0;" />
+              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;line-height:1.6;">
+                Desejamos muito sucesso e prosperidade para você!
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+};
+
 export function EmailSettings() {
     const { currentEntity, refresh: refreshEntity } = useEntity();
     const { companies, updateCompany } = useCompanies();
@@ -115,6 +283,27 @@ export function EmailSettings() {
     });
 
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+    const companyName = currentCompany?.trade_name || currentCompany?.legal_name || 'Minha Empresa';
+
+    const getPreviewHtml = () => {
+        let preview = resendConfig.email_html_template || DEFAULT_HTML_TEMPLATE;
+        preview = preview.replace(/\{\{\s*companyName\s*\}\}/g, companyName);
+        preview = preview.replace(/\{\{\s*clientName\s*\}\}/g, 'Carlos da Silva');
+        preview = preview.replace(/\{\{\s*invoiceNumber\s*\}\}/g, '000123');
+        preview = preview.replace(/\{\{\s*invoiceLabel\s*\}\}/g, 'NF-e');
+        preview = preview.replace(/\{\{\s*pdfUrl\s*\}\}/g, 'https://exemplo.com/nota.pdf');
+        preview = preview.replace(/\{\{\s*xmlUrl\s*\}\}/g, 'https://exemplo.com/nota.xml');
+        
+        // Parse conditional blocks
+        const parseConditionalBlock = (html: string, variableName: string, value: any) => {
+            const regex = new RegExp(`\\{\\{\\s*#if\\s+${variableName}\\s*\\}\\}([\\s\\S]*?)\\{\\{\\s*\\/if\\s*\\}\\}`, 'g');
+            return value ? html.replace(regex, '$1') : html.replace(regex, '');
+        };
+        preview = parseConditionalBlock(preview, 'pdfUrl', true);
+        preview = parseConditionalBlock(preview, 'xmlUrl', true);
+
+        return preview;
+    };
 
     useEffect(() => {
         if (!currentCompany) return;
@@ -510,7 +699,7 @@ export function EmailSettings() {
 
             {/* Template HTML */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
                             <Mail size={24} />
@@ -532,27 +721,88 @@ export function EmailSettings() {
                     </Button>
                 </div>
 
-                {/* Placeholders list */}
-                <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                    <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wider mb-2">Variáveis Dinâmicas Disponíveis</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
-                        <div>{"{{companyName}}"} - Sua empresa</div>
-                        <div>{"{{clientName}}"} - Destinatário</div>
-                        <div>{"{{invoiceNumber}}"} - Número da Nota</div>
-                        <div>{"{{invoiceLabel}}"} - Tipo (NF-e/NFS-e)</div>
-                        <div>{"{{pdfUrl}}"} - Link do PDF</div>
-                        <div>{"{{xmlUrl}}"} - Link do XML</div>
+                {/* Presets Gallery */}
+                <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Escolha uma Base de Layout:</label>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setResendConfig(prev => ({ ...prev, email_html_template: PRESETS.default }))}
+                            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 border border-indigo-150 dark:border-indigo-900/30 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5 transition-all"
+                        >
+                            <Mail size={14} /> Modelo Padrão
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setResendConfig(prev => ({ ...prev, email_html_template: PRESETS.marketing }))}
+                            className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 border border-purple-150 dark:border-purple-900/30 rounded-xl text-xs font-bold text-purple-700 dark:text-purple-400 flex items-center gap-1.5 transition-all"
+                        >
+                            <Sparkles size={14} /> Marketing / Agradecimento
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setResendConfig(prev => ({ ...prev, email_html_template: PRESETS.cobranca }))}
+                            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 border border-rose-150 dark:border-rose-900/30 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1.5 transition-all"
+                        >
+                            <AlertCircle size={14} /> Lembrete de Cobrança
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setResendConfig(prev => ({ ...prev, email_html_template: PRESETS.parabens }))}
+                            className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 border border-amber-150 dark:border-amber-900/30 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 transition-all"
+                        >
+                            <Sparkles size={14} /> Notificação Festiva (Parabéns)
+                        </button>
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Código HTML Customizado</label>
-                    <textarea
-                        className="w-full h-80 font-mono text-xs p-4 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        value={resendConfig.email_html_template}
-                        onChange={(e) => setResendConfig({ ...resendConfig, email_html_template: e.target.value })}
-                        placeholder="Cole aqui seu código HTML..."
-                    />
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {/* Left Column: Editor */}
+                    <div className="space-y-4">
+                        {/* Placeholders list */}
+                        <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                            <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wider mb-2">Variáveis Dinâmicas Disponíveis</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
+                                <div>{"{{companyName}}"} - Sua empresa</div>
+                                <div>{"{{clientName}}"} - Destinatário</div>
+                                <div>{"{{invoiceNumber}}"} - Número da Nota</div>
+                                <div>{"{{invoiceLabel}}"} - Tipo (NF-e/NFS-e)</div>
+                                <div>{"{{pdfUrl}}"} - Link do PDF</div>
+                                <div>{"{{xmlUrl}}"} - Link do XML</div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Código HTML Customizado</label>
+                            <textarea
+                                className="w-full h-[400px] font-mono text-xs p-4 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none shadow-inner"
+                                value={resendConfig.email_html_template}
+                                onChange={(e) => setResendConfig({ ...resendConfig, email_html_template: e.target.value })}
+                                placeholder="Cole aqui seu código HTML..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Column: Live Preview */}
+                    <div className="space-y-2 flex flex-col justify-between">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Visualização em Tempo Real (Preview)</label>
+                        <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-gray-50 dark:bg-slate-900 flex-1 flex flex-col min-h-[400px]">
+                            {/* Inbox header mockup */}
+                            <div className="bg-white dark:bg-slate-800 p-3 border-b border-gray-150 dark:border-slate-700 space-y-1 text-[10px] font-medium">
+                                <div><span className="text-gray-400 font-bold">De:</span> <span className="text-gray-850 dark:text-gray-200 font-bold">{companyName} &lt;nfe@suaempresa.com.br&gt;</span></div>
+                                <div><span className="text-gray-400 font-bold">Para:</span> <span className="text-gray-855 dark:text-gray-200">Carlos da Silva &lt;carlos.silva@exemplo.com&gt;</span></div>
+                                <div><span className="text-gray-400 font-bold">Assunto:</span> <span className="text-indigo-650 dark:text-indigo-400 font-bold">NF-e Nº 000123 - {companyName}</span></div>
+                            </div>
+                            <div className="p-3 bg-gray-100 dark:bg-slate-950 flex-1 flex">
+                                <iframe
+                                    title="Email Settings Live Preview"
+                                    srcDoc={getPreviewHtml()}
+                                    className="w-full h-full min-h-[380px] border border-gray-250 dark:border-slate-800 rounded-xl bg-white"
+                                    sandbox="allow-same-origin"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
