@@ -5,6 +5,8 @@ import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import { ResultModal } from '../ui/ResultModal';
+import axios from 'axios';
+import { API_BASE_URL } from '../../lib/constants';
 
 const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -131,6 +133,55 @@ export function EmailSettings() {
             smtp_secure: !!resend.smtp_secure
         });
     }, [currentCompany?.id]);
+
+    const [testing, setTesting] = useState(false);
+    const [showTestModal, setShowTestModal] = useState(false);
+    const [testEmail, setTestEmail] = useState('');
+
+    const handleTestSend = async () => {
+        if (!testEmail) {
+            alert('Por favor, informe o e-mail de destino.');
+            return;
+        }
+
+        setTesting(true);
+        try {
+            const base = API_BASE_URL.replace(/\/$/, '');
+            const response = await axios.post(`${base}/send-email/test`, {
+                provider: resendConfig.provider,
+                to: testEmail,
+                resendConfig,
+                companyName: currentCompany?.trade_name || currentCompany?.corporate_name || 'Minha Empresa'
+            });
+
+            if (response.data.success) {
+                setShowTestModal(false);
+                setResultModal({
+                    isOpen: true,
+                    title: 'Envio Realizado',
+                    message: response.data.message || 'E-mail de teste enviado com sucesso!',
+                    type: 'success'
+                });
+            }
+        } catch (err: any) {
+            console.error('Erro no envio de teste:', err);
+            const detailedMessage = 
+                err.response?.data?.detail?.message || 
+                (typeof err.response?.data?.detail === 'string' ? err.response?.data?.detail : null) ||
+                err.response?.data?.message || 
+                err.response?.data?.error || 
+                err.message || 
+                'Erro ao enviar e-mail de teste.';
+            setResultModal({
+                isOpen: true,
+                title: 'Falha no Teste',
+                message: detailedMessage,
+                type: 'error'
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
@@ -483,7 +534,19 @@ export function EmailSettings() {
                 </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                        setTestEmail('');
+                        setShowTestModal(true);
+                    }}
+                    className="border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 font-extrabold text-sm rounded-xl px-6 py-2.5 flex items-center gap-2"
+                >
+                    <Mail size={18} />
+                    Testar Envio
+                </Button>
                 <Button
                     type="button"
                     onClick={handleSave}
@@ -494,6 +557,52 @@ export function EmailSettings() {
                     Salvar Configurações
                 </Button>
             </div>
+
+            {/* Modal de Digitar E-mail de Teste */}
+            {showTestModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-250 dark:border-slate-700 shadow-2xl p-6 max-w-md w-full space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+                                <Mail size={22} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Enviar E-mail de Teste</h3>
+                                <p className="text-xs text-gray-500">Valide suas credenciais antes de salvar.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">Endereço de E-mail de Destino</label>
+                            <input
+                                type="email"
+                                value={testEmail}
+                                onChange={(e) => setTestEmail(e.target.value)}
+                                placeholder="exemplo@gmail.com"
+                                className="w-full text-sm p-3 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowTestModal(false)}
+                                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleTestSend}
+                                disabled={testing}
+                                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-extrabold text-xs rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm"
+                            >
+                                {testing ? 'Enviando...' : 'Enviar Teste'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal de Resultado */}
             <ResultModal

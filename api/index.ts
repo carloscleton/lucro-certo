@@ -4606,6 +4606,104 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 });
 
+app.post(['/send-email/test', '/api/send-email/test'], authenticate, async (req, res) => {
+    const { provider, to, resendConfig, companyName } = req.body;
+
+    if (!to) {
+        return res.status(400).json({ error: 'Destinatário é obrigatório' });
+    }
+
+    const testSubject = `📧 Lucro Certo - Teste de Configuração de E-mail`;
+    const testHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #2563eb; margin-top: 0;">Parabéns!</h2>
+            <p>Se você está lendo esta mensagem, significa que a sua configuração de e-mail no sistema <strong>Lucro Certo</strong> foi realizada com sucesso!</p>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+            <p style="font-size: 14px; color: #64748b; margin-bottom: 8px;"><strong>Detalhes da Configuração:</strong></p>
+            <ul style="font-size: 14px; color: #64748b; line-height: 1.6; padding-left: 20px; margin: 0;">
+                <li><strong>Método de Envio:</strong> ${provider === 'smtp' ? 'Servidor SMTP Próprio' : 'Resend API (Domínio Próprio)'}</li>
+                ${provider === 'smtp' ? `
+                <li><strong>Servidor Host:</strong> ${resendConfig?.smtp_host}</li>
+                <li><strong>Porta:</strong> ${resendConfig?.smtp_port}</li>
+                <li><strong>Usuário SMTP:</strong> ${resendConfig?.smtp_user}</li>
+                ` : `
+                <li><strong>Remetente do Resend:</strong> ${resendConfig?.fromEmail}</li>
+                `}
+                <li><strong>Data/Hora do Teste:</strong> ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</li>
+            </ul>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px;">Esta é uma mensagem automática de teste. Não é necessário responder.</p>
+        </div>
+    `;
+
+    if (provider === 'smtp') {
+        try {
+            console.log(`✉️ [SMTP-TEST] Enviando e-mail de teste para: ${to} via SMTP (${resendConfig?.smtp_host})`);
+            const transporter = nodemailer.createTransport({
+                host: resendConfig.smtp_host,
+                port: Number(resendConfig.smtp_port || 587),
+                secure: !!resendConfig.smtp_secure,
+                auth: {
+                    user: resendConfig.smtp_user,
+                    pass: resendConfig.smtp_pass
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const info = await transporter.sendMail({
+                from: resendConfig.fromEmail || resendConfig.smtp_user,
+                to: to,
+                subject: testSubject,
+                html: testHtml
+            });
+
+            console.log(`✅ [SMTP-TEST] E-mail de teste enviado. MessageID: ${info.messageId}`);
+            return res.json({ success: true, message: `E-mail de teste enviado com sucesso para ${to} via SMTP!` });
+        } catch (smtpErr: any) {
+            console.error('❌ [SMTP-TEST] Erro no envio de teste:', smtpErr.message);
+            return res.status(500).json({
+                error: 'Erro ao enviar e-mail de teste via SMTP',
+                detail: smtpErr.message
+            });
+        }
+    } else {
+        // Resend
+        try {
+            console.log(`✉️ [RESEND-TEST] Enviando e-mail de teste para: ${to}`);
+            const apiKey = resendConfig?.apiKey;
+            const fromEmail = resendConfig?.fromEmail || `${companyName || 'Lucro Certo'} <onboarding@resend.dev>`;
+
+            if (!apiKey) {
+                return res.status(400).json({ error: 'Chave de API do Resend é obrigatória para o teste.' });
+            }
+
+            const response = await axios.post('https://api.resend.com/emails', {
+                from: fromEmail,
+                to: [to],
+                subject: testSubject,
+                html: testHtml
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 15000
+            });
+
+            console.log(`✅ [RESEND-TEST] E-mail de teste enviado. ID: ${response.data?.id}`);
+            return res.json({ success: true, message: `E-mail de teste enviado com sucesso para ${to} via Resend!` });
+        } catch (error: any) {
+            const detail = error.response?.data || error.message;
+            console.error('❌ [RESEND-TEST] Erro no envio de teste:', detail);
+            return res.status(error.response?.status || 500).json({
+                error: 'Erro ao enviar e-mail de teste via Resend',
+                detail
+            });
+        }
+    }
+});
+
 app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'], authenticate, async (req, res) => {
     let { type, id } = req.params;
     const { companyId } = req.query;
