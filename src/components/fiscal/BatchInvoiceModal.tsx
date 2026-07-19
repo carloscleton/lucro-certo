@@ -203,7 +203,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             // 2. Fetch fiscal invoices for this month to check which ones have already been emitted
             const { data: invoicesData, error: invError } = await supabase
                 .from('fiscal_invoices')
-                .select('id, payload')
+                .select('id, payload, created_at')
                 .eq('company_id', filterId)
                 .is('deleted', false);
 
@@ -216,11 +216,26 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 // Find if an invoice already exists for this contact in the selected reference_month
                 const existingInvoice = (invoicesData || []).find(inv => {
-                    const payloadCnpj = (inv.payload as any)?.tomador?.cpfCnpj?.replace(/\D/g, '') || 
-                                        (inv.payload as any)?.destinatario?.cpfCnpj?.replace(/\D/g, '') ||
-                                        (inv.payload as any)?.destinatario?.cnpj?.replace(/\D/g, '') || '';
+                    const invPayload = inv.payload as any;
+                    const idIntegracao = invPayload?.idIntegracao || invPayload?.retorno?.idIntegracao || '';
+                    
+                    // 1. Matches exact RECORRENTE_${s.id}_${selectedMonth}
+                    if (idIntegracao === `RECORRENTE_${s.id}_${selectedMonth}`) {
+                        return true;
+                    }
+
+                    const payloadCnpj = invPayload?.tomador?.cpfCnpj?.replace(/\D/g, '') || 
+                                        invPayload?.destinatario?.cpfCnpj?.replace(/\D/g, '') ||
+                                        invPayload?.destinatario?.cnpj?.replace(/\D/g, '') || '';
                     const contactCnpj = contactObj?.tax_id?.replace(/\D/g, '') || '';
-                    return payloadCnpj !== '' && payloadCnpj === contactCnpj && (inv.payload as any)?.reference_month === selectedMonth;
+                    const isSameContact = payloadCnpj !== '' && payloadCnpj === contactCnpj;
+
+                    // 2. Fallback: Check legacy matching (startsWith RECORRENTE_${s.id}_) and creation date/ref_month matches selectedMonth
+                    const createdMonth = inv.created_at ? inv.created_at.substring(0, 7) : '';
+                    const isSameMonth = createdMonth === selectedMonth || invPayload?.reference_month === selectedMonth;
+                    const isLegacyRecorrenteMatch = idIntegracao.startsWith(`RECORRENTE_${s.id}_`) && isSameMonth;
+
+                    return isSameContact && (isSameMonth || isLegacyRecorrenteMatch);
                 });
 
                 return {
@@ -491,7 +506,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 };
 
                 const payload: any = {
-                    idIntegracao: `RECORRENTE_${chargeId}_${Date.now()}`,
+                    idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
                     codigoIbge: companyCityCode,
                     prestador: {
                         cpfCnpj: currentCompany?.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
