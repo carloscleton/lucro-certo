@@ -97,6 +97,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'emitted' | 'error' | 'incomplete'>('all');
     const [waInstances, setWaInstances] = useState<any[]>([]);
+    const [queryError, setQueryError] = useState<string | null>(null);
+
+    const handleAmountChange = (id: string, newAmount: number) => {
+        setCharges(prev => prev.map(c => {
+            if (c.id === id) {
+                return { ...c, amount: isNaN(newAmount) ? 0 : newAmount };
+            }
+            return c;
+        }));
+    };
 
     // Quick Edit Contact
     const [editingContact, setEditingContact] = useState<QuickEditData | null>(null);
@@ -139,6 +149,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const fetchCharges = async () => {
         if (!currentEntity.id) return;
         setIsLoading(true);
+        setQueryError(null);
         try {
             // Get UUID for company
             let filterId = currentEntity.id;
@@ -163,7 +174,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     status,
                     next_due_at,
                     created_at,
-                    contact:contact_id (
+                    contact:contacts (
                         id,
                         name,
                         tax_id,
@@ -178,7 +189,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         city,
                         state
                     ),
-                    plan:plan_id (
+                    plan:loyalty_plans (
                         id,
                         name,
                         price
@@ -235,26 +246,28 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 }
             });
             setSelectedIds(initialSelected);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching loyalty charges:', error);
+            setQueryError(error.message || 'Falha ao buscar assinaturas do banco de dados.');
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && currentEntity.id) {
             fetchCharges();
             setIsProcessing(false);
             setIsPaused(false);
             setProgress(0);
             setExecutionLogs({});
         }
-    }, [isOpen, selectedMonth]);
+    }, [isOpen, selectedMonth, currentEntity.id]);
 
     // Validation helper
     const validateContact = (contact: any) => {
         const missing = [];
+        if (!contact) return ['Contato não vinculado'];
         if (!contact.name) missing.push('Nome');
         if (!contact.tax_id || contact.tax_id.replace(/\D/g, '').length < 11) missing.push('CPF/CNPJ');
         if (!contact.email) missing.push('E-mail');
@@ -271,7 +284,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const filteredCharges = useMemo(() => {
         return charges.filter(c => {
             // Search filter
-            const matchesSearch = c.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            const contactName = c.contact?.name || '';
+            const matchesSearch = contactName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                   (c.subscription?.plan?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
             
             // Status filter
@@ -712,6 +726,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     </div>
                 </div>
 
+                {queryError && (
+                    <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-950/10 rounded-2xl flex items-start gap-3 text-rose-800 dark:text-rose-200">
+                        <AlertTriangle className="flex-shrink-0 mt-0.5" size={18} />
+                        <div>
+                            <div className="font-bold">Erro ao carregar dados</div>
+                            <div className="text-xs mt-0.5">{queryError}</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Statistics Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
@@ -806,9 +830,21 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     <div className="font-medium">{c.subscription?.plan?.name || 'Assinatura'}</div>
                                                     <div className="text-xs text-gray-400 mt-0.5">Vencimento: {new Date(c.due_date).toLocaleDateString('pt-BR')}</div>
                                                 </td>
-                                                <td className="py-4 px-4 font-mono font-bold">
-                                                    R$ {c.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                </td>
+                                                <td className="py-4 px-4">
+                                                     <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2 py-1 max-w-[120px]">
+                                                         <span className="text-xs text-gray-400 font-bold">R$</span>
+                                                         <input
+                                                             type="number"
+                                                             step="0.01"
+                                                             min="0"
+                                                             value={c.amount === 0 ? '' : c.amount}
+                                                             onChange={(e) => handleAmountChange(c.id, parseFloat(e.target.value))}
+                                                             disabled={isProcessing || isEmitted}
+                                                             className="w-full bg-transparent border-none text-right font-mono font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-0 p-0"
+                                                             placeholder="0,00"
+                                                         />
+                                                     </div>
+                                                 </td>
                                                 <td className="py-4 px-4">
                                                     {missing.length === 0 ? (
                                                         <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-950/10">
