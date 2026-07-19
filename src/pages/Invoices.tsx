@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import { API_BASE_URL } from '../lib/constants';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
+import { BatchInvoiceModal } from '../components/fiscal/BatchInvoiceModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
@@ -191,6 +192,7 @@ export function Invoices() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
     const [showBillingModal, setShowBillingModal] = useState(false);
+    const [showBatchModal, setShowBatchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [showDeleted, setShowDeleted] = useState(false);
@@ -1078,6 +1080,14 @@ ${messageWithPlaceholder}`;
                         Relatório de Cobrança
                     </Button>
                     <Button 
+                        variant="ghost" 
+                        onClick={() => setShowBatchModal(true)} 
+                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+                        <RefreshCw size={16} className="mr-2 text-violet-500" />
+                        Faturamento Recorrente
+                    </Button>
+                    <Button 
                         variant="primary" 
                         onClick={() => setShowNewModal(true)} 
                         className="flex-1 md:flex-none h-11 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 font-bold text-xs"
@@ -1554,6 +1564,16 @@ ${messageWithPlaceholder}`;
                 <ConsultaNotasModal 
                     onClose={() => setShowConsultaModal(false)} 
                     companyId={currentEntity.id!}
+                />
+            )}
+
+            {showBatchModal && (
+                <BatchInvoiceModal 
+                    isOpen={showBatchModal}
+                    onClose={() => {
+                        setShowBatchModal(false);
+                        refresh();
+                    }}
                 />
             )}
 
