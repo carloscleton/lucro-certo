@@ -39,10 +39,19 @@ interface ChargeWithContact {
     };
     subscription: {
         id: string;
-        plan: {
+        plan?: {
             id: string;
             name: string;
             price: number;
+        };
+        service?: {
+            id: string;
+            name: string;
+            price: number;
+            codigo_servico_municipal?: string;
+            item_lista_servico?: string;
+            codigo_tributacao_nacional?: string;
+            description?: string;
         };
     };
 }
@@ -175,6 +184,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     next_due_at,
                     created_at,
                     custom_price,
+                    service_id,
                     contact:contacts (
                         id,
                         name,
@@ -194,6 +204,15 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         id,
                         name,
                         price
+                    ),
+                    service:services (
+                        id,
+                        name,
+                        price,
+                        codigo_servico_municipal,
+                        item_lista_servico,
+                        codigo_tributacao_nacional,
+                        description
                     )
                 `)
                 .eq('company_id', filterId)
@@ -214,6 +233,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             const mappedCharges: ChargeWithContact[] = (subsData || []).map(s => {
                 const contactObj = Array.isArray(s.contact) ? s.contact[0] : s.contact;
                 const planObj = Array.isArray(s.plan) ? s.plan[0] : s.plan;
+                const serviceObj = Array.isArray(s.service) ? s.service[0] : s.service;
 
                 // Find if an invoice already exists for this contact in the selected reference_month
                 const existingInvoice = (invoicesData || []).find(inv => {
@@ -241,7 +261,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 return {
                     id: s.id, // using subscription id as the unique identifier
-                    amount: s.custom_price || planObj?.price || 0,
+                    amount: s.custom_price || serviceObj?.price || planObj?.price || 0,
                     reference_month: selectedMonth,
                     status: s.status,
                     fiscal_invoice_id: existingInvoice ? existingInvoice.id : null,
@@ -249,7 +269,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     contact: contactObj,
                     subscription: {
                         id: s.id,
-                        plan: planObj || { id: '', name: 'Contrato Customizado', price: s.custom_price || 0 }
+                        plan: planObj || undefined,
+                        service: serviceObj || undefined
                     }
                 } as any;
             });
@@ -489,14 +510,24 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const defaultIss = isSimples ? (config?.simples_nacional_aliquota || '0') : (config?.default_iss_aliquota || '3');
                 const natCode = config?.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
 
+                const serviceObj = (charge.subscription as any)?.service;
+                const planName = serviceObj?.name || charge.subscription?.plan?.name || 'Recorrente';
+                const serviceDescription = serviceObj?.description || serviceObj?.name || `Mensalidade do plano de fidelidade: ${planName}`;
+                
+                const serviceTaxCode = serviceObj?.codigo_servico_municipal || serviceObj?.item_lista_servico;
+                const serviceNatCode = serviceObj?.codigo_tributacao_nacional;
+                
+                const finalTaxCode = serviceTaxCode ? serviceTaxCode.replace(/\D/g, '') : (isNacional ? natCode : (config?.default_taxation_code || '01.01'));
+                const finalNatCode = serviceNatCode ? serviceNatCode.replace(/\D/g, '').substring(0, 9) : natCode;
+
                 const itemPayload = {
                     amount: String(charge.amount),
                     quantity: 1,
-                    description: `Mensalidade do plano de fidelidade: ${charge.subscription?.plan?.name || 'Recorrente'}`,
-                    taxCode: isNacional ? natCode : (config?.default_taxation_code || '01.01'),
+                    description: serviceDescription,
+                    taxCode: isNacional ? finalNatCode : finalTaxCode,
                     cnae: config?.default_cnae || '',
-                    taxationCode: isNacional ? natCode : '',
-                    codigoTributacaoNacional: isNacional ? natCode : '',
+                    taxationCode: isNacional ? finalNatCode : '',
+                    codigoTributacaoNacional: isNacional ? finalNatCode : '',
                     issAliquota: defaultIss,
                     issExigibilidade: config?.default_iss_exigibilidade || '1',
                     issTipo: config?.default_iss_tipo || '7',

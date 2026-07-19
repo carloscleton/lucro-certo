@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { useEntity } from '../../context/EntityContext';
 import { useLoyalty } from '../../hooks/useLoyalty';
 import { useAuth } from '../../context/AuthContext';
+import { useServices } from '../../hooks/useServices';
 
 interface ContactFormProps {
     isOpen: boolean;
@@ -43,6 +44,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const { notify } = useNotification();
     const { currentEntity } = useEntity();
     const { plans } = useLoyalty();
+    const { services } = useServices();
     const { user } = useAuth();
     const [name, setName] = useState('');
     const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
@@ -62,13 +64,14 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [neighborhood, setNeighborhood] = useState('');
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
+    const [recorrenteType, setRecorrenteType] = useState<'none' | 'plan' | 'service' | 'custom'>('none');
     const [loyaltyPlanId, setLoyaltyPlanId] = useState('');
+    const [loyaltyServiceId, setLoyaltyServiceId] = useState('');
     const [generateGatewayLink, setGenerateGatewayLink] = useState(false);
     const [checkoutUrl, setCheckoutUrl] = useState('');
     const [whatsappSent, setWhatsappSent] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
     const [nextDueAt, setNextDueAt] = useState('');
-    const [isCustomRecorrente, setIsCustomRecorrente] = useState(false);
     const [customPrice, setCustomPrice] = useState('');
 
     const [loading, setLoading] = useState(false);
@@ -178,22 +181,36 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 if (!currentEntity.id) return;
                 const { data } = await supabase
                     .from('loyalty_subscriptions')
-                    .select('plan_id, status, next_due_at, custom_price')
+                    .select('plan_id, service_id, status, next_due_at, custom_price')
                     .eq('contact_id', initialData.id)
                     .eq('company_id', currentEntity.id)
                     .in('status', ['active', 'past_due', 'trialing', 'pending'])
                     .maybeSingle();
                 
                 if (data) {
-                    setLoyaltyPlanId(data.plan_id || '');
-                    setIsCustomRecorrente(!data.plan_id);
-                    setCustomPrice(data.custom_price ? String(data.custom_price) : '');
+                    if (data.plan_id) {
+                        setRecorrenteType('plan');
+                        setLoyaltyPlanId(data.plan_id);
+                        setLoyaltyServiceId('');
+                        setCustomPrice('');
+                    } else if (data.service_id) {
+                        setRecorrenteType('service');
+                        setLoyaltyServiceId(data.service_id);
+                        setLoyaltyPlanId('');
+                        setCustomPrice('');
+                    } else {
+                        setRecorrenteType('custom');
+                        setLoyaltyPlanId('');
+                        setLoyaltyServiceId('');
+                        setCustomPrice(data.custom_price ? String(data.custom_price) : '');
+                    }
                     if (data.next_due_at) {
                         setNextDueAt(data.next_due_at.substring(0, 10));
                     }
                 } else {
+                    setRecorrenteType('none');
                     setLoyaltyPlanId('');
-                    setIsCustomRecorrente(false);
+                    setLoyaltyServiceId('');
                     setCustomPrice('');
                     setNextDueAt('');
                 }
@@ -216,7 +233,10 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setNeighborhood('');
             setCity('');
             setState('');
+            setRecorrenteType('none');
             setLoyaltyPlanId('');
+            setLoyaltyServiceId('');
+            setCustomPrice('');
             setNextDueAt('');
             setGenerateGatewayLink(false);
             setCheckoutUrl('');
@@ -344,7 +364,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const contactId = initialData?.id || savedContact?.id;
 
             if (contactId && currentEntity.id) {
-                if (loyaltyPlanId) {
+                if (recorrenteType === 'plan' && loyaltyPlanId) {
                     if (generateGatewayLink) {
                         if (!phone && !whatsapp) {
                             setLoading(false);
@@ -395,10 +415,10 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                 });
                             if (rpcError) throw rpcError;
                             
-                            // Since COALESCE in upsert might ignore nulls, let's also enforce the exact date with an explicit update
+                            // Explicit update to force matching fields and clean other paths
                             await supabase
                                 .from('loyalty_subscriptions')
-                                .update({ next_due_at: nextDueAt, custom_price: null })
+                                .update({ next_due_at: nextDueAt, custom_price: null, service_id: null })
                                 .eq('contact_id', contactId)
                                 .eq('company_id', currentEntity.id)
                                 .in('status', ['active', 'past_due', 'trialing', 'pending']);
@@ -415,14 +435,30 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
                             await supabase
                                 .from('loyalty_subscriptions')
-                                .update({ custom_price: null })
+                                .update({ custom_price: null, service_id: null })
                                 .eq('contact_id', contactId)
                                 .eq('company_id', currentEntity.id);
                         }
                         notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
-                } else if (isCustomRecorrente) {
-                    // Save custom recorrente subscription directly using upsert
+                } else if (recorrenteType === 'service' && loyaltyServiceId) {
+                    // Link to catalog service
+                    const { error: upsertError } = await supabase
+                        .from('loyalty_subscriptions')
+                        .upsert({
+                            company_id: currentEntity.id,
+                            contact_id: contactId,
+                            plan_id: null,
+                            service_id: loyaltyServiceId,
+                            status: 'active',
+                            next_due_at: nextDueAt || null,
+                            custom_price: null
+                        }, { onConflict: 'company_id,contact_id' });
+
+                    if (upsertError) throw upsertError;
+                    notify('success', 'Serviço recorrente vinculado com sucesso!', 'Clube de Fidelidade');
+                } else if (recorrenteType === 'custom') {
+                    // Custom recurring price
                     const priceValue = customPrice ? parseFloat(customPrice) : 0;
                     const { error: upsertError } = await supabase
                         .from('loyalty_subscriptions')
@@ -430,6 +466,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                             company_id: currentEntity.id,
                             contact_id: contactId,
                             plan_id: null,
+                            service_id: null,
                             status: 'active',
                             next_due_at: nextDueAt || null,
                             custom_price: priceValue
@@ -438,13 +475,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     if (upsertError) throw upsertError;
                     notify('success', 'Faturamento recorrente customizado configurado com sucesso!', 'Clube de Fidelidade');
                 } else {
-                    // Canceled / No Plan
+                    // Canceled / No Recorrente
                     await supabase
                         .from('loyalty_subscriptions')
                         .update({ status: 'canceled' })
                         .eq('contact_id', contactId)
                         .eq('company_id', currentEntity.id)
-                        .in('status', ['active', 'past_due', 'trialing']);
+                        .in('status', ['active', 'past_due', 'trialing', 'pending']);
                 }
             }
 
@@ -574,46 +611,135 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
                         <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 mb-4 flex items-center gap-2">
                             <Award size={18} />
-                            Clube de Fidelidade
+                            Faturamento Recorrente
                         </h3>
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Plano Vinculado</label>
-                            <select
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
-                                value={loyaltyPlanId}
-                                onChange={e => {
-                                    const val = e.target.value;
-                                    setLoyaltyPlanId(val);
-                                    if (val) setIsCustomRecorrente(false);
-                                }}
-                            >
-                                <option value="">Nenhum</option>
-                                {plans.filter(p => p.is_active).map(plan => (
-                                    <option key={plan.id} value={plan.id}>{plan.name}</option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ao selecionar um plano, ele será ativado manualmente para este contato.</p>
+
+                        <div className="flex flex-col gap-1.5 mb-4">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Recorrência</label>
+                            <div className="grid grid-cols-4 gap-2 bg-gray-50 dark:bg-slate-800/80 p-1 rounded-xl border border-gray-200/60 dark:border-slate-700/60">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRecorrenteType('none');
+                                        setLoyaltyPlanId('');
+                                        setLoyaltyServiceId('');
+                                    }}
+                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                        recorrenteType === 'none'
+                                            ? 'bg-amber-500 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    Nenhum
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRecorrenteType('plan');
+                                        setLoyaltyServiceId('');
+                                    }}
+                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                        recorrenteType === 'plan'
+                                            ? 'bg-amber-500 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    Plano
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRecorrenteType('service');
+                                        setLoyaltyPlanId('');
+                                    }}
+                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                        recorrenteType === 'service'
+                                            ? 'bg-amber-500 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    Serviço
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRecorrenteType('custom');
+                                        setLoyaltyPlanId('');
+                                        setLoyaltyServiceId('');
+                                    }}
+                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                        recorrenteType === 'custom'
+                                            ? 'bg-amber-500 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    Personalizado
+                                </button>
+                            </div>
                         </div>
-                        
-                        {!loyaltyPlanId && (
-                            <div className="mt-4 p-3 bg-amber-50/45 dark:bg-slate-800/40 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 animate-in fade-in">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={isCustomRecorrente}
-                                        onChange={e => setIsCustomRecorrente(e.target.checked)}
-                                        className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
-                                    />
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Habilitar Faturamento Recorrente Customizado</span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">Configure um valor recorrente diferenciado de contrato para este cliente/fornecedor.</span>
+
+                        {recorrenteType === 'plan' && (
+                            <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Plano Vinculado</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                        value={loyaltyPlanId}
+                                        onChange={e => setLoyaltyPlanId(e.target.value)}
+                                    >
+                                        <option value="">Selecione um plano...</option>
+                                        {plans.filter(p => p.is_active).map(plan => (
+                                            <option key={plan.id} value={plan.id}>{plan.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {loyaltyPlanId && (
+                                    <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vencimento da Assinatura</label>
+                                        <input
+                                            type="date"
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                            value={nextDueAt}
+                                            onChange={e => setNextDueAt(e.target.value)}
+                                        />
                                     </div>
-                                </label>
+                                )}
                             </div>
                         )}
 
-                        {(!loyaltyPlanId && isCustomRecorrente) && (
-                            <div className="grid grid-cols-2 gap-4 mt-4 animate-in fade-in slide-in-from-top-1">
+                        {recorrenteType === 'service' && (
+                            <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Serviço do Catálogo</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                        value={loyaltyServiceId}
+                                        onChange={e => setLoyaltyServiceId(e.target.value)}
+                                    >
+                                        <option value="">Selecione um serviço...</option>
+                                        {services.map(srv => (
+                                            <option key={srv.id} value={srv.id}>
+                                                {srv.name} (R$ {srv.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {loyaltyServiceId && (
+                                    <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vencimento da Assinatura</label>
+                                        <input
+                                            type="date"
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                            value={nextDueAt}
+                                            onChange={e => setNextDueAt(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {recorrenteType === 'custom' && (
+                            <div className="grid grid-cols-2 gap-4 mt-4 animate-in fade-in duration-200">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vencimento da Assinatura</label>
                                     <input
@@ -637,23 +763,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                 </div>
                             </div>
                         )}
-                        
-                        {loyaltyPlanId && (
-                            <div className="flex flex-col gap-1.5 mt-4">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Vencimento da Assinatura</label>
-                                <input
-                                    type="date"
-                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
-                                    value={nextDueAt}
-                                    onChange={e => setNextDueAt(e.target.value)}
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Altere a data para prorrogar ou antecipar o vencimento.
-                                </p>
-                            </div>
-                        )}
 
-                        {loyaltyPlanId && (
+                        {recorrenteType === 'plan' && loyaltyPlanId && (
                             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 animate-in fade-in slide-in-from-top-1">
                                 <label className="flex items-start gap-3 cursor-pointer">
                                     <input 
