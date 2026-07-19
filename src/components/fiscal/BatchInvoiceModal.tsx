@@ -203,7 +203,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             // 2. Fetch fiscal invoices for this month to check which ones have already been emitted
             const { data: invoicesData, error: invError } = await supabase
                 .from('fiscal_invoices')
-                .select('id, contact_id, payload')
+                .select('id, payload')
                 .eq('company_id', filterId)
                 .is('deleted', false);
 
@@ -215,10 +215,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const planObj = Array.isArray(s.plan) ? s.plan[0] : s.plan;
 
                 // Find if an invoice already exists for this contact in the selected reference_month
-                const existingInvoice = (invoicesData || []).find(inv => 
-                    inv.contact_id === contactObj?.id && 
-                    inv.payload?.reference_month === selectedMonth
-                );
+                const existingInvoice = (invoicesData || []).find(inv => {
+                    const payloadCnpj = (inv.payload as any)?.tomador?.cpfCnpj?.replace(/\D/g, '') || 
+                                        (inv.payload as any)?.destinatario?.cpfCnpj?.replace(/\D/g, '') ||
+                                        (inv.payload as any)?.destinatario?.cnpj?.replace(/\D/g, '') || '';
+                    const contactCnpj = contactObj?.tax_id?.replace(/\D/g, '') || '';
+                    return payloadCnpj !== '' && payloadCnpj === contactCnpj && (inv.payload as any)?.reference_month === selectedMonth;
+                });
 
                 return {
                     id: s.id, // using subscription id as the unique identifier
@@ -580,11 +583,9 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     .from('fiscal_invoices')
                     .insert({
                         company_id: currentEntity.id,
-                        contact_id: charge.contact.id,
                         external_id: externalId,
                         type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
                         status: statusStr,
-                        amount: charge.amount,
                         payload: {
                             ...payload,
                             retorno: finalPayload,
