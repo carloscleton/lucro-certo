@@ -4963,7 +4963,7 @@ app.post(['/fiscal-module/:type/:id/email', '/api/fiscal-module/:type/:id/email'
         const rawBase = isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase);
         const baseUrl = String(rawBase).toLowerCase().replace(/\/$/, '');
 
-        const targetUrl = `${baseUrl}/${type}/email/${id}`;
+        const targetUrl = `${baseUrl}/${type}/${id}/email`;
         console.log(`✉️ [FISCAL-EMAIL] Solicitando reenvio de e-mail para ${type} ID: ${id} via PlugNotas`);
 
         const response = await axios.post(targetUrl, {
