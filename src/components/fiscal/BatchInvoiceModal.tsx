@@ -578,29 +578,59 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     throw new Error(result.message || 'ID da nota não retornado pela API.');
                 }
 
-                // 4. Save in DB
-                const { data: dbInvoice, error: dbError } = await supabase
+                // 4. Save/Update in DB (Check if backend proxy already created the row)
+                let dbInvoiceId = '';
+                
+                const { data: existingInv } = await supabase
                     .from('fiscal_invoices')
-                    .insert({
-                        company_id: currentEntity.id,
-                        external_id: externalId,
-                        type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
-                        status: statusStr,
-                        payload: {
-                            ...payload,
-                            retorno: finalPayload,
-                            reference_month: selectedMonth
-                        }
-                    })
-                    .select()
-                    .single();
+                    .select('id')
+                    .eq('external_id', externalId)
+                    .maybeSingle();
 
-                if (dbError) throw dbError;
+                if (existingInv) {
+                    console.log(`📝 [DB-SAVE] Nota ${externalId} já existe no DB. Atualizando status e payload...`);
+                    const { data: updatedInv, error: dbError } = await supabase
+                        .from('fiscal_invoices')
+                        .update({
+                            status: statusStr,
+                            payload: {
+                                ...payload,
+                                retorno: finalPayload,
+                                reference_month: selectedMonth
+                            }
+                        })
+                        .eq('id', existingInv.id)
+                        .select('id')
+                        .single();
+
+                    if (dbError) throw dbError;
+                    dbInvoiceId = updatedInv.id;
+                } else {
+                    console.log(`💾 [DB-SAVE] Inserindo nova nota ${externalId} no DB...`);
+                    const { data: newInv, error: dbError } = await supabase
+                        .from('fiscal_invoices')
+                        .insert({
+                            company_id: currentEntity.id,
+                            external_id: externalId,
+                            type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
+                            status: statusStr,
+                            payload: {
+                                ...payload,
+                                retorno: finalPayload,
+                                reference_month: selectedMonth
+                            }
+                        })
+                        .select('id')
+                        .single();
+
+                    if (dbError) throw dbError;
+                    dbInvoiceId = newInv.id;
+                }
 
                 // 5. Link to charge if a charge exists in loyalty_charges for this month
                 await supabase
                     .from('loyalty_charges')
-                    .update({ fiscal_invoice_id: dbInvoice.id })
+                    .update({ fiscal_invoice_id: dbInvoiceId })
                     .eq('subscription_id', chargeId)
                     .eq('reference_month', selectedMonth);
 
