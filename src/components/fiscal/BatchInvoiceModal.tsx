@@ -155,15 +155,14 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 }
             }
 
-            const { data, error } = await supabase
-                .from('loyalty_charges')
+            // 1. Fetch subscriptions
+            const { data: subsData, error: subsError } = await supabase
+                .from('loyalty_subscriptions')
                 .select(`
                     id,
-                    amount,
-                    reference_month,
                     status,
-                    fiscal_invoice_id,
-                    due_date,
+                    next_due_at,
+                    created_at,
                     contact:contact_id (
                         id,
                         name,
@@ -179,23 +178,56 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         city,
                         state
                     ),
-                    subscription:subscription_id (
+                    plan:plan_id (
                         id,
-                        plan:plan_id (
-                            id,
-                            name,
-                            price
-                        )
+                        name,
+                        price
                     )
                 `)
                 .eq('company_id', filterId)
-                .eq('reference_month', selectedMonth);
+                .in('status', ['active', 'overdue', 'pending']);
 
-            if (error) throw error;
-            setCharges((data as any[]) || []);
+            if (subsError) throw subsError;
+
+            // 2. Fetch fiscal invoices for this month to check which ones have already been emitted
+            const { data: invoicesData, error: invError } = await supabase
+                .from('fiscal_invoices')
+                .select('id, contact_id, payload')
+                .eq('company_id', filterId)
+                .is('deleted', false);
+
+            if (invError) throw invError;
+
+            // 3. Map subscriptions to "charges" structure for backward compatibility with JSX
+            const mappedCharges: ChargeWithContact[] = (subsData || []).map(s => {
+                const contactObj = Array.isArray(s.contact) ? s.contact[0] : s.contact;
+                const planObj = Array.isArray(s.plan) ? s.plan[0] : s.plan;
+
+                // Find if an invoice already exists for this contact in the selected reference_month
+                const existingInvoice = (invoicesData || []).find(inv => 
+                    inv.contact_id === contactObj?.id && 
+                    inv.payload?.reference_month === selectedMonth
+                );
+
+                return {
+                    id: s.id, // using subscription id as the unique identifier
+                    amount: planObj?.price || 0,
+                    reference_month: selectedMonth,
+                    status: s.status,
+                    fiscal_invoice_id: existingInvoice ? existingInvoice.id : null,
+                    due_date: s.next_due_at || s.created_at || new Date().toISOString(),
+                    contact: contactObj,
+                    subscription: {
+                        id: s.id,
+                        plan: planObj || { id: '', name: 'Sem Plano', price: 0 }
+                    }
+                } as any;
+            });
+
+            setCharges(mappedCharges);
             // Auto-select ready and pending charges
             const initialSelected = new Set<string>();
-            (data || []).forEach(c => {
+            mappedCharges.forEach(c => {
                 const isPending = !c.fiscal_invoice_id;
                 const hasDetails = validateContact(c.contact).length === 0;
                 if (isPending && hasDetails) {
@@ -550,11 +582,12 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 if (dbError) throw dbError;
 
-                // 5. Link to charge
+                // 5. Link to charge if a charge exists in loyalty_charges for this month
                 await supabase
                     .from('loyalty_charges')
                     .update({ fiscal_invoice_id: dbInvoice.id })
-                    .eq('id', chargeId);
+                    .eq('subscription_id', chargeId)
+                    .eq('reference_month', selectedMonth);
 
                 // 6. WhatsApp Notification
                 if (config?.send_whatsapp_automatically && waInstances.length > 0 && charge.contact.whatsapp) {
