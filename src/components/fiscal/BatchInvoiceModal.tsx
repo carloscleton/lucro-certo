@@ -174,6 +174,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     status,
                     next_due_at,
                     created_at,
+                    custom_price,
                     contact:contacts (
                         id,
                         name,
@@ -240,7 +241,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 return {
                     id: s.id, // using subscription id as the unique identifier
-                    amount: planObj?.price || 0,
+                    amount: s.custom_price || planObj?.price || 0,
                     reference_month: selectedMonth,
                     status: s.status,
                     fiscal_invoice_id: existingInvoice ? existingInvoice.id : null,
@@ -248,7 +249,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     contact: contactObj,
                     subscription: {
                         id: s.id,
-                        plan: planObj || { id: '', name: 'Sem Plano', price: 0 }
+                        plan: planObj || { id: '', name: 'Contrato Customizado', price: s.custom_price || 0 }
                     }
                 } as any;
             });
