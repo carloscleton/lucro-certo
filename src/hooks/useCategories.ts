@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 
@@ -36,7 +36,7 @@ export function useCategories() {
                 query = query.eq('user_id', user.id).is('company_id', null);
             }
 
-            const { data, error } = await query;
+            const { data, error } = await withRetry(() => query);
 
             if (error) throw error;
             setCategories(data || []);

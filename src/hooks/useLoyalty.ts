@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 
 export interface LoyaltyPlan {
@@ -45,10 +45,11 @@ export function useLoyalty() {
     const fetchStats = async () => {
         if (!currentEntity.id || currentEntity.type !== 'company') return;
         try {
-            const { data: subs, error } = await supabase
+            const { data: subs, error } = await withRetry(() => supabase
                 .from('loyalty_subscriptions')
                 .select('status, plan:loyalty_plans(price, billing_cycle)')
-                .eq('company_id', currentEntity.id);
+                .eq('company_id', currentEntity.id)
+            );
 
             if (error) throw error;
 
@@ -79,11 +80,12 @@ export function useLoyalty() {
     const fetchPlans = async () => {
         if (!currentEntity.id || currentEntity.type !== 'company') return;
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('loyalty_plans')
                 .select('*')
                 .eq('company_id', currentEntity.id)
-                .order('display_order', { ascending: true });
+                .order('display_order', { ascending: true })
+            );
 
             if (error) throw error;
             setPlans(data || []);
@@ -95,11 +97,12 @@ export function useLoyalty() {
     const fetchSettings = async () => {
         if (!currentEntity.id || currentEntity.type !== 'company') return;
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('loyalty_settings')
                 .select('*')
                 .eq('company_id', currentEntity.id)
-                .maybeSingle();
+                .maybeSingle()
+            );
 
             if (error) throw error;
             

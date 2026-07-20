@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { webhookService } from '../services/webhookService';
@@ -111,11 +111,12 @@ export function useContacts() {
     const fetchContacts = async () => {
         if (!user) return;
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('contacts')
                 .select('*, loyalty_subscriptions(status, started_at, next_due_at, plan:loyalty_plans(name))')
                 .eq('user_id', user.id)
-                .order('name');
+                .order('name')
+            );
 
             if (error) throw error;
             const allContacts = data || [];

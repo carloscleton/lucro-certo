@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 export interface TeamMember {
@@ -67,7 +67,7 @@ export function useTeam() {
             setError(null);
 
             // Fetch Members
-            const { data: membersData, error: membersError } = await supabase
+            const { data: membersData, error: membersError } = await withRetry(() => supabase
                 .from('company_members')
                 .select(`
                     id,
@@ -75,13 +75,14 @@ export function useTeam() {
                     role,
                     status,
                     created_at,
-                    profile:user_id (
+                    profile:profiles (
                         full_name,
                         email
                     )
                 `)
                 .eq('company_id', validCompanyId)
-                .eq('status', 'active');
+                .eq('status', 'active')
+            );
 
             if (membersError) throw membersError;
 

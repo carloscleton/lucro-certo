@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 
@@ -103,11 +103,12 @@ export function useSettings() {
 
         try {
             if (currentEntity.type === 'company') {
-                const { data, error } = await supabase
+                const { data, error } = await withRetry(() => supabase
                     .from('companies')
                     .select('settings')
                     .eq('id', currentEntity.id)
-                    .single();
+                    .single()
+                );
 
                 if (error) {
                     console.error('Error fetching company settings:', error);
