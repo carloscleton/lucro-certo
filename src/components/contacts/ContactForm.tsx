@@ -64,6 +64,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [neighborhood, setNeighborhood] = useState('');
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
+    const [isRecorrenteEnabled, setIsRecorrenteEnabled] = useState(false);
     const [recorrenteType, setRecorrenteType] = useState<'none' | 'plan' | 'service' | 'custom'>('none');
     const [loyaltyPlanId, setLoyaltyPlanId] = useState('');
     const [loyaltyServiceId, setLoyaltyServiceId] = useState('');
@@ -188,6 +189,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     .maybeSingle();
                 
                 if (data) {
+                    setIsRecorrenteEnabled(true);
                     if (data.plan_id) {
                         setRecorrenteType('plan');
                         setLoyaltyPlanId(data.plan_id);
@@ -208,6 +210,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         setNextDueAt(data.next_due_at.substring(0, 10));
                     }
                 } else {
+                    setIsRecorrenteEnabled(false);
                     setRecorrenteType('none');
                     setLoyaltyPlanId('');
                     setLoyaltyServiceId('');
@@ -233,6 +236,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setNeighborhood('');
             setCity('');
             setState('');
+            setIsRecorrenteEnabled(false);
             setRecorrenteType('none');
             setLoyaltyPlanId('');
             setLoyaltyServiceId('');
@@ -364,7 +368,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const contactId = initialData?.id || savedContact?.id;
 
             if (contactId && currentEntity.id) {
-                if (recorrenteType === 'plan' && loyaltyPlanId) {
+                if (isRecorrenteEnabled && recorrenteType === 'plan' && loyaltyPlanId) {
                     if (generateGatewayLink) {
                         if (!phone && !whatsapp) {
                             setLoading(false);
@@ -441,7 +445,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         }
                         notify('success', 'Plano vinculado com sucesso!', 'Clube de Fidelidade');
                     }
-                } else if (recorrenteType === 'service' && loyaltyServiceId) {
+                } else if (isRecorrenteEnabled && recorrenteType === 'service' && loyaltyServiceId) {
                     // Link to catalog service
                     const { error: upsertError } = await supabase
                         .from('loyalty_subscriptions')
@@ -457,7 +461,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
                     if (upsertError) throw upsertError;
                     notify('success', 'Serviço recorrente vinculado com sucesso!', 'Clube de Fidelidade');
-                } else if (recorrenteType === 'custom') {
+                } else if (isRecorrenteEnabled && recorrenteType === 'custom') {
                     // Custom recurring price
                     const priceValue = customPrice ? parseFloat(customPrice) : 0;
                     const { error: upsertError } = await supabase
@@ -609,74 +613,91 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
                 {currentEntity.loyalty_module_enabled && (
                     <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
-                        <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 mb-4 flex items-center gap-2">
-                            <Award size={18} />
-                            Faturamento Recorrente
-                        </h3>
-
-                        <div className="flex flex-col gap-1.5 mb-4">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Recorrência</label>
-                            <div className="grid grid-cols-4 gap-2 bg-gray-50 dark:bg-slate-800/80 p-1 rounded-xl border border-gray-200/60 dark:border-slate-700/60">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
+                                <Award size={18} />
+                                Faturamento Recorrente
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                    {isRecorrenteEnabled ? 'Ativado' : 'Desativado'}
+                                </span>
                                 <button
                                     type="button"
+                                    role="switch"
+                                    aria-checked={isRecorrenteEnabled}
                                     onClick={() => {
-                                        setRecorrenteType('none');
-                                        setLoyaltyPlanId('');
-                                        setLoyaltyServiceId('');
+                                        const nextState = !isRecorrenteEnabled;
+                                        setIsRecorrenteEnabled(nextState);
+                                        if (!nextState) {
+                                            setRecorrenteType('none');
+                                        } else if (recorrenteType === 'none') {
+                                            setRecorrenteType('plan');
+                                        }
                                     }}
-                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
-                                        recorrenteType === 'none'
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        isRecorrenteEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'
                                     }`}
                                 >
-                                    Nenhum
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setRecorrenteType('plan');
-                                        setLoyaltyServiceId('');
-                                    }}
-                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
-                                        recorrenteType === 'plan'
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                                >
-                                    Plano
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setRecorrenteType('service');
-                                        setLoyaltyPlanId('');
-                                    }}
-                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
-                                        recorrenteType === 'service'
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                                >
-                                    Serviço
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setRecorrenteType('custom');
-                                        setLoyaltyPlanId('');
-                                        setLoyaltyServiceId('');
-                                    }}
-                                    className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
-                                        recorrenteType === 'custom'
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                    }`}
-                                >
-                                    Personalizado
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            isRecorrenteEnabled ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                    />
                                 </button>
                             </div>
                         </div>
+
+                        {isRecorrenteEnabled && (
+                            <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="flex flex-col gap-1.5 mb-4">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Recorrência</label>
+                                    <div className="grid grid-cols-3 gap-2 bg-gray-50 dark:bg-slate-800/80 p-1 rounded-xl border border-gray-200/60 dark:border-slate-700/60">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setRecorrenteType('plan');
+                                                setLoyaltyServiceId('');
+                                            }}
+                                            className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                                recorrenteType === 'plan'
+                                                    ? 'bg-amber-500 text-white shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                        >
+                                            Plano
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setRecorrenteType('service');
+                                                setLoyaltyPlanId('');
+                                            }}
+                                            className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                                recorrenteType === 'service'
+                                                    ? 'bg-amber-500 text-white shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                        >
+                                            Serviço
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setRecorrenteType('custom');
+                                                setLoyaltyPlanId('');
+                                                setLoyaltyServiceId('');
+                                            }}
+                                            className={`py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                                                recorrenteType === 'custom'
+                                                    ? 'bg-amber-500 text-white shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                        >
+                                            Personalizado
+                                        </button>
+                                    </div>
+                                </div>
 
                         {recorrenteType === 'plan' && (
                             <div className="flex flex-col gap-4 animate-in fade-in duration-200">
@@ -821,6 +842,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                         </Button>
                                     </div>
                                 </div>
+                            </div>
+                        )}
                             </div>
                         )}
                     </div>
