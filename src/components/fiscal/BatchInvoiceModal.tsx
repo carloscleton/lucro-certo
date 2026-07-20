@@ -26,6 +26,7 @@ interface ChargeWithContact {
     contact: {
         id: string;
         name: string;
+        type?: 'client' | 'supplier' | 'both';
         tax_id: string | null;
         email: string | null;
         phone: string | null;
@@ -191,6 +192,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     contact:contacts (
                         id,
                         name,
+                        type,
                         tax_id,
                         email,
                         phone,
@@ -820,7 +822,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 {/* Statistics Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
-                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total de Clientes</span>
+                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total de Assinantes</span>
                         <span className="text-2xl font-black mt-1">{charges.length}</span>
                     </div>
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
@@ -874,7 +876,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                 )}
                                             </button>
                                         </th>
-                                        <th className="py-3.5 px-4">Cliente</th>
+                                        <th className="py-3.5 px-4">Cliente / Contato</th>
                                         <th className="py-3.5 px-4">Plano / Cobrança</th>
                                         <th className="py-3.5 px-4">Valor</th>
                                         <th className="py-3.5 px-4">Validação Fiscal</th>
@@ -904,7 +906,20 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     />
                                                 </td>
                                                 <td className="py-4 px-4">
-                                                    <div className="font-bold text-gray-800 dark:text-gray-200">{c.contact.name}</div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-bold text-gray-800 dark:text-gray-200">{c.contact.name}</span>
+                                                        {c.contact.type && (
+                                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${
+                                                                c.contact.type === 'both'
+                                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30'
+                                                                    : c.contact.type === 'supplier'
+                                                                    ? 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-900/30'
+                                                                    : 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30'
+                                                            }`}>
+                                                                {c.contact.type === 'both' ? 'Ambos' : c.contact.type === 'supplier' ? 'Fornecedor' : 'Cliente'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-xs text-gray-400 mt-0.5">{c.contact.tax_id || 'Sem CPF/CNPJ'}</div>
                                                 </td>
                                                 <td className="py-4 px-4">

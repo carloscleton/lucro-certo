@@ -33,7 +33,7 @@ export function SubscriberList() {
                     .select(`
                         *,
                         plan:loyalty_plans(name, price),
-                        contact:contacts(name, phone, email)
+                        contact:contacts(name, type, phone, email)
                     `)
                     .eq('company_id', currentEntity.id)
                     .order('created_at', { ascending: false });
@@ -205,7 +205,20 @@ export function SubscriberList() {
                                             {sub.contact?.name?.[0]}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="font-bold text-gray-900 dark:text-white truncate">{sub.contact?.name}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="font-bold text-gray-900 dark:text-white truncate">{sub.contact?.name}</p>
+                                                {sub.contact?.type && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                                        sub.contact.type === 'both'
+                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30'
+                                                            : sub.contact.type === 'supplier'
+                                                            ? 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-900/30'
+                                                            : 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30'
+                                                    }`}>
+                                                        {sub.contact.type === 'both' ? 'Ambos' : sub.contact.type === 'supplier' ? 'Fornecedor' : 'Cliente'}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-[10px] text-gray-500 truncate">{sub.contact?.email}</p>
                                         </div>
                                     </div>
