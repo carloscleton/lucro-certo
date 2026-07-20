@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 
 export interface FiscalInvoice {
@@ -77,7 +77,7 @@ export function useInvoices() {
 
             console.log(`🔍 [useInvoices] Buscando notas para company_id: ${filterId}`);
 
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('fiscal_invoices')
                 .select(`
                     *,
@@ -105,7 +105,8 @@ export function useInvoices() {
                 `)
                 .eq('company_id', filterId)
                 .order('created_at', { ascending: false })
-                .limit(100);
+                .limit(100)
+            );
 
             if (error) throw error;
             setInvoices(data || []);

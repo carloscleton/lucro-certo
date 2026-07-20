@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
 export type EntityType = 'personal' | 'company';
@@ -77,7 +77,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
 
         try {
             // Fetch companies via membership to ensure we get all companies the user is part of
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('company_members')
                 .select(`
                     company:companies (
@@ -118,7 +118,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     role,
                     status
                 `)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+            );
 
             if (error) throw error;
 

@@ -8,3 +8,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+/**
+ * Resilient helper to execute Supabase queries with auto-retry for transient network errors (Failed to fetch).
+ */
+export async function withRetry<T>(
+    fn: () => PromiseLike<T>,
+    retries = 2,
+    delayMs = 400
+): Promise<T> {
+    try {
+        const res = await fn();
+        if (res && typeof res === 'object' && 'error' in res && (res as any).error) {
+            const err = (res as any).error;
+            const errStr = String(err?.message || err?.details || err);
+            if ((errStr.includes('Failed to fetch') || errStr.includes('TypeError') || errStr.includes('network')) && retries > 0) {
+                await new Promise(r => setTimeout(r, delayMs));
+                return withRetry(fn, retries - 1, delayMs * 1.5);
+            }
+        }
+        return res as T;
+    } catch (err: any) {
+        const errStr = String(err?.message || err?.name || err);
+        if ((errStr.includes('Failed to fetch') || errStr.includes('TypeError') || errStr.includes('network')) && retries > 0) {
+            await new Promise(r => setTimeout(r, delayMs));
+            return withRetry(fn, retries - 1, delayMs * 1.5);
+        }
+        throw err;
+    }
+}

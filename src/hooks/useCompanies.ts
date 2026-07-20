@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { storageService } from '../lib/storageService';
 
@@ -63,14 +63,15 @@ export function useCompanies() {
     const fetchCompanies = async () => {
         if (!user) return;
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('company_members')
                 .select(`
                     company:companies (
                         *
                     )
                 `)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+            );
 
             if (error) throw error;
 

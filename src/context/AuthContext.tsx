@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { usePresence } from '../hooks/usePresence';
 
@@ -78,14 +78,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     async function fetchProfile(userId: string) {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .maybeSingle();
+                .maybeSingle()
+            );
 
             if (error) {
-                console.error('Error fetching profile:', error);
+                const errStr = String(error.message || error);
+                if (!errStr.includes('Failed to fetch')) {
+                    console.error('Error fetching profile:', error);
+                }
             }
 
             if (data) {
