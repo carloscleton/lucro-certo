@@ -264,9 +264,36 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     return isSameContact && (isSameMonth || isLegacyRecorrenteMatch);
                 });
 
+                // Default configured price for new / unemitted invoices
+                let chargeAmount = s.custom_price || serviceObj?.price || planObj?.price || 0;
+
+                // If invoice was ALREADY emitted, preserve the exact historical emitted amount from payload
+                if (existingInvoice) {
+                    const invPayload = (existingInvoice.payload || {}) as any;
+                    const servicoObj = Array.isArray(invPayload?.servico) ? invPayload?.servico[0] : invPayload?.servico;
+                    const servicosArr = Array.isArray(invPayload?.servicos) ? invPayload?.servicos[0] : invPayload?.servicos;
+                    
+                    const emittedVal = 
+                        invPayload?.retorno?.valorTotal ||
+                        invPayload?.valorTotal ||
+                        invPayload?.valor_total ||
+                        servicoObj?.valor?.servico ||
+                        servicosArr?.valor?.servico ||
+                        servicoObj?.valorServicos ||
+                        invPayload?.retorno?.servico?.valor?.servico ||
+                        invPayload?.amount;
+
+                    if (emittedVal !== undefined && emittedVal !== null) {
+                        const parsed = typeof emittedVal === 'number' ? emittedVal : parseFloat(String(emittedVal).replace(',', '.'));
+                        if (!isNaN(parsed) && parsed > 0) {
+                            chargeAmount = parsed;
+                        }
+                    }
+                }
+
                 return {
                     id: s.id, // using subscription id as the unique identifier
-                    amount: s.custom_price || serviceObj?.price || planObj?.price || 0,
+                    amount: chargeAmount,
                     reference_month: selectedMonth,
                     status: s.status,
                     fiscal_invoice_id: existingInvoice ? existingInvoice.id : null,
