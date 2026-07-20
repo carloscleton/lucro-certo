@@ -13,6 +13,7 @@ import { useEntity } from '../../context/EntityContext';
 import { useLoyalty } from '../../hooks/useLoyalty';
 import { useAuth } from '../../context/AuthContext';
 import { useServices } from '../../hooks/useServices';
+import { CurrencyInput } from '../ui/CurrencyInput';
 
 interface ContactFormProps {
     isOpen: boolean;
@@ -73,7 +74,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [whatsappSent, setWhatsappSent] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
     const [nextDueAt, setNextDueAt] = useState('');
-    const [customPrice, setCustomPrice] = useState('');
+    const [customPrice, setCustomPrice] = useState<number>(0);
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -194,17 +195,17 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         setRecorrenteType('plan');
                         setLoyaltyPlanId(data.plan_id);
                         setLoyaltyServiceId('');
-                        setCustomPrice('');
+                        setCustomPrice(0);
                     } else if (data.service_id) {
                         setRecorrenteType('service');
                         setLoyaltyServiceId(data.service_id);
                         setLoyaltyPlanId('');
-                        setCustomPrice('');
+                        setCustomPrice(0);
                     } else {
                         setRecorrenteType('custom');
                         setLoyaltyPlanId('');
                         setLoyaltyServiceId('');
-                        setCustomPrice(data.custom_price ? String(data.custom_price) : '');
+                        setCustomPrice(data.custom_price || 0);
                     }
                     if (data.next_due_at) {
                         setNextDueAt(data.next_due_at.substring(0, 10));
@@ -214,7 +215,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     setRecorrenteType('none');
                     setLoyaltyPlanId('');
                     setLoyaltyServiceId('');
-                    setCustomPrice('');
+                    setCustomPrice(0);
                     setNextDueAt('');
                 }
             };
@@ -240,7 +241,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setRecorrenteType('none');
             setLoyaltyPlanId('');
             setLoyaltyServiceId('');
-            setCustomPrice('');
+            setCustomPrice(0);
             setNextDueAt('');
             setGenerateGatewayLink(false);
             setCheckoutUrl('');
@@ -463,7 +464,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     notify('success', 'Serviço recorrente vinculado com sucesso!', 'Clube de Fidelidade');
                 } else if (isRecorrenteEnabled && recorrenteType === 'custom') {
                     // Custom recurring price
-                    const priceValue = customPrice ? parseFloat(customPrice) : 0;
+                    const priceValue = customPrice;
                     const { error: upsertError } = await supabase
                         .from('loyalty_subscriptions')
                         .upsert({
@@ -771,15 +772,10 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Valor Recorrente (R$)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="0,00"
-                                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-[var(--color-surface)] dark:bg-slate-700 px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-600"
+                                    <CurrencyInput
+                                        label="Valor Recorrente (R$)"
                                         value={customPrice}
-                                        onChange={e => setCustomPrice(e.target.value)}
+                                        onChange={val => setCustomPrice(val)}
                                     />
                                 </div>
                             </div>

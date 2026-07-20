@@ -8,6 +8,7 @@ import { whatsappService } from '../../services/whatsappService';
 import { useEntity } from '../../context/EntityContext';
 import { useCompanies } from '../../hooks/useCompanies';
 import { API_BASE_URL } from '../../lib/constants';
+import { formatCurrency, parseCurrency } from '../../utils/currencyUtils';
 import clsx from 'clsx';
 
 interface BatchInvoiceModalProps {
@@ -107,6 +108,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'emitted' | 'error' | 'incomplete'>('all');
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [queryError, setQueryError] = useState<string | null>(null);
+    const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
+    const [tempAmountText, setTempAmountText] = useState('');
 
     const handleAmountChange = (id: string, newAmount: number) => {
         setCharges(prev => prev.map(c => {
@@ -909,16 +912,23 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     <div className="text-xs text-gray-400 mt-0.5">Vencimento: {new Date(c.due_date).toLocaleDateString('pt-BR')}</div>
                                                 </td>
                                                 <td className="py-4 px-4">
-                                                     <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2 py-1 max-w-[120px]">
+                                                     <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1 min-w-[130px] max-w-[150px]">
                                                          <span className="text-xs text-gray-400 font-bold">R$</span>
                                                          <input
-                                                             type="number"
-                                                             step="0.01"
-                                                             min="0"
-                                                             value={c.amount === 0 ? '' : c.amount}
-                                                             onChange={(e) => handleAmountChange(c.id, parseFloat(e.target.value))}
+                                                             type="text"
+                                                             value={editingAmountId === c.id ? tempAmountText : formatCurrency(c.amount)}
+                                                             onFocus={() => {
+                                                                 setEditingAmountId(c.id);
+                                                                 setTempAmountText(c.amount === 0 ? '' : formatCurrency(c.amount));
+                                                             }}
+                                                             onChange={(e) => setTempAmountText(e.target.value)}
+                                                             onBlur={() => {
+                                                                 const parsed = parseCurrency(tempAmountText);
+                                                                 handleAmountChange(c.id, parsed);
+                                                                 setEditingAmountId(null);
+                                                             }}
                                                              disabled={isProcessing || isEmitted}
-                                                             className="w-full bg-transparent border-none text-right font-mono font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-0 p-0"
+                                                             className="w-full bg-transparent border-none text-right font-mono font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-0 p-0 text-sm"
                                                              placeholder="0,00"
                                                          />
                                                      </div>
