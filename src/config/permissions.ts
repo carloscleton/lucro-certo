@@ -23,6 +23,7 @@ import {
     Calculator,
     Receipt,
     Landmark,
+    Gift,
     Mail
 } from 'lucide-react';
 
@@ -186,6 +187,14 @@ export const APP_MODULES: ModuleDefinition[] = [
         path: '/dashboard/loyalty',
         desc: 'Planos de recorrência e fidelidade para clientes',
         defaultPermissions: { admin: true, member: false }
+    },
+    {
+        key: 'referrals',
+        label: 'Indique e Ganhe',
+        icon: Gift,
+        path: '/dashboard/referrals',
+        desc: 'Programa de indicação e afiliados',
+        defaultPermissions: { admin: true, member: true }
     },
     {
         key: 'commissions',

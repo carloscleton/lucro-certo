@@ -10,9 +10,17 @@ const supabaseKey = keyMatch[1].trim();
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
-    const { data: companies, error } = await supabase.from('companies').select('*');
-    if (error) console.error(error);
-    else console.log("Companies in DB:", JSON.stringify(companies, null, 2));
+    const { data: invoices, error } = await supabase
+        .from('fiscal_invoices')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    if (error) {
+        console.error(error);
+    } else {
+        console.log("Last 5 Invoices:", JSON.stringify(invoices, null, 2));
+    }
 }
 
 main();

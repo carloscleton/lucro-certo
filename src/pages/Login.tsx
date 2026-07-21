@@ -14,6 +14,8 @@ import loginHero4 from '../assets/login-hero-4.png';
 import logoFull from '../assets/logo-full.png';
 import gridPattern from '../assets/grid-pattern.png';
 import { useAuth } from '../context/AuthContext';
+import { captureReferralFromURL, getStoredReferralCode, clearStoredReferralCode } from '../lib/affiliateTracking';
+import { affiliateService } from '../services/affiliateService';
 
 export function Login() {
     const [searchParams] = useSearchParams();
@@ -64,6 +66,10 @@ export function Login() {
     ];
 
     const [isPaused, setIsPaused] = useState(false);
+
+    useEffect(() => {
+        captureReferralFromURL();
+    }, []);
 
     useEffect(() => {
         if (isPaused) return;
@@ -228,6 +234,17 @@ export function Login() {
                     },
                 });
                 if (error) throw error;
+
+                // Processar indicação se houver código ref salvo
+                const storedRef = getStoredReferralCode();
+                if (storedRef && signUpData?.user) {
+                    try {
+                        await affiliateService.registerReferral(storedRef, signUpData.user.id);
+                        clearStoredReferralCode();
+                    } catch (refErr) {
+                        console.warn('Erro ao atribuir indicação:', refErr);
+                    }
+                }
 
                 // Option 3: Professional Checkout Flow (Stay on Landing/Login)
                 const checkoutPlan = searchParams.get('checkout-plan');

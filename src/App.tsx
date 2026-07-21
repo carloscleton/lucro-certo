@@ -53,12 +53,13 @@ const Agenda           = lazy(() => import('./pages/Agenda').then(m => ({ defaul
 const Marketing        = lazy(() => import('./pages/Marketing').then(m => ({ default: m.Marketing })));
 const LeadRadar        = lazy(() => import('./pages/LeadRadar').then(m => ({ default: m.LeadRadar })));
 const WhatsApp         = lazy(() => import('./pages/WhatsApp').then(m => ({ default: m.WhatsApp })));
+const Loyalty          = lazy(() => import('./pages/Loyalty').then(m => ({ default: m.Loyalty })));
+const Referrals        = lazy(() => import('./pages/Referrals').then(m => ({ default: m.Referrals })));
 
 // Pagamentos internos
 const Payments         = lazy(() => import('./pages/Payments').then(m => ({ default: m.Payments })));
 
 // Loyalty (autenticado)
-const Loyalty          = lazy(() => import('./pages/Loyalty').then(m => ({ default: m.Loyalty })));
 
 // Configurações / Cadastros
 const Settings         = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
@@ -211,6 +212,7 @@ function AppRoutes() {
           <Route path="marketing" element={<Marketing />} />
           <Route path="lead-radar" element={<LeadRadar />} />
           <Route path="loyalty" element={<Loyalty />} />
+          <Route path="referrals" element={<Referrals />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
