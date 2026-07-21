@@ -128,19 +128,23 @@ export function Login() {
         const checkoutPlan = searchParams.get('checkout-plan');
         if (checkoutPlan && isSignUp) {
             const fetchPlanSettings = async () => {
-                const { data } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
-                if (data?.landing_plans) {
-                    const foundPlan = data.landing_plans.find((p: any) => 
-                        p.name?.toLowerCase().trim() === checkoutPlan.toLowerCase().trim()
-                    );
-                    if (foundPlan?.allowed_entity_type) {
-                        setAllowedRegistrationType(foundPlan.allowed_entity_type);
-                        
-                        // Set the default registration type to the allowed one if not BOTH
-                        if (foundPlan.allowed_entity_type === 'PF' || foundPlan.allowed_entity_type === 'PJ') {
-                            setRegistrationType(foundPlan.allowed_entity_type);
+                try {
+                    const { data } = await withRetry(() => supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle());
+                    if (data?.landing_plans) {
+                        const foundPlan = data.landing_plans.find((p: any) => 
+                            p.name?.toLowerCase().trim() === checkoutPlan.toLowerCase().trim()
+                        );
+                        if (foundPlan?.allowed_entity_type) {
+                            setAllowedRegistrationType(foundPlan.allowed_entity_type);
+                            
+                            // Set the default registration type to the allowed one if not BOTH
+                            if (foundPlan.allowed_entity_type === 'PF' || foundPlan.allowed_entity_type === 'PJ') {
+                                setRegistrationType(foundPlan.allowed_entity_type);
+                            }
                         }
                     }
+                } catch (err) {
+                    console.error('Error fetching plan modules:', err);
                 }
             };
             fetchPlanSettings();
@@ -284,7 +288,7 @@ export function Login() {
                             let setupFeeValue = 0.00;
                             let planFiscalBillingConfig: any = null;
                             try {
-                                const { data: settingsData } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+                                const { data: settingsData } = await withRetry(() => supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle());
                                 if (settingsData?.landing_plans) {
                                     const foundPlan = settingsData.landing_plans.find((p: any) => 
                                         p.name?.toLowerCase().trim() === checkoutPlan.toLowerCase().trim()
@@ -460,10 +464,10 @@ export function Login() {
                 setError(null);
                 setLoading(false);
             } else {
-                const { data: authData, error } = await supabase.auth.signInWithPassword({
+                const { data: authData, error } = await withRetry(() => supabase.auth.signInWithPassword({
                     email,
                     password,
-                });
+                }));
                 if (error) throw error;
 
                 if (authData?.user) {
@@ -557,10 +561,13 @@ export function Login() {
                 navigate('/dashboard');
             }
         } catch (err: any) {
-            console.error('Auth error:', err.message);
-            if (err.message.includes('invalid_grant') || err.message.toLowerCase().includes('banned') || err.message.toLowerCase().includes('user is banned')) {
+            console.error('Auth error:', err.message || err);
+            const errMsg = String(err.message || err);
+            if (errMsg.includes('Failed to fetch') || errMsg.includes('TypeError') || errMsg.toLowerCase().includes('network')) {
+                setError('Erro de conexão com o servidor. Por favor, verifique sua internet ou tente novamente em instantes.');
+            } else if (err.message && (err.message.includes('invalid_grant') || err.message.toLowerCase().includes('banned') || err.message.toLowerCase().includes('user is banned'))) {
                 setShowBannedModal(true);
-            } else if (err.message.includes('Invalid login credentials')) {
+            } else if (err.message && err.message.includes('Invalid login credentials')) {
                 // Check if invite exists
                 const { data: hasInvite } = await supabase.rpc('check_invite_exists', { check_email: email });
                 if (hasInvite) {
