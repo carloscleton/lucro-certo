@@ -81,13 +81,16 @@ export function useWebhooks() {
         }
 
         try {
-            const { data, error } = await supabase
-                .rpc('get_template_webhooks', { current_company_id: currentEntity.id });
+            const { data, error } = await withRetry(() => supabase
+                .rpc('get_template_webhooks', { current_company_id: currentEntity.id }));
 
             if (error) {
                 // Only log if it's NOT an authentication error (expected for public pages)
                 if (error.code !== 'PGRST301' && !error.message.includes('not authenticated')) {
-                    console.error('Error fetching template webhooks:', error);
+                    const errStr = String(error.message || error);
+                    if (!errStr.includes('Failed to fetch')) {
+                        console.error('Error fetching template webhooks:', error);
+                    }
                 }
                 setTemplateWebhooks([]);
                 return;
@@ -107,7 +110,10 @@ export function useWebhooks() {
 
             setTemplateWebhooks(unique);
         } catch (error) {
-            console.error('Error fetching template webhooks:', error);
+            const errStr = String((error as any)?.message || error);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching template webhooks:', error);
+            }
             setTemplateWebhooks([]);
         }
     };

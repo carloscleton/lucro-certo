@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { API_BASE_URL } from '../lib/constants';
 import axios from 'axios';
@@ -41,19 +41,22 @@ export function useCharges() {
 
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('company_charges')
                 .select(`
                     *,
                     customer:contacts(name)
                 `)
                 .eq('company_id', currentEntity.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false }));
 
             if (error) throw error;
             setCharges(data || []);
         } catch (error) {
-            console.error('Error fetching charges:', error);
+            const errStr = String((error as any)?.message || error);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching charges:', error);
+            }
         } finally {
             setLoading(false);
         }

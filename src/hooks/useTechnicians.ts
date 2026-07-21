@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useEntity } from '../context/EntityContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,16 +30,19 @@ export function useTechnicians() {
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('company_technicians')
                 .select('*')
                 .eq('company_id', currentEntity.id)
-                .order('name');
+                .order('name'));
 
             if (error) throw error;
             setTechnicians(data || []);
         } catch (err: any) {
-            console.error('Error fetching technicians:', err);
+            const errStr = String(err.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching technicians:', err);
+            }
             setError(err.message || 'Erro ao carregar técnicos');
         } finally {
             setLoading(false);

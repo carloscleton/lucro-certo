@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { useEntity } from '../../context/EntityContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, withRetry } from '../../lib/supabase';
 import { PlanDetailsModal } from './PlanDetailsModal';
 
 export function SubscriptionSettings() {
@@ -66,27 +66,33 @@ export function SubscriptionSettings() {
 
     const fetchAvailablePlans = async () => {
         try {
-            const { data } = await supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle();
+            const { data } = await withRetry(() => supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle());
             if (data?.landing_plans) {
                 setAvailablePlans(data.landing_plans.filter((p: any) => p.enabled !== false));
             }
         } catch (err) {
-            console.error('Error fetching plans:', err);
+            const errStr = String((err as any)?.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching plans:', err);
+            }
         }
     };
 
     const fetchSubscription = async () => {
         try {
-            const { data, error: fetchError } = await supabase
+            const { data, error: fetchError } = await withRetry(() => supabase
                 .from('companies')
                 .select('id, trade_name, subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value, cnpj')
                 .eq('id', effectiveCompanyId)
-                .maybeSingle();
+                .maybeSingle());
 
             if (fetchError) throw fetchError;
             if (data) setSubscription(data);
         } catch (error) {
-            console.error('Error fetching subscription:', error);
+            const errStr = String((error as any)?.message || error);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching subscription:', error);
+            }
         }
     };
 
