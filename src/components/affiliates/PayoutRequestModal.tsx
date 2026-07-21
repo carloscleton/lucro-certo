@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { CurrencyInput } from '../ui/CurrencyInput';
@@ -27,6 +27,16 @@ export function PayoutRequestModal({
     const [method, setMethod] = useState<'pix' | 'invoice_discount'>('pix');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ success?: boolean; message?: string } | null>(null);
+
+    // Sync state when modal is opened or props update
+    useEffect(() => {
+        if (isOpen) {
+            setAmount(availableBalance);
+            setPixKey(currentPixKey);
+            setPixType(currentPixType);
+            setResult(null);
+        }
+    }, [isOpen, availableBalance, currentPixKey, currentPixType]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

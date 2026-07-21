@@ -24,6 +24,8 @@ export function AdminAffiliatesManager() {
     const [limitedMonths, setLimitedMonths] = useState<number>(6);
     const [holdingDays, setHoldingDays] = useState<number>(15);
     const [status, setStatus] = useState<'active' | 'suspended'>('active');
+    const [pixKey, setPixKey] = useState<string>('');
+    const [pixKeyType, setPixKeyType] = useState<string>('cpf');
     const [isSaving, setIsSaving] = useState(false);
 
     // Modal de Processar Saque
@@ -40,6 +42,8 @@ export function AdminAffiliatesManager() {
         setLimitedMonths(aff.limited_months || 6);
         setHoldingDays(aff.holding_days || 15);
         setStatus(aff.status || 'active');
+        setPixKey(aff.pix_key || '');
+        setPixKeyType(aff.pix_key_type || 'cpf');
     };
 
     const handleSaveRules = async (e: React.FormEvent) => {
@@ -53,7 +57,9 @@ export function AdminAffiliatesManager() {
                 recurring_mode: recurringMode,
                 limited_months: recurringMode === 'limited_months' ? limitedMonths : undefined,
                 holding_days: holdingDays,
-                status
+                status,
+                pix_key: pixKey,
+                pix_key_type: pixKeyType
             });
             setEditingAffiliate(null);
         } finally {
@@ -184,12 +190,19 @@ export function AdminAffiliatesManager() {
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60 text-gray-700 dark:text-gray-200">
                                 {filteredAffiliates.map((aff: any) => (
                                     <tr key={aff.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                                        <td className="py-3.5 px-4">
-                                            <div className="font-bold text-gray-900 dark:text-white">
-                                                {aff.profile?.full_name || aff.company?.trade_name || 'Afiliado'}
-                                            </div>
-                                            <div className="text-[11px] text-gray-400">{aff.profile?.email}</div>
-                                        </td>
+                                         <td className="py-3.5 px-4">
+                                             <div className="font-bold text-gray-900 dark:text-white">
+                                                 {aff.profile?.full_name || aff.company?.trade_name || 'Afiliado'}
+                                             </div>
+                                             <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2 mt-0.5">
+                                                 <span>{aff.profile?.email}</span>
+                                                 {aff.pix_key && (
+                                                     <span className="font-mono text-[9px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/30">
+                                                         PIX ({aff.pix_key_type?.toUpperCase()}): {aff.pix_key}
+                                                     </span>
+                                                 )}
+                                             </div>
+                                         </td>
                                         <td className="py-3.5 px-4">
                                             <span className="font-mono font-bold px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 rounded border border-purple-100">
                                                 {aff.code}
@@ -351,6 +364,34 @@ export function AdminAffiliatesManager() {
                                 type="number"
                                 value={holdingDays}
                                 onChange={e => setHoldingDays(parseInt(e.target.value) || 15)}
+                                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-2 text-xs font-bold mt-1"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Tipo de Chave PIX</label>
+                            <select
+                                value={pixKeyType}
+                                onChange={e => setPixKeyType(e.target.value)}
+                                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-2 text-xs font-bold mt-1"
+                            >
+                                <option value="cpf">CPF</option>
+                                <option value="cnpj">CNPJ</option>
+                                <option value="email">E-mail</option>
+                                <option value="phone">Telefone</option>
+                                <option value="random">Chave Aleatória</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Chave PIX</label>
+                            <input
+                                type="text"
+                                value={pixKey}
+                                onChange={e => setPixKey(e.target.value)}
+                                placeholder="Chave do Afiliado..."
                                 className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-2 text-xs font-bold mt-1"
                             />
                         </div>

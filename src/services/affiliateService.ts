@@ -354,6 +354,8 @@ export const affiliateService = {
         holding_days: number;
         status: 'active' | 'suspended';
         code?: string;
+        pix_key?: string;
+        pix_key_type?: string;
     }): Promise<boolean> => {
         try {
             const { error } = await supabase
