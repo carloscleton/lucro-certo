@@ -10,6 +10,7 @@ interface PayoutRequestModalProps {
     availableBalance: number;
     currentPixKey?: string;
     currentPixType?: string;
+    payoutDay?: number;
     onRequestPayout: (amount: number, pixKey: string, method: 'pix' | 'invoice_discount') => Promise<{ success: boolean; message: string }>;
 }
 
@@ -19,6 +20,7 @@ export function PayoutRequestModal({
     availableBalance,
     currentPixKey = '',
     currentPixType = 'cpf',
+    payoutDay = 10,
     onRequestPayout
 }: PayoutRequestModalProps) {
     const [amount, setAmount] = useState<number>(availableBalance);
@@ -85,6 +87,11 @@ export function PayoutRequestModal({
                         </div>
                     </div>
                     <Wallet size={32} className="text-emerald-500 opacity-80" />
+                </div>
+
+                <div className="p-3 bg-blue-50 dark:bg-slate-900/40 text-[11px] font-semibold text-blue-700 dark:text-blue-400 rounded-2xl border border-blue-100/50 dark:border-slate-800 flex items-center gap-2">
+                    <AlertCircle size={14} className="shrink-0" />
+                    <span>Lembrete: Os pagamentos de comissões aprovados são quitados todo dia {payoutDay} de cada mês.</span>
                 </div>
 
                 <div className="space-y-2">

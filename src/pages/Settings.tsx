@@ -4439,6 +4439,37 @@ export function Settings() {
                                             </button>
                                         </div>
                                     </div>
+                                    <div className="p-6 rounded-xl border-2 border-purple-100 dark:border-purple-900/30 bg-purple-50/20 dark:bg-purple-900/10 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                                                    <Gift size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white">Pagamento de Afiliados</h4>
+                                                    <p className="text-sm text-gray-500">Defina o dia do mês para processamento dos saques.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 mt-4">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Dia de Pagamento (1 a 28)</label>
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    max={28}
+                                                    value={appSettings?.affiliate_payout_day ?? 10}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 10;
+                                                        if (val >= 1 && val <= 28) {
+                                                            updateAppSettings({ affiliate_payout_day: val });
+                                                        }
+                                                    }}
+                                                    placeholder="Ex: 10"
+                                                />
+                                                <p className="text-[10px] text-gray-400">Todos os saques de afiliados são processados nesse dia do mês.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-8">
                                     <LandingPlansEditor />

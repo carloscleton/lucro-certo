@@ -126,6 +126,7 @@ export function useAdmin() {
         loyalty_email_enabled?: boolean;
         loyalty_email_template?: string;
         loyalty_enabled?: boolean;
+        affiliate_payout_day?: number;
     } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -456,6 +457,7 @@ export function useAdmin() {
         loyalty_email_enabled: boolean;
         loyalty_email_template: string;
         loyalty_enabled: boolean;
+        affiliate_payout_day?: number;
     }>) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 

@@ -20,7 +20,7 @@ import {
 import { Button } from '../ui/Button';
 
 export function AffiliateDashboard() {
-    const { affiliate, stats, loading, referralLink, requestPayout, updatePixKey } = useAffiliates();
+    const { affiliate, stats, loading, referralLink, requestPayout, updatePixKey, payoutDay } = useAffiliates();
     const [copied, setCopied] = useState(false);
     const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -141,7 +141,7 @@ export function AffiliateDashboard() {
                         <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                             {formatBRL(stats.availableBalance)}
                         </div>
-                        <p className="text-[11px] text-gray-400 mt-0.5">Liberado para resgate via Pix</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Liberado para resgate (Pago todo dia {payoutDay} do mês)</p>
                     </div>
                     <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/60">
                         <Button
@@ -371,6 +371,7 @@ export function AffiliateDashboard() {
                 availableBalance={stats.availableBalance}
                 currentPixKey={affiliate?.pix_key}
                 currentPixType={affiliate?.pix_key_type}
+                payoutDay={payoutDay}
                 onRequestPayout={requestPayout}
             />
 

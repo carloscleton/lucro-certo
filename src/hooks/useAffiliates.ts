@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { affiliateService, type Affiliate } from '../services/affiliateService';
+import { supabase } from '../lib/supabase';
 
 export function useAffiliates() {
     const { user, profile } = useAuth();
@@ -27,6 +28,7 @@ export function useAffiliates() {
         requestedPayoutBalance: 0
     });
     const [loading, setLoading] = useState(true);
+    const [payoutDay, setPayoutDay] = useState<number>(10);
 
     const loadData = useCallback(async () => {
         if (!user) {
@@ -36,13 +38,24 @@ export function useAffiliates() {
 
         try {
             setLoading(true);
-            const aff = await affiliateService.getOrCreateAffiliate(
-                user.id,
-                currentEntity.id,
-                profile?.full_name || user.user_metadata?.full_name
-            );
+            const [aff, settingsRes] = await Promise.all([
+                affiliateService.getOrCreateAffiliate(
+                    user.id,
+                    currentEntity.id,
+                    profile?.full_name || user.user_metadata?.full_name
+                ),
+                supabase
+                    .from('app_settings')
+                    .select('affiliate_payout_day')
+                    .eq('id', 1)
+                    .maybeSingle()
+            ]);
 
             setAffiliate(aff);
+
+            if (settingsRes?.data?.affiliate_payout_day) {
+                setPayoutDay(settingsRes.data.affiliate_payout_day);
+            }
 
             if (aff) {
                 const s = await affiliateService.getAffiliateStats(aff.id);
@@ -89,6 +102,7 @@ export function useAffiliates() {
         stats,
         loading,
         referralLink,
+        payoutDay,
         refresh: loadData,
         updatePixKey,
         requestPayout
