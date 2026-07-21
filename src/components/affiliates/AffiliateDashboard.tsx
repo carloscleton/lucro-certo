@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAffiliates } from '../../hooks/useAffiliates';
 import { PayoutRequestModal } from './PayoutRequestModal';
+import { ShareWhatsAppModal } from './ShareWhatsAppModal';
 import { 
     Gift, 
     Copy, 
@@ -21,20 +22,13 @@ export function AffiliateDashboard() {
     const { affiliate, stats, loading, referralLink, requestPayout } = useAffiliates();
     const [copied, setCopied] = useState(false);
     const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
     const handleCopyLink = () => {
         if (!referralLink) return;
         navigator.clipboard.writeText(referralLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
-    };
-
-    const handleShareWhatsApp = () => {
-        if (!referralLink) return;
-        const text = encodeURIComponent(
-            `Olá! Recomendo o Lucro Certo para a gestão financeira e emissão de notas da sua empresa. Faça seu teste grátis acessando pelo meu link exclusivo:\n${referralLink}`
-        );
-        window.open(`https://wa.me/?text=${text}`, '_blank');
     };
 
     const formatBRL = (val: number) => 
@@ -91,7 +85,7 @@ export function AffiliateDashboard() {
 
                         <button
                             type="button"
-                            onClick={handleShareWhatsApp}
+                            onClick={() => setIsWhatsAppModalOpen(true)}
                             className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all shrink-0 active:scale-95"
                         >
                             <MessageSquare size={16} />
@@ -271,6 +265,13 @@ export function AffiliateDashboard() {
                 currentPixKey={affiliate?.pix_key}
                 currentPixType={affiliate?.pix_key_type}
                 onRequestPayout={requestPayout}
+            />
+
+            {/* Modal de Compartilhamento WhatsApp */}
+            <ShareWhatsAppModal
+                isOpen={isWhatsAppModalOpen}
+                onClose={() => setIsWhatsAppModalOpen(false)}
+                referralLink={referralLink}
             />
         </div>
     );
