@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Wallet, ArrowRight, AlertTriangle, X, Eye, EyeOff, CreditCard, User, Building2 } from 'lucide-react';
@@ -451,16 +451,17 @@ export function Login() {
 
                 if (authData?.user) {
                     // Check profile status immediately
-                    const { data: profileData } = await supabase
+                    const { data: profileData } = await withRetry(() => supabase
                         .from('profiles')
                         .select('status')
                         .eq('id', authData.user.id)
-                        .maybeSingle();
+                        .maybeSingle()
+                    );
 
                     const isSystemAdmin = authData.user.email?.toLowerCase() === 'carloscleton.nat@gmail.com';
                     if (profileData?.status === 'blocked' && !isSystemAdmin) {
                         try {
-                            await supabase.auth.signOut();
+                            await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
                         } catch (err) {
                             console.warn('⚠️ Blocked profile signOut error:', err);
                         }
@@ -470,13 +471,14 @@ export function Login() {
                     }
 
                     // Check if company is blocked (Primary company)
-                    const { data: membershipData } = await supabase
+                    const { data: membershipData } = await withRetry(() => supabase
                         .from('company_members')
                         .select('company:companies(status)')
                         .eq('user_id', authData.user.id)
                         .eq('status', 'active')
                         .limit(1)
-                        .maybeSingle();
+                        .maybeSingle()
+                    );
 
                     const castedMembership = membershipData as any;
                     if (castedMembership?.company?.status === 'blocked' && !isSystemAdmin) {

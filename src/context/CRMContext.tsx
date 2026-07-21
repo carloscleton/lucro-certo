@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useEntity } from './EntityContext';
 import { type CRMStage, type CRMDeal } from '../hooks/useCRM';
@@ -28,28 +28,38 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const { currentEntity } = useEntity();
 
     const fetchCRMData = async () => {
-        if (!user || currentEntity.type !== 'company') return;
+        if (!user || currentEntity.type !== 'company' || !currentEntity.id) {
+            setStages([]);
+            setDeals([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const { data: stagesData, error: stagesError } = await supabase
-                .from('crm_stages')
-                .select('*')
-                .eq('company_id', currentEntity.id)
-                .order('position');
+            const [stagesRes, dealsRes] = await Promise.all([
+                withRetry(() => supabase
+                    .from('crm_stages')
+                    .select('*')
+                    .eq('company_id', currentEntity.id)
+                    .order('position')
+                ),
+                withRetry(() => supabase
+                    .from('crm_deals')
+                    .select('*, contact:contacts(id, name, loyalty_subscriptions(status, plan:loyalty_plans(name)))')
+                    .eq('company_id', currentEntity.id)
+                )
+            ]);
 
-            if (stagesError) throw stagesError;
+            if (stagesRes.error) throw stagesRes.error;
+            if (dealsRes.error) throw dealsRes.error;
 
-            const { data: dealsData, error: dealsError } = await supabase
-                .from('crm_deals')
-                .select('*, contact:contacts(id, name, loyalty_subscriptions(status, plan:loyalty_plans(name)))')
-                .eq('company_id', currentEntity.id);
-
-            if (dealsError) throw dealsError;
-
-            setStages(stagesData || []);
-            setDeals(dealsData || []);
+            setStages(stagesRes.data || []);
+            setDeals(dealsRes.data || []);
         } catch (error) {
-            console.error('Error fetching CRM data:', error);
+            const errStr = String(error);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching CRM data:', error);
+            }
         } finally {
             setLoading(false);
         }
