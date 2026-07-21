@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Settings as SettingsIcon, Mail, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt, Download, Plus } from 'lucide-react';
+import { Settings as SettingsIcon, Mail, FileText, Wallet, Save, RefreshCw, Shield, Users, Building, DollarSign, Trash2, Lock, MessageSquare, CreditCard, X, Sparkles, Edit, Calculator, Zap, Activity, Award, AlertTriangle, Percent, Landmark, Receipt, Download, Plus, Gift } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -28,6 +28,7 @@ import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
 import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
+import { AdminAffiliatesManager } from '../components/affiliates/AdminAffiliatesManager';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import { API_BASE_URL } from '../lib/constants';
@@ -221,7 +222,7 @@ export function Settings() {
         }
     }, [searchParams, activeTab]);
 
-    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system' | 'billing'>('companies');
+    const [adminSubTab, setAdminSubTab] = useState<'users' | 'companies' | 'invoices' | 'system' | 'billing' | 'referrals'>('companies');
     const [selectedCompanyForConfig, setSelectedCompanyForConfig] = useState<any | null>(null);
     const [tempCompanyConfig, setTempCompanyConfig] = useState<any | null>(null);
     const isLockedByPlan = tempCompanyConfig?.entity_type === 'PJ';
@@ -4021,6 +4022,7 @@ export function Settings() {
                                 { id: 'invoices', label: 'Faturas de Cobrança', icon: CreditCard },
                                 { id: 'billing', label: 'Faturamento Fiscal', icon: Receipt },
                                 { id: 'system', label: 'Sistema', icon: SettingsIcon },
+                                { id: 'referrals', label: 'Indique e Ganhe', icon: Gift },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
@@ -4785,6 +4787,12 @@ export function Settings() {
                     </div>
                 )
             }
+            {adminSubTab === 'referrals' && (
+                <div className="space-y-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Administração do Indique e Ganhe</h3>
+                    <AdminAffiliatesManager />
+                </div>
+            )}
 
             {/* Modal de Edição de Automações */}
             {
