@@ -150,11 +150,16 @@ export function AdminAffiliatesManager({ appSettings, updateAppSettings }: Admin
                             type="number"
                             min={1}
                             max={28}
-                            value={appSettings?.affiliate_payout_day ?? 10}
+                            value={appSettings?.affiliate_payout_day ?? appSettings?.platform_billing_config?.affiliate_payout_day ?? 10}
                             onChange={(e) => {
                                 const val = parseInt(e.target.value) || 10;
                                 if (val >= 1 && val <= 28) {
-                                    updateAppSettings({ affiliate_payout_day: val });
+                                    updateAppSettings({
+                                        platform_billing_config: {
+                                            ...(appSettings?.platform_billing_config || {}),
+                                            affiliate_payout_day: val
+                                        }
+                                    });
                                 }
                             }}
                             className="w-16 bg-gray-50 dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-xl px-2.5 py-1 text-sm font-bold text-center text-gray-950 dark:text-white outline-none focus:ring-2 focus:ring-purple-550 transition-all"
