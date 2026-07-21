@@ -57,11 +57,11 @@ export function AffiliateDashboard() {
                         Programa Indique e Ganhe Lucro Certo
                     </div>
 
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white">
                         Indique parceiros e ganhe comissão por cada mensalidade!
                     </h1>
 
-                    <p className="text-xs sm:text-sm text-blue-100 leading-relaxed opacity-90">
+                    <p className="text-xs sm:text-sm text-white/90 leading-relaxed">
                         Compartilhe seu link exclusivo. Quando uma empresa se cadastrar e assinar o Lucro Certo, você ganha 
                         <strong> {affiliate?.reward_type === 'fixed' ? formatBRL(affiliate.reward_value) : `${affiliate?.reward_value || 15}%`}</strong> de comissão 
                         {affiliate?.recurring_mode === 'lifetime' ? ' recorrente e vitalícia!' : ' na 1ª mensalidade!'}
