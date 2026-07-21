@@ -81,7 +81,7 @@ export function useAffiliates() {
     };
 
     const referralLink = affiliate?.code
-        ? `${window.location.origin}/login?ref=${affiliate.code}`
+        ? `${window.location.origin}/?ref=${affiliate.code}`
         : '';
 
     return {

@@ -24,6 +24,7 @@ import { useEntity } from '../context/EntityContext';
 import { supabase } from '../lib/supabase';
 import { PaymentRequired } from './PaymentRequired';
 import { PlanDetailsModal } from '../components/settings/PlanDetailsModal';
+import { captureReferralFromURL } from '../lib/affiliateTracking';
 import logoFull from '../assets/logo-full.png';
 import { API_BASE_URL } from '../lib/constants';
 
@@ -237,6 +238,7 @@ export function LandingPage() {
     }, [showBanner, landingCampaigns, isLeadFormActive, isPopupPaused]);
 
     useEffect(() => {
+        captureReferralFromURL();
         window.scrollTo(0, 0);
     }, []);
 
