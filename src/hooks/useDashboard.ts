@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { format } from 'date-fns';
@@ -147,7 +147,14 @@ export function useDashboard(startDate: string, endDate: string) {
                 prevTxQuery = prevTxQuery.eq('user_id', user.id).is('company_id', null);
             }
 
-            const results = await Promise.allSettled([txQuery, quotesQuery, allTxQuery, prevTxQuery, agendaQuery, invoicesQuery]);
+            const results = await Promise.allSettled([
+                withRetry(() => txQuery),
+                withRetry(() => quotesQuery),
+                withRetry(() => allTxQuery),
+                withRetry(() => prevTxQuery),
+                withRetry(() => agendaQuery),
+                withRetry(() => invoicesQuery)
+            ]);
 
             const txRes = results[0].status === 'fulfilled' ? results[0].value : { data: [], error: (results[0] as any).reason };
             const quotesRes = results[1].status === 'fulfilled' ? results[1].value : { data: [], error: (results[1] as any).reason };
@@ -156,12 +163,21 @@ export function useDashboard(startDate: string, endDate: string) {
             const agendaRes = results[4].status === 'fulfilled' ? results[4].value : { data: [], error: (results[4] as any).reason };
             const invoicesRes = results[5]?.status === 'fulfilled' ? (results[5].value as any) : { data: [], error: (results[5] as any).reason };
 
-            if (txRes.error) console.error('Dashboard: Error fetching transactions:', txRes.error);
-            if (quotesRes.error) console.error('Dashboard: Error fetching quotes:', quotesRes.error);
-            if (allTxRes.error) console.error('Dashboard: Error fetching all transactions:', allTxRes.error);
-            if (prevTxRes.error) console.error('Dashboard: Error fetching previous transactions:', prevTxRes.error);
-            if (agendaRes.error) console.error('Dashboard: Error fetching agenda tasks:', agendaRes.error);
-            if (invoicesRes.error) console.error('Dashboard: Error fetching invoices:', invoicesRes.error);
+            const logErr = (label: string, err: any) => {
+                if (err) {
+                    const errStr = String(err.message || err);
+                    if (!errStr.includes('Failed to fetch')) {
+                        console.error(label, err);
+                    }
+                }
+            };
+
+            logErr('Dashboard: Error fetching transactions:', txRes.error);
+            logErr('Dashboard: Error fetching quotes:', quotesRes.error);
+            logErr('Dashboard: Error fetching all transactions:', allTxRes.error);
+            logErr('Dashboard: Error fetching previous transactions:', prevTxRes.error);
+            logErr('Dashboard: Error fetching agenda tasks:', agendaRes.error);
+            logErr('Dashboard: Error fetching invoices:', invoicesRes.error);
 
             const transactions = txRes.data || [];
             const quotes = quotesRes.data || [];
