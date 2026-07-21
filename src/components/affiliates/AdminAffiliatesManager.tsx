@@ -6,12 +6,18 @@ import {
     Edit2, 
     Search, 
     DollarSign, 
-    Loader2
+    Loader2,
+    Gift
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
-export function AdminAffiliatesManager() {
+interface AdminAffiliatesManagerProps {
+    appSettings: any;
+    updateAppSettings: (newSettings: any) => Promise<any>;
+}
+
+export function AdminAffiliatesManager({ appSettings, updateAppSettings }: AdminAffiliatesManagerProps) {
     const { affiliates, payoutsQueue, totalRequestedPayouts, totalCompletedPayouts, loading, updateRules, processPayout } = useAdminAffiliates();
     const [tab, setTab] = useState<'affiliates' | 'payouts'>('affiliates');
     const [search, setSearch] = useState('');
@@ -103,7 +109,7 @@ export function AdminAffiliatesManager() {
         <div className="space-y-6">
             
             {/* Header Metrics para o Dono do Sistema */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
                     <div className="flex items-center justify-between text-xs font-bold text-gray-500">
                         <span>Total de Afiliados</span>
@@ -116,7 +122,7 @@ export function AdminAffiliatesManager() {
 
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-amber-100 dark:border-amber-950/40 shadow-sm">
                     <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-300">
-                        <span>Saques Solicitados (Aguardando Pix)</span>
+                        <span>Saques Solicitados</span>
                         <Wallet size={18} className="text-amber-500" />
                     </div>
                     <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-2">
@@ -126,11 +132,34 @@ export function AdminAffiliatesManager() {
 
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-950/40 shadow-sm">
                     <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                        <span>Total Já Pago em Comissões</span>
+                        <span>Total Pago em Comissões</span>
                         <DollarSign size={18} className="text-emerald-500" />
                     </div>
                     <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2">
                         {formatBRL(totalCompletedPayouts)}
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-purple-100 dark:border-purple-950/40 shadow-sm flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-xs font-bold text-purple-700 dark:text-purple-300">
+                        <span>Dia do Pagamento Pix</span>
+                        <Gift size={18} className="text-purple-500" />
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                        <input
+                            type="number"
+                            min={1}
+                            max={28}
+                            value={appSettings?.affiliate_payout_day ?? 10}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value) || 10;
+                                if (val >= 1 && val <= 28) {
+                                    updateAppSettings({ affiliate_payout_day: val });
+                                }
+                            }}
+                            className="w-16 bg-gray-50 dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-xl px-2.5 py-1 text-sm font-bold text-center text-gray-950 dark:text-white outline-none focus:ring-2 focus:ring-purple-550 transition-all"
+                        />
+                        <span className="text-[10px] text-gray-400 font-semibold leading-tight">Dia do lote mensal</span>
                     </div>
                 </div>
             </div>
