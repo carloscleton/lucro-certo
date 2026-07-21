@@ -302,7 +302,7 @@ export function AffiliateDashboard() {
                             </div>
                             <div>
                                 <h3 className="font-extrabold text-sm text-gray-900 dark:text-white font-sans">Sua Chave PIX</h3>
-                                <p className="text-[10px] text-gray-400">Configure para receber transferências automáticas.</p>
+                                <p className="text-[10px] text-gray-400">Sua chave cadastrada para os repasses todo dia {payoutDay}.</p>
                             </div>
                         </div>
 
