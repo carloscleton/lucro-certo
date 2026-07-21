@@ -307,18 +307,33 @@ export const affiliateService = {
      */
     getAllAffiliatesAdmin: async () => {
         try {
-            const { data, error } = await withRetry(() => supabase
+            const { data: affs, error } = await withRetry(() => supabase
                 .from('affiliates')
-                .select(`
-                    *,
-                    company:companies(id, trade_name, legal_name, cnpj),
-                    profile:profiles!user_id(id, full_name, email, phone)
-                `)
+                .select('*, company:companies(id, trade_name, legal_name, cnpj)')
                 .order('created_at', { ascending: false })
             );
 
             if (error) throw error;
-            return data || [];
+            if (!affs || affs.length === 0) return [];
+
+            const userIds = Array.from(new Set(affs.map((a: any) => a.user_id).filter(Boolean)));
+            let profileMap: Record<string, any> = {};
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, email, phone')
+                    .in('id', userIds);
+                if (profiles) {
+                    profiles.forEach((p: any) => {
+                        profileMap[p.id] = p;
+                    });
+                }
+            }
+
+            return affs.map((a: any) => ({
+                ...a,
+                profile: profileMap[a.user_id] || null
+            }));
         } catch (err) {
             console.error('Erro em getAllAffiliatesAdmin:', err);
             return [];
@@ -359,26 +374,36 @@ export const affiliateService = {
      */
     getPayoutsQueueAdmin: async () => {
         try {
-            const { data, error } = await withRetry(() => supabase
+            const { data: payouts, error } = await withRetry(() => supabase
                 .from('affiliate_payouts')
-                .select(`
-                    *,
-                    affiliate:affiliates(
-                        id,
-                        code,
-                        reward_type,
-                        reward_value,
-                        pix_key,
-                        pix_key_type,
-                        company:companies(trade_name, legal_name),
-                        profile:profiles!user_id(full_name, email, phone)
-                    )
-                `)
+                .select('*, affiliate:affiliates(*, company:companies(trade_name, legal_name))')
                 .order('created_at', { ascending: false })
             );
 
             if (error) throw error;
-            return data || [];
+            if (!payouts || payouts.length === 0) return [];
+
+            const userIds = Array.from(new Set(payouts.map((p: any) => p.affiliate?.user_id).filter(Boolean)));
+            let profileMap: Record<string, any> = {};
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, email, phone')
+                    .in('id', userIds);
+                if (profiles) {
+                    profiles.forEach((pr: any) => {
+                        profileMap[pr.id] = pr;
+                    });
+                }
+            }
+
+            return payouts.map((p: any) => ({
+                ...p,
+                affiliate: p.affiliate ? {
+                    ...p.affiliate,
+                    profile: profileMap[p.affiliate.user_id] || null
+                } : null
+            }));
         } catch (err) {
             console.error('Erro ao buscar fila de saques:', err);
             return [];

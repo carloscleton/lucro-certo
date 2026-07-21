@@ -93,6 +93,7 @@
         "marketing": "Marketing IA",
         "lead_radar": "Radar de Leads",
         "loyalty": "Clube de Fidelidade",
+        "referrals": "Indique e Ganhe",
         "administrative": "Administrativo",
         "logout": "Sair"
     },
@@ -116,7 +117,8 @@
         "agenda": "Gerenciamento de compromissos e tarefas",
         "marketing": "Geração automática de postagens",
         "lead_radar": "Mineração e abordagem automática de clientes",
-        "loyalty": "Planos de recorrência e fidelidade para clientes"
+        "loyalty": "Planos de recorrência e fidelidade para clientes",
+        "referrals": "Programa de indicação e afiliados"
     },
     "layout": {
         "current_environment": "Ambiente Atual",
