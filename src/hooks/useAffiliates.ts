@@ -46,16 +46,14 @@ export function useAffiliates() {
                 ),
                 supabase
                     .from('app_settings')
-                    .select('affiliate_payout_day, platform_billing_config')
+                    .select('platform_billing_config')
                     .eq('id', 1)
                     .maybeSingle()
             ]);
 
             setAffiliate(aff);
 
-            const day = settingsRes?.data?.affiliate_payout_day ?? 
-                        (settingsRes?.data?.platform_billing_config as any)?.affiliate_payout_day ?? 
-                        10;
+            const day = (settingsRes?.data?.platform_billing_config as any)?.affiliate_payout_day ?? 10;
             setPayoutDay(day);
 
             if (aff) {
