@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     async function signOut() {
         try {
-            await supabase.auth.signOut();
+            await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         } catch (err) {
             console.warn('⚠️ Error during signOut:', err);
         }
