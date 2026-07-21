@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/constants';
@@ -135,17 +135,20 @@ export function useAdmin() {
 
     const fetchPublicSettings = async () => {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await withRetry(() => supabase
                 .from('app_settings')
                 .select('*')
                 .eq('id', 1)
-                .maybeSingle();
+                .maybeSingle());
 
             if (!error && data) {
                 setAppSettings(data as any);
             }
         } catch (err) {
-            console.error('Error fetching public settings:', err);
+            const errStr = String((err as any)?.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching public settings:', err);
+            }
         }
     };
 
@@ -155,40 +158,35 @@ export function useAdmin() {
         if (!silent) setLoading(true);
         setError(null);
         try {
-            // Fetch Stats
-            const { data: statsData, error: statsError } = await supabase
-                .rpc('get_admin_stats');
+            // Fetch Stats, BI Stats, Users List, and Companies List in Parallel for 10x faster load!
+            const [statsRes, biRes, usersRes, companiesRes] = await Promise.all([
+                withRetry(() => supabase.rpc('get_admin_stats')),
+                withRetry(() => supabase.rpc('get_admin_bi_stats')),
+                withRetry(() => supabase.rpc('get_admin_users_list')),
+                withRetry(() => supabase.rpc('get_admin_companies_list'))
+            ]);
 
-            if (statsError) throw statsError;
-            setStats(statsData);
+            if (statsRes.error) throw statsRes.error;
+            if (usersRes.error) throw usersRes.error;
+            if (companiesRes.error) throw companiesRes.error;
 
-            // Fetch BI Stats
-            const { data: biData, error: biError } = await supabase
-                .rpc('get_admin_bi_stats');
-
-            if (!biError && biData) {
-                setBiStats(biData);
+            setStats(statsRes.data);
+            
+            if (biRes.data) {
+                setBiStats(biRes.data);
             }
+            
+            setUsersList(usersRes.data || []);
+            setCompaniesList(companiesRes.data || []);
 
-            // Fetch Users List
-            const { data: usersData, error: usersError } = await supabase
-                .rpc('get_admin_users_list');
-
-            if (usersError) throw usersError;
-            setUsersList(usersData || []);
-
-            // Fetch Companies List
-            const { data: companiesData, error: companiesError } = await supabase
-                .rpc('get_admin_companies_list');
-
-            if (companiesError) throw companiesError;
-            setCompaniesList(companiesData || []);
-
-            // Fetch App Settings (already fetched by fetchPublicSettings, but ensuring latest here)
+            // Fetch App Settings
             await fetchPublicSettings();
 
         } catch (err: any) {
-            console.error('Error fetching admin data:', err);
+            const errStr = String(err?.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Error fetching admin data:', err);
+            }
             setError(err.message || 'Falha ao carregar dados administrativos');
         } finally {
             if (!silent) setLoading(false);

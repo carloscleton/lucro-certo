@@ -319,10 +319,10 @@ export const affiliateService = {
             const userIds = Array.from(new Set(affs.map((a: any) => a.user_id).filter(Boolean)));
             let profileMap: Record<string, any> = {};
             if (userIds.length > 0) {
-                const { data: profiles } = await supabase
+                const { data: profiles } = await withRetry(() => supabase
                     .from('profiles')
                     .select('id, full_name, email, phone')
-                    .in('id', userIds);
+                    .in('id', userIds));
                 if (profiles) {
                     profiles.forEach((p: any) => {
                         profileMap[p.id] = p;
@@ -335,7 +335,10 @@ export const affiliateService = {
                 profile: profileMap[a.user_id] || null
             }));
         } catch (err) {
-            console.error('Erro em getAllAffiliatesAdmin:', err);
+            const errStr = String((err as any)?.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Erro em getAllAffiliatesAdmin:', err);
+            }
             return [];
         }
     },
@@ -386,10 +389,10 @@ export const affiliateService = {
             const userIds = Array.from(new Set(payouts.map((p: any) => p.affiliate?.user_id).filter(Boolean)));
             let profileMap: Record<string, any> = {};
             if (userIds.length > 0) {
-                const { data: profiles } = await supabase
+                const { data: profiles } = await withRetry(() => supabase
                     .from('profiles')
                     .select('id, full_name, email, phone')
-                    .in('id', userIds);
+                    .in('id', userIds));
                 if (profiles) {
                     profiles.forEach((pr: any) => {
                         profileMap[pr.id] = pr;
@@ -405,7 +408,10 @@ export const affiliateService = {
                 } : null
             }));
         } catch (err) {
-            console.error('Erro ao buscar fila de saques:', err);
+            const errStr = String((err as any)?.message || err);
+            if (!errStr.includes('Failed to fetch')) {
+                console.error('Erro ao buscar fila de saques:', err);
+            }
             return [];
         }
     },
