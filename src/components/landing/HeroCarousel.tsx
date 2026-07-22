@@ -99,9 +99,10 @@ interface HeroCarouselProps {
     session: any;
     setIsVideoModalOpen: (open: boolean) => void;
     landingCampaigns?: any[];
+    onTrialClick?: () => void;
 }
 
-export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }: HeroCarouselProps) {
+export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns, onTrialClick }: HeroCarouselProps) {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -419,10 +420,21 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns }:
                                             </a>
                                         ) : (
                                             <>
-                                                <button onClick={() => navigate(session ? '/dashboard' : '/login?mode=signup&checkout-plan=trial&checkout-price=0')} className="btn-primary">
-                                                    {session ? t('landing.carousel.go_dashboard') : t('landing.hero.free_trial')}
-                                                    <ChevronRight size={18} />
-                                                </button>
+                                                 <button 
+                                                     onClick={() => {
+                                                         if (session) {
+                                                             navigate('/dashboard');
+                                                         } else if (onTrialClick) {
+                                                             onTrialClick();
+                                                         } else {
+                                                             navigate('/login?mode=signup&checkout-plan=trial&checkout-price=0');
+                                                         }
+                                                     }} 
+                                                     className="btn-primary"
+                                                 >
+                                                     {session ? t('landing.carousel.go_dashboard') : t('landing.hero.free_trial')}
+                                                     <ChevronRight size={18} />
+                                                 </button>
                                                 <button onClick={() => setIsVideoModalOpen(true)} className="btn-watch-video">
                                                     <PlayCircle size={18} />
                                                     {t('landing.hero.learn_system')}

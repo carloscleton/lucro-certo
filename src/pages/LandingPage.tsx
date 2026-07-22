@@ -167,6 +167,7 @@ export function LandingPage() {
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
     const [currencySymbol, setCurrencySymbol] = useState('R$');
     const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<any | null>(null);
+    const [trialOnlyMode, setTrialOnlyMode] = useState(false);
 
     const [leadName, setLeadName] = useState('');
     const [leadPhone, setLeadPhone] = useState('');
@@ -395,7 +396,18 @@ export function LandingPage() {
             </nav>
 
             {/* Hero Carousel Section */}
-            <HeroCarousel session={session} setIsVideoModalOpen={setIsVideoModalOpen} landingCampaigns={landingCampaigns} />
+            <HeroCarousel 
+                session={session} 
+                setIsVideoModalOpen={setIsVideoModalOpen} 
+                landingCampaigns={landingCampaigns} 
+                onTrialClick={() => {
+                    setTrialOnlyMode(true);
+                    const pricingSec = document.getElementById('pricing');
+                    if (pricingSec) {
+                        pricingSec.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }}
+            />
 
             {/* Trust Bar (Media) */}
             <section className="media-bar" style={{ padding: '2rem 5%', background: '#fff', borderBottom: '1px solid var(--glass-border)', textAlign: 'center' }}>
@@ -851,11 +863,28 @@ export function LandingPage() {
                         <p>{t('landing.pricing.subtitle')}</p>
                     </div>
 
+                    {trialOnlyMode && (
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 px-6 py-3.5 rounded-2xl max-w-2xl mx-auto mb-8 shadow-sm">
+                            <span className="text-sm font-semibold text-blue-800 dark:text-blue-200 text-center sm:text-left">
+                                💡 Exibindo apenas a opção de <strong>Teste Gratuito</strong> conforme solicitado.
+                            </span>
+                            <button 
+                                onClick={() => setTrialOnlyMode(false)}
+                                className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap shadow-sm"
+                            >
+                                Ver todos os planos
+                            </button>
+                        </div>
+                    )}
+
                     <div className="pricing-grid">
                         {landingPlans.map((plan, idx) => {
                             const planColor = plan.color || '#2563eb';
                             const isPopular = plan.is_popular ?? false;
                             const isPrimaryButton = plan.button_type === 'primary';
+                            
+                            const isTestCard = plan.name?.toLowerCase().includes('teste') || plan.name?.toLowerCase().includes('trial') || parseFloat(plan.price || '0') === 0;
+                            const isDisabled = trialOnlyMode && !isTestCard;
                             
                             return (
                                  <div 
@@ -865,7 +894,12 @@ export function LandingPage() {
                                         borderColor: isPopular ? planColor : undefined,
                                         boxShadow: isPopular ? `0 30px 70px ${planColor}18` : undefined,
                                         padding: 0,
-                                        position: 'relative'
+                                        position: 'relative',
+                                        opacity: isDisabled ? 0.35 : undefined,
+                                        pointerEvents: isDisabled ? 'none' : undefined,
+                                        filter: isDisabled ? 'grayscale(100%)' : undefined,
+                                        transform: isDisabled ? 'none' : undefined,
+                                        transition: 'all 0.3s'
                                     }}
                                 >
                                     {isPopular && (
