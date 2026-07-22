@@ -388,7 +388,7 @@ export function LandingPage() {
                                 <span className="inline sm:hidden">{t('landing.nav.enter')}</span>
                                 <span className="hidden sm:inline">{t('landing.nav.access_account')}</span>
                             </Link>
-                            <Link to="/login?mode=signup" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">{t('landing.nav.start_now')}</Link>
+                             <a href="#pricing" className="nav-btn text-xs md:text-sm px-3 md:px-6 py-2 md:py-3 whitespace-nowrap">{t('landing.nav.start_now')}</a>
                         </>
                     )}
                 </div>
