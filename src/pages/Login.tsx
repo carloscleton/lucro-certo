@@ -829,7 +829,7 @@ export function Login() {
                                                 { id: 'PJ', icon: <Building2 size={14} />, label: 'PJ', desc: 'Pessoa Jurídica' },
                                                 { id: 'BOTH', icon: <div className="flex -space-x-1"><User size={10}/><Building2 size={10}/></div>, label: 'Ambos', desc: 'Pessoa Física e Jurídica' }
                                             ].map(t => {
-                                                const isAllowed = !allowedRegistrationType || allowedRegistrationType === 'BOTH' || allowedRegistrationType === t.id;
+                                                const isAllowed = !allowedRegistrationType || allowedRegistrationType === t.id;
                                                 
                                                 if (!isAllowed) return null;
                                                 
