@@ -473,17 +473,25 @@ export function SubscriptionSettings() {
                                         >
                                             {isPopular && (
                                                 <div 
-                                                    className="absolute bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-1 shadow-md"
                                                     style={{ 
-                                                        backgroundColor: planColor,
-                                                        boxShadow: `0 8px 16px ${planColor}25`,
-                                                        top: 0,
+                                                        position: 'absolute',
+                                                        top: '-14px',
                                                         left: '50%',
-                                                        transform: 'translate(-50%, -50%)',
-                                                        zIndex: 10,
-                                                        letterSpacing: '1.2px',
+                                                        transform: 'translateX(-50%)',
+                                                        backgroundColor: planColor,
+                                                        color: '#ffffff',
+                                                        padding: '6px 16px',
+                                                        borderRadius: '100px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 900,
                                                         textTransform: 'uppercase',
-                                                        whiteSpace: 'nowrap'
+                                                        letterSpacing: '1.2px',
+                                                        boxShadow: `0 8px 16px ${planColor}30`,
+                                                        zIndex: 10,
+                                                        whiteSpace: 'nowrap',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
                                                     }}
                                                 >
                                                     <Sparkles size={10} /> {plan.badge_text || 'RECOMENDADO'}
