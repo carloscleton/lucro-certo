@@ -912,7 +912,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800/40 text-sm">
-                                    {filteredCharges.map(c => {
+                                    {filteredCharges.map((c, index) => {
                                         const missing = validateContact(c.contact);
                                         const isChecked = selectedIds.has(c.id);
                                         const isEmitted = !!c.fiscal_invoice_id;
@@ -957,22 +957,38 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                      <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1 min-w-[130px] max-w-[150px]">
                                                          <span className="text-xs text-gray-400 font-bold">R$</span>
                                                          <input
-                                                             type="text"
-                                                             value={editingAmountId === c.id ? tempAmountText : formatCurrency(c.amount)}
-                                                             onFocus={() => {
-                                                                 setEditingAmountId(c.id);
-                                                                 setTempAmountText(c.amount === 0 ? '' : formatCurrency(c.amount));
-                                                             }}
-                                                             onChange={(e) => setTempAmountText(e.target.value)}
-                                                             onBlur={() => {
-                                                                 const parsed = parseCurrency(tempAmountText);
-                                                                 handleAmountChange(c.id, parsed);
-                                                                 setEditingAmountId(null);
-                                                             }}
-                                                             disabled={isProcessing || isEmitted}
-                                                             className="w-full bg-transparent border-none text-right font-mono font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-0 p-0 text-sm"
-                                                             placeholder="0,00"
-                                                         />
+                                                              id={`amount-input-${index}`}
+                                                              type="text"
+                                                              value={editingAmountId === c.id ? tempAmountText : formatCurrency(c.amount)}
+                                                              onFocus={(e) => {
+                                                                  setEditingAmountId(c.id);
+                                                                  setTempAmountText(c.amount === 0 ? '' : formatCurrency(c.amount));
+                                                                  setTimeout(() => {
+                                                                      e.target.select();
+                                                                  }, 50);
+                                                              }}
+                                                              onChange={(e) => setTempAmountText(e.target.value)}
+                                                              onKeyDown={(e) => {
+                                                                  if (e.key === 'Enter') {
+                                                                      e.preventDefault();
+                                                                      e.currentTarget.blur();
+                                                                      setTimeout(() => {
+                                                                          const nextInput = document.getElementById(`amount-input-${index + 1}`) as HTMLInputElement | null;
+                                                                          if (nextInput) {
+                                                                              nextInput.focus();
+                                                                          }
+                                                                      }, 50);
+                                                                  }
+                                                              }}
+                                                              onBlur={() => {
+                                                                  const parsed = parseCurrency(tempAmountText);
+                                                                  handleAmountChange(c.id, parsed);
+                                                                  setEditingAmountId(null);
+                                                              }}
+                                                              disabled={isProcessing || isEmitted}
+                                                              className="w-full bg-transparent border-none text-right font-mono font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-0 p-0 text-sm"
+                                                              placeholder="0,00"
+                                                          />
                                                      </div>
                                                  </td>
                                                 <td className="py-4 px-4">
