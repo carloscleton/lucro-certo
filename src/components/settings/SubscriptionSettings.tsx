@@ -458,7 +458,7 @@ export function SubscriptionSettings() {
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`relative rounded-3xl border-2 transition-all flex flex-col overflow-hidden ${
+                                            className={`relative rounded-3xl border-2 transition-all flex flex-col ${
                                                 isCurrent 
                                                     ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-900/5' 
                                                     : isPopular 
@@ -468,20 +468,25 @@ export function SubscriptionSettings() {
                                             style={{
                                                 borderColor: isCurrent ? '#10b981' : isPopular ? planColor : undefined,
                                                 boxShadow: isPopular ? `0 20px 40px ${planColor}12` : undefined,
+                                                marginTop: isPopular ? '12px' : undefined
                                             }}
                                         >
                                             {isPopular && (
                                                 <div 
-                                                    className="absolute bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-md"
+                                                    className="absolute bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-1 shadow-md"
                                                     style={{ 
                                                         backgroundColor: planColor,
                                                         boxShadow: `0 8px 16px ${planColor}25`,
-                                                        top: '12px',
-                                                        right: '12px',
-                                                        zIndex: 10
+                                                        top: 0,
+                                                        left: '50%',
+                                                        transform: 'translate(-50%, -50%)',
+                                                        zIndex: 10,
+                                                        letterSpacing: '1.2px',
+                                                        textTransform: 'uppercase',
+                                                        whiteSpace: 'nowrap'
                                                     }}
                                                 >
-                                                    <Sparkles size={10} /> RECOMENDADO
+                                                    <Sparkles size={10} /> {plan.badge_text || 'RECOMENDADO'}
                                                 </div>
                                             )}
                                             
