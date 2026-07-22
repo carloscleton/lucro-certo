@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Save, Plus, Trash2, Edit, Sparkles, Settings, X, Receipt } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, Sparkles, Settings, X, Receipt, Copy } from 'lucide-react';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { useAdmin } from '../../hooks/useAdmin';
 import { useEntity } from '../../context/EntityContext';
@@ -266,6 +266,16 @@ export function LandingPlansEditor() {
         setPlans(newPlans);
     };
 
+    const clonePlan = (index: number) => {
+        const sourcePlan = plans[index];
+        const clonedPlan = JSON.parse(JSON.stringify(sourcePlan));
+        clonedPlan.name = `${clonedPlan.name} (Cópia)`;
+        
+        const newPlans = [...plans];
+        newPlans.splice(index + 1, 0, clonedPlan);
+        setPlans(newPlans);
+    };
+
     const resetToDefaults = () => {
         if (!window.confirm('Isso irá substituir seus planos atuais pelos padrões. Deseja continuar?')) return;
         setPlans([
@@ -403,6 +413,13 @@ export function LandingPlansEditor() {
                                     />
                                     Destaque
                                 </label>
+                                <button 
+                                    onClick={() => clonePlan(pIdx)}
+                                    className="p-1.5 text-gray-300 hover:text-blue-500 transition-colors"
+                                    title="Clonar Plano"
+                                >
+                                    <Copy size={16} />
+                                </button>
                                 <button 
                                     onClick={() => removePlan(pIdx)}
                                     className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
