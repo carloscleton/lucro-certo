@@ -7,6 +7,16 @@ import { useNotification } from '../../context/NotificationContext';
 import { supabase, withRetry } from '../../lib/supabase';
 import { PlanDetailsModal } from './PlanDetailsModal';
 
+const getContrastColor = (hexColor: string) => {
+    if (!hexColor) return '#ffffff';
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? '#0f172a' : '#ffffff';
+};
+
 export function SubscriptionSettings() {
     const { currentEntity } = useEntity();
     const { user } = useAuth();
@@ -440,67 +450,116 @@ export function SubscriptionSettings() {
                         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto">
                             {availablePlans.length > 0 ? (
                                 availablePlans.map((plan: any, idx: number) => {
+                                    const planColor = plan.color || '#2563eb';
+                                    const isPopular = plan.is_popular ?? false;
                                     const isCurrent = subscription?.subscription_plan === plan.name;
+                                    const isPrimaryButton = isCurrent ? false : (plan.button_type === 'primary' || isPopular);
+                                    
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`relative p-5 rounded-2xl border-2 transition-all flex flex-col ${
+                                            className={`relative rounded-3xl border-2 transition-all flex flex-col overflow-hidden ${
                                                 isCurrent 
-                                                    ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10' 
-                                                    : plan.is_popular 
-                                                        ? 'border-blue-500 bg-blue-50/10 dark:bg-blue-900/5 shadow-lg' 
+                                                    ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-900/5' 
+                                                    : isPopular 
+                                                        ? 'border-blue-500 bg-blue-50/5 dark:bg-blue-900/5 shadow-lg' 
                                                         : 'border-gray-100 dark:border-slate-800 hover:border-gray-300'
                                             }`}
+                                            style={{
+                                                borderColor: isCurrent ? '#10b981' : isPopular ? planColor : undefined,
+                                                boxShadow: isPopular ? `0 20px 40px ${planColor}12` : undefined,
+                                            }}
                                         >
-                                            {plan.is_popular && (
-                                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                                            {isPopular && (
+                                                <div 
+                                                    className="absolute bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-md"
+                                                    style={{ 
+                                                        backgroundColor: planColor,
+                                                        boxShadow: `0 8px 16px ${planColor}25`,
+                                                        top: '12px',
+                                                        right: '12px',
+                                                        zIndex: 10
+                                                    }}
+                                                >
                                                     <Sparkles size={10} /> RECOMENDADO
                                                 </div>
                                             )}
                                             
-                                            <div className="mb-4">
-                                                <h4 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h4>
-                                                <p className="text-xs text-gray-500 mt-1 min-h-[2.5rem]">{plan.observation || 'Recursos avançados para sua gestão'}</p>
+                                            {/* Top Full-width Colored Header Block */}
+                                            <div 
+                                                style={{ 
+                                                    backgroundColor: planColor, 
+                                                    color: getContrastColor(planColor),
+                                                    padding: '1.25rem 1rem',
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    minHeight: '4rem',
+                                                    width: '100%',
+                                                    borderTopLeftRadius: '22px', 
+                                                    borderTopRightRadius: '22px'
+                                                }}
+                                            >
+                                                <h4 style={{ margin: 0, color: 'inherit', fontSize: '1.15rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.025em' }}>
+                                                    {plan.name}
+                                                </h4>
                                             </div>
 
-                                            <div className="mb-6">
-                                                <div className="flex items-baseline gap-1">
+                                            {/* Card Body */}
+                                            <div className="p-5 flex-1 flex flex-col items-center w-full">
+                                                <div className="mb-4 text-center">
+                                                    <p className="text-xs text-gray-500 min-h-[2.5rem] mt-1">{plan.observation || 'Recursos avançados para sua gestão'}</p>
+                                                </div>
+
+                                                <div className="mb-6 flex items-baseline justify-center gap-1">
                                                     <span className="text-2xl font-black text-gray-900 dark:text-white">R$ {plan.price}</span>
                                                     <span className="text-gray-400 text-[10px] font-bold uppercase">/{plan.period || 'mês'}</span>
                                                 </div>
+
+                                                <ul className="space-y-2 mb-6 w-full flex-1">
+                                                    {plan.features?.slice(0, 4).map((feat: string, fIdx: number) => (
+                                                        <li key={fIdx} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                                                            <CheckCircle size={14} className="shrink-0" style={{ color: planColor }} />
+                                                            <span className="line-clamp-2">
+                                                                {feat.startsWith('**') && feat.endsWith('**') ?
+                                                                    <strong style={{ fontWeight: 700 }}>{feat.replace(/\*\*/g, '')}</strong> :
+                                                                    feat
+                                                                }
+                                                            </span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+
+                                                <button
+                                                    disabled={isCurrent || upgradingPlan === plan.name}
+                                                    onClick={() => handleUpgradePlan(plan)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs transition-all duration-300 border-2"
+                                                    style={{
+                                                        backgroundColor: isCurrent ? 'transparent' : isPrimaryButton ? planColor : 'transparent',
+                                                        borderColor: isCurrent ? '#cbd5e1' : planColor,
+                                                        color: isCurrent ? '#94a3b8' : isPrimaryButton ? '#fff' : planColor,
+                                                        opacity: upgradingPlan === plan.name ? 0.7 : 1,
+                                                        cursor: isCurrent ? 'default' : 'pointer'
+                                                    }}
+                                                >
+                                                    {isCurrent ? 'Plano Atual' : upgradingPlan === plan.name ? 'Processando...' : (
+                                                        <span className="flex items-center justify-center gap-1">
+                                                            {plan.button_text || 'Selecionar'}
+                                                            <ArrowRight size={12} />
+                                                        </span>
+                                                    )}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedPlanForDetails(plan)}
+                                                    className="text-[10px] hover:underline font-bold mt-3 self-center"
+                                                    style={{ color: planColor }}
+                                                >
+                                                    Ver Detalhes do Plano
+                                                </button>
                                             </div>
-
-                                            <ul className="space-y-2 mb-6 flex-1">
-                                                {plan.features?.slice(0, 4).map((feat: string, fIdx: number) => (
-                                                    <li key={fIdx} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-gray-400">
-                                                        <CheckCircle size={14} className="text-emerald-500 shrink-0" />
-                                                        <span className="line-clamp-2">{feat.replace(/\*\*/g, '')}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-
-                                            <Button 
-                                                className="w-full" 
-                                                variant={isCurrent ? "outline" : plan.is_popular ? "primary" : "outline"}
-                                                disabled={isCurrent || upgradingPlan === plan.name}
-                                                isLoading={upgradingPlan === plan.name}
-                                                onClick={() => handleUpgradePlan(plan)}
-                                            >
-                                                {isCurrent ? 'Plano Atual' : (
-                                                    <span className="flex items-center justify-center gap-2">
-                                                        {plan.button_text || 'Selecionar'}
-                                                        <ArrowRight size={14} />
-                                                    </span>
-                                                )}
-                                            </Button>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedPlanForDetails(plan)}
-                                                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-3 self-center"
-                                            >
-                                                Ver Detalhes do Plano
-                                            </button>
                                         </div>
                                     );
                                 })
