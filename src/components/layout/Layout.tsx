@@ -19,7 +19,8 @@ import {
     Activity,
     User,
     Building2,
-    ChevronDown
+    ChevronDown,
+    Gift
 } from 'lucide-react';
 import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
@@ -38,6 +39,8 @@ import { LanguageSelector } from '../ui/LanguageSelector';
 import { useBillNotifications } from '../../hooks/useBillNotifications';
 import { ProfileCompletionModal } from '../orientation/ProfileCompletionModal';
 import { ExchangeRatesWidget } from '../ui/ExchangeRatesWidget';
+import { useAffiliates } from '../../hooks/useAffiliates';
+import { ShareWhatsAppModal } from '../affiliates/ShareWhatsAppModal';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,6 +64,8 @@ export function Layout() {
     const [cpfModalOpen, setCpfModalOpen] = useState(false);
     const [cpfInput, setCpfInput] = useState('');
     const [cpfError, setCpfError] = useState('');
+    const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+    const { referralLink } = useAffiliates();
     const [pendingCheckoutCompanyId, setPendingCheckoutCompanyId] = useState<string | null>(null);
 
     // Checkout Logic
@@ -595,6 +600,15 @@ export function Layout() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Botão Indique e Ganhe no Header */}
+                            <button
+                                onClick={() => setIsReferralModalOpen(true)}
+                                className="flex items-center gap-1.5 bg-[#00a884] hover:bg-[#008f70] text-white px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm shadow-emerald-500/10 transition-all hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap ml-2"
+                            >
+                                <Gift size={13} />
+                                Indique e Ganhe
+                            </button>
                             
                             {/* Unified Trial Banner */}
                             {currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
@@ -785,6 +799,13 @@ export function Layout() {
                     onComplete={refreshProfile} 
                 />
             )}
+
+            {/* Share WhatsApp Modal for Indique e Ganhe */}
+            <ShareWhatsAppModal
+                isOpen={isReferralModalOpen}
+                onClose={() => setIsReferralModalOpen(false)}
+                referralLink={referralLink}
+            />
         </div>
     );
 }

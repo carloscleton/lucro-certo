@@ -22,7 +22,7 @@ import { LoyaltyStatsWidget } from '../components/dashboard/LoyaltyStatsWidget';
 import { ContextSummaryWidget } from '../components/dashboard/ContextSummaryWidget';
 import { useTransactions } from '../hooks/useTransactions';
 import { useAdmin } from '../hooks/useAdmin';
-import { Users, Building, DollarSign, TrendingUp, Gift } from 'lucide-react';
+import { Users, Building, DollarSign, TrendingUp } from 'lucide-react';
 import { AgendaTasksWidget } from '../components/dashboard/AgendaTasksWidget';
 import { FiscalSummaryWidget } from '../components/dashboard/FiscalSummaryWidget';
 import { SettleModal } from '../components/transactions/SettleModal';
@@ -328,13 +328,6 @@ export function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <button
-                        onClick={() => navigate('/dashboard/referrals')}
-                        className="flex items-center justify-center gap-2 bg-[#00a884] hover:bg-[#008f70] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md shadow-emerald-500/10 transition-all hover:scale-[1.02] active:scale-[0.98] mr-1"
-                    >
-                        <Gift size={16} />
-                        Indique e Ganhe
-                    </button>
                     <Tooltip content={t('dashboard.quick_month_select')}>
                         <input
                             type="month"
