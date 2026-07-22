@@ -83,6 +83,90 @@ export function PaymentRequired() {
         };
         fetchMasterPhone();
     }, []);
+
+    // Efeito para enviar notificação automática de teste expirado ao dono do sistema
+    useEffect(() => {
+        const isTrial = currentEntity?.subscription_plan === 'trial';
+        const isTrialExpired = (currentEntity as any)?.trial_ends_at && 
+                               new Date((currentEntity as any).trial_ends_at) < new Date();
+
+        if (isTrial && isTrialExpired && masterPhone) {
+            const notifyKey = `lc:trial-expired-sent:${currentEntity.id || 'personal'}`;
+            if (!localStorage.getItem(notifyKey)) {
+                const notifyTrialExpired = async () => {
+                    try {
+                        let hasWaInstance = false;
+                        let waInstanceName = '';
+                        const activeCompanyId = currentEntity.id || profile?.company_id;
+                        
+                        if (activeCompanyId && activeCompanyId !== 'personal') {
+                            const { data: waData } = await supabase
+                                .from('instances')
+                                .select('instance_name')
+                                .eq('status', 'connected')
+                                .eq('company_id', activeCompanyId)
+                                .limit(1);
+
+                            if (waData && waData.length > 0) {
+                                hasWaInstance = true;
+                                waInstanceName = waData[0].instance_name;
+                            } else {
+                                const { data: anyWa } = await supabase
+                                    .from('instances')
+                                    .select('instance_name')
+                                    .eq('status', 'connected')
+                                    .limit(1);
+                                if (anyWa && anyWa.length > 0) {
+                                    hasWaInstance = true;
+                                    waInstanceName = anyWa[0].instance_name;
+                                }
+                            }
+                        } else {
+                            const { data: anyWa } = await supabase
+                                .from('instances')
+                                .select('instance_name')
+                                .eq('status', 'connected')
+                                .limit(1);
+                            if (anyWa && anyWa.length > 0) {
+                                hasWaInstance = true;
+                                waInstanceName = anyWa[0].instance_name;
+                            }
+                        }
+
+                        let targetPhone = masterPhone || '5584998071213';
+                        let cleanPhone = targetPhone.replace(/\D/g, '');
+                        if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+                            cleanPhone = '55' + cleanPhone;
+                        }
+                        if (!cleanPhone) {
+                            cleanPhone = '5584998071213';
+                        }
+
+                        const message = `🚨 *[Lucro Certo - Teste Grátis Expirado]*\n\n` +
+                            `O período de teste de 7 dias da empresa/usuário *${currentEntity?.name || profile?.full_name || 'Desconhecida'}* expirou.\n\n` +
+                            `*Dados do Cliente:*\n` +
+                            `• Nome: ${profile?.full_name || 'Não informado'}\n` +
+                            `• Email: ${profile?.email || 'Não informado'}\n` +
+                            `• Telefone: ${currentEntity.phone || profile?.phone || 'Não informado'}\n` +
+                            `• Documento: ${(currentEntity as any).document || currentEntity.cnpj || currentEntity.cpf || 'Não informado'}\n\n` +
+                            `Entre em contato com ele para negociar e ativar a assinatura!`;
+
+                        if (hasWaInstance && waInstanceName && cleanPhone) {
+                            await whatsappService.sendMessage({
+                                instanceName: waInstanceName,
+                                number: cleanPhone,
+                                text: message
+                            });
+                            localStorage.setItem(notifyKey, 'true');
+                        }
+                    } catch (err) {
+                        console.error('Erro ao enviar notificação de teste expirado:', err);
+                    }
+                };
+                notifyTrialExpired();
+            }
+        }
+    }, [currentEntity, profile, masterPhone]);
  
     const handleRequestBypassCode = async () => {
         setLoadingSendCode(true);
