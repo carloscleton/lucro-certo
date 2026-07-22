@@ -256,10 +256,7 @@ export function LandingPage() {
         }
 
         // Option 2: Redirect to signup with plan details, allowing them to register first
-        const planSearch = (plan.name?.toLowerCase() || '') + (plan.observation?.toLowerCase() || '');
-        const isBoth = planSearch.includes('pf') && planSearch.includes('pj');
-        const isPJ = planSearch.includes('pj');
-        const regType = isBoth ? 'BOTH' : (isPJ ? 'PJ' : 'PF');
+        const regType = plan.allowed_entity_type || 'BOTH';
         
         const setupQuery = plan.setup_fee ? `&checkout-setup=${encodeURIComponent(plan.setup_fee)}` : '';
         navigate(`/login?mode=signup&checkout-plan=${encodeURIComponent(plan.name)}&checkout-price=${plan.price}${setupQuery}&currency=${selectedCurrency}&registration-type=${regType}`);

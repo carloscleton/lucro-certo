@@ -137,10 +137,8 @@ export function Login() {
                         if (foundPlan?.allowed_entity_type) {
                             setAllowedRegistrationType(foundPlan.allowed_entity_type);
                             
-                            // Set the default registration type to the allowed one if not BOTH
-                            if (foundPlan.allowed_entity_type === 'PF' || foundPlan.allowed_entity_type === 'PJ') {
-                                setRegistrationType(foundPlan.allowed_entity_type);
-                            }
+                            // Always pre-select the allowed entity type from the plan
+                            setRegistrationType(foundPlan.allowed_entity_type);
                         }
                     }
                 } catch (err) {
