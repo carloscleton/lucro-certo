@@ -68,7 +68,10 @@ export function SubscriptionSettings() {
         try {
             const { data } = await withRetry(() => supabase.from('app_settings').select('landing_plans').eq('id', 1).maybeSingle());
             if (data?.landing_plans) {
-                setAvailablePlans(data.landing_plans.filter((p: any) => p.enabled !== false));
+                setAvailablePlans(data.landing_plans.filter((p: any) => {
+                    const isTestPlan = p.name?.toLowerCase().includes('teste') || p.name?.toLowerCase().includes('trial') || parseFloat(p.price || '0') === 0;
+                    return p.enabled !== false && !isTestPlan;
+                }));
             }
         } catch (err) {
             const errStr = String((err as any)?.message || err);
