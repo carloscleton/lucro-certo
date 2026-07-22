@@ -5310,9 +5310,10 @@ app.post('/instances', authenticate, async (req, res) => {
         res.status(201).json(finalResponseData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro na Evolution API:', errorDetail);
+        const providerName = provider === 'waha' ? 'WAHA API' : 'Evolution API';
+        console.error(`❌ Erro na ${providerName}:`, errorDetail);
         res.status(500).json({
-            error: 'Erro ao criar instância na Evolution API',
+            error: `Erro ao criar instância na ${providerName}`,
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
