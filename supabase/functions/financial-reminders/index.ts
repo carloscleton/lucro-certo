@@ -96,7 +96,12 @@ serve(async (req) => {
             return new Response(JSON.stringify({ success: true, message: 'Nenhum compromisso financeiro pendente encontrado.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
-        let instanceQuery = supabase.from('instances').select('instance_name').eq('status', 'connected').limit(1);
+        let instanceQuery = supabase.from('instances')
+            .select('instance_name')
+            .eq('status', 'connected')
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(1);
         if (type === 'personal') {
             instanceQuery = instanceQuery.eq('user_id', user_id).is('company_id', null)
         } else {

@@ -40,7 +40,13 @@ serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         if (body.overrideMessage && body.targetPhone) {
             // Find a connected instance for this company
-            const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', body.companyId).eq('status', 'connected').limit(1);
+            const { data: waInstances } = await supabase.from('instances')
+                .select('instance_name')
+                .eq('company_id', body.companyId)
+                .eq('status', 'connected')
+                .order('is_default', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(1);
             const instanceName = waInstances?.[0]?.instance_name || 'LucroCerto';
             
             const targetNumber = body.targetPhone.replace(/\D/g, '');
@@ -112,7 +118,13 @@ serve(async (req) => {
             const targetNumber = rawNumber.replace(/\D/g, '');
 
             // Pegar a instância conectada da empresa
-            const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', task.company_id).eq('status', 'connected').limit(1);
+            const { data: waInstances } = await supabase.from('instances')
+                .select('instance_name')
+                .eq('company_id', task.company_id)
+                .eq('status', 'connected')
+                .order('is_default', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(1);
             const instanceName = waInstances?.[0]?.instance_name || 'LucroCerto';
 
             // Montar a mensagem

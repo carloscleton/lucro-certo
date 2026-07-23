@@ -85,7 +85,13 @@ serve(async (req) => {
 
             if (todaysBirthdays.length === 0) continue
 
-            const { data: waInstances } = await supabase.from('instances').select('instance_name').eq('company_id', comp.id).eq('status', 'connected').limit(1)
+            const { data: waInstances } = await supabase.from('instances')
+                .select('instance_name')
+                .eq('company_id', comp.id)
+                .eq('status', 'connected')
+                .order('is_default', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(1)
             const instanceName = waInstances?.[0]?.instance_name
             if (!instanceName) continue
 

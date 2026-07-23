@@ -78,6 +78,8 @@ serve(async (req) => {
             .select('instance_name')
             .eq('company_id', company_id)
             .eq('status', 'connected')
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(1)
 
         const instanceName = waInstances?.[0]?.instance_name
