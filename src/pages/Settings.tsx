@@ -1211,23 +1211,23 @@ export function Settings() {
             </div>
 
             {/* Tabs Header */}
-            <div className="flex gap-4 border-b border-gray-200 dark:border-slate-700 overflow-x-auto">
+            <div className="flex gap-1.5 p-1 bg-gray-100/80 dark:bg-slate-900/50 rounded-xl overflow-x-auto no-scrollbar border border-gray-200/40 dark:border-slate-800/80">
                 {[
-                    { key: 'quotes', label: t('settings.tab_quotes'), icon: FileText, color: 'blue' },
-                    { key: 'financial', label: t('settings.tab_financial'), icon: Wallet, color: 'blue' },
-                    { key: 'team', label: t('settings.tab_team'), icon: Users, color: 'blue' },
-                    { key: 'webhooks', label: t('settings.tab_webhooks'), icon: SettingsIcon, color: 'purple' },
-                    { key: 'email', label: 'E-mail', icon: Mail, color: 'blue' },
-                    { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare, color: 'green' },
-                    { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard, color: 'emerald' },
-                    { key: 'automations', label: 'Automações', icon: Sparkles, color: 'blue' },
-                    { key: 'fiscal', label: t('settings.tab_fiscal'), icon: Calculator, color: 'indigo' },
-                    { key: 'loyalty', label: 'Clube de Fidelidade', icon: Award, color: 'indigo' },
-                    { key: 'banking', label: 'Bancos e DDA', icon: Landmark, color: 'indigo' },
-                    { key: 'subscription', label: 'Plano e Assinatura', icon: Zap, color: 'blue' },
+                    { key: 'quotes', label: t('settings.tab_quotes'), icon: FileText },
+                    { key: 'financial', label: t('settings.tab_financial'), icon: Wallet },
+                    { key: 'team', label: t('settings.tab_team'), icon: Users },
+                    { key: 'webhooks', label: t('settings.tab_webhooks'), icon: SettingsIcon },
+                    { key: 'email', label: 'E-mail', icon: Mail },
+                    { key: 'whatsapp', label: t('settings.tab_whatsapp'), icon: MessageSquare },
+                    { key: 'payments', label: t('settings.tab_payments'), icon: CreditCard },
+                    { key: 'automations', label: 'Automações', icon: Sparkles },
+                    { key: 'fiscal', label: t('settings.tab_fiscal'), icon: Calculator },
+                    { key: 'loyalty', label: 'Clube de Fidelidade', icon: Award },
+                    { key: 'banking', label: 'Bancos e DDA', icon: Landmark },
+                    { key: 'subscription', label: 'Plano e Assinatura', icon: Zap },
                     ...(isAdmin ? [
-                        { key: 'platform_billing', label: 'Gestão da Plataforma', icon: Activity, color: 'emerald' },
-                        { key: 'admin', label: t('settings.tab_admin'), icon: Shield, color: 'purple' }
+                        { key: 'platform_billing', label: 'Gestão da Plataforma', icon: Activity },
+                        { key: 'admin', label: t('settings.tab_admin'), icon: Shield }
                     ] : [])
                 ].filter(tab => {
                     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -1268,10 +1268,11 @@ export function Settings() {
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as any)}
-                        className={`pb-3 px-4 flex items-center gap-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.key
-                            ? `border-b-2 border-${tab.color}-600 text-${tab.color}-600 dark:text-${tab.color}-400`
-                            : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                            }`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${
+                            activeTab === tab.key
+                                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/40 dark:text-gray-400 dark:hover:text-white dark:hover:bg-slate-800/30 border border-transparent'
+                        }`}
                     >
                         <tab.icon size={18} />
                         {tab.label}
