@@ -136,8 +136,11 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 query += `evolution_instance_id=eq.${encodeURIComponent(identifier.token!)}`;
             } else {
                 query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
+                if (companyId) {
+                    query += `&company_id=eq.${encodeURIComponent(companyId)}`;
+                }
             }
-            query += `&select=evolution_instance_id,company_id,provider`;
+            query += `&select=evolution_instance_id,company_id,provider&order=created_at.desc&limit=1`;
             const response = await axios.get(query, {
                 headers: {
                     'apikey': supabaseKey,
@@ -6008,8 +6011,14 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                     : (authHeader || `Bearer ${supabaseKey}`);
 
                 if (SUPABASE_URL && name) {
+                    let queryUrl = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}`;
+                    if (company_id) {
+                        queryUrl += `&company_id=eq.${encodeURIComponent(company_id as string)}`;
+                    }
+                    queryUrl += `&select=id,evolution_instance_id&order=created_at.desc&limit=1`;
+
                     const { data: insts } = await axios.get(
-                        `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}&select=id,evolution_instance_id`,
+                        queryUrl,
                         {
                             headers: {
                                 'apikey': supabaseKey,
@@ -7209,8 +7218,14 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
 
         if (SUPABASE_URL) {
             try {
+                let queryUrl = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(instanceName)}`;
+                if (companyId) {
+                    queryUrl += `&company_id=eq.${encodeURIComponent(companyId)}`;
+                }
+                queryUrl += `&select=id,evolution_instance_id&order=created_at.desc&limit=1`;
+
                 const { data: insts } = await axios.get(
-                    `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(instanceName)}&select=id,evolution_instance_id`,
+                    queryUrl,
                     {
                         headers: {
                             'apikey': supabaseKey,
