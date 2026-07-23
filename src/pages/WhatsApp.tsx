@@ -42,6 +42,9 @@ interface Instance {
     created_at: string;
     provider?: string;
     is_active?: boolean;
+    is_default?: boolean;
+    company_id?: string;
+    user_id?: string;
 }
 
 export function WhatsApp() {
@@ -1363,36 +1366,99 @@ export function WhatsApp() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800 mb-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Disparos Ativos</span>
-                                        <span className="text-[10px] text-gray-400">Permite enviar notas/mensagens</span>
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Disparos Ativos</span>
+                                            <span className="text-[10px] text-gray-400">Permite enviar notas/mensagens</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const newActive = instance.is_active === false ? true : false;
+                                                // 1. Atualizar localmente
+                                                setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: newActive } : i));
+                                                // 2. Salvar no banco
+                                                const { error } = await supabase
+                                                    .from('instances')
+                                                    .update({ is_active: newActive })
+                                                    .eq('id', instance.id);
+                                                if (error) {
+                                                    notify('error', 'Erro ao atualizar status do disparo.', 'Erro');
+                                                    // Reverter
+                                                    setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: !newActive } : i));
+                                                } else {
+                                                    notify('success', `Disparos ${newActive ? 'ativados' : 'desativados'} com sucesso.`, 'Atualizado');
+                                                }
+                                            }}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${instance.is_active !== false ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                        >
+                                            <span
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${instance.is_active !== false ? 'translate-x-5' : 'translate-x-0'}`}
+                                            />
+                                        </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            const newActive = instance.is_active === false ? true : false;
-                                            // 1. Atualizar localmente
-                                            setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: newActive } : i));
-                                            // 2. Salvar no banco
-                                            const { error } = await supabase
-                                                .from('instances')
-                                                .update({ is_active: newActive })
-                                                .eq('id', instance.id);
-                                            if (error) {
-                                                notify('error', 'Erro ao atualizar status do disparo.', 'Erro');
-                                                // Reverter
-                                                setInstances(instances.map(i => i.id === instance.id ? { ...i, is_active: !newActive } : i));
-                                            } else {
-                                                notify('success', `Disparos ${newActive ? 'ativados' : 'desativados'} com sucesso.`, 'Atualizado');
-                                            }
-                                        }}
-                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${instance.is_active !== false ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-slate-700'}`}
-                                    >
-                                        <span
-                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${instance.is_active !== false ? 'translate-x-5' : 'translate-x-0'}`}
-                                        />
-                                    </button>
+
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/30 rounded-xl border border-gray-100 dark:border-slate-800">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Instância Padrão</span>
+                                            <span className="text-[10px] text-gray-400">Usar para envios automáticos</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const newDefault = !instance.is_default;
+                                                
+                                                // 1. Atualizar localmente todas as instâncias do mesmo contexto
+                                                setInstances(instances.map(i => {
+                                                    if (i.id === instance.id) {
+                                                        return { ...i, is_default: newDefault };
+                                                    }
+                                                    if (newDefault) {
+                                                        // Se estiver ativando esta, desativa as outras da mesma empresa/usuário
+                                                        if (instance.company_id && i.company_id === instance.company_id) {
+                                                            return { ...i, is_default: false };
+                                                        } else if (!instance.company_id && i.user_id === instance.user_id && !i.company_id) {
+                                                            return { ...i, is_default: false };
+                                                        }
+                                                    }
+                                                    return i;
+                                                }));
+
+                                                try {
+                                                    if (newDefault) {
+                                                        // Primeiro desmarca todas no banco para o mesmo contexto
+                                                        let dbQuery = supabase.from('instances').update({ is_default: false });
+                                                        if (instance.company_id) {
+                                                            dbQuery = dbQuery.eq('company_id', instance.company_id);
+                                                        } else {
+                                                            dbQuery = dbQuery.eq('user_id', instance.user_id).is('company_id', null);
+                                                        }
+                                                        const { error: resetError } = await dbQuery;
+                                                        if (resetError) throw resetError;
+                                                    }
+
+                                                    // Depois atualiza a selecionada
+                                                    const { error: setError } = await supabase
+                                                        .from('instances')
+                                                        .update({ is_default: newDefault })
+                                                        .eq('id', instance.id);
+                                                    if (setError) throw setError;
+
+                                                    notify('success', newDefault ? `Instância "${instance.instance_name}" definida como padrão.` : `Instância "${instance.instance_name}" desmarcada como padrão.`, 'Atualizado');
+                                                } catch (error: any) {
+                                                    console.error('Erro ao atualizar padrão:', error);
+                                                    notify('error', 'Erro ao atualizar instância padrão.', 'Erro');
+                                                    fetchInstances();
+                                                }
+                                            }}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${instance.is_default ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'}`}
+                                        >
+                                            <span
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${instance.is_default ? 'translate-x-5' : 'translate-x-0'}`}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col gap-2">

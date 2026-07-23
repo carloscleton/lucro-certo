@@ -65,9 +65,13 @@ export function Quotes() {
                 .eq('status', 'connected');
 
             if (currentEntity.type === 'company' && currentEntity.id) {
-                setWaInstances(data?.filter(i => i.company_id === currentEntity.id) || []);
+                const filtered = data?.filter(i => i.company_id === currentEntity.id) || [];
+                filtered.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+                setWaInstances(filtered);
             } else {
-                setWaInstances(data?.filter(i => i.user_id === user?.id && !i.company_id) || []);
+                const filtered = data?.filter(i => i.user_id === user?.id && !i.company_id) || [];
+                filtered.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+                setWaInstances(filtered);
             }
         };
         fetchWA();

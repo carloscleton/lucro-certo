@@ -3516,16 +3516,23 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
             if (recipientPhoneRaw) {
                 const recipientPhone = formatWhatsappNumber(recipientPhoneRaw);
 
-                const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id,provider,is_active`, {
+                const { data: waInstances } = await axios.get(`${SUPABASE_URL}/rest/v1/instances?company_id=eq.${invoice.company_id}&status=eq.connected&select=instance_name,evolution_instance_id,provider,is_active,is_default`, {
                     headers: dbHeaders
                 });
 
                 const activeInsts = (waInstances || []).filter((inst: any) => inst.is_active !== false);
 
                 if (activeInsts.length > 0) {
-                    const preferredProvider = companySettings.whatsapp_provider || 'evolution_api';
-                    let selectedInst = activeInsts.find((inst: any) => inst.provider === preferredProvider);
+                    // 1. Tentar encontrar a instância padrão (is_default === true)
+                    let selectedInst = activeInsts.find((inst: any) => inst.is_default);
 
+                    // 2. Se não houver, tenta pre-selecionar o provedor preferido nas configurações
+                    if (!selectedInst) {
+                        const preferredProvider = companySettings.whatsapp_provider || 'evolution_api';
+                        selectedInst = activeInsts.find((inst: any) => inst.provider === preferredProvider);
+                    }
+
+                    // 3. Fallback para a primeira conectada
                     if (!selectedInst) {
                         selectedInst = activeInsts[0];
                     }

@@ -689,6 +689,8 @@ ${messageWithPlaceholder}`;
                 .eq('company_id', invoice.company_id);
             
             const activeInsts = waData || [];
+            // Ordenar para colocar a padrão (is_default === true) primeiro
+            activeInsts.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
             setActiveInstances(activeInsts);
 
             if (activeInsts.length > 0) {
@@ -712,12 +714,17 @@ ${messageWithPlaceholder}`;
                     console.warn('Erro ao verificar instâncias no Evolution GO:', err);
                 }
 
-                // Tentar pre-selecionar o provedor preferido das configurações
-                let defaultInst = activeInsts.find(inst => {
-                    const nameLower = inst.instance_name.toLowerCase().trim();
-                    const isGo = goNames.includes(nameLower);
-                    return isDefaultGo ? isGo : !isGo;
-                });
+                // 1. Tentar encontrar a padrão (is_default === true)
+                let defaultInst = activeInsts.find(inst => inst.is_default);
+
+                // 2. Se não houver, tenta pre-selecionar o provedor preferido das configurações
+                if (!defaultInst) {
+                    defaultInst = activeInsts.find(inst => {
+                        const nameLower = inst.instance_name.toLowerCase().trim();
+                        const isGo = goNames.includes(nameLower);
+                        return isDefaultGo ? isGo : !isGo;
+                    });
+                }
 
                 if (!defaultInst) {
                     defaultInst = activeInsts[0];
