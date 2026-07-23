@@ -298,7 +298,11 @@ export function WhatsApp() {
 
     const syncInstanceWithEvolution = async (instance: Instance) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json().catch(() => null);
                 if (!data) return;
@@ -587,7 +591,11 @@ export function WhatsApp() {
     const handleTestConnection = async (instance: Instance) => {
         try {
             notify('info', 'Testando conexão com a Evolution API...', 'Aguarde');
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
+            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
 
             if (response.ok) {
                 const data = await response.json().catch(() => ({}));
