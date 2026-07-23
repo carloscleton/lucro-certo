@@ -4707,6 +4707,13 @@ export function Settings() {
                                 )}
                             </div>
                         )}
+
+                        {adminSubTab === 'referrals' && (
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Administração do Indique e Ganhe</h3>
+                                <AdminAffiliatesManager appSettings={appSettings} updateAppSettings={updateAppSettings} />
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -4788,12 +4795,7 @@ export function Settings() {
                     </div>
                 )
             }
-            {adminSubTab === 'referrals' && (
-                <div className="space-y-6">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Administração do Indique e Ganhe</h3>
-                    <AdminAffiliatesManager appSettings={appSettings} updateAppSettings={updateAppSettings} />
-                </div>
-            )}
+
 
             {/* Modal de Edição de Automações */}
             {
