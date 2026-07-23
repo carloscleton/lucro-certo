@@ -5360,13 +5360,20 @@ app.get('/instances/evogo-sync', authenticate, async (req, res) => {
     const { company_id } = req.query;
     try {
         const config = await getEvolutionConfig({ companyId: company_id as string });
-        if (!config.isGo) {
+        if (!config.isGo || !config.url || !config.apiKey) {
             return res.json({ instances: [], isGo: false });
         }
 
-        const allRes = await axios.get(`${config.url}/instance/all`, {
-            headers: { 'apikey': config.apiKey }
-        });
+        let allRes;
+        try {
+            allRes = await axios.get(`${config.url}/instance/all`, {
+                headers: { 'apikey': config.apiKey },
+                timeout: 3000
+            });
+        } catch (apiErr: any) {
+            console.warn('⚠️ [evogo-sync] Evolution GO API call failed:', apiErr.message);
+            return res.json({ instances: [], isGo: true, warning: 'Evolution GO server unreachable' });
+        }
 
         const instances = (allRes.data?.data || []).map((i: any) => ({
             id: i.id,           // UUID gerado pela EvoGo (o ID correto)
