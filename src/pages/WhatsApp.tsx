@@ -1188,8 +1188,14 @@ export function WhatsApp() {
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                                             {instance.instance_name}
                                         </h3>
-                                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wider flex-shrink-0 ${instance.provider === 'evolution_go' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'}`}>
-                                            {instance.provider === 'evolution_go' ? 'Evo GO' : 'Evo API'}
+                                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wider flex-shrink-0 ${
+                                            instance.provider === 'waha' 
+                                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                                                : instance.provider === 'evolution_go' 
+                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                                        }`}>
+                                            {instance.provider === 'waha' ? 'WAHA API' : instance.provider === 'evolution_go' ? 'Evo GO' : 'Evo API'}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
