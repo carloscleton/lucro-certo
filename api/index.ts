@@ -5990,6 +5990,52 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
 
         if (resultData) {
             console.log(`✅ Details found for: ${resultData.instanceName || resultData.name}`);
+
+            // Auto-sync token check for Standard and Go instances
+            try {
+                let dbRowId: string | null = null;
+                let instanceToken = token as string;
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+                const dbAuthHeader = SUPABASE_SERVICE_ROLE_KEY 
+                    ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` 
+                    : (authHeader || `Bearer ${supabaseKey}`);
+
+                if (SUPABASE_URL && name) {
+                    const { data: insts } = await axios.get(
+                        `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}&select=id,evolution_instance_id`,
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': dbAuthHeader
+                            }
+                        }
+                    );
+                    if (insts && insts.length > 0) {
+                        dbRowId = insts[0].id;
+                        instanceToken = insts[0].evolution_instance_id;
+                    }
+                }
+
+                const serverToken = resultData.token || resultData.apikey || resultData.id;
+                if (dbRowId && serverToken && serverToken !== instanceToken && config.provider !== 'waha') {
+                    console.log(`🔄 [details Auto-Sync] Mismatched token for ${name}: DB=${instanceToken} vs Server=${serverToken}. Updating DB...`);
+                    await axios.patch(
+                        `${SUPABASE_URL}/rest/v1/instances?id=eq.${dbRowId}`,
+                        { evolution_instance_id: serverToken },
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': dbAuthHeader,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            }
+                        }
+                    ).catch(e => console.warn('⚠️ Auto-sync token patch failed in details:', e.message));
+                }
+            } catch (syncErr: any) {
+                console.warn('⚠️ Details token sync check failed:', syncErr.message);
+            }
+
             return res.json(resultData);
         }
 
@@ -7169,7 +7215,7 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                     instanceToken = insts[0].evolution_instance_id;
                     const dbRowId = insts[0].id;
 
-                    // Auto-sync token check for Evolution GO
+                    // Auto-sync token check
                     try {
                         const configTemp = await getEvolutionConfig({ 
                             instanceName, 
@@ -7187,11 +7233,38 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
                                 (i.name || '').toLowerCase().trim() === instanceName.toLowerCase().trim()
                             );
                             if (serverInst && serverInst.token && serverInst.token !== instanceToken) {
-                                console.log(`🔄 [whatsapp/send Auto-Sync] Mismatched token for ${instanceName}: DB=${instanceToken} vs Server=${serverInst.token}. Updating DB...`);
+                                console.log(`🔄 [whatsapp/send Auto-Sync Go] Mismatched token for ${instanceName}: DB=${instanceToken} vs Server=${serverInst.token}. Updating DB...`);
                                 instanceToken = serverInst.token;
                                 await axios.patch(
                                     `${SUPABASE_URL}/rest/v1/instances?id=eq.${dbRowId}`,
                                     { evolution_instance_id: serverInst.token },
+                                    {
+                                        headers: {
+                                            'apikey': supabaseKey,
+                                            'Authorization': dbAuthHeader,
+                                            'Content-Type': 'application/json',
+                                            'Prefer': 'return=minimal'
+                                        }
+                                    }
+                                ).catch(e => console.warn('⚠️ Auto-sync token patch failed:', e.message));
+                            }
+                        } else if (configTemp.provider === 'evolution_api') {
+                            const allRes = await axios.get(`${configTemp.url}/instance/fetchInstances`, {
+                                headers: { 'apikey': configTemp.apiKey },
+                                timeout: 2500
+                            });
+                            const rawInstances = Array.isArray(allRes.data) ? allRes.data : [];
+                            const stdInstances = rawInstances.map((item: any) => item.instance || item);
+                            const serverInst = stdInstances.find((i: any) =>
+                                (i.name || i.instanceName || '').toLowerCase().trim() === instanceName.toLowerCase().trim()
+                            );
+                            const serverToken = serverInst?.apikey || serverInst?.token;
+                            if (serverInst && serverToken && serverToken !== instanceToken) {
+                                console.log(`🔄 [whatsapp/send Auto-Sync Standard] Mismatched token for ${instanceName}: DB=${instanceToken} vs Server=${serverToken}. Updating DB...`);
+                                instanceToken = serverToken;
+                                await axios.patch(
+                                    `${SUPABASE_URL}/rest/v1/instances?id=eq.${dbRowId}`,
+                                    { evolution_instance_id: serverToken },
                                     {
                                         headers: {
                                             'apikey': supabaseKey,
