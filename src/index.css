@@ -233,3 +233,24 @@ input[type="number"] {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Tabs horizontal scrollbar styling */
+.tabs-scrollbar::-webkit-scrollbar {
+  height: 5px;
+}
+.tabs-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 9999px;
+}
+.tabs-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.7);
+}
+.dark .tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.4);
+}
+.dark .tabs-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.7);
+}
