@@ -137,6 +137,13 @@ export function WhatsApp() {
         'LABEL', 'CONTACT', 'GROUP', 'NEWSLETTER'
     ];
 
+    // WAHA Webhook events
+    const WAHA_EVENTS = [
+        'message', 'message.any', 'message.ack', 'message.reaction',
+        'message.edited', 'message.revoked', 'state.change',
+        'group.new', 'group.update', 'presence.update', 'poll.ack'
+    ];
+
     const ALL_EVENTS = [
         'APPLICATION_STARTUP', 'CALL', 'CHATS_DELETE', 'CHATS_SET', 'CHATS_UPDATE',
         'CHATS_UPSERT', 'CONNECTION_UPDATE', 'CONTACTS_SET', 'CONTACTS_UPDATE',
@@ -147,11 +154,21 @@ export function WhatsApp() {
     ];
 
     const [selectedEvents, setSelectedEvents] = useState<string[]>(
-        selectedProvider === 'evolution_go' ? ['MESSAGE'] : ['MESSAGES_UPSERT']
+        selectedProvider === 'waha' 
+            ? ['message'] 
+            : selectedProvider === 'evolution_go' 
+                ? ['MESSAGE'] 
+                : ['MESSAGES_UPSERT']
     );
 
     useEffect(() => {
-        setSelectedEvents(selectedProvider === 'evolution_go' ? ['MESSAGE'] : ['MESSAGES_UPSERT']);
+        setSelectedEvents(
+            selectedProvider === 'waha' 
+                ? ['message'] 
+                : selectedProvider === 'evolution_go' 
+                    ? ['MESSAGE'] 
+                    : ['MESSAGES_UPSERT']
+        );
     }, [selectedProvider]);
 
     const isLimitReached = currentEntity.type === 'company' && instances.length >= (currentEntity.whatsapp_instance_limit || 1);
@@ -597,7 +614,10 @@ export function WhatsApp() {
         setWaProfileName(instance.whatsapp_name || '');
         setEvoWebhookUrl(instance.webhook_url || '');
 
-        if (isEvoGo) {
+        if (instance.provider === 'waha') {
+            setSelectedEvents(instance.webhook_events || ['message']);
+            setShowEditModal(true);
+        } else if (instance.provider === 'evolution_go') {
             // Resetar estados antes do fetch
             setEvoGoAlwaysOnline(false);
             setEvoGoRejectCall(false);
@@ -680,7 +700,7 @@ export function WhatsApp() {
             }
 
             // 1.2 Se for EvoGo, atualizar configurações avançadas na API
-            if (isEvoGo) {
+            if (editingInstance.provider === 'evolution_go') {
                 console.log(`⚙️ Atualizando configurações avançadas da EvoGo...`);
                 const settingsRes = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(editingInstance.instance_name)}/advanced-settings?token=${editingInstance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
                     method: 'POST',
@@ -718,7 +738,7 @@ export function WhatsApp() {
                     base64: webhookBase64,
                     token: editingInstance.evolution_instance_id,
                     company_id: currentEntity.type === 'company' ? currentEntity.id : undefined,
-                    transport: isEvoGo ? {
+                    transport: editingInstance.provider === 'evolution_go' ? {
                         rabbitMQ: evoGoRabbitMQ,
                         webSocket: evoGoWebSocket,
                         nats: evoGoNats
@@ -922,7 +942,7 @@ export function WhatsApp() {
                     )}
 
                     {/* Advanced Settings Toggle */}
-                    {selectedProvider !== 'waha' && (
+                    {selectedProvider && (
                         <div className="md:col-span-12 mt-2">
                             <button
                                 type="button"
@@ -930,7 +950,11 @@ export function WhatsApp() {
                                 className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors"
                             >
                                 <Settings2 size={16} />
-                                {selectedProvider === 'evolution_go' ? 'Configurações Avançadas (EvoGo)' : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
+                                {selectedProvider === 'waha' 
+                                    ? 'Configurações de Webhook (WAHA)' 
+                                    : selectedProvider === 'evolution_go' 
+                                        ? 'Configurações Avançadas (EvoGo)' 
+                                        : 'Configurações Avançadas de Webhook (n8n/Evolution)'}
                                 {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
                         </div>
@@ -939,7 +963,65 @@ export function WhatsApp() {
                     {/* Advanced Settings Panel */}
                     {showAdvanced && (
                         <div className="md:col-span-12 mt-4 p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
-                            {selectedProvider === 'evolution_go' ? (
+                            {selectedProvider === 'waha' ? (
+                                /* ===== WAHA ADVANCED SETTINGS ===== */
+                                <div className="space-y-5">
+                                    {/* Webhook URL */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            URL do Webhook WAHA
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={evoWebhookUrl}
+                                            onChange={(e) => setEvoWebhookUrl(e.target.value)}
+                                            placeholder="https://seu-servidor.com/webhook"
+                                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 text-sm"
+                                        />
+                                        <p className="mt-1 text-[11px] text-gray-400">URL que receberá os eventos do WhatsApp</p>
+                                    </div>
+
+                                    {/* WAHA Webhook Events */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Eventos para Webhook</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedEvents(
+                                                    selectedEvents.length === WAHA_EVENTS.length
+                                                        ? []
+                                                        : [...WAHA_EVENTS]
+                                                )}
+                                                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
+                                            >
+                                                {selectedEvents.length === WAHA_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
+                                            {WAHA_EVENTS.map(event => (
+                                                <label
+                                                    key={event}
+                                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                                        selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700'
+                                                    }`}
+                                                    onClick={() => {
+                                                        toggleEvent(event);
+                                                    }}
+                                                >
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                        selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'
+                                                    }`}>
+                                                        {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                    </div>
+                                                    <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">
+                                                        {event}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : selectedProvider === 'evolution_go' ? (
                                 /* ===== EVO GO ADVANCED SETTINGS ===== */
                                 <div className="space-y-5">
                                     {/* Webhook URL */}
@@ -1444,7 +1526,7 @@ export function WhatsApp() {
                             />
                         </div>
 
-                        {!isEvoGo && (
+                        {editingInstance?.provider === 'evolution_api' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Nome no WhatsApp (O que os outros veem)
@@ -1459,7 +1541,65 @@ export function WhatsApp() {
                             </div>
                         )}
 
-                        {isEvoGo ? (
+                        {editingInstance?.provider === 'waha' ? (
+                            /* ===== WAHA EDIT SETTINGS ===== */
+                            <div className="space-y-5 pt-2">
+                                {/* Webhook URL */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        URL do Webhook WAHA
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={evoWebhookUrl}
+                                        onChange={(e) => setEvoWebhookUrl(e.target.value)}
+                                        placeholder="https://seu-servidor.com/webhook"
+                                        className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 text-sm"
+                                    />
+                                    <p className="mt-1 text-[11px] text-gray-400">URL que receberá os eventos do WhatsApp</p>
+                                </div>
+
+                                {/* WAHA Webhook Events */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Eventos para Webhook</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedEvents(
+                                                selectedEvents.length === WAHA_EVENTS.length
+                                                    ? []
+                                                    : [...WAHA_EVENTS]
+                                            )}
+                                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
+                                        >
+                                            {selectedEvents.length === WAHA_EVENTS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-100 dark:border-slate-700">
+                                        {WAHA_EVENTS.map(event => (
+                                            <label
+                                                key={event}
+                                                className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                                    selectedEvents.includes(event) ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-gray-100 dark:hover:bg-slate-700'
+                                                }`}
+                                                onClick={() => {
+                                                    toggleEvent(event);
+                                                }}
+                                            >
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                    selectedEvents.includes(event) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-500'
+                                                }`}>
+                                                    {selectedEvents.includes(event) && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                </div>
+                                                <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">
+                                                    {event}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : editingInstance?.provider === 'evolution_go' ? (
                             /* ===== EVO GO EDIT SETTINGS ===== */
                             <div className="space-y-5 pt-2">
                                 {/* Webhook URL */}

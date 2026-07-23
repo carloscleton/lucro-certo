@@ -5133,8 +5133,20 @@ app.post('/instances', authenticate, async (req, res) => {
                 wahaHeaders['X-Api-Key'] = config.apiKey;
             }
 
+            const wahaPayload: any = { name };
+            if (webhook_url) {
+                wahaPayload.config = {
+                    webhooks: [
+                        {
+                            url: webhook_url,
+                            events: webhook_events && webhook_events.length > 0 ? webhook_events : ['message']
+                        }
+                    ]
+                };
+            }
+
             console.log('📤 Sending payload to WAHA sessions endpoint...');
-            const response = await axios.post(`${config.url}/api/sessions`, { name }, {
+            const response = await axios.post(`${config.url}/api/sessions`, wahaPayload, {
                 headers: wahaHeaders
             });
 
@@ -5589,6 +5601,28 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
                     headers: { 'apikey': instanceToken }
                 });
                 return { success: true, message: 'Webhook configurado com sucesso (Evolution GO)', detail: connectRes.data };
+            } else if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+                wahaHeaders['Content-Type'] = 'application/json';
+
+                const wahaPayload = {
+                    config: {
+                        webhooks: url ? [
+                            {
+                                url: url,
+                                events: events && events.length > 0 ? events : ['message']
+                            }
+                        ] : []
+                    }
+                };
+
+                const wahaRes = await axios.put(`${activeConfig.url}/api/sessions/${targetName}`, wahaPayload, {
+                    headers: wahaHeaders
+                });
+                return { success: true, message: 'Webhook configurado com sucesso (WAHA API)', detail: wahaRes.data };
             } else {
                 const response = await axios.post(`${activeConfig.url}/webhook/set/${encodedName}`, payload, {
                     headers: { 'apikey': activeConfig.apiKey }
