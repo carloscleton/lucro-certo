@@ -3203,7 +3203,23 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
         const config = await getEvolutionConfig({ companyId, token, instanceName: requestedName, userToken });
 
         const fetchInstancesList = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+                const res = await axios.get(`${activeConfig.url}/api/sessions`, {
+                    headers: wahaHeaders
+                });
+                const list = Array.isArray(res.data) ? res.data : [];
+                return list.map((item: any) => ({
+                    name: item.name,
+                    instanceName: item.name,
+                    id: item.name,
+                    token: item.name,
+                    status: item.status === 'WORKING' ? 'open' : item.status.toLowerCase()
+                }));
+            } else if (activeConfig.isGo) {
                 const res = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
@@ -5133,7 +5149,14 @@ app.post('/instances', authenticate, async (req, res) => {
                 wahaHeaders['X-Api-Key'] = config.apiKey;
             }
 
-            const wahaPayload: any = { name };
+            // Sanitize the session name to allow only alphanumeric characters, hyphens, and underscores
+            const sessionName = (customToken || name)
+                .trim()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // remove accents
+                .replace(/[^a-zA-Z0-9-_]/g, '-'); // replace anything else with a hyphen
+
+            const wahaPayload: any = { name: sessionName };
             if (webhook_url) {
                 wahaPayload.config = {
                     webhooks: [
@@ -5145,7 +5168,7 @@ app.post('/instances', authenticate, async (req, res) => {
                 };
             }
 
-            console.log('📤 Sending payload to WAHA sessions endpoint...');
+            console.log(`📤 Sending payload to WAHA sessions endpoint for session "${sessionName}"...`);
             const response = await axios.post(`${config.url}/api/sessions`, wahaPayload, {
                 headers: wahaHeaders
             });
@@ -5153,7 +5176,7 @@ app.post('/instances', authenticate, async (req, res) => {
             console.log('✅ Instance created on WAHA:', response.data);
 
             try {
-                await axios.post(`${config.url}/api/sessions/${name}/start`, {}, {
+                await axios.post(`${config.url}/api/sessions/${sessionName}/start`, {}, {
                     headers: wahaHeaders
                 });
                 console.log('✅ WAHA session started!');
@@ -5163,12 +5186,12 @@ app.post('/instances', authenticate, async (req, res) => {
 
             const finalResponseData = {
                 instance: {
-                    instanceName: name,
-                    token: name,
+                    instanceName: name, // Keep original friendly name for display
+                    token: sessionName, // Sanity-cleaned session name is used as the technical token/id
                     status: 'created'
                 },
                 hash: {
-                    apikey: name
+                    apikey: sessionName
                 }
             };
 
@@ -5406,8 +5429,9 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
     const { token, company_id } = req.query;
 
     try {
-        const config = await getEvolutionConfig({ instanceName: name, token: token as string, companyId: company_id as string });
-        console.log(`🔍 Fetching QR Code for instance "${name}" (Go: ${config.isGo})...`);
+        const targetName = await resolveTargetName(name, token as string, company_id as string);
+        const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
+        console.log(`🔍 Fetching QR Code for instance "${targetName}" (Go: ${config.isGo})...`);
 
         const executeConnect = async (activeConfig: typeof config) => {
             if (activeConfig.provider === 'waha') {
@@ -5416,8 +5440,29 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                     wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
                 }
 
+                // Tenta buscar o QR code real primeiro
+                try {
+                    console.log(`📡 WAHA: trying GET /api/${targetName}/auth/qr...`);
+                    const qrResponse = await axios.get(`${activeConfig.url}/api/${targetName}/auth/qr`, {
+                        headers: {
+                            ...wahaHeaders,
+                            'Accept': 'application/json'
+                        },
+                        timeout: 5000
+                    });
+                    if (qrResponse.data && qrResponse.data.data) {
+                        const base64Image = `data:${qrResponse.data.mimetype || 'image/png'};base64,${qrResponse.data.data}`;
+                        return {
+                            code: '',
+                            base64: base64Image
+                        };
+                    }
+                } catch (qrErr: any) {
+                    console.log(`⚠️ WAHA: /auth/qr failed (${qrErr.message}), falling back to screenshot...`);
+                }
+
                 const response = await axios.get(`${activeConfig.url}/api/screenshot`, {
-                    params: { session: name },
+                    params: { session: targetName },
                     headers: wahaHeaders,
                     responseType: 'arraybuffer'
                 });
@@ -5433,7 +5478,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                 });
                 const instancesList = allRes.data?.data || [];
                 const inst = instancesList.find((i: any) =>
-                    i.id === token || i.token === token || i.name.toLowerCase() === name.toLowerCase()
+                    i.id === token || i.token === token || i.name.toLowerCase() === targetName.toLowerCase()
                 );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
                 const instanceToken = inst.token || token;
@@ -5441,7 +5486,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
                 if (inst.token && inst.token !== token && SUPABASE_URL && supabaseKey) {
-                    console.log(`🔄 [Connect Auto-Sync] Sincronizando token de ${name}: ${token} → ${inst.token}`);
+                    console.log(`🔄 [Connect Auto-Sync] Sincronizando token de ${targetName}: ${token} → ${inst.token}`);
                     await axios.patch(
                         `${SUPABASE_URL}/rest/v1/instances?evolution_instance_id=eq.${encodeURIComponent(token as string)}`,
                         { evolution_instance_id: inst.token },
@@ -5776,7 +5821,9 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
         const payload = { newInstanceName: newName };
 
         const executeRename = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                return { success: true, message: 'Nome da instância atualizado localmente' };
+            } else if (activeConfig.isGo) {
                 // Evolution GO não possui rota exposta de renomear no swagger. Retornamos sucesso fictício.
                 return { success: true, message: 'Renomeado com sucesso (Evolution GO)' };
             } else {
@@ -5822,9 +5869,11 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
         const payload = { name: profileName, profileName: profileName };
 
         const executeProfileName = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                return { success: true, message: 'Perfil atualizado (WAHA API)' };
+            } else if (activeConfig.isGo) {
                 // Evolution GO não possui endpoint de chat/updateProfileName
-                return { success: true, message: 'Perfil atualizado (Evolution GO)' };
+                return { success: true, message: 'Perfil updated (Evolution GO)' };
             } else {
                 const response = await axios.post(`${activeConfig.url}/chat/updateProfileName/${encodedName}`, payload, {
                     headers: { 'apikey': activeConfig.apiKey }
@@ -5866,7 +5915,35 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
         console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
 
         const fetchDetails = async (activeConfig: typeof config) => {
-            if (activeConfig.isGo) {
+            if (activeConfig.provider === 'waha') {
+                const wahaHeaders: any = {};
+                if (activeConfig.apiKey) {
+                    wahaHeaders['X-Api-Key'] = activeConfig.apiKey;
+                }
+                const res = await axios.get(`${activeConfig.url}/api/sessions`, {
+                    headers: wahaHeaders
+                });
+                const list = Array.isArray(res.data) ? res.data : [];
+                const inst = list.find((item: any) =>
+                    item.name.toLowerCase() === targetName.toLowerCase()
+                );
+                if (!inst) throw new Error('Session not found on WAHA API');
+
+                const cleanJid = inst.me?.id ? `${inst.me.id.split('@')[0].split(':')[0]}@s.whatsapp.net` : null;
+                const ownerNumber = inst.me?.id ? inst.me.id.split('@')[0].split(':')[0] : null;
+
+                return {
+                    instanceName: inst.name,
+                    name: inst.name,
+                    profileName: inst.name,
+                    token: inst.name,
+                    status: inst.status === 'WORKING' ? 'connected' : 'disconnected',
+                    connectionStatus: inst.status === 'WORKING' ? 'open' : 'close',
+                    ownerJid: cleanJid,
+                    owner: cleanJid,
+                    number: ownerNumber
+                };
+            } else if (activeConfig.isGo) {
                 const response = await axios.get(`${activeConfig.url}/instance/all`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
@@ -7190,7 +7267,37 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
             try {
                 console.log(`✉️ [Media] Tentando enviar documento WhatsApp via "${targetName}" para ${number}...`);
                 let response;
-                if (config.isGo) {
+                if (config.provider === 'waha') {
+                    const wahaHeaders: any = {};
+                    if (config.apiKey) {
+                        wahaHeaders['X-Api-Key'] = config.apiKey;
+                    }
+                    wahaHeaders['Content-Type'] = 'application/json';
+
+                    const fileObj: any = {
+                        name: fileName || 'NotaFiscal.pdf',
+                        filename: fileName || 'NotaFiscal.pdf',
+                        mimetype: mimetype || 'application/pdf'
+                    };
+                    if (isBase64) {
+                        fileObj.data = base64Media;
+                    } else {
+                        fileObj.url = finalMediaUrl;
+                    }
+
+                    const wahaPayload = {
+                        session: targetName,
+                        chatId: `${number}@c.us`,
+                        file: fileObj,
+                        caption: text || ''
+                    };
+
+                    console.log(`✉️ WAHA: calling POST /api/sendFile...`);
+                    response = await axios.post(`${config.url}/api/sendFile`, wahaPayload, {
+                        headers: wahaHeaders,
+                        timeout: 20000
+                    });
+                } else if (config.isGo) {
                     response = await axios.post(`${config.url}/send/media`, {
                         id: targetName,
                         number: number,
@@ -7228,7 +7335,33 @@ app.post('/whatsapp/send', authenticate, async (req, res) => {
         }
 
         let response;
-        if (config.isGo) {
+        if (config.provider === 'waha') {
+            let textToSend = text || '';
+            if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
+                textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
+            }
+            if (!textToSend) {
+                return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
+            }
+
+            const wahaHeaders: any = {};
+            if (config.apiKey) {
+                wahaHeaders['X-Api-Key'] = config.apiKey;
+            }
+            wahaHeaders['Content-Type'] = 'application/json';
+
+            const wahaPayload = {
+                session: targetName,
+                chatId: `${number}@c.us`,
+                text: textToSend
+            };
+
+            console.log(`✉️ [Text] Enviando mensagem de texto WAHA via "${targetName}" para ${number}...`);
+            response = await axios.post(`${config.url}/api/sendText`, wahaPayload, {
+                headers: wahaHeaders,
+                timeout: 15000
+            });
+        } else if (config.isGo) {
             let buttonSent = false;
             if (finalMediaUrl) {
                 try {
