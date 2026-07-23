@@ -5,6 +5,7 @@ import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
 import nodemailer from 'nodemailer';
+import https from 'https';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -17,6 +18,7 @@ const PORT = process.env.SERVER_PORT || 3001;
 
 // Configuração global do Axios para evitar travamentos (Timeout de 15s)
 axios.defaults.timeout = 15000;
+axios.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
 axios.interceptors.response.use(
     response => response,
     error => {

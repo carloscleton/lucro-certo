@@ -1680,9 +1680,10 @@ ${messageWithPlaceholder}`;
                                 >
                                     {activeInstances.map(inst => {
                                         const isGo = goInstancesList.includes(inst.instance_name.toLowerCase().trim());
+                                        const isWaha = inst.provider === 'waha';
                                         return (
                                             <option key={inst.id} value={inst.id}>
-                                                {inst.instance_name} ({inst.phone_number || 'Sem número'}) — {isGo ? 'Evo GO' : 'Evo API'}
+                                                {inst.instance_name} ({inst.phone_number || 'Sem número'}) — {isWaha ? 'WAHA API' : (isGo ? 'Evo GO' : 'Evo API')}
                                             </option>
                                         );
                                     })}
