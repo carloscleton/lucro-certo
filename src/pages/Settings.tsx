@@ -1199,7 +1199,7 @@ export function Settings() {
     // Loading guard is handled inline within the tab content container to prevent page-level unmounting and flashing.
 
     return (
-        <div ref={rootRef} className="space-y-6 max-w-[1400px] mx-auto pb-20 px-4 lg:px-6">
+        <div ref={rootRef} className="space-y-6 max-w-full mx-auto pb-20 px-4 lg:px-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
