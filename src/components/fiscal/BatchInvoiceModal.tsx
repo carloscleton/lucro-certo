@@ -115,6 +115,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
     const [tempAmountText, setTempAmountText] = useState('');
     const [globalServiceId, setGlobalServiceId] = useState<string>('');
+    const [notes, setNotes] = useState<string>('');
 
     const handleApplyGlobalService = (serviceId: string) => {
         setGlobalServiceId(serviceId);
@@ -374,6 +375,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             setProgress(0);
             setExecutionLogs({});
             setGlobalServiceId('');
+            setNotes('');
         }
     }, [isOpen, selectedMonth, currentEntity.id]);
 
@@ -669,6 +671,10 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 if (config?.default_regime_especial && config.default_regime_especial !== '0') {
                     payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
+                }
+
+                if (notes) {
+                    payload.informacoesComplementares = notes.replace(/\n/g, '|');
                 }
 
                 if (config?.send_email_automatically) {
@@ -1123,6 +1129,21 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Corpo da Nota / Informações Complementares */}
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                        Corpo da Nota / Informações Complementares
+                    </label>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Detalhes adicionais, condições de pagamento, observações fiscais..."
+                        rows={3}
+                        disabled={isProcessing}
+                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm shadow-sm focus:border-violet-500 focus:ring-0 transition-all outline-none resize-none"
+                    />
+                </div>
 
                 {/* Progress bar overlay during processing */}
                 {isProcessing && (
