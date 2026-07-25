@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CheckCircle2, Clock3, XCircle, RefreshCw, Play, Pause, Calendar, AlertTriangle, CheckSquare, Square, Search, Loader2, FileText, Check, Edit2 } from 'lucide-react';
+import { CheckCircle2, Clock3, XCircle, RefreshCw, Play, Pause, Calendar, AlertTriangle, CheckSquare, Square, Search, Loader2, FileText, Check, Edit2, MessageSquare } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
@@ -24,6 +24,7 @@ interface ChargeWithContact {
     status: string;
     fiscal_invoice_id: string | null;
     due_date: string;
+    notes?: string;
     contact: {
         id: string;
         name: string;
@@ -115,7 +116,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
     const [tempAmountText, setTempAmountText] = useState('');
     const [globalServiceId, setGlobalServiceId] = useState<string>('');
-    const [notes, setNotes] = useState<string>('');
+    const [editingNotesChargeId, setEditingNotesChargeId] = useState<string | null>(null);
+    const [tempNotesText, setTempNotesText] = useState<string>('');
 
     const handleApplyGlobalService = (serviceId: string) => {
         setGlobalServiceId(serviceId);
@@ -309,6 +311,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 let chargeAmount = s.custom_price || serviceObj?.price || planObj?.price || 0;
 
                 // If invoice was ALREADY emitted, preserve the exact historical emitted amount from payload
+                let chargeNotes = '';
                 if (existingInvoice) {
                     const invPayload = (existingInvoice.payload || {}) as any;
                     const servicoObj = Array.isArray(invPayload?.servico) ? invPayload?.servico[0] : invPayload?.servico;
@@ -330,6 +333,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                             chargeAmount = parsed;
                         }
                     }
+
+                    const rawNotes = invPayload?.informacoesComplementares;
+                    if (typeof rawNotes === 'string') {
+                        chargeNotes = rawNotes.replace(/\|/g, '\n');
+                    } else if (rawNotes && typeof rawNotes === 'object') {
+                        chargeNotes = rawNotes.interesseContribuinte || '';
+                    }
                 }
 
                 return {
@@ -339,6 +349,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     status: s.status,
                     fiscal_invoice_id: existingInvoice ? existingInvoice.id : null,
                     due_date: s.next_due_at || s.created_at || new Date().toISOString(),
+                    notes: chargeNotes,
                     contact: contactObj,
                     subscription: {
                         id: s.id,
@@ -375,7 +386,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             setProgress(0);
             setExecutionLogs({});
             setGlobalServiceId('');
-            setNotes('');
+            setEditingNotesChargeId(null);
+            setTempNotesText('');
         }
     }, [isOpen, selectedMonth, currentEntity.id]);
 
@@ -673,8 +685,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
                 }
 
-                if (notes) {
-                    payload.informacoesComplementares = notes.replace(/\n/g, '|');
+                if (charge.notes) {
+                    payload.informacoesComplementares = charge.notes.replace(/\n/g, '|');
                 }
 
                 if (config?.send_email_automatically) {
@@ -1111,15 +1123,37 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     )}
                                                 </td>
                                                 <td className="py-4 px-4 text-center">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleOpenEdit(c.contact)}
-                                                        disabled={isProcessing}
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        <Edit2 size={14} className="text-gray-500 hover:text-violet-600" />
-                                                    </Button>
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setEditingNotesChargeId(c.id);
+                                                                setTempNotesText(c.notes || '');
+                                                            }}
+                                                            disabled={isProcessing}
+                                                            className="h-8 w-8 p-0"
+                                                            title="Observações da Nota Fiscal"
+                                                        >
+                                                            <MessageSquare 
+                                                                size={14} 
+                                                                className={clsx(
+                                                                    c.notes 
+                                                                        ? "text-violet-600 dark:text-violet-400 fill-violet-100 dark:fill-violet-950/40" 
+                                                                        : "text-gray-500 hover:text-violet-600"
+                                                                )} 
+                                                            />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleOpenEdit(c.contact)}
+                                                            disabled={isProcessing}
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <Edit2 size={14} className="text-gray-500 hover:text-violet-600" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -1130,20 +1164,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     </div>
                 )}
 
-                {/* Corpo da Nota / Informações Complementares */}
-                <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                        Corpo da Nota / Informações Complementares
-                    </label>
-                    <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Detalhes adicionais, condições de pagamento, observações fiscais..."
-                        rows={3}
-                        disabled={isProcessing}
-                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm shadow-sm focus:border-violet-500 focus:ring-0 transition-all outline-none resize-none"
-                    />
-                </div>
+
 
                 {/* Progress bar overlay during processing */}
                 {isProcessing && (
@@ -1337,6 +1358,65 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold"
                             >
                                 {isSavingContact ? 'Salvando...' : 'Salvar Alterações'}
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Edit Row Notes Modal */}
+            {editingNotesChargeId && (
+                <Modal
+                    isOpen={!!editingNotesChargeId}
+                    onClose={() => {
+                        setEditingNotesChargeId(null);
+                        setTempNotesText('');
+                    }}
+                    title="Observações da Nota Fiscal"
+                    subtitle={`Defina informações complementares para a nota de ${charges.find(c => c.id === editingNotesChargeId)?.contact.name}`}
+                    icon={MessageSquare}
+                    maxWidth="max-w-xl"
+                    variant="primary"
+                >
+                    <div className="flex flex-col gap-4 text-sm text-gray-900 dark:text-gray-100">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                                Informações Complementares / Corpo da Nota
+                            </label>
+                            <textarea
+                                value={tempNotesText}
+                                onChange={(e) => setTempNotesText(e.target.value)}
+                                placeholder="Detalhes adicionais, observações fiscais, número do contrato..."
+                                rows={5}
+                                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none text-gray-800 dark:text-gray-200"
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setEditingNotesChargeId(null);
+                                    setTempNotesText('');
+                                }}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setCharges(prev => prev.map(c => {
+                                        if (c.id === editingNotesChargeId) {
+                                            return { ...c, notes: tempNotesText };
+                                        }
+                                        return c;
+                                    }));
+                                    setEditingNotesChargeId(null);
+                                    setTempNotesText('');
+                                }}
+                                className="bg-violet-600 hover:bg-violet-700 text-white font-bold"
+                            >
+                                Salvar Observação
                             </Button>
                         </div>
                     </div>
