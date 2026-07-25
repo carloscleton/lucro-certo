@@ -7,6 +7,7 @@ import { fiscalService } from '../../services/fiscalService';
 import { whatsappService } from '../../services/whatsappService';
 import { useEntity } from '../../context/EntityContext';
 import { useCompanies } from '../../hooks/useCompanies';
+import { useServices } from '../../hooks/useServices';
 import { API_BASE_URL } from '../../lib/constants';
 import { formatCurrency, parseCurrency } from '../../utils/currencyUtils';
 import clsx from 'clsx';
@@ -97,6 +98,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
     const isNacional = activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false);
 
+    const { services } = useServices();
+
     // States
     const [selectedMonth, setSelectedMonth] = useState<string>(() => {
         const d = new Date();
@@ -111,6 +114,43 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [queryError, setQueryError] = useState<string | null>(null);
     const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
     const [tempAmountText, setTempAmountText] = useState('');
+    const [globalServiceId, setGlobalServiceId] = useState<string>('');
+
+    const handleApplyGlobalService = (serviceId: string) => {
+        setGlobalServiceId(serviceId);
+        if (!serviceId) return;
+        const selectedService = services.find(s => s.id === serviceId);
+        if (!selectedService) return;
+
+        setCharges(prev => prev.map(c => {
+            if (c.fiscal_invoice_id) return c;
+            return {
+                ...c,
+                amount: selectedService.price || c.amount,
+                subscription: {
+                    ...c.subscription,
+                    service: selectedService
+                }
+            };
+        }));
+    };
+
+    const handleRowServiceChange = (chargeId: string, serviceId: string) => {
+        const selectedService = services.find(s => s.id === serviceId);
+        setCharges(prev => prev.map(c => {
+            if (c.id === chargeId) {
+                return {
+                    ...c,
+                    amount: selectedService ? (selectedService.price || c.amount) : c.amount,
+                    subscription: {
+                        ...c.subscription,
+                        service: selectedService || undefined
+                    }
+                };
+            }
+            return c;
+        }));
+    };
 
     const handleAmountChange = (id: string, newAmount: number) => {
         setCharges(prev => prev.map(c => {
@@ -333,6 +373,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             setIsPaused(false);
             setProgress(0);
             setExecutionLogs({});
+            setGlobalServiceId('');
         }
     }, [isOpen, selectedMonth, currentEntity.id]);
 
@@ -793,19 +834,37 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             <div className="flex flex-col gap-6 text-gray-900 dark:text-gray-100">
                 {/* Header controls */}
                 <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800/40">
-                    <div className="flex items-center gap-3">
-                        <Calendar size={18} className="text-violet-500" />
-                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Competência:</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            disabled={isProcessing}
-                            className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
-                        >
-                            {monthOptions.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
+                    <div className="flex flex-wrap items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <Calendar size={18} className="text-violet-500" />
+                            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Competência:</label>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                disabled={isProcessing}
+                                className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            >
+                                {monthOptions.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <FileText size={18} className="text-violet-500" />
+                            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Serviço Geral (Lote):</label>
+                            <select
+                                value={globalServiceId}
+                                onChange={(e) => handleApplyGlobalService(e.target.value)}
+                                disabled={isProcessing}
+                                className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500 max-w-xs md:max-w-md"
+                            >
+                                <option value="">Definir serviço para todos...</option>
+                                {services.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -905,6 +964,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                         </th>
                                         <th className="py-3.5 px-4">Cliente / Contato</th>
                                         <th className="py-3.5 px-4">Plano / Cobrança</th>
+                                        <th className="py-3.5 px-4">Serviço</th>
                                         <th className="py-3.5 px-4">Valor</th>
                                         <th className="py-3.5 px-4">Validação Fiscal</th>
                                         <th className="py-3.5 px-4">Status da Nota</th>
@@ -952,6 +1012,19 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                 <td className="py-4 px-4">
                                                     <div className="font-medium">{c.subscription?.plan?.name || 'Assinatura'}</div>
                                                     <div className="text-xs text-gray-400 mt-0.5">Vencimento: {new Date(c.due_date).toLocaleDateString('pt-BR')}</div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <select
+                                                        value={c.subscription?.service?.id || ''}
+                                                        onChange={(e) => handleRowServiceChange(c.id, e.target.value)}
+                                                        disabled={isProcessing || isEmitted}
+                                                        className="w-full max-w-[180px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                                    >
+                                                        <option value="">Nenhum (Usar Plano)</option>
+                                                        {services.map(s => (
+                                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                                        ))}
+                                                    </select>
                                                 </td>
                                                 <td className="py-4 px-4">
                                                      <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1 min-w-[130px] max-w-[150px]">
