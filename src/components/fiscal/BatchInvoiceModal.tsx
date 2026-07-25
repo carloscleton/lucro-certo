@@ -1123,36 +1123,38 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     )}
                                                 </td>
                                                 <td className="py-4 px-4 text-center">
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <button
+                                                            type="button"
                                                             onClick={() => {
                                                                 setEditingNotesChargeId(c.id);
                                                                 setTempNotesText(c.notes || '');
                                                             }}
                                                             disabled={isProcessing}
-                                                            className="h-8 w-8 p-0"
+                                                            className={clsx(
+                                                                "p-1.5 rounded-xl transition-all cursor-pointer",
+                                                                c.notes 
+                                                                    ? "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400 border border-violet-100 dark:border-violet-950/20" 
+                                                                    : "hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 hover:text-violet-600"
+                                                            )}
                                                             title="Observações da Nota Fiscal"
                                                         >
                                                             <MessageSquare 
-                                                                size={14} 
+                                                                size={15} 
                                                                 className={clsx(
-                                                                    c.notes 
-                                                                        ? "text-violet-600 dark:text-violet-400 fill-violet-100 dark:fill-violet-950/40" 
-                                                                        : "text-gray-500 hover:text-violet-600"
-                                                                )} 
+                                                                    c.notes && "fill-violet-100 dark:fill-violet-400/20"
+                                                                )}
                                                             />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
+                                                        </button>
+                                                        <button
+                                                            type="button"
                                                             onClick={() => handleOpenEdit(c.contact)}
                                                             disabled={isProcessing}
-                                                            className="h-8 w-8 p-0"
+                                                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all text-gray-500 hover:text-violet-600 cursor-pointer"
+                                                            title="Editar Cadastro Fiscal"
                                                         >
-                                                            <Edit2 size={14} className="text-gray-500 hover:text-violet-600" />
-                                                        </Button>
+                                                            <Edit2 size={15} />
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
