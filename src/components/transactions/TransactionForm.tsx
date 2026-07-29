@@ -173,16 +173,15 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
             setTempAttachmentPath('');
             setTempAttachmentName('');
         } else {
-            // New transaction - prioritize current context, fallback to saved preference
-            const savedCompanyId = localStorage.getItem(`lastCompanyId_${type}`) || '';
-            const defaultCompanyId = currentEntity.type === 'company' ? currentEntity.id : '';
+            // New transaction - prioritize current context
+            const defaultCompanyId = currentEntity.type === 'company' ? (currentEntity.id || '') : '';
 
             setDescription('');
             setAmount('');
             setDate(new Date().toISOString().split('T')[0]);
             setStatus('pending');
             setCategoryId('');
-            setCompanyId(defaultCompanyId || savedCompanyId);
+            setCompanyId(defaultCompanyId);
             setContactId('');
             setIsRecurring(false);
             setIsVariableAmount(false);
@@ -202,7 +201,7 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
     // Global persistence for Transaction Form
     const filteredCompanies = currentEntity.type === 'company'
         ? companies.filter(c => c.id === currentEntity.id)
-        : companies;
+        : companies.filter(c => c.entity_type === 'PF');
 
     const { clearCache } = useAutoSave(
         `transaction_${type}`,
@@ -231,11 +230,8 @@ export function TransactionForm({ type, isOpen, onClose, onSubmit, initialData }
 
     // Save preferences
     useEffect(() => {
-        if (!initialData && companyId !== undefined) {
-            localStorage.setItem(`lastCompanyId_${type}`, companyId);
-        }
         localStorage.setItem('propagatePref', propagateChanges.toString());
-    }, [companyId, type, initialData, propagateChanges]);
+    }, [propagateChanges]);
 
     // Fetch real installment data when editing an existing recurrence
     useEffect(() => {

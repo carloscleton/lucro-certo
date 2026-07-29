@@ -44,12 +44,13 @@ const formatCNPJ = (value: string) => {
 export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactFormProps) {
     const { notify } = useNotification();
     const { currentEntity } = useEntity();
+    const isPFEnvironment = currentEntity.type === 'personal' || currentEntity.entity_type === 'PF';
     const { plans } = useLoyalty();
     const { services } = useServices();
     const { user } = useAuth();
     const [name, setName] = useState('');
     const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
-    const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PF');
+    const [entityType, setEntityType] = useState<'PF' | 'PJ'>(isPFEnvironment ? 'PF' : 'PJ');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
@@ -223,7 +224,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         } else {
             setName('');
             setType('client');
-            setEntityType('PF');
+            setEntityType(isPFEnvironment ? 'PF' : 'PJ');
             setEmail('');
             setPhone('');
             setWhatsapp('');
