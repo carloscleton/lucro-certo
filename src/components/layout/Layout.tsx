@@ -20,7 +20,13 @@ import {
     User,
     Building2,
     ChevronDown,
-    Gift
+    Gift,
+    ZoomIn,
+    Minus,
+    Plus,
+    Search,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
@@ -58,6 +64,55 @@ export function Layout() {
     const [pendingInvites, setPendingInvites] = useState<any[]>([]);
     const [isEntityMenuOpen, setIsEntityMenuOpen] = useState(false);
     const entityMenuRef = useRef<HTMLDivElement>(null);
+    
+    // Zoom & Fullscreen state
+    const [zoom, setZoom] = useState<number>(() => {
+        const saved = localStorage.getItem('lucro-certo:app-zoom');
+        return saved ? parseInt(saved) : 100;
+    });
+    const [isZoomOpen, setIsZoomOpen] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const zoomMenuRef = useRef<HTMLDivElement>(null);
+
+    const handleZoomChange = (delta: number) => {
+        setZoom((prev) => {
+            const next = prev + delta;
+            return Math.min(Math.max(next, 50), 200); // 50% to 200%
+        });
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    useEffect(() => {
+        localStorage.setItem('lucro-certo:app-zoom', zoom.toString());
+        document.documentElement.style.zoom = `${zoom}%`;
+    }, [zoom]);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (zoomMenuRef.current && !zoomMenuRef.current.contains(event.target as Node)) {
+                setIsZoomOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
     
     // Checkout states
     const [loadingCheckout, setLoadingCheckout] = useState(false);
@@ -640,6 +695,62 @@ export function Layout() {
                         <ExchangeRatesWidget />
                         
                         <LanguageSelector />
+                        
+                        {/* Zoom Control */}
+                        <div className="relative flex items-center" ref={zoomMenuRef}>
+                            <Tooltip content="Ajustar Zoom" position="bottom">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsZoomOpen(!isZoomOpen)}
+                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+                                >
+                                    <ZoomIn size={20} />
+                                </button>
+                            </Tooltip>
+
+                            {isZoomOpen && (
+                                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl p-3 flex items-center gap-3 z-50 whitespace-nowrap min-w-[220px] animate-in fade-in slide-in-from-top-1">
+                                    <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-200 text-sm font-semibold select-none mr-auto">
+                                        <Search size={15} className="text-gray-400" />
+                                        <span>Zoom</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleZoomChange(-10)}
+                                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-all active:scale-95"
+                                        >
+                                            <Minus size={12} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setZoom(100)}
+                                            className="text-xs font-black text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 select-none w-10 text-center"
+                                            title="Redefinir para 100%"
+                                        >
+                                            {zoom}%
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleZoomChange(10)}
+                                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-all active:scale-95"
+                                        >
+                                            <Plus size={12} />
+                                        </button>
+                                    </div>
+                                    <div className="w-[1px] h-5 bg-gray-200 dark:bg-slate-700"></div>
+                                    <button
+                                        type="button"
+                                        onClick={toggleFullscreen}
+                                        className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 transition-all active:scale-95"
+                                        title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+                                    >
+                                        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
                         <Tooltip content={t('layout.toggle_theme')} position="bottom">
                             <button
                                 onClick={toggleTheme}
