@@ -846,7 +846,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             title="Faturamento Recorrente em Lote"
             subtitle="Emissão simplificada das Notas Fiscais dos seus assinantes fidelidade"
             icon={RefreshCw}
-            maxWidth="max-w-6xl"
+            maxWidth="max-w-[1300px]"
             variant="primary"
         >
             <div className="flex flex-col gap-6 text-gray-900 dark:text-gray-100">
@@ -1036,7 +1036,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                         value={c.subscription?.service?.id || ''}
                                                         onChange={(e) => handleRowServiceChange(c.id, e.target.value)}
                                                         disabled={isProcessing || isEmitted}
-                                                        className="w-full max-w-[180px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                                        className="w-full max-w-[280px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                                     >
                                                         <option value="">Nenhum (Usar Plano)</option>
                                                         {services.map(s => (
