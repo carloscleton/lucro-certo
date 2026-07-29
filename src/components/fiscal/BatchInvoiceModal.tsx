@@ -989,12 +989,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                         <th className="py-3.5 px-4 text-center">Ações</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800/40 text-sm">
+<tbody className="divide-y divide-gray-100 dark:divide-slate-800/40 text-sm">
                                     {filteredCharges.map((c, index) => {
                                         const missing = validateContact(c.contact);
                                         const isChecked = selectedIds.has(c.id);
                                         const isEmitted = !!c.fiscal_invoice_id;
                                         const log = executionLogs[c.id];
+                                        const hasService = !!c.subscription?.service?.id;
 
                                         return (
                                             <tr key={c.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
@@ -1036,11 +1037,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                         value={c.subscription?.service?.id || ''}
                                                         onChange={(e) => handleRowServiceChange(c.id, e.target.value)}
                                                         disabled={isProcessing || isEmitted}
-                                                        className="w-full max-w-[280px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                                        className={clsx(
+                                                            "w-full max-w-[280px] rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 font-bold transition-all duration-200 cursor-pointer",
+                                                            hasService
+                                                                ? "bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700/70 text-amber-900 dark:text-amber-200 focus:ring-amber-500"
+                                                                : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-500 focus:ring-violet-500"
+                                                        )}
                                                     >
-                                                        <option value="">Nenhum (Usar Plano)</option>
+                                                        <option value="" className="text-gray-400">Nenhum (Usar Plano)</option>
                                                         {services.map(s => (
-                                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                                            <option key={s.id} value={s.id} className="text-gray-800 dark:text-gray-200 font-semibold">{s.name}</option>
                                                         ))}
                                                     </select>
                                                     {c.subscription?.service && (
