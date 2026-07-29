@@ -354,7 +354,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     subscription: {
                         id: s.id,
                         plan: planObj || undefined,
-                        service: undefined
+                        service: serviceObj || undefined
                     }
                 } as any;
             });
@@ -1043,6 +1043,20 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                             <option key={s.id} value={s.id}>{s.name}</option>
                                                         ))}
                                                     </select>
+                                                    {c.subscription?.service && (
+                                                        <div className="flex flex-col gap-0.5 mt-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500">
+                                                            {(c.subscription.service.codigo_servico_municipal || c.subscription.service.item_lista_servico) && (
+                                                                <div>
+                                                                    Cód. Mun: <span className="text-gray-600 dark:text-gray-300 font-mono">{c.subscription.service.codigo_servico_municipal || c.subscription.service.item_lista_servico}</span>
+                                                                </div>
+                                                            )}
+                                                            {c.subscription.service.codigo_tributacao_nacional && (
+                                                                <div>
+                                                                    Cód. Nac: <span className="text-gray-600 dark:text-gray-300 font-mono">{c.subscription.service.codigo_tributacao_nacional}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="py-4 px-4">
                                                      <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1 min-w-[130px] max-w-[150px]">
