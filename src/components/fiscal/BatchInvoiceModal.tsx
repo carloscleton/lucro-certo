@@ -354,7 +354,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     subscription: {
                         id: s.id,
                         plan: planObj || undefined,
-                        service: serviceObj || undefined
+                        service: undefined
                     }
                 } as any;
             });
