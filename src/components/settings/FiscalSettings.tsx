@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, Info, Scale, Trash2, Activity } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, ChevronDown, Info, Scale, Trash2, Activity } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -4578,6 +4578,46 @@ export function FiscalSettings() {
                             </a>
                         </div>
                     </div>
+
+                    <details className="group border border-gray-100 dark:border-slate-700/80 rounded-xl bg-gray-50/30 dark:bg-slate-900/10 p-4 transition-all">
+                        <summary className="list-none flex items-center justify-between cursor-pointer font-bold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider select-none">
+                            <span>Como obter a chave e segredo no portal do Serpro?</span>
+                            <span className="transition-transform duration-200 group-open:rotate-180 text-gray-400">
+                                <ChevronDown size={16} />
+                            </span>
+                        </summary>
+                        <div className="mt-4 text-xs text-gray-600 dark:text-gray-400 space-y-3 leading-relaxed">
+                            <p>
+                                Os campos <strong>Client ID (Consumer Key)</strong> e <strong>Client Secret (Consumer Secret)</strong> 
+                                identificam e autenticam sua empresa no Ambiente de Dados Nacional (ADN) do Serpro.
+                            </p>
+                            <div className="space-y-2">
+                                <p className="font-semibold text-gray-800 dark:text-gray-200">Siga o passo a passo para gerar as chaves:</p>
+                                <ol className="list-decimal list-inside space-y-1.5 pl-1">
+                                    <li>
+                                        Acesse a 
+                                        <a href="https://cliente.serpro.gov.br/" target="_blank" rel="noopener noreferrer" className="text-violet-600 dark:text-violet-400 font-bold hover:underline mx-1">
+                                            Área do Cliente Serpro
+                                        </a> 
+                                        utilizando seu certificado digital <strong>e-CNPJ</strong>.
+                                    </li>
+                                    <li>No menu superior, clique em <strong>Chaves de Acesso</strong>.</li>
+                                    <li>Selecione a empresa correspondente ao contrato e clique em <strong>Confirmar</strong>.</li>
+                                    <li>Localize na lista o serviço contratado de <strong>NFS-e</strong> (Portal Nacional).</li>
+                                    <li>Clique em <strong>Visualizar Chave</strong> (ou <strong>Gerar Chave</strong> se for o primeiro acesso):
+                                        <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-500">
+                                            <li>Copie o valor de <strong>Consumer Key</strong> e cole no campo <strong>Client ID</strong>.</li>
+                                            <li>Copie o valor de <strong>Consumer Secret</strong> e cole no campo <strong>Client Secret</strong>.</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                            </div>
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-[11px]">
+                                <strong>Atenção:</strong> O <em>Consumer Secret</em> só é exibido uma vez no momento de sua geração. 
+                                Se você gerar novas chaves, as credenciais anteriores serão invalidadas e você precisará atualizá-las no Lucro Certo.
+                            </div>
+                        </div>
+                    </details>
 
                     {/* Bloco de Credenciais e Ambiente */}
                     <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
