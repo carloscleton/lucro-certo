@@ -209,6 +209,15 @@ export function FiscalSettings() {
     const [savingNational, setSavingNational] = useState(false);
     const [nationalConfig, setNationalConfig] = useState({
         ambiente: 'homologacao',
+        client_id: '',
+        client_secret: '',
+        cnpj: '',
+        inscricao_municipal: '',
+        simples_nacional: true,
+        certificado_id: '',
+        certificado_vencimento: '',
+        certificado_sujeito: '',
+        certificado_status: '',
         send_email_automatically: false,
         send_whatsapp_automatically: false
     });
@@ -385,6 +394,15 @@ export function FiscalSettings() {
         const nat = currentCompany.settings?.national_config || {};
         setNationalConfig({
             ambiente: nat.ambiente || 'homologacao',
+            client_id: nat.client_id || '',
+            client_secret: nat.client_secret || '',
+            cnpj: nat.cnpj || currentCompany.cnpj || '',
+            inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
+            simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
+            certificado_id: nat.certificado_id || '',
+            certificado_vencimento: nat.certificado_vencimento || '',
+            certificado_sujeito: nat.certificado_sujeito || '',
+            certificado_status: nat.certificado_status || '',
             send_email_automatically: nat.send_email_automatically || false,
             send_whatsapp_automatically: nat.send_whatsapp_automatically || false
         });
@@ -1390,7 +1408,7 @@ export function FiscalSettings() {
                     const syncResult = await fiscalService.syncIssuer(currentEntity.id, {
                         ...uploadConfig,
                         certificado_id: response.id
-                    }, token);
+                    } as any, token);
 
                     // ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
                     const updatedConfig = {
@@ -1400,7 +1418,7 @@ export function FiscalSettings() {
                         certificado_sujeito: response.sujeito,
                         certificado_status: 'ativo'
                     };
-                    setConfig(updatedConfig);
+                    setConfig(updatedConfig as any);
 
                     setDiagnostic(prev => ({
                         ...prev,
@@ -1416,7 +1434,7 @@ export function FiscalSettings() {
                         certificado_vencimento: response.vencimento,
                         certificado_sujeito: response.sujeito,
                         certificado_status: 'ativo'
-                    });
+                    } as any);
 
                     setDiagnostic(prev => ({
                         ...prev,
