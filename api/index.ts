@@ -1275,9 +1275,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
 
-        let isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
-
         const activeProvider = isLabTest ? (provider || settings?.fiscal_provider || 'tecnospeed') : (settings?.fiscal_provider || 'tecnospeed');
+        let isNacional = activeProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         
         if (activeProvider === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;
@@ -1676,7 +1675,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const targetCnpj = (firstItem?.prestador?.cpfCnpj || '').replace(/\D/g, '');
         
         // --- DETECÇÃO DE MODO TESTE ---
-        isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        isNacional = activeProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         const TEST_CNPJ = isNacional ? '00893566000190' : '08187168000160'; 
         const TEST_IM_MUNICIPAL = '8214100099'; // Maringá
         const TEST_IM_NACIONAL = '1234567';     // Belo Horizonte (Nacional)
@@ -2902,7 +2901,7 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
         
         const certId = config.certificado_id || config.certificadoId || config.certificado;
         const hasCert = !!certId && certId !== 'null' && certId !== 'undefined';
-        const isNacional = !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+        const isNacional = activeProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
         const forceTestData = config.use_test_data === true && (!hasCert || isNacional);
         const useTestData = forceTestData || (isSandbox && !hasCert);
         
@@ -3929,7 +3928,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         // 2. Se não achou no banco (avulsa), usa a config atual da empresa.
         const isNacional = isRecordFound 
             ? (type === 'nfsenac') 
-            : !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+            : (targetProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional));
             
         // Tanto para notas municipais quanto nacionais, a consulta é feita na rota base /nfse/{id} no PlugNotas.
         const targetType = (type === 'nfse' || type === 'nfsenac') ? 'nfse' : type;

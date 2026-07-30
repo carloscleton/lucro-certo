@@ -5460,7 +5460,7 @@ export function FiscalSettings() {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                    {activeSubTab === 'nfeio' ? 'ID NFe.io' : (activeSubTab === 'other' ? 'ID Certificado' : 'ID PlugNotas')}
+                                    {activeSubTab === 'nfeio' ? 'ID NFe.io' : (activeSubTab === 'national' || activeSubTab === 'other' ? 'ID Certificado' : 'ID PlugNotas')}
                                 </p>
                                 <p className="text-sm font-mono text-emerald-700 dark:text-emerald-300">
                                     {currentCertInfo.id.substring(0, 8)}...
