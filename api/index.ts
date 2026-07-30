@@ -1277,12 +1277,33 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
         const activeProvider = isLabTest ? (provider || settings?.fiscal_provider || 'tecnospeed') : (settings?.fiscal_provider || 'tecnospeed');
         let isNacional = activeProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+
+        // Se o provedor ativo é Portal Nacional, mescla national_config para que o backend
+        // use as credenciais corretas (certificado, CNPJ, ambiente, etc.) em vez de tecnospeed_config
+        if (activeProvider === 'national' && settings?.national_config) {
+            const nat = settings.national_config;
+            Object.assign(config, {
+                cnpj: nat.cnpj || config.cnpj,
+                inscricao_municipal: nat.inscricao_municipal || config.inscricao_municipal,
+                certificado_id: nat.certificado_id || config.certificado_id,
+                certificado_status: nat.certificado_status || config.certificado_status,
+                certificado_vencimento: nat.certificado_vencimento || config.certificado_vencimento,
+                certificado_sujeito: nat.certificado_sujeito || config.certificado_sujeito,
+                ambiente: nat.ambiente || config.ambiente || 'homologacao',
+                simples_nacional: nat.simples_nacional ?? config.simples_nacional,
+                nfse_nacional: true,
+                consumer_key: nat.consumer_key || config.consumer_key,
+                consumer_secret: nat.consumer_secret || config.consumer_secret
+            });
+        }
         
+
         if (activeProvider === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta (Chave de API ou ID da Empresa ausente).' });
             }
+
 
             const isSandbox = nfeioConfig.ambiente === 'homologacao';
             const apiKey = nfeioConfig.apiKey.trim();

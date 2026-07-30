@@ -703,8 +703,10 @@ export function Quotes() {
             return;
         }
 
-        // Initialize automation states from company config
-        const config = currentCompany?.tecnospeed_config as any;
+        // Initialize automation states from company config (respects active provider)
+        const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+        const nationalCfg = currentCompany?.settings?.national_config || {} as any;
+        const config = activeProvider === 'national' ? nationalCfg : (currentCompany?.tecnospeed_config as any);
         setSendEmail(config?.send_email_automatically || false);
         setSendWhatsApp(config?.send_whatsapp_automatically || false);
         setFiscalQuote(quote);
@@ -763,7 +765,8 @@ export function Quotes() {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
-            const isNacional = (currentCompany.tecnospeed_config as any)?.nfse_nacional || false;
+            const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
+            const isNacional = activeProvider === 'national' || ((currentCompany.tecnospeed_config as any)?.nfse_nacional || false);
 
             let result;
 
@@ -891,7 +894,7 @@ export function Quotes() {
                     }
 
                     setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e Consolidada...' });
-                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id, false, activeProvider);
 
                 } else if (isNacional && fullQuote.items.length > 1 && emissionStrategy === 'split') {
                     // SPLIT STRATEGY
@@ -965,7 +968,7 @@ export function Quotes() {
                             };
                         }
 
-                        const res = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                        const res = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id, false, activeProvider);
                         const externalId = res.data?.id || res.id;
                         if (externalId) {
                             createdIds.push(externalId);
@@ -1043,7 +1046,7 @@ export function Quotes() {
                     }
 
                     setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
-                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id);
+                    result = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id, false, activeProvider);
                 }
             } else {
                 // Validate if any product is missing the NCM

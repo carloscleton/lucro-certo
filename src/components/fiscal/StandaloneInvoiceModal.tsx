@@ -198,10 +198,28 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 send_whatsapp_automatically: nfe.send_whatsapp_automatically || false
             } as any;
         }
+        if (activeProvider === 'national') {
+            const nat = currentCompany?.settings?.national_config || {};
+            const tecno = currentCompany?.tecnospeed_config || {};
+            return {
+                ...tecno,
+                ...nat,
+                cnpj: nat.cnpj || currentCompany?.cnpj || tecno.cnpj || '',
+                inscricao_municipal: nat.inscricao_municipal || tecno.inscricao_municipal || '',
+                regime_tributario: nat.simples_nacional ? '1' : '3',
+                ambiente: nat.ambiente || tecno.ambiente || 'homologacao',
+                certificado_id: nat.certificado_id || tecno.certificado_id || '',
+                certificado_status: nat.certificado_status || tecno.certificado_status || '',
+                certificado_vencimento: nat.certificado_vencimento || tecno.certificado_vencimento || '',
+                certificado_sujeito: nat.certificado_sujeito || tecno.certificado_sujeito || '',
+                send_email_automatically: nat.send_email_automatically || false,
+                send_whatsapp_automatically: nat.send_whatsapp_automatically || false
+            } as any;
+        }
         return currentCompany?.tecnospeed_config as any;
     }, [currentCompany, activeProvider]);
 
-    const isNacional = activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false);
+    const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false));
     const isRegimeNormal = config?.regime_tributario === '3';
 
     // Auto-fill from Config
@@ -516,7 +534,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             return;
         }
 
-        const isNacional = activeProvider === 'nfeio' ? false : (currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false);
+        const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false));
 
         if (type === 'nfse' && isNacional) {
             if (items.length > 1) {
@@ -1123,7 +1141,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
                 )}
 
-                {activeProvider === 'tecnospeed' && config?.nfse?.config?.nfseNacional && type === 'nfse' && (
+                {(activeProvider === 'national' || (activeProvider === 'tecnospeed' && config?.nfse?.config?.nfseNacional)) && type === 'nfse' && (
                     <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-3xl border border-blue-100 dark:border-blue-900/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                             <Globe size={18} className="text-blue-600 dark:text-blue-400" />
@@ -1146,7 +1164,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Emissor Ativo">
                                 <span className="text-[9px] font-medium text-gray-400">Emissor:</span>
                                 <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300 uppercase">
-                                    {activeProvider === 'nfeio' ? 'NFe.io' : activeProvider === 'other' ? 'Webhook' : 'TecnoSpeed'}
+                                    {activeProvider === 'nfeio' ? 'NFe.io' : activeProvider === 'national' ? 'Portal Nacional' : activeProvider === 'other' ? 'Webhook' : 'TecnoSpeed'}
                                 </span>
                             </div>
 

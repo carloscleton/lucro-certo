@@ -94,10 +94,28 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 endereco: tecno?.endereco || nfe?.endereco || {}
             } as any;
         }
+        if (activeProvider === 'national') {
+            const nat = currentCompany?.settings?.national_config || {};
+            const tecno = currentCompany?.tecnospeed_config || {};
+            return {
+                ...tecno,
+                ...nat,
+                cnpj: nat.cnpj || currentCompany?.cnpj || tecno.cnpj || '',
+                inscricao_municipal: nat.inscricao_municipal || tecno.inscricao_municipal || '',
+                regime_tributario: nat.simples_nacional ? '1' : '3',
+                ambiente: nat.ambiente || tecno.ambiente || 'homologacao',
+                certificado_id: nat.certificado_id || tecno.certificado_id || '',
+                certificado_status: nat.certificado_status || tecno.certificado_status || '',
+                certificado_vencimento: nat.certificado_vencimento || tecno.certificado_vencimento || '',
+                certificado_sujeito: nat.certificado_sujeito || tecno.certificado_sujeito || '',
+                send_email_automatically: nat.send_email_automatically || false,
+                send_whatsapp_automatically: nat.send_whatsapp_automatically || false
+            } as any;
+        }
         return currentCompany.tecnospeed_config as any;
     }, [currentCompany, activeProvider]);
 
-    const isNacional = activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false);
+    const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false));
 
     const { services } = useServices();
 
