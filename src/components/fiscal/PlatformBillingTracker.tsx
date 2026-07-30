@@ -85,12 +85,19 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
         }
     }
 
+    const getInvoiceProvider = (inv: any) => {
+        const type = String(inv.type || '').toLowerCase();
+        if (type === 'nfeio') return 'nfeio';
+        if (type === 'national') return 'national';
+        if (type === 'other') return 'other';
+        return 'tecnospeed';
+    };
+
     // Identify all providers with activity in this cycle, plus the active provider
     const providers = new Set<string>();
     providers.add(activeProvider);
     currentMonthInvoices.forEach(inv => {
-        const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
-        providers.add(p);
+        providers.add(getInvoiceProvider(inv));
     });
 
     const providersDetails: any[] = [];
@@ -100,8 +107,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     Array.from(providers).forEach(provider => {
         const isActive = provider === activeProvider;
         const providerInvoices = currentMonthInvoices.filter(inv => {
-            const p = inv.type?.toLowerCase() === 'nfeio' ? 'nfeio' : 'tecnospeed';
-            return p === provider;
+            return getInvoiceProvider(inv) === provider;
         });
 
         const countActive = providerInvoices.filter(inv => 
@@ -220,7 +226,10 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
         }
         
         const parts = providersDetails.map(pd => {
-            const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
+            const providerName = pd.provider === 'nfeio' ? 'NFe.io' : 
+                                 pd.provider === 'national' ? 'Portal Nacional' : 
+                                 pd.provider === 'other' ? 'Outro' : 
+                                 pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider;
             const activeSuffix = pd.isActive ? '' : ' (Inativo)';
             return `${pd.totalNotes} via ${providerName}${activeSuffix}`;
         });
@@ -245,7 +254,9 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                 Acompanhamento de Custos de Emissão
                             </h4>
                             <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full">
-                                {activeProvider === 'tecnospeed' ? 'TecnoSpeed' : 'NFe.io'}
+                                {activeProvider === 'tecnospeed' ? 'TecnoSpeed' : 
+                                 activeProvider === 'nfeio' ? 'NFe.io' : 
+                                 activeProvider === 'national' ? 'Portal Nacional' : 'Outro'}
                             </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
@@ -315,7 +326,10 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                 
                                 <div className="space-y-4">
                                     {providersDetails.map((pd) => {
-                                        const providerName = pd.provider === 'nfeio' ? 'NFe.io' : (pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider);
+                                        const providerName = pd.provider === 'nfeio' ? 'NFe.io' : 
+                                                             pd.provider === 'national' ? 'Portal Nacional' : 
+                                                             pd.provider === 'other' ? 'Outro' : 
+                                                             pd.provider === 'tecnospeed' ? 'TecnoSpeed' : pd.provider;
                                         return (
                                             <div 
                                                 key={pd.provider} 

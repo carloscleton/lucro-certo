@@ -3056,7 +3056,7 @@ export function Settings() {
                                     
                                     {/* Fixed + Additional Grid */}
                                     {(tempCompanyConfig.settings?.admin_fiscal_billing?.fixed_enabled ?? true) && (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                             {/* TecnoSpeed */}
                                             <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
                                                 <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">TecnoSpeed</h5>
@@ -3157,6 +3157,63 @@ export function Settings() {
                                                                             ...currentBilling,
                                                                             nfeio: {
                                                                                 ...(currentBilling.nfeio || {}),
+                                                                                per_note_fee: val
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }}
+                                                            placeholder="Ex: 0.50"
+                                                            step="0.01"
+                                                            min="0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Portal Nacional */}
+                                            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 space-y-4">
+                                                <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">Portal Nacional</h5>
+                                                <div className="space-y-4">
+                                                    <CurrencyInput
+                                                        label="Valor Fixo Mensal"
+                                                        value={tempCompanyConfig.settings?.admin_fiscal_billing?.national?.fixed_fee ?? 30.00}
+                                                        onChange={(num) => {
+                                                            const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                            setTempCompanyConfig({
+                                                                ...tempCompanyConfig,
+                                                                settings: {
+                                                                    ...(tempCompanyConfig.settings || {}),
+                                                                    admin_fiscal_billing: {
+                                                                        ...currentBilling,
+                                                                        national: {
+                                                                            ...(currentBilling.national || {}),
+                                                                            fixed_fee: num
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        }}
+                                                        placeholder="Ex: 30,00"
+                                                    />
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight block">
+                                                            Valor Adicional por Nota (R$)
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            value={tempCompanyConfig.settings?.admin_fiscal_billing?.national?.per_note_fee ?? 0.50}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                const currentBilling = tempCompanyConfig.settings?.admin_fiscal_billing || {};
+                                                                setTempCompanyConfig({
+                                                                    ...tempCompanyConfig,
+                                                                    settings: {
+                                                                        ...(tempCompanyConfig.settings || {}),
+                                                                        admin_fiscal_billing: {
+                                                                            ...currentBilling,
+                                                                            national: {
+                                                                                ...(currentBilling.national || {}),
                                                                                 per_note_fee: val
                                                                             }
                                                                         }

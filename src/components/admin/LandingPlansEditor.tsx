@@ -975,7 +975,7 @@ export function LandingPlansEditor() {
 
                             {/* Fixed + Additional Grid */}
                             {(tempFiscalBillingConfig.fixed_enabled ?? true) && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {/* TecnoSpeed */}
                                     <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-slate-900 border border-gray-200 dark:border-slate-850 space-y-4">
                                         <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">TecnoSpeed</h5>
@@ -1050,6 +1050,49 @@ export function LandingPlansEditor() {
                                                             ...tempFiscalBillingConfig,
                                                             nfeio: {
                                                                 ...(tempFiscalBillingConfig.nfeio || {}),
+                                                                per_note_fee: val
+                                                            }
+                                                        });
+                                                    }}
+                                                    placeholder="Ex: 0.75"
+                                                    step="0.01"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Portal Nacional */}
+                                    <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-slate-900 border border-gray-200 dark:border-slate-850 space-y-4">
+                                        <h5 className="font-bold text-gray-900 dark:text-white border-b pb-2">Portal Nacional</h5>
+                                        <div className="space-y-4">
+                                            <CurrencyInput
+                                                label="Valor Fixo Mensal"
+                                                value={tempFiscalBillingConfig.national?.fixed_fee ?? 100.00}
+                                                onChange={(num) => {
+                                                    setTempFiscalBillingConfig({
+                                                        ...tempFiscalBillingConfig,
+                                                        national: {
+                                                            ...(tempFiscalBillingConfig.national || {}),
+                                                            fixed_fee: num
+                                                        }
+                                                    });
+                                                }}
+                                                placeholder="Ex: 100,00"
+                                            />
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-755 dark:text-gray-300 uppercase tracking-tight block">
+                                                    Valor Adicional por Nota (R$)
+                                                </label>
+                                                <Input
+                                                    type="number"
+                                                    value={tempFiscalBillingConfig.national?.per_note_fee ?? 0.75}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                        const val = parseFloat(e.target.value) || 0;
+                                                        setTempFiscalBillingConfig({
+                                                            ...tempFiscalBillingConfig,
+                                                            national: {
+                                                                ...(tempFiscalBillingConfig.national || {}),
                                                                 per_note_fee: val
                                                             }
                                                         });
