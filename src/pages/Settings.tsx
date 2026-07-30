@@ -2294,6 +2294,7 @@ export function Settings() {
                                                                         const providers = [
                                                                             { id: 'tecnospeed', name: 'TecnoSpeed' },
                                                                             { id: 'nfeio', name: 'NFe.io' },
+                                                                            { id: 'national', name: 'Portal Nacional (Direto / Sem Intermediário)' },
                                                                             { id: 'other', name: 'Outro (Customizado)' }
                                                                         ];
 

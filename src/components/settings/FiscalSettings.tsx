@@ -203,8 +203,15 @@ export function FiscalSettings() {
         return [activeProvider || 'tecnospeed'];
     }, [currentCompany, activeProvider]);
 
-    const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'other'>('tecnospeed');
+    const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'national' | 'other'>('tecnospeed');
     const [changingActiveProvider, setChangingActiveProvider] = useState(false);
+
+    const [savingNational, setSavingNational] = useState(false);
+    const [nationalConfig, setNationalConfig] = useState({
+        ambiente: 'homologacao',
+        send_email_automatically: false,
+        send_whatsapp_automatically: false
+    });
 
     useEffect(() => {
         if (enabledProviders.includes(activeProvider)) {
@@ -373,6 +380,13 @@ export function FiscalSettings() {
             reforma_tributaria_calculadora_ativa: nfe.reforma_tributaria_calculadora_ativa || false,
             reforma_tributaria_ibs_aliquota: nfe.reforma_tributaria_ibs_aliquota || '0.10',
             reforma_tributaria_cbs_aliquota: nfe.reforma_tributaria_cbs_aliquota || '0.90'
+        });
+
+        const nat = currentCompany.settings?.national_config || {};
+        setNationalConfig({
+            ambiente: nat.ambiente || 'homologacao',
+            send_email_automatically: nat.send_email_automatically || false,
+            send_whatsapp_automatically: nat.send_whatsapp_automatically || false
         });
 
     }, [currentCompany?.id]); // Depender apenas do ID
@@ -1178,6 +1192,48 @@ export function FiscalSettings() {
             });
         } finally {
             setSavingNfeio(false);
+        }
+    };
+
+    const handleSaveNational = async () => {
+        if (!currentEntity.id || currentEntity.type === 'personal') {
+            setResultModal({
+                isOpen: true,
+                title: 'Aviso',
+                message: 'Configurações fiscais são exclusivas para empresas. Mude o contexto no topo.',
+                type: 'info'
+            });
+            return;
+        }
+        setSavingNational(true);
+        try {
+            const updatedSettings = {
+                ...(currentCompany?.settings || {}),
+                national_config: nationalConfig
+            };
+            await updateCompany(currentEntity.id, {
+                settings: updatedSettings,
+                tecnospeed_config: config,
+                fiscal_module_enabled: moduleEnabled
+            });
+
+            await refreshEntity();
+            setResultModal({
+                isOpen: true,
+                title: 'Sucesso',
+                message: 'As configurações da Nota Nacional Direta foram salvas com sucesso.',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error(error);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Salvar',
+                message: 'Não foi possível salvar as configurações do Portal Nacional.',
+                type: 'error'
+            });
+        } finally {
+            setSavingNational(false);
         }
     };
 
@@ -2426,6 +2482,20 @@ export function FiscalSettings() {
                                     NFe.io
                                 </button>
                             )}
+                            {enabledProviders.includes('national') && (
+                                <button
+                                    type="button"
+                                    disabled={changingActiveProvider}
+                                    onClick={() => handleSelectActiveProvider('national')}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                        activeProvider === 'national'
+                                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    Portal Nacional
+                                </button>
+                            )}
                             {enabledProviders.includes('other') && (
                                 <button
                                     type="button"
@@ -2481,6 +2551,23 @@ export function FiscalSettings() {
                             </button>
                         )}
 
+                        {enabledProviders.includes('national') && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveSubTab('national')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeSubTab === 'national'
+                                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-slate-800/30'
+                                }`}
+                            >
+                                <Globe size={16} />
+                                Portal Nacional
+                                {activeProvider === 'national' && (
+                                    <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black lowercase tracking-normal">ativo</span>
+                                )}
+                            </button>
+                        )}
+
                         {enabledProviders.includes('other') && (
                             <button
                                 type="button"
@@ -2505,7 +2592,7 @@ export function FiscalSettings() {
                         <Info size={20} className="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
                         <div>
                             <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Tecnologia Fiscal Inativa</h4>
-                            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : 'Outro Provedor'}</strong>. Você pode alterar o emissor ativo no painel de seleção acima.</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : activeProvider === 'national' ? 'Portal Nacional' : 'Outro Provedor'}</strong>. Você pode alterar o emissor ativo no painel de seleção acima.</p>
                         </div>
                     </div>
                 )}
@@ -4370,6 +4457,68 @@ export function FiscalSettings() {
                             </div>
                         </div>
                     )}
+                </div>
+            </div>
+        )}
+
+        {/* Sub-tab: Portal Nacional */}
+        {activeSubTab === 'national' && (
+            <div className="space-y-6">
+                <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/80 shadow-sm space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl">
+                            <Globe size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900 dark:text-white">Portal Nacional (Direto / Sem Intermediários)</h3>
+                            <p className="text-xs text-gray-500">Emissão de NFS-e direto pelo Ambiente de Dados Nacional (ADN) do governo.</p>
+                        </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 dark:border-blue-900/25 dark:bg-blue-900/10 flex items-start gap-3">
+                        <Info className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" size={18} />
+                        <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                            A integração direta com o portal nacional utiliza as APIs oficiais disponibilizadas pela Receita Federal/Serpro. 
+                            Você pode obter mais informações e consultar endpoints de homologação e produção no link abaixo:
+                            <a
+                                href="https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/apis-prod-restrita-e-producao"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block mt-2 font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
+                            >
+                                Documentação Técnica Oficial (Serpro)
+                                <ExternalLink size={12} />
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ambiente</label>
+                            <select
+                                value={nationalConfig.ambiente}
+                                onChange={(e) => setNationalConfig(prev => ({ ...prev, ambiente: e.target.value }))}
+                                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                            >
+                                <option value="homologacao">Produção Restrita (REST_RESTRITA - Testes)</option>
+                                <option value="producao">Produção (PRODUCAO - Real)</option>
+                            </select>
+                            <p className="text-[10px] text-gray-400 mt-1.5 leading-tight">
+                                <strong>Homologação</strong> permite simular emissões sem efeito fiscal. <strong>Produção</strong> emite notas com validade jurídica.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-6 flex justify-end">
+                        <Button
+                            onClick={handleSaveNational}
+                            isLoading={savingNational}
+                            className="bg-violet-600 hover:bg-violet-700 font-bold"
+                        >
+                            <Save size={18} className="mr-2" />
+                            Salvar Configurações do Portal Nacional
+                        </Button>
+                    </div>
                 </div>
             </div>
         )}
