@@ -399,6 +399,13 @@ export function FiscalSettings() {
                 vencimento: nfeioConfig.certificado_vencimento || '',
                 sujeito: nfeioConfig.certificado_sujeito || '',
             };
+        } else if (activeSubTab === 'national') {
+            return {
+                id: nationalConfig.certificado_id || '',
+                status: nationalConfig.certificado_status || '',
+                vencimento: nationalConfig.certificado_vencimento || '',
+                sujeito: nationalConfig.certificado_sujeito || '',
+            };
         } else {
             return {
                 id: config.certificado_id || '',
@@ -407,7 +414,7 @@ export function FiscalSettings() {
                 sujeito: config.certificado_sujeito || '',
             };
         }
-    }, [activeSubTab, nfeioConfig, config]);
+    }, [activeSubTab, nfeioConfig, nationalConfig, config]);
 
     // Persistência do JSON do Laboratório
     const [testJson, setTestJson] = useState(() => {
@@ -1255,8 +1262,9 @@ export function FiscalSettings() {
 
         setUploadingCert(true);
         const isNfeio = activeSubTab === 'nfeio';
+        const isNational = activeSubTab === 'national';
         const isExternal = !!config.use_external_webhook;
-        const targetProviderName = isNfeio ? 'NFe.io' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed');
+        const targetProviderName = isNfeio ? 'NFe.io' : (isNational ? 'Portal Nacional' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed'));
 
         const targetWebhookUrl = activeSubTab === 'other' ? certWebhookUrl : config.external_webhook_url;
         const targetWebhookToken = activeSubTab === 'other' ? certWebhookToken : config.external_webhook_token;
@@ -1283,6 +1291,12 @@ export function FiscalSettings() {
                 isSandbox = nfeioConfig.ambiente === 'homologacao';
                 baseUrl = `https://api.nfse.io/v2/companies/${nfeioConfig.companyId}/certificates`;
                 maskedKey = nfeioConfig.apiKey ? `${nfeioConfig.apiKey.substring(0, 4)}...${nfeioConfig.apiKey.substring(nfeioConfig.apiKey.length - 4)}` : 'NÃO INFORMADA';
+            } else if (isNational) {
+                isSandbox = nationalConfig.ambiente === 'homologacao';
+                baseUrl = isSandbox 
+                    ? 'https://nfse-nacional.receita.fazenda.gov.br/portalrestrita/api' 
+                    : 'https://nfse-nacional.receita.fazenda.gov.br/portal/api';
+                maskedKey = 'AUTENTICAÇÃO CERTIFICADO ADN';
             } else {
                 isSandbox = config.ambiente === 'homologacao';
                 const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
@@ -1312,7 +1326,7 @@ export function FiscalSettings() {
                 logs: [...prev.logs, 'Sessão autenticada']
             }));
 
-            const uploadConfig = {
+            const uploadConfig = isNational ? nationalConfig : {
                 ...config,
                 certificate_webhook_url: targetWebhookUrl,
                 certificate_webhook_token: targetWebhookToken
@@ -1335,6 +1349,30 @@ export function FiscalSettings() {
                     ...prev,
                     steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'success' } : s),
                     logs: [...prev.logs, 'Certificado processado e vinculado com sucesso na NFe.io!']
+                }));
+            } else if (isNational) {
+                // Para Portal Nacional
+                const updatedNatConfig = {
+                    ...nationalConfig,
+                    certificado_id: response.id,
+                    certificado_vencimento: response.vencimento,
+                    certificado_sujeito: response.sujeito,
+                    certificado_status: 'ativo'
+                };
+                setNationalConfig(updatedNatConfig);
+
+                const updatedSettings = {
+                    ...(currentCompany?.settings || {}),
+                    national_config: updatedNatConfig
+                };
+                await updateCompany(currentEntity.id, {
+                    settings: updatedSettings
+                });
+
+                setDiagnostic(prev => ({
+                    ...prev,
+                    steps: prev.steps.map((s, i) => i === 2 ? { ...s, status: 'success' } : i === 3 ? { ...s, status: 'success' } : s),
+                    logs: [...prev.logs, 'Certificado processado e configurado com sucesso no Portal Nacional!']
                 }));
             } else {
                 const targetLog = isExternal
@@ -1423,7 +1461,7 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
 
             await fiscalService.deleteCertificate(currentEntity.id, token, targetProvider);
 
@@ -1435,6 +1473,22 @@ export function FiscalSettings() {
                     certificado_sujeito: '',
                     certificado_status: ''
                 }));
+            } else if (targetProvider === 'national') {
+                const updatedNatConfig = {
+                    ...nationalConfig,
+                    certificado_id: '',
+                    certificado_vencimento: '',
+                    certificado_sujeito: '',
+                    certificado_status: ''
+                };
+                setNationalConfig(updatedNatConfig);
+                const updatedSettings = {
+                    ...(currentCompany?.settings || {}),
+                    national_config: updatedNatConfig
+                };
+                await updateCompany(currentEntity.id, {
+                    settings: updatedSettings
+                });
             } else {
                 setConfig(prev => ({
                     ...prev,
@@ -1672,7 +1726,7 @@ export function FiscalSettings() {
             if (!token) throw new Error('Sessão expirada.');
 
             const payload = JSON.parse(testJson);
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
             const response = await fiscalService.emitirNFSe(currentEntity.id!, payload, token, undefined, true, targetProvider);
             const wrappedResponse = wrapFiscalLinks(response, currentEntity.id!, token);
             
@@ -1760,14 +1814,17 @@ export function FiscalSettings() {
             
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
+            
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
+            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : (targetProvider === 'national' ? 'Portal Nacional' : 'TecnoSpeed');
 
             setResultModal({
                 isOpen: true,
-                title: isAlreadyEmitted ? 'Nota Já Emitida' : (isInactiveDocError ? 'CNPJ Não Habilitado na TecnoSpeed' : 'Erro no Teste'),
+                title: isAlreadyEmitted ? 'Nota Já Emitida' : (isInactiveDocError ? `CNPJ Não Habilitado na ${providerName}` : 'Erro no Teste'),
                 message: isAlreadyEmitted 
-                    ? 'Esta nota já foi processada e autorizada anteriormente pela TecnoSpeed.' 
+                    ? `Esta nota já foi processada e autorizada anteriormente pela ${providerName}.` 
                     : isInactiveDocError
-                        ? 'A TecnoSpeed rejeitou a nota. Para resolver, acesse seu painel do PlugNotas (Homologação), vá em "Empresas", clique em "Nova Empresa" e cadastre o CNPJ de teste (ex: 08.187.168/0001-60) para liberar as emissões.'
+                        ? `A ${providerName} rejeitou a nota. Para resolver, acesse seu painel de emissão e verifique se o CNPJ de teste está devidamente cadastrado/liberado.`
                         : (safeMessage || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
                 data: error.response?.data ? wrapFiscalLinks(error.response.data, currentEntity.id!, token || undefined) : undefined,
@@ -4492,20 +4549,69 @@ export function FiscalSettings() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ambiente</label>
-                            <select
-                                value={nationalConfig.ambiente}
-                                onChange={(e) => setNationalConfig(prev => ({ ...prev, ambiente: e.target.value }))}
-                                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
-                            >
-                                <option value="homologacao">Produção Restrita (REST_RESTRITA - Testes)</option>
-                                <option value="producao">Produção (PRODUCAO - Real)</option>
-                            </select>
-                            <p className="text-[10px] text-gray-400 mt-1.5 leading-tight">
-                                <strong>Homologação</strong> permite simular emissões sem efeito fiscal. <strong>Produção</strong> emite notas com validade jurídica.
-                            </p>
+                    {/* Bloco de Credenciais e Ambiente */}
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Credenciais do Portal Nacional (Serpro)</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ambiente</label>
+                                <select
+                                    value={nationalConfig.ambiente}
+                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, ambiente: e.target.value }))}
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                >
+                                    <option value="homologacao">Produção Restrita (REST_RESTRITA - Testes)</option>
+                                    <option value="producao">Produção (PRODUCAO - Real)</option>
+                                </select>
+                                <p className="text-[10px] text-gray-400 mt-1.5 leading-tight">
+                                    <strong>Homologação</strong> permite simular emissões sem efeito fiscal. <strong>Produção</strong> emite notas com validade jurídica.
+                                </p>
+                            </div>
+
+                            <Input
+                                label="Client ID / Consumer Key"
+                                value={nationalConfig.client_id || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, client_id: e.target.value }))}
+                                placeholder="Chave do Consumidor gerada no Serpro"
+                            />
+
+                            <Input
+                                label="Client Secret / Consumer Secret"
+                                type="password"
+                                value={nationalConfig.client_secret || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, client_secret: e.target.value }))}
+                                placeholder="Segredo do Consumidor gerado no Serpro"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Bloco de Dados Fiscais */}
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Dados Fiscais do Emitente</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Input
+                                label="CNPJ do Emitente"
+                                value={nationalConfig.cnpj || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, cnpj: e.target.value }))}
+                                placeholder="00.000.000/0000-00"
+                            />
+                            <Input
+                                label="Inscrição Municipal"
+                                value={nationalConfig.inscricao_municipal || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, inscricao_municipal: e.target.value }))}
+                                placeholder="Inscrição Municipal da Empresa"
+                            />
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Opção pelo Simples Nacional</label>
+                                <select
+                                    value={nationalConfig.simples_nacional ? 'true' : 'false'}
+                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, simples_nacional: e.target.value === 'true' }))}
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                >
+                                    <option value="true">Sim, Optante pelo Simples Nacional</option>
+                                    <option value="false">Não, Regime Normal (Lucro Presumido / Real)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -4519,6 +4625,281 @@ export function FiscalSettings() {
                             Salvar Configurações do Portal Nacional
                         </Button>
                     </div>
+                </div>
+
+                {/* Ferramenta de Cobertura e Adesão ADN */}
+                <div className="p-6 bg-gradient-to-br from-indigo-50/40 via-white to-purple-50/20 dark:from-slate-900/50 dark:via-slate-900/40 dark:to-purple-955/5 rounded-2xl border border-gray-200/85 dark:border-slate-800 shadow-sm space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-500/20">
+                                <Search size={18} />
+                            </div>
+                            <div>
+                                <h4 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">Ferramenta de Adesão ao Portal Nacional (ADN)</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Verifique se o município da sua empresa já está integrado ou aceita emissões pelo padrão nacional.</p>
+                            </div>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 border border-indigo-150/40 shrink-0">
+                            Padrão NFS-e Nacional
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tipo de Pesquisa</label>
+                            <select
+                                value={searchMode}
+                                onChange={(e) => {
+                                    setSearchMode(e.target.value as 'name' | 'ibge' | 'uf');
+                                    setTecnoSpeedCityInfo(null);
+                                    setCityNotHomologatedMessage(null);
+                                }}
+                                className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                            >
+                                <option value="name">Buscar cidades por nome</option>
+                                <option value="ibge">Buscar cidades por código IBGE</option>
+                                <option value="uf">Buscar cidades por UF</option>
+                            </select>
+                        </div>
+
+                        {searchMode === 'name' && (
+                            <>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado (UF)</label>
+                                    <select
+                                        value={searchUf}
+                                        onChange={(e) => setSearchUf(e.target.value)}
+                                        className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                                    >
+                                        {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => (
+                                            <option key={uf} value={uf}>{uf}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 relative" ref={cityDropdownRef}>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cidade</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder={loadingCitiesList ? 'Carregando cidades...' : 'Digite para buscar...'}
+                                            value={searchCityQuery}
+                                            onChange={(e) => {
+                                                setSearchCityQuery(e.target.value);
+                                                setIsCityDropdownOpen(true);
+                                                const exactMatch = citiesList.find(c => c.nome.toLowerCase() === e.target.value.toLowerCase());
+                                                if (exactMatch) {
+                                                    setSelectedSearchCity(exactMatch);
+                                                } else {
+                                                    setSelectedSearchCity(null);
+                                                }
+                                                setTecnoSpeedCityInfo(null);
+                                            }}
+                                            onFocus={() => setIsCityDropdownOpen(true)}
+                                            disabled={loadingCitiesList}
+                                            className="w-full h-11 pl-4 pr-10 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-all shadow-sm"
+                                            autoComplete="off"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                            {searchCityQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearchCityQuery('');
+                                                        setSelectedSearchCity(null);
+                                                        setTecnoSpeedCityInfo(null);
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                                                disabled={loadingCitiesList}
+                                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                            >
+                                                <ChevronRight size={16} className={`transform transition-transform duration-200 ${isCityDropdownOpen ? '-rotate-90' : 'rotate-90'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {isCityDropdownOpen && filteredCities.length > 0 && (
+                                        <div className="absolute left-0 right-0 top-[102%] z-50 max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl scrollbar-thin animate-in fade-in slide-in-from-top-1 duration-150">
+                                            {filteredCities.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedSearchCity(c);
+                                                        setSearchCityQuery(c.nome);
+                                                        setTecnoSpeedCityInfo(null);
+                                                        setIsCityDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between ${selectedSearchCity?.id === c.id ? 'bg-indigo-50/50 dark:bg-slate-700/30 text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                                >
+                                                    <span>{c.nome}</span>
+                                                    {selectedSearchCity?.id === c.id && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {searchMode === 'ibge' && (
+                            <div className="flex flex-col gap-1.5 md:col-span-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Código IBGE (7 dígitos)</label>
+                                <input
+                                    type="text"
+                                    maxLength={7}
+                                    placeholder="Digite o código IBGE de 7 dígitos... Ex: 2400208"
+                                    value={searchIbgeQuery}
+                                    onChange={(e) => setSearchIbgeQuery(e.target.value.replace(/\D/g, ''))}
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 tracking-wider shadow-sm text-gray-700 dark:text-gray-300"
+                                />
+                            </div>
+                        )}
+
+                        {searchMode === 'uf' && (
+                            <>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado (UF)</label>
+                                    <select
+                                        value={searchUf}
+                                        onChange={(e) => setSearchUf(e.target.value)}
+                                        className="h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300 shadow-sm cursor-pointer"
+                                    >
+                                        {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => (
+                                            <option key={uf} value={uf}>{uf}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center h-11">
+                                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 font-medium">
+                                        Total no Estado: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{citiesList.length} cidades</strong>
+                                    </span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                        {searchMode === 'name' && (
+                            <Button
+                                type="button"
+                                onClick={handleSearchCityTecnoSpeed}
+                                disabled={!selectedSearchCity || searchingCityTecnoSpeed}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
+                            >
+                                {searchingCityTecnoSpeed ? (
+                                    <RefreshCw size={14} className="animate-spin text-white" />
+                                ) : (
+                                    <Search size={14} className="text-white" />
+                                )}
+                                Buscar Cidade
+                            </Button>
+                        )}
+
+                        {searchMode === 'ibge' && (
+                            <Button
+                                type="button"
+                                onClick={() => handleSearchCityByIbge(searchIbgeQuery)}
+                                disabled={searchIbgeQuery.length !== 7 || searchingCityTecnoSpeed}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
+                            >
+                                {searchingCityTecnoSpeed ? (
+                                    <RefreshCw size={14} className="animate-spin text-white" />
+                                ) : (
+                                    <Search size={14} className="text-white" />
+                                )}
+                                Buscar por IBGE
+                            </Button>
+                        )}
+
+                        {searchMode === 'uf' && (
+                            <Button
+                                type="button"
+                                onClick={() => setIsStateModalOpen(true)}
+                                className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10 transition-all active:scale-95"
+                            >
+                                <Globe size={16} />
+                                Visualizar Cobertura Estadual ({searchUf})
+                            </Button>
+                        )}
+                    </div>
+
+                    {tecnoSpeedCityInfo && (searchMode === 'name' || searchMode === 'ibge') && (
+                        <div className="mt-4 p-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-md animate-in fade-in slide-in-from-top-3 duration-300">
+                            {cityNotHomologatedMessage && (
+                                <div className="p-4 bg-rose-50 dark:bg-rose-955/20 rounded-2xl border border-rose-100 dark:border-rose-900/30 flex items-start gap-3 text-rose-800 dark:text-rose-455 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <AlertCircle className="shrink-0 text-rose-500 mt-0.5" size={18} />
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider">Atenção: Cidade Sem Adesão Ativa</p>
+                                        <p className="text-[11px] font-semibold opacity-90 mt-1 leading-relaxed">{cityNotHomologatedMessage}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex justify-between items-start w-full gap-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold flex items-center gap-0.5 uppercase tracking-wider select-none">
+                                                    Cidade <Info size={10} className="text-gray-455 dark:text-slate-500 shrink-0" />
+                                                </span>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5 truncate">
+                                                    {tecnoSpeedCityInfo.nome || tecnoSpeedCityInfo.name || selectedSearchCity?.nome || ('Código ' + (tecnoSpeedCityInfo.id || tecnoSpeedCityInfo.codigoIbge))}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider select-none">
+                                                    UF
+                                                </span>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5">
+                                                    {tecnoSpeedCityInfo.uf || tecnoSpeedCityInfo.state || searchUf}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Código IBGE</span>
+                                            <span className="text-[10px] font-extrabold text-gray-800 dark:text-slate-300 mt-0.5 font-mono truncate font-semibold">
+                                                {tecnoSpeedCityInfo.id || tecnoSpeedCityInfo.codigoIbge || selectedSearchCity?.id}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[8px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-normal select-none">Situação ADN</span>
+                                            <span className={`text-[10px] font-extrabold mt-0.5 truncate uppercase ${tecnoSpeedCityInfo.homologado || tecnoSpeedCityInfo.ativo !== false ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-455'}`}>
+                                                {tecnoSpeedCityInfo.homologado || tecnoSpeedCityInfo.ativo !== false ? 'Integrado' : 'Não Integrado'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-5 bg-gray-50/50 dark:bg-slate-900/60 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4">
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest select-none">Status de Integração NFS-e</h5>
+                                    <div className="space-y-2.5">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-semibold text-gray-500">Convênio Ativo:</span>
+                                            <span className={`font-bold ${tecnoSpeedCityInfo.homologado || tecnoSpeedCityInfo.ativo !== false ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                                                {tecnoSpeedCityInfo.homologado || tecnoSpeedCityInfo.ativo !== false ? 'Sim' : 'Não'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-semibold text-gray-500">Emissão Simplificada:</span>
+                                            <span className="font-bold text-gray-700 dark:text-slate-300">Compatível</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         )}
@@ -4852,11 +5233,12 @@ export function FiscalSettings() {
         {/* Bloco Compartilhado: Laboratório de Testes (JSON Manual) */}
         {((activeSubTab === 'tecnospeed' && config.ambiente === 'homologacao') || 
           (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao') ||
+          (activeSubTab === 'national' && nationalConfig.ambiente === 'homologacao') ||
           activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                     <RefreshCw className={`text-purple-600 ${testingJson ? 'animate-spin' : ''}`} size={20} />
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-gray-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         Laboratório de Testes (JSON Manual)
                         <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded border border-purple-200 dark:border-purple-800">
                             v1.2.0
@@ -4866,7 +5248,7 @@ export function FiscalSettings() {
                 
                 <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
                     <p className="text-xs text-purple-700 dark:text-purple-300 mb-4">
-                        Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela {activeSubTab === 'nfeio' ? 'NFe.io' : 'TecnoSpeed'}.
+                        Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela {activeSubTab === 'nfeio' ? 'NFe.io' : (activeSubTab === 'national' ? 'Portal Nacional' : 'TecnoSpeed')}.
                     </p>
                     
                     <div className="flex flex-col gap-4">
@@ -4885,6 +5267,8 @@ export function FiscalSettings() {
                             className="w-full h-48 p-3 text-xs font-mono bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                             placeholder={activeSubTab === 'nfeio' 
                                 ? '[\n  {\n    "tomador": {\n      "cpfCnpj": "00000000000191",\n      "razaoSocial": "Empresa de Teste LTDA",\n      "endereco": {\n        "logradouro": "Rua Teste",\n        "numero": "1001",\n        "bairro": "Centro",\n        "cep": "01001000",\n        "uf": "SP",\n        "cidade": "Sao Paulo"\n      }\n    },\n    "servico": [\n      {\n        "codigo": "1.01",\n        "discriminacao": "Prestação de serviço via NFe.io",\n        "valorUnitario": 100.00\n      }\n    ]\n  }\n]'
+                                : activeSubTab === 'national'
+                                ? '{\n  "infDPS": {\n    "dhEmi": "2026-07-30T10:00:00-03:00",\n    "dCompet": "2026-07-30",\n    "prest": {\n      "CNPJ": "00000000000191"\n    },\n    "tom": {\n      "CNPJ": "11111111000191"\n    },\n    "serv": {\n      "cServ": "01.01",\n      "xDesc": "Desenvolvimento de Software Standard no Padrão Nacional"\n    },\n    "valores": {\n      "vServPrest": 150.00\n    }\n  }\n}'
                                 : '{ "prestador": { ... }, "tomador": { ... }, "servico": { ... } }'
                             }
                         />
@@ -4954,7 +5338,7 @@ export function FiscalSettings() {
         )}
 
         {/* Bloco Compartilhado: Certificado Digital (A1) */}
-        {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio' || activeSubTab === 'other') && (
+        {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio' || activeSubTab === 'national' || activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -5133,7 +5517,7 @@ export function FiscalSettings() {
                 isOpen={diagnostic.isOpen}
                 onClose={() => setDiagnostic(prev => ({ ...prev, isOpen: false }))}
                 title="Diagnóstico de Envio"
-                description={activeSubTab === 'nfeio' ? "Status da integração com NFe.io" : (activeSubTab === 'other' ? "Status da integração com Webhook" : "Status da integração com PlugNotas")}
+                description={activeSubTab === 'nfeio' ? "Status da integração com NFe.io" : (activeSubTab === 'national' ? "Status da integração com Portal Nacional" : (activeSubTab === 'other' ? "Status da integração com Webhook" : "Status da integração com PlugNotas"))}
                 steps={diagnostic.steps}
                 logs={diagnostic.logs}
                 action={{
@@ -5144,6 +5528,8 @@ export function FiscalSettings() {
                         const hasError = diagnostic.steps.some(s => s.status === 'error');
                         await refreshEntity();
                         setDiagnostic(prev => ({ ...prev, isOpen: false }));
+                        const activeCertId = activeSubTab === 'nfeio' ? nfeioConfig.certificado_id : (activeSubTab === 'national' ? nationalConfig.certificado_id : config.certificado_id);
+                        const activeCertVenc = activeSubTab === 'nfeio' ? nfeioConfig.certificado_vencimento : (activeSubTab === 'national' ? nationalConfig.certificado_vencimento : config.certificado_vencimento);
                         setResultModal({
                             isOpen: true,
                             title: hasError ? 'Processo com Avisos' : 'Sucesso!',
@@ -5152,8 +5538,8 @@ export function FiscalSettings() {
                                 : 'O certificado foi enviado e o vínculo automático foi processado.',
                             type: hasError ? 'error' : 'success',
                             data: {
-                                'ID Certificado': config.certificado_id || 'ID pendente',
-                                'Vencimento': config.certificado_vencimento ? new Date(config.certificado_vencimento).toLocaleDateString('pt-BR') : 'N/A',
+                                'ID Certificado': activeCertId || 'ID pendente',
+                                'Vencimento': activeCertVenc ? new Date(activeCertVenc).toLocaleDateString('pt-BR') : 'N/A',
                                 'Auto-Vínculo': hasError ? 'Falhou' : 'Concluído'
                             }
                         });
