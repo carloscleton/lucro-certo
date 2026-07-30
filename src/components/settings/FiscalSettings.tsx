@@ -238,15 +238,8 @@ export function FiscalSettings() {
         if (compWithKey) {
             return compWithKey.id;
         }
-        const hasServiceLine = companies.some(c => c.id === '84d1586e-5d0c-456f-aa12-aefc5a9364a7');
-        if (hasServiceLine) {
-            return '84d1586e-5d0c-456f-aa12-aefc5a9364a7';
-        }
-        const hasRjDecor = companies.some(c => c.id === 'c784f24f-92e7-4ff6-9951-d7327fb77028');
-        if (hasRjDecor) {
-            return 'c784f24f-92e7-4ff6-9951-d7327fb77028';
-        }
-        return currentEntity.id!;
+        // Fallback global usando a empresa master do sistema
+        return '84d1586e-5d0c-456f-aa12-aefc5a9364a7'; // SERVICE LINE INFORMATICA (Fixo para consultas do ADN)
     };
 
     const handleSelectActiveProvider = async (provider: string) => {
