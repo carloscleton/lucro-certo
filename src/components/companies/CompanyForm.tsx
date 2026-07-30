@@ -107,34 +107,13 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
         } else if (isOpen) {
-            // Pre-fill from profile for new company if open
-            const isPFProfile = profile?.user_type === 'PF';
-            setTradeName(profile?.full_name || '');
-            setLegalName(profile?.full_name || '');
-            setEntityType(isPFProfile ? 'PF' : 'PJ');
-            
-            if (isPFProfile) {
-                setCpf(profile?.document || '');
-                setCnpj('');
-            } else {
-                const doc = profile?.document || '';
-                setCnpj(doc);
-                setCpf('');
-                // TRIGER AUTOMATIC LOOKUP IF CNPJ IS PRESENT
-                if (doc.replace(/\D/g, '').length === 14) {
-                    handleCNPJLookup(doc);
-                }
-            }
-            
-            setPhone(profile?.phone ? formatPhoneFromDB(profile.phone) : '');
-            
-            // Generate slug automatically
-            if (profile?.full_name) {
-                setSlug(profile.full_name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-            } else {
-                setSlug('');
-            }
-
+            setTradeName('');
+            setLegalName('');
+            setEntityType('PJ');
+            setCpf('');
+            setCnpj('');
+            setPhone('');
+            setSlug('');
             setZipCode('');
             setStreet('');
             setNumber('');
