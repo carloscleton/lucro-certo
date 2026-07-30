@@ -815,8 +815,13 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
             });
         }
 
-        apiKey = sanitizeKey(config.tecnospeed_api_key);
+        apiKey = sanitizeKey(config.tecnospeed_api_key || dbConfig?.tecnospeed_api_key || '');
         const isSandbox = config.ambiente === 'homologacao';
+        if (!apiKey) {
+            apiKey = isSandbox 
+                ? 'f0df81e0-7bd2-498f-adbf-81e6-ed263514e487' 
+                : '2da392a6-79d2-4304-a8b7-959572c7e44d';
+        }
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
@@ -5103,8 +5108,17 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
         
         if (!company.fiscal_module_enabled) throw new Error('Módulo fiscal não habilitado para esta empresa.');
 
+        const companyConfig = company.tecnospeed_config || { ambiente: 'homologacao' };
+        if (!companyConfig.tecnospeed_api_key) {
+            const isSandbox = companyConfig.ambiente === 'homologacao';
+            companyConfig.tecnospeed_api_key = isSandbox 
+                ? 'f0df81e0-7bd2-498f-adbf-81e6-ed263514e487' 
+                : '2da392a6-79d2-4304-a8b7-959572c7e44d';
+        }
+        company.tecnospeed_config = companyConfig;
+
         const result = {
-            config: company.tecnospeed_config || {},
+            config: companyConfig,
             realCompanyId: company.id,
             settings: company.settings || {}
         };
