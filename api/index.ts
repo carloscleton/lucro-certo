@@ -2037,7 +2037,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             cServ: {
                                 cTribNac: codigoTribNac6,
                                 ...(servItem.codigo ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
-                                ...(nat.default_cnae ? { CNAE: nat.default_cnae } : {}),
+                                ...(servItem.cnae || nat.default_cnae ? { CNAE: String(servItem.cnae || nat.default_cnae).replace(/\D/g, '').substring(0, 7) } : {}),
                                 xDescServ: descricao
                             }
                         },
@@ -2124,15 +2124,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
 
             // SefinNacional E0120: <IM> só deve ser enviado se houver Inscrição Municipal oficial cadastrada no perfil da empresa
-            const configuredIm = String(nat.inscricao_municipal || '').trim();
-            if (inf.prest) {
-                if (!configuredIm || configuredIm === '1254103') {
-                    delete inf.prest.IM;
-                } else {
-                    inf.prest.IM = configuredIm;
-                }
+            const rawIm = String(inf.prest?.IM || inscricaoMunicipal || nat.inscricao_municipal || '').trim();
+            const cleanIm = rawIm.replace(/\D/g, '');
+            if (!rawIm || rawIm === '1254103' || rawIm.toLowerCase() === 'isento' || !cleanIm) {
+                if (inf.prest) delete inf.prest.IM;
+            } else {
+                if (inf.prest) inf.prest.IM = cleanIm;
             }
-            const prestIM = (configuredIm !== '' && configuredIm !== '1254103') ? `<IM>${configuredIm}</IM>` : '';
+            const prestIM = (inf.prest?.IM && inf.prest.IM !== '1254103' && inf.prest.IM.toLowerCase() !== 'isento') ? `<IM>${inf.prest.IM}</IM>` : '';
             
             const tomadorDocXml = inf.toma?.CPF 
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
@@ -2165,7 +2164,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
                 : '';
 
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
+            const cnaeVal = String(inf.serv?.cServ?.CNAE || servItem?.cnae || nat.default_cnae || '').replace(/\D/g, '');
+            const cnaeXml = (cnaeVal.length === 7) ? `<CNAE>${cnaeVal}</CNAE>` : '';
+
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${cnaeXml}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
@@ -2390,7 +2392,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
                     detail: detailedMessage,
                     payload_enviado: adnPayload,
-                    xml_assinado: signedXml || undefined
+                    xml_assinado: signedXml || undefined,
+                    idDPS: dpsId,
+                    chNFSe: errData?.chNFSe || errData?.idDPS || dpsId,
+                    tipoAmbiente: adnPayload?.infDPS?.tpAmb || 2
                 });
             }
         }
