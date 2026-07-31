@@ -1814,6 +1814,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Isso evita o erro "Unsupported PKCS12 PFX data" causado por limitações de algoritmos legados/novos do OpenSSL no Node.js v17+
             let privateKeyPem = '';
             let certificatePem = '';
+            let leafCertificatePem = '';
             let certSubjectCnpj = '';
 
             try {
@@ -1841,6 +1842,31 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (certBag && certBag.length > 0) {
                     const certs = certBag.map(b => forge.pki.certificateToPem(b.cert));
                     certificatePem = certs.join('\n');
+
+                    // Encontrar especificamente o certificado FOLHA (cuja chave pública combina com a chave privada)
+                    if (privateKeyPem) {
+                        try {
+                            const privKeyObj = forge.pki.privateKeyFromPem(privateKeyPem);
+                            const privPublicPem = forge.pki.publicKeyToPem(forge.pki.setRsaPublicKey((privKeyObj as any).n, (privKeyObj as any).e));
+
+                            for (const b of certBag) {
+                                try {
+                                    const cKeyPem = forge.pki.publicKeyToPem(b.cert.publicKey);
+                                    if (cKeyPem === privPublicPem) {
+                                        leafCertificatePem = forge.pki.certificateToPem(b.cert);
+                                        console.log(`🎯 [ADN-NACIONAL] Certificado FOLHA correspondente à chave privada encontrado! Subject: ${b.cert.subject.getField('CN')?.value || 'N/A'}`);
+                                        break;
+                                    }
+                                } catch (e) {}
+                            }
+                        } catch (e) {
+                            console.warn(`⚠️ [ADN-NACIONAL] Erro ao identificar certificado folha por chave pública:`, (e as any).message);
+                        }
+                    }
+
+                    if (!leafCertificatePem) {
+                        leafCertificatePem = certs[0];
+                    }
                 }
 
                 if (!privateKeyPem || !certificatePem) {
@@ -2156,10 +2182,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // Provedor de informações do certificado (obrigatoriamente exigido pela receita/Sefin)
                 sig.keyInfoProvider = {
                     getKeyInfo(key, prefix) {
-                        // Extrair apenas o certificado folha (primeiro certificado do PEM)
-                        const leafCertPem = certificatePem.includes('-----END CERTIFICATE-----')
-                            ? certificatePem.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
-                            : certificatePem;
+                        const targetCert = leafCertificatePem || certificatePem;
+                        const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
+                            ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
+                            : targetCert;
                         const certClean = leafCertPem
                             .replace(/-----BEGIN CERTIFICATE-----/g, '')
                             .replace(/-----END CERTIFICATE-----/g, '')
