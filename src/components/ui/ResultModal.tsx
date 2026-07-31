@@ -193,11 +193,11 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
 
     useEffect(() => {
         if (isOpen && data) {
-            const realPdfUrl = findDocument(data, 'pdf');
-            setShowPdf(!!realPdfUrl);
+            setShowPdf(false);
             setShowXml(false);
             setXmlContent(null);
             setShowTechDetails(false);
+            setGeneratedPdfUrl(null);
         }
     }, [isOpen, data]);
     
@@ -208,14 +208,18 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const xmlUrl = findDocument(data, 'xml');
 
     const handleOpenDanfsePdf = async () => {
-        let url = activePdfUrl;
+        let url = generatedPdfUrl;
         if (!url && data) {
             try {
-                const inf = data.payload?.infDPS || data.infDPS || {};
+                const inf = data.payload?.infDPS || data.infDPS || data.payload_enviado?.infDPS || data.payload || {};
                 const prest = inf.prest || data.prestador || {};
                 const toma = inf.toma || data.tomador || {};
-                const serv = inf.serv || data.servico || {};
+                const serv = inf.serv || data.servico || (Array.isArray(data.servico) ? data.servico[0] : {});
                 const val = inf.valores || data.valores || {};
+
+                const cTribNac = serv.cServ?.cTribNac || serv.cTribNac || serv.codigo || '010701';
+                const descServ = serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || serv.discriminacao || 'Análise e desenvolvimento de sistemas';
+                const valServ = Number(val.vServPrest?.vServ || val.vServ || serv.valor?.servico || 100);
 
                 const pdfBlob = await PDFService.generateDanfsePDF({
                     nNfse: data.nNFSe || data.nDPS || inf.nDPS || '1',
@@ -224,19 +228,19 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                     chaveAcesso: data.chNFSe || data.chaveAcesso || data.idDPS || '240810220089356600019000001000000000000001',
                     dhEmi: inf.dhEmi || data.dhEmi || new Date().toISOString(),
                     prestador: {
-                        cnpj: prest.CNPJ || prest.cnpj || '00.893.566/0001-90',
-                        nome: prest.xNome || prest.nome || 'CARLOSCLETON CARVALHO FERNANDES',
-                        im: prest.IM || prest.im || 'Isento',
+                        cnpj: prest.CNPJ || prest.cnpj || prest.cpfCnpj || '00.893.566/0001-90',
+                        nome: prest.xNome || prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES',
+                        im: prest.IM || prest.im || prest.inscricaoMunicipal || 'Isento',
                     },
                     tomador: {
-                        doc: toma.CNPJ || toma.CPF || toma.doc || '11.222.333/0001-81',
-                        nome: toma.xNome || toma.nome || 'EMPRESA DE TESTE LTDA',
+                        doc: toma.CNPJ || toma.CPF || toma.doc || toma.cpfCnpj || '11.222.333/0001-81',
+                        nome: toma.xNome || toma.nome || toma.razaoSocial || 'EMPRESA DE TESTE LTDA',
                         email: toma.email || 'teste@nfe.io'
                     },
                     servico: {
-                        cTribNac: serv.cServ?.cTribNac || serv.cTribNac || '010701',
-                        descricao: serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || 'Análise e desenvolvimento de sistemas',
-                        valor: Number(val.vServPrest?.vServ || val.vServ || 100)
+                        cTribNac,
+                        descricao: descServ,
+                        valor: valServ
                     },
                     impostos: {
                         issqn: Number(val.trib?.tribMun?.vISSQN || 0),
@@ -245,7 +249,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                         ibs: Number(val.trib?.reformaTributaria?.vIBS || 0),
                         cbs: Number(val.trib?.reformaTributaria?.vCBS || 0)
                     },
-                    ambiente: data.tipoAmbiente === 1 ? 'producao' : 'homologacao'
+                    ambiente: (data.tipoAmbiente === 1 || inf.tpAmb === 1) ? 'producao' : 'homologacao'
                 });
                 const newUrl = window.URL.createObjectURL(pdfBlob);
                 setGeneratedPdfUrl(newUrl);
