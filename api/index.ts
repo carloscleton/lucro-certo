@@ -2335,7 +2335,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 return res.status(errStatus || 400).json({
                     error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
                     detail: detailedMessage,
-                    payload_enviado: adnPayload
+                    payload_enviado: adnPayload,
+                    xml_assinado: signedXml || undefined
                 });
             }
         }

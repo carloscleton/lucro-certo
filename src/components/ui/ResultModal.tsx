@@ -110,9 +110,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const pdfUrl = findDocument(data, 'pdf');
     const xmlUrl = findDocument(data, 'xml');
     const handleViewXml = async () => {
-        if (!xmlUrl) return;
         setShowPdf(false);
         setShowXml(true);
+        if (data?.xml_assinado) {
+            setXmlContent(formatXml(String(data.xml_assinado)));
+            return;
+        }
+        if (!xmlUrl) return;
         if (!xmlContent) {
             setLoadingXml(true);
             try {
@@ -339,13 +343,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar PDF Aqui
                                         </Button>
                                     )}
-                                    {(xmlUrl || data?.xml || data?.xml_url) && (
+                                    {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado) && (
                                         <Button 
                                             onClick={handleViewXml} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                                         >
                                             <Search size={18} />
-                                            Visualizar XML
+                                            Visualizar XML Assinado
                                         </Button>
                                     )}
                                 </div>
