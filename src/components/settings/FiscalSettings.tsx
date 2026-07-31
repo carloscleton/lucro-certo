@@ -364,7 +364,7 @@ export function FiscalSettings() {
             if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.trim();
             if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
             if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
-            if (!newConfig.cnpj && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
+            if ((!newConfig.cnpj || newConfig.cnpj === '00893566000190') && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
             if (!newConfig.razao_social && currentCompany.legal_name) newConfig.razao_social = currentCompany.legal_name;
             if (!newConfig.nome_fantasia && currentCompany.trade_name) newConfig.nome_fantasia = currentCompany.trade_name;
             if (!newConfig.telefone && currentCompany.phone) newConfig.telefone = currentCompany.phone;
@@ -409,7 +409,7 @@ export function FiscalSettings() {
         setNationalConfig({
             ambiente: nat.ambiente || 'homologacao',
             certificado_senha: nat.certificado_senha || '',
-            cnpj: nat.cnpj || currentCompany.cnpj || '',
+            cnpj: (nat.cnpj && nat.cnpj !== '00893566000190') ? nat.cnpj : (currentCompany.cnpj || ''),
             inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
             simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
             reg_esp_trib: nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0,
@@ -1946,6 +1946,64 @@ export function FiscalSettings() {
 
         const isTest = isNfeio ? true : config.use_test_data;
         const isNacionalLegacy = isNfeio ? false : !!config.nfse_nacional;
+    };
+
+    const handleSyncFromCompanyProfile = () => {
+        if (!currentCompany) return;
+
+        const companyCnpj = currentCompany.cnpj || '';
+        const legalName = currentCompany.legal_name || currentCompany.name || '';
+        const tradeName = currentCompany.trade_name || currentCompany.name || '';
+        const phone = currentCompany.phone || '';
+        const email = currentCompany.email || '';
+        const im = currentCompany.settings?.inscricao_municipal || (currentCompany as any).inscricao_municipal || '';
+        const ie = currentCompany.settings?.inscricao_estadual || (currentCompany as any).inscricao_estadual || '';
+
+        const street = currentCompany.street || '';
+        const number = currentCompany.number || '';
+        const complement = currentCompany.complement || '';
+        const neighborhood = currentCompany.neighborhood || '';
+        const city = currentCompany.city || '';
+        const zipCode = currentCompany.zip_code || '';
+        const state = currentCompany.state || '';
+        const cityCode = currentCompany.city_code || (currentCompany as any).codigo_municipio || '';
+
+        // Atualiza Configuração TecnoSpeed
+        setConfig((prev: any) => ({
+            ...prev,
+            cnpj: companyCnpj,
+            razao_social: legalName,
+            nome_fantasia: tradeName,
+            telefone: phone,
+            email: email,
+            inscricao_municipal: im || prev.inscricao_municipal,
+            inscricao_estadual: ie || prev.inscricao_estadual,
+            endereco: {
+                ...prev.endereco,
+                logradouro: street || prev.endereco?.logradouro,
+                numero: number || prev.endereco?.numero,
+                complemento: complement || prev.endereco?.complemento,
+                bairro: neighborhood || prev.endereco?.bairro,
+                cidade: city || prev.endereco?.cidade,
+                cep: zipCode || prev.endereco?.cep,
+                uf: state || prev.endereco?.uf,
+                codigoCidade: cityCode || prev.endereco?.codigoCidade
+            }
+        }));
+
+        // Atualiza Configuração Portal Nacional (ADN)
+        setNationalConfig((prev: any) => ({
+            ...prev,
+            cnpj: companyCnpj,
+            razao_social: legalName,
+            nome_fantasia: tradeName,
+            inscricao_municipal: im || prev.inscricao_municipal,
+            codigo_municipio: cityCode || prev.codigo_municipio,
+            uf: state || prev.uf
+        }));
+
+        toast.success("Dados da empresa importados do cadastro com sucesso!");
+    };
         
         const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
         const effectiveCity = isNfeio
@@ -2772,15 +2830,27 @@ export function FiscalSettings() {
                             </div>
                         )}
                         <div className="space-y-8">
-                    <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
-                        <Building2 className="text-indigo-600 mt-1" size={24} />
-                        <div>
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Configurações do Emitente</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                Insira os dados da sua empresa exatamente como registrados na SEFAZ e Prefeitura.
-                                Estes dados serão usados para preencher os campos do PlugNotas da TecnoSpeed.
-                            </p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
+                        <div className="flex items-start gap-4">
+                            <Building2 className="text-indigo-600 mt-1" size={24} />
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Configurações do Emitente</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    Insira os dados da sua empresa exatamente como registrados na SEFAZ e Prefeitura.
+                                    Estes dados serão usados para preencher os campos do PlugNotas da TecnoSpeed.
+                                </p>
+                            </div>
                         </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncFromCompanyProfile}
+                            className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-bold flex items-center gap-2 rounded-xl text-xs whitespace-nowrap shadow-sm"
+                        >
+                            <RefreshCw size={14} />
+                            Puxar do Cadastro
+                        </Button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4730,7 +4800,19 @@ export function FiscalSettings() {
 
                     {/* Bloco de Dados Fiscais */}
                     <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Dados Fiscais do Emitente</h4>
+                        <div className="flex items-center justify-between gap-4 mb-4">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Dados Fiscais do Emitente</h4>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSyncFromCompanyProfile}
+                                className="bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/30 font-bold flex items-center gap-2 rounded-xl text-xs whitespace-nowrap shadow-sm"
+                            >
+                                <RefreshCw size={14} />
+                                Puxar do Cadastro
+                            </Button>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input
                                 label="CNPJ do Emitente"
