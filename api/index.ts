@@ -1752,21 +1752,37 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         if (activeProvider === 'national') {
             const nat = settings?.national_config || {};
 
+            // 🔍 Log diagnóstico: verificar se national_config foi recuperado corretamente do DB
+            console.log(`🏛️ [ADN-NACIONAL] Iniciando fluxo Portal Nacional | companyId: ${companyId} | resolvedId: ${resolvedId}`);
+            console.log(`🏛️ [ADN-NACIONAL] national_config keys: ${Object.keys(nat).join(', ') || '(vazio)'}`);
+            console.log(`🏛️ [ADN-NACIONAL] certificado_pfx_base64 presente: ${!!nat.certificado_pfx_base64} | tamanho: ${nat.certificado_pfx_base64 ? nat.certificado_pfx_base64.length : 0} chars`);
+            console.log(`🏛️ [ADN-NACIONAL] certificado_senha presente: ${!!nat.certificado_senha} | ambiente: ${nat.ambiente || 'homologacao'}`);
+            console.log(`🏛️ [ADN-NACIONAL] cnpj: ${nat.cnpj || '(não definido)'} | inscricao_municipal: ${nat.inscricao_municipal || '(não definido)'}`);
+
             // Validar certificado armazenado
             if (!nat.certificado_pfx_base64) {
+                console.error(`❌ [ADN-NACIONAL] certificado_pfx_base64 NÃO encontrado em settings.national_config. Settings keys: ${Object.keys(settings || {}).join(', ')}`);
                 return res.status(400).json({ 
-                    error: 'Certificado digital não encontrado para o Portal Nacional. Faça o upload do certificado PFX na aba "Portal Nacional" das Configurações Fiscais.' 
+                    error: 'Certificado digital não encontrado para o Portal Nacional. Faça o upload do certificado PFX na aba "Portal Nacional" das Configurações Fiscais.',
+                    debug: {
+                        national_config_keys: Object.keys(nat),
+                        settings_keys: Object.keys(settings || {}),
+                        has_certificado: !!nat.certificado_pfx_base64,
+                        companyId,
+                        resolvedId
+                    }
                 });
             }
 
             const pfxBuffer = Buffer.from(nat.certificado_pfx_base64, 'base64');
             const pfxPassword = nat.certificado_senha || '';
             const adnAmbiente = nat.ambiente || 'homologacao';
+            const tpAmb = adnAmbiente === 'producao' ? 1 : 2; // 1=Produção, 2=Homologação
             const adnBaseUrl = adnAmbiente === 'producao'
                 ? 'https://adn.nfse.gov.br'
                 : 'https://adn.producaorestrita.nfse.gov.br';
 
-            console.log(`🏛️ [ADN-NACIONAL] Emitindo NFS-e via ADN gov.br | Ambiente: ${adnAmbiente} | URL: ${adnBaseUrl}`);
+            console.log(`🏛️ [ADN-NACIONAL] Emitindo NFS-e via ADN gov.br | Ambiente: ${adnAmbiente} (tpAmb=${tpAmb}) | URL: ${adnBaseUrl} | PFX size: ${pfxBuffer.length} bytes`);
 
             // Criar agente HTTPS com mTLS (certificado da empresa)
             const httpsAgent = new https.Agent({
@@ -1776,66 +1792,83 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 keepAlive: false
             });
 
-            // Construir payload no schema do ADN NFS-e Nacional
+            // Construir payload no schema DPS (Declaração de Prestação de Serviço) do ADN
             const firstItem = Array.isArray(payload) ? payload[0] : payload;
             const servicos = Array.isArray(firstItem?.servico) ? firstItem.servico : [firstItem?.servico].filter(Boolean);
             const prestadorCnpj = (firstItem?.prestador?.cpfCnpj || nat.cnpj || '').replace(/\D/g, '');
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
-            const tomadorTipo = tomadorDoc.length === 11 ? 'CPF' : 'CNPJ';
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
-            const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101001';
+            const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101';
             const descricao = servItem.discriminacao || servItem.descricao || 'Prestação de serviços';
             const inscricaoMunicipal = firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '';
             const simplesNacional = nat.simples_nacional ? 1 : 0; // 1=SN, 0=Não optante
-            const idIntegracao = firstItem?.idIntegracao || `ADN_${Date.now()}`;
+            const idIntegracao = firstItem?.idIntegracao || `DPS${prestadorCnpj}${Date.now()}`.substring(0, 42).padEnd(42, '0');
 
-            const adnPayload = {
-                infNFSe: {
-                    xLocEmi: "Lucro Certo",
-                    xLocPrestacao: firstItem?.tomador?.endereco?.uf || 'SP',
-                    nNFSe: idIntegracao,
-                    cNFSe: codigoTribNac,
-                    optSN: simplesNacional,
-                    RPSsubstituido: null,
+            // Data/hora de emissão e competência no formato ISO-8601
+            const now = new Date();
+            const dhEmi = now.toISOString();
+            const dCompet = now.toISOString().substring(0, 10); // YYYY-MM-DD
+
+            // Código do município de prestação (IBGE 7 dígitos)
+            const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
+
+            // Payload DPS conforme especificação ADN NFS-e Nacional
+            const adnPayload: any = {
+                infDPS: {
+                    tpAmb,
+                    dhEmi,
+                    dCompet,
                     prest: {
                         CNPJ: prestadorCnpj,
-                        IM: inscricaoMunicipal,
-                        xNome: firstItem?.prestador?.razaoSocial || nat.cnpj || prestadorCnpj
+                        ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {})
                     },
                     toma: tomadorDoc.length === 11
                         ? { CPF: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
-                        : { CNPJ: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' },
+                        : { CNPJ: tomadorDoc || '00000000000000', xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' },
                     serv: {
+                        locPrest: {
+                            cLocPrestacao
+                        },
                         cServ: {
                             cTribNac: codigoTribNac,
-                            cTribMun: (servItem.codigo || '').replace(/\D/g, '').substring(0, 6).padEnd(6, '0'),
-                            CNAE: nat.default_cnae || '7490104',
+                            ...(nat.default_cnae ? { CNAE: nat.default_cnae } : {}),
                             xDescServ: descricao
-                        },
-                        Loc: {
-                            cLocPrestacao: firstItem?.codigoIbge || nat.codigo_municipio || '3106200'
-                        },
-                        QtdServ: servicos.length,
-                        vServPrest: {
-                            vReceb: valorTotal
-                        },
-                        tribISSQN: {
-                            tribMun: nat.tributa_municipio ? 1 : 0,
-                            exigSuspensa: 0,
-                            tpImunidade: 0
-                        },
-                        piscofins: {
-                            optTribSisSimples: simplesNacional
                         }
                     },
                     valores: {
-                        vCalcDR: valorTotal
+                        vServPrest: {
+                            vServ: valorTotal
+                        }
                     }
                 }
             };
 
-            console.log(`📤 [ADN-NACIONAL] Payload:`, JSON.stringify(adnPayload, null, 2));
+            // Adicionar endereço do tomador se disponível
+            const tomadorEnd = firstItem?.tomador?.endereco;
+            if (tomadorEnd) {
+                const endToma: any = {};
+                if (tomadorEnd.logradouro) endToma.xLgr = tomadorEnd.logradouro;
+                if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
+                if (tomadorEnd.complemento) endToma.xCpl = tomadorEnd.complemento;
+                if (tomadorEnd.bairro) endToma.xBairro = tomadorEnd.bairro;
+                if (tomadorEnd.cep) endToma.CEP = String(tomadorEnd.cep).replace(/\D/g, '');
+                if (Object.keys(endToma).length > 0) {
+                    adnPayload.infDPS.toma.end = endToma;
+                }
+            }
+
+            // Adicionar e-mail do tomador se disponível
+            if (firstItem?.tomador?.email) {
+                adnPayload.infDPS.toma.email = firstItem.tomador.email;
+            }
+
+            // Opção Simples Nacional
+            if (simplesNacional) {
+                adnPayload.infDPS.optSN = simplesNacional;
+            }
+
+            console.log(`📤 [ADN-NACIONAL] Payload DPS:`, JSON.stringify(adnPayload, null, 2));
 
             try {
                 const adnResponse = await axios.post(
@@ -1849,10 +1882,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 );
 
                 const adnData = adnResponse.data;
-                const docId = adnData?.nNFSe || adnData?.id || idIntegracao;
-                const chaveAcesso = adnData?.cChaveAcesso || adnData?.chaveAcesso || docId;
+                const docId = adnData?.nNFSe || adnData?.chNFSe || adnData?.id || idIntegracao;
+                const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || docId;
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. ID: ${docId} | Chave: ${chaveAcesso}`);
+                console.log(`✅ [ADN-NACIONAL] Resposta completa:`, JSON.stringify(adnData, null, 2));
 
                 // Salvar no banco fiscal_invoices
                 if (SUPABASE_URL) {
@@ -1861,7 +1895,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             company_id: resolvedId,
                             quote_id: quoteId || null,
                             external_id: String(docId),
-                            type: 'nfse',
+                            type: 'national',
                             status: 'concluido',
                             payload: { ...adnPayload, retorno: adnData },
                             created_at: new Date().toISOString()
@@ -1883,7 +1917,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     chaveAcesso,
                     status: 'Emitida',
                     ...adnData,
-                    proxy_version: '1.0.36_nacional',
+                    proxy_version: '1.0.37_nacional',
                     mode: 'national_adn'
                 });
 
@@ -1891,13 +1925,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const errData = adnErr.response?.data;
                 const errStatus = adnErr.response?.status;
                 console.error(`❌ [ADN-NACIONAL] Erro na emissão (HTTP ${errStatus}):`, JSON.stringify(errData, null, 2));
+                console.error(`❌ [ADN-NACIONAL] Detalhes do erro:`, adnErr.message, adnErr.code || '');
 
-                // Erros conhecidos da ADN
-                if (errStatus === 496 || adnErr.code === 'ECONNRESET' || String(adnErr.message).includes('certificate')) {
+                // Erros de certificado/mTLS
+                if (errStatus === 496 || adnErr.code === 'ECONNRESET' || adnErr.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || String(adnErr.message).includes('certificate') || String(adnErr.message).includes('ssl') || String(adnErr.message).includes('CERT')) {
                     return res.status(400).json({
                         error: 'Erro de autenticação mTLS no Portal Nacional. Verifique se o certificado digital está correto, válido e cadastrado no Portal Nacional (nfse.gov.br).',
                         detail: adnErr.message,
                         hint: 'Acesse https://nfse.gov.br e verifique se o CNPJ da empresa está habilitado como prestador de serviços no Portal Nacional.'
+                    });
+                }
+
+                // Erro de schema/validação da DPS
+                if (errData?.erros || errData?.errors || errData?.mensagem) {
+                    return res.status(errStatus || 400).json({
+                        error: 'Erro de validação no Portal Nacional (ADN gov.br). A DPS enviada contém erros.',
+                        detail: errData,
+                        payload_enviado: adnPayload
                     });
                 }
 
@@ -1916,11 +1960,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const rawApiKey = config.tecnospeed_api_key || '';
         const isUsingFallbackKey = PLATFORM_FALLBACK_KEYS.includes(rawApiKey.trim());
 
-        if (activeProvider === 'national' && (!rawApiKey || isUsingFallbackKey)) {
-            return res.status(400).json({ 
-                error: 'Para usar o Portal Nacional, você precisa configurar sua própria API Key da PlugNotas na aba "TecnoSpeed/PlugNotas" das configurações fiscais. A chave deve ser de uma conta PlugNotas com o módulo NFS-e Nacional habilitado.' 
-            });
-        }
 
         if (!config.tecnospeed_api_key) {
 
