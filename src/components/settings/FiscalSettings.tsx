@@ -4920,8 +4920,8 @@ export function FiscalSettings() {
                                     className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                 >
                                     <option value="1">1 - Não Optante (Regime Normal: Lucro Presumido / Real)</option>
-                                    <option value="2">2 - Optante pelo Simples Nacional (ME / EPP)</option>
-                                    <option value="3">3 - Optante pelo Simples Nacional (MEI - Microempreendedor Individual)</option>
+                                    <option value="2">2 - Optante pelo Simples Nacional (MEI - Microempreendedor Individual)</option>
+                                    <option value="3">3 - Optante pelo Simples Nacional (ME / EPP)</option>
                                 </select>
                             </div>
                             <div>
