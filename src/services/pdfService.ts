@@ -318,6 +318,201 @@ export class PDFService {
     }
 
     /**
+     * Generate DANFSE (Documento Auxiliar da NFS-e Nacional) PDF
+     */
+    static async generateDanfsePDF(data: {
+        nNfse?: string;
+        serie?: string;
+        nDPS?: string;
+        chaveAcesso?: string;
+        dhEmi?: string;
+        prestador: {
+            cnpj: string;
+            nome?: string;
+            im?: string;
+            municipio?: string;
+        };
+        tomador: {
+            doc: string;
+            nome: string;
+            email?: string;
+            endereco?: string;
+        };
+        servico: {
+            cTribNac?: string;
+            descricao: string;
+            valor: number;
+        };
+        impostos?: {
+            issqn?: number;
+            pis?: number;
+            cofins?: number;
+            csll?: number;
+            irrf?: number;
+            ibs?: number;
+            cbs?: number;
+        };
+        ambiente?: string;
+    }): Promise<Blob> {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        let yPos = 15;
+
+        const primaryColor = [15, 23, 42]; // Slate 900
+        const headerColor = [30, 41, 59]; // Slate 800
+        const accentBg = [241, 245, 249]; // Slate 100
+        const borderColor = [203, 213, 225]; // Slate 300
+
+        // --- HEADER DANFSE ---
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 24, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(255, 255, 255);
+        doc.text('DANFSE - Documento Auxiliar da NFS-e Nacional', margin + 6, yPos + 10);
+        
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Nota Fiscal de Serviço Eletrônica | Ambiente: ${data.ambiente === 'producao' ? 'PRODUÇÃO' : 'HOMOLOGAÇÃO (TESTE)'}`, margin + 6, yPos + 17);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(`Nº ${data.nNfse || data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 11, { align: 'right' });
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Série: ${data.serie || '1'} | DPS: ${data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 17, { align: 'right' });
+
+        yPos += 27;
+
+        // --- CHAVE DE ACESSO ---
+        doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'S');
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100);
+        doc.text('CHAVE DE ACESSO DA NFS-E', margin + 4, yPos + 5);
+
+        doc.setFontSize(9);
+        doc.setFont('courier', 'bold');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        const chaveFormatted = data.chaveAcesso || '240810220089356600019000001000000000000001';
+        doc.text(chaveFormatted.replace(/(.{4})/g, '$1 ').trim(), margin + 4, yPos + 11);
+
+        yPos += 18;
+
+        // --- PRESTADOR ---
+        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('EMITENTE / PRESTADOR DO SERVIÇO', margin + 4, yPos + 4.5);
+
+        yPos += 6;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(50);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Razão Social / Nome: ${data.prestador.nome || 'CARLOSCLETON CARVALHO FERNANDES'}`, margin + 4, yPos + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`CNPJ / CPF: ${data.prestador.cnpj || '00.893.566/0001-90'}   |   Inscrição Municipal: ${data.prestador.im || 'Isento / Não Inf.'}`, margin + 4, yPos + 12);
+
+        yPos += 22;
+
+        // --- TOMADOR ---
+        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('TOMADOR DO SERVIÇO', margin + 4, yPos + 4.5);
+
+        yPos += 6;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(50);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Nome / Razão Social: ${data.tomador.nome || 'EMPRESA DE TESTE LTDA'}`, margin + 4, yPos + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`CNPJ / CPF: ${data.tomador.doc || '11.222.333/0001-81'}   |   E-mail: ${data.tomador.email || 'teste@nfe.io'}`, margin + 4, yPos + 12);
+
+        yPos += 22;
+
+        // --- SERVIÇO PRESTADO ---
+        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('DISCRIMINAÇÃO DOS SERVIÇOS', margin + 4, yPos + 4.5);
+
+        yPos += 6;
+        const servDescHeight = 35;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'S');
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(50);
+        doc.setFont('helvetica', 'normal');
+        const descLines = doc.splitTextToSize(data.servico.descricao || 'Análise e desenvolvimento de sistemas', pageWidth - (margin * 2) - 8);
+        doc.text(descLines, margin + 4, yPos + 6);
+
+        if (data.servico.cTribNac) {
+            doc.setFontSize(7.5);
+            doc.setTextColor(120);
+            doc.text(`Código Tributação Nacional: ${data.servico.cTribNac}`, margin + 4, yPos + servDescHeight - 4);
+        }
+
+        yPos += servDescHeight + 4;
+
+        // --- VALORES E TRIBUTOS ---
+        doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'F');
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'S');
+
+        const locale = 'pt-BR';
+        const vServ = data.servico.valor || 100.00;
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text('VALOR TOTAL DO SERVIÇO:', margin + 4, yPos + 8);
+        doc.setFontSize(11);
+        doc.text(vServ.toLocaleString(locale, { style: 'currency', currency: 'BRL' }), margin + 50, yPos + 8);
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80);
+        doc.text(`ISSQN: R$ ${(data.impostos?.issqn || 0).toFixed(2)}  |  PIS: R$ ${(data.impostos?.pis || 0).toFixed(2)}  |  COFINS: R$ ${(data.impostos?.cofins || 0).toFixed(2)}`, margin + 4, yPos + 16);
+        doc.text(`IBS (Reforma): R$ ${(data.impostos?.ibs || 0).toFixed(2)}  |  CBS (Reforma): R$ ${(data.impostos?.cbs || 0).toFixed(2)}`, pageWidth - margin - 4, yPos + 16, { align: 'right' });
+
+        yPos += 30;
+
+        // Rodapé de Autenticidade
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text(`Documento Auxiliar emitido pelo Sistema Lucro Certo em ${new Date().toLocaleString(locale)}.`, pageWidth / 2, yPos, { align: 'center' });
+
+        return doc.output('blob');
+    }
+
+    /**
      * Generate and upload quote PDF
      */
     static async generateAndUploadQuotePDF(
@@ -334,3 +529,4 @@ export class PDFService {
         return pdfUrl;
     }
 }
+

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, FileCode, Minus, Printer } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code, FileText } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
+import { PDFService } from '../../services/pdfService';
 
 interface ResultModalProps {
     isOpen: boolean;
@@ -15,6 +16,44 @@ interface ResultModalProps {
         onClick: () => void;
     };
 }
+
+const humanizeFiscalError = (title: string, message: string, data?: any) => {
+    let friendlyTitle = title;
+    let friendlyMessage = message;
+    let friendlyHint: string | null = null;
+    let errorCode: string | null = null;
+
+    const fullStr = (message + ' ' + JSON.stringify(data || {})).toLowerCase();
+
+    if (fullStr.includes('e0014') || fullStr.includes('já existe em uma nfs-e') || fullStr.includes('conjunto de série')) {
+        errorCode = 'E0014';
+        friendlyTitle = '📍 Nota / DPS Já Emitida no Portal Nacional';
+        friendlyMessage = 'Esta Nota Fiscal / DPS (Série 1, Número 1) já foi transmitida e AUTORIZADA com sucesso anteriormente no Portal Nacional da NFS-e.';
+        friendlyHint = '💡 Como testar um novo envio: No JSON do teste, altere a chave "nDPS": "1" para "nDPS": "2" (ou um número ainda não usado) e clique em "Emitir Via JSON Manual" novamente.';
+    } else if (fullStr.includes('e0160') || fullStr.includes('simples nacional')) {
+        errorCode = 'E0160';
+        friendlyTitle = '⚠️ Opção do Simples Nacional em Desacordo';
+        friendlyMessage = 'O regime tributário informado na nota (opSimpNac) não coincide com o cadastro real do CNPJ na Receita Federal.';
+        friendlyHint = '💡 Solução: Verifique se sua empresa é Simples Nacional ME/EPP (opSimpNac = 3), MEI (opSimpNac = 2) ou Regime Normal (opSimpNac = 1).';
+    } else if (fullStr.includes('e0166') || fullStr.includes('regime de apuração')) {
+        errorCode = 'E0166';
+        friendlyTitle = '⚠️ Regime de Apuração do Simples Obrigatório';
+        friendlyMessage = 'Para empresas do Simples Nacional ME/EPP, é obrigatório informar o Regime de Apuração (regApTribSN).';
+        friendlyHint = '💡 Solução: Inclua "regApTribSN": 1 no bloco regTrib do prestador no JSON.';
+    } else if (fullStr.includes('e0718') || fullStr.includes('assinatura deve ser feita com o certificado')) {
+        errorCode = 'E0718';
+        friendlyTitle = '🔐 Incompatibilidade no Certificado Digital';
+        friendlyMessage = 'O CNPJ do prestador informado na nota difere do CNPJ do titular do Certificado Digital .pfx enviado.';
+        friendlyHint = '💡 Solução: Certifique-se de que o CNPJ no JSON é idêntico ao CNPJ do arquivo .pfx de certificado A1.';
+    } else if (fullStr.includes('e0120') || fullStr.includes('inscrição municipal')) {
+        errorCode = 'E0120';
+        friendlyTitle = '🏛️ Inscrição Municipal Incompatível';
+        friendlyMessage = 'A Inscrição Municipal informada possui formato diferente do cadastrado na prefeitura.';
+        friendlyHint = '💡 Solução: Mantenha o campo de Inscrição Municipal em branco ou preencha com o número oficial da prefeitura.';
+    }
+
+    return { friendlyTitle, friendlyMessage, friendlyHint, errorCode };
+};
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
@@ -68,15 +107,18 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const [xmlContent, setXmlContent] = useState<string | null>(null);
     const [loadingXml, setLoadingXml] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(100);
+    const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
+    const [showTechDetails, setShowTechDetails] = useState(false);
 
     const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 20, 200));
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
     const handleResetZoom = () => setZoomLevel(100);
 
+    const activePdfUrl = findDocument(data, 'pdf') || generatedPdfUrl;
+
     const handlePrintPdf = () => {
-        if (!pdfUrl) return;
+        if (!activePdfUrl) return;
         
-        // 1. Tenta obter o iframe atual que está exibindo o PDF
         const iframe = document.querySelector('iframe[title="Visualizador de PDF"]') as HTMLIFrameElement;
         if (iframe && iframe.contentWindow) {
             try {
@@ -88,27 +130,79 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             }
         }
         
-        // 2. Fallback: abre em uma nova aba para impressão nativa
-        window.open(pdfUrl, '_blank');
+        window.open(activePdfUrl, '_blank');
     };
-
-
 
     useEffect(() => {
         if (isOpen && data) {
             const realPdfUrl = findDocument(data, 'pdf');
-            
-            // Só ativa visualização automática se for um link real (http/blob)
             setShowPdf(!!realPdfUrl);
             setShowXml(false);
             setXmlContent(null);
+            setShowTechDetails(false);
         }
     }, [isOpen, data]);
     
     if (!isOpen) return null;
+
+    const { friendlyTitle, friendlyMessage, friendlyHint, errorCode } = humanizeFiscalError(title, message, data);
     
-    const pdfUrl = findDocument(data, 'pdf');
     const xmlUrl = findDocument(data, 'xml');
+
+    const handleOpenDanfsePdf = async () => {
+        let url = activePdfUrl;
+        if (!url && data) {
+            try {
+                const inf = data.payload?.infDPS || data.infDPS || {};
+                const prest = inf.prest || data.prestador || {};
+                const toma = inf.toma || data.tomador || {};
+                const serv = inf.serv || data.servico || {};
+                const val = inf.valores || data.valores || {};
+
+                const pdfBlob = await PDFService.generateDanfsePDF({
+                    nNfse: data.nNFSe || data.nDPS || inf.nDPS || '1',
+                    serie: inf.serie || data.serie || '1',
+                    nDPS: inf.nDPS || data.nDPS || '1',
+                    chaveAcesso: data.chNFSe || data.chaveAcesso || data.idDPS || '240810220089356600019000001000000000000001',
+                    dhEmi: inf.dhEmi || data.dhEmi || new Date().toISOString(),
+                    prestador: {
+                        cnpj: prest.CNPJ || prest.cnpj || '00.893.566/0001-90',
+                        nome: prest.xNome || prest.nome || 'CARLOSCLETON CARVALHO FERNANDES',
+                        im: prest.IM || prest.im || 'Isento',
+                    },
+                    tomador: {
+                        doc: toma.CNPJ || toma.CPF || toma.doc || '11.222.333/0001-81',
+                        nome: toma.xNome || toma.nome || 'EMPRESA DE TESTE LTDA',
+                        email: toma.email || 'teste@nfe.io'
+                    },
+                    servico: {
+                        cTribNac: serv.cServ?.cTribNac || serv.cTribNac || '010701',
+                        descricao: serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || 'Análise e desenvolvimento de sistemas',
+                        valor: Number(val.vServPrest?.vServ || val.vServ || 100)
+                    },
+                    impostos: {
+                        issqn: Number(val.trib?.tribMun?.vISSQN || 0),
+                        pis: Number(val.trib?.tribFed?.vPIS || 0),
+                        cofins: Number(val.trib?.tribFed?.vCOFINS || 0),
+                        ibs: Number(val.trib?.reformaTributaria?.vIBS || 0),
+                        cbs: Number(val.trib?.reformaTributaria?.vCBS || 0)
+                    },
+                    ambiente: data.tipoAmbiente === 1 ? 'producao' : 'homologacao'
+                });
+                const newUrl = window.URL.createObjectURL(pdfBlob);
+                setGeneratedPdfUrl(newUrl);
+                url = newUrl;
+            } catch (err) {
+                console.error('Erro ao gerar DANFSE em PDF:', err);
+            }
+        }
+
+        if (url) {
+            setShowXml(false);
+            setShowPdf(true);
+        }
+    };
+
     const handleViewXml = async () => {
         setShowPdf(false);
         setShowXml(true);
@@ -151,6 +245,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30'
     };
 
+    const hasXmlOrPdf = !!(activePdfUrl || data?.pdf || data?.pdf_url || data?.xml_assinado || data?.payload || data?.infDPS || xmlUrl);
+
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className={clsx(
@@ -172,18 +268,18 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         {showPdf ? <Eye size={20} /> : <Search size={20} />}
                                     </div>
                                     <h3 className="font-bold text-gray-900 dark:text-white">
-                                        {showPdf ? 'Visualizador da Nota (PDF)' : 'Visualizador do Conteúdo (XML)'}
+                                        {showPdf ? 'Visualizador da Nota (DANFSE PDF)' : 'Visualizador do Conteúdo (XML)'}
                                     </h3>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    {showPdf && pdfUrl && (
+                                    {showPdf && activePdfUrl && (
                                         <button 
                                             onClick={handlePrintPdf}
                                             className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 flex items-center gap-1.5 text-xs font-bold mr-1"
                                             title="Imprimir Nota"
                                         >
                                             <Printer size={20} />
-                                            <span className="hidden sm:inline">Imprimir</span>
+                                            <span className="hidden sm:inline">Imprimir / Salvar PDF</span>
                                         </button>
                                     )}
                                     <button 
@@ -196,7 +292,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                             </div>
                             <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-slate-950">
                                 {showPdf ? (
-                                    pdfUrl ? (
+                                    activePdfUrl ? (
                                         <div className="relative group h-full">
                                             {/* Toolbar de Zoom */}
                                             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 p-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-300">
@@ -229,7 +325,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                     style={{ transform: `scale(${zoomLevel / 100})` }}
                                                 >
                                                     <iframe 
-                                                        src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
+                                                        src={`${activePdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
                                                         className="w-full h-full border-none"
                                                         title="Visualizador de PDF"
                                                     />
@@ -238,48 +334,15 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         </div>
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-slate-900/50">
-                                            {(String(data?.idIntegracao || '').startsWith('AVULSA_') ||
-                                              String(data?.pdf || data?.pdf_url || '').includes('example.pdf')) && !pdfUrl ? (
-                                                <>
-                                                    <div className="p-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full mb-4">
-                                                        <FileCode size={32} />
-                                                    </div>
-                                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                                                        Modo de Simulação
-                                                    </h4>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-                                                        Esta é uma simulação interna e não gerou um documento oficial. Notas de homologação ou produção aparecerão aqui normalmente.
-                                                    </p>
-                                                    <Button 
-                                                        onClick={() => setShowPdf(false)}
-                                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 h-12 rounded-2xl flex items-center gap-2 shadow-xl shadow-amber-500/20 transition-all active:scale-95"
-                                                    >
-                                                        <Search size={18} />
-                                                        Ver Dados Técnicos
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4 animate-pulse">
-                                                        <Clock3 size={32} />
-                                                    </div>
-                                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                                                        PDF em Geração
-                                                    </h4>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-                                                        Esta nota está sendo processada. {String(data?.idIntegracao || '').startsWith('TEST_') ? 'Ambiente de Homologação ativo.' : 'Aguardando autorização da prefeitura.'}
-                                                    </p>
-                                                    {action && (
-                                                        <Button 
-                                                            onClick={action.onClick}
-                                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 h-11 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20"
-                                                        >
-                                                            <RefreshCw size={18} />
-                                                            Verificar Status Agora
-                                                        </Button>
-                                                    )}
-                                                </>
-                                            )}
+                                            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4 animate-pulse">
+                                                <Clock3 size={32} />
+                                            </div>
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                                                Gerando Visualização PDF
+                                            </h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
+                                                Aguarde um instante enquanto preparamos a exibição do documento DANFSE.
+                                            </p>
                                         </div>
                                     )
                                 ) : (
@@ -305,42 +368,72 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                     {icons[type]}
                                 </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
+                            {errorCode && (
+                                <div className="flex justify-center mb-1">
+                                    <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-full border border-rose-200 dark:border-rose-800/40">
+                                        Código: {errorCode}
+                                    </span>
+                                </div>
+                            )}
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{friendlyTitle}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 font-medium leading-relaxed">{friendlyMessage}</p>
 
+                            {/* Card de Dica / Solução Humanizada */}
+                            {friendlyHint && (
+                                <div className="mb-5 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-2xl text-left shadow-sm">
+                                    <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 leading-relaxed">
+                                        {friendlyHint}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Botão de Toggle para ver Detalhes Técnicos / JSON */}
                             {data && Object.keys(data).length > 0 && (
-                                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6 text-left border border-gray-100 dark:border-slate-800 max-h-60 overflow-y-auto scrollbar-thin">
-                                    <div className="space-y-3">
-                                        {Object.entries(data).map(([key, value]) => (
-                                            <div key={key} className="flex flex-col gap-1">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{key}</span>
-                                                <div className="text-sm font-medium text-gray-900 dark:text-white break-all">
-                                                    {typeof value === 'object' ? (
-                                                        <pre className="whitespace-pre-wrap font-mono text-[11px] bg-white/50 dark:bg-black/20 p-2 rounded">
-                                                            {JSON.stringify(value, null, 2)}
-                                                        </pre>
-                                                    ) : String(value).startsWith('http') ? (
-                                                        <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                                                            {String(value)}
-                                                            <ExternalLink size={14} />
-                                                        </a>
-                                                    ) : String(value)}
-                                                </div>
+                                <div className="mb-4 text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowTechDetails(!showTechDetails)}
+                                        className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors py-1"
+                                    >
+                                        <Code size={14} />
+                                        {showTechDetails ? 'Ocultar Detalhes Técnicos (JSON)' : 'Ver Detalhes Técnicos (JSON)'}
+                                    </button>
+
+                                    {showTechDetails && (
+                                        <div className="mt-2 bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 text-left border border-gray-100 dark:border-slate-800 max-h-52 overflow-y-auto scrollbar-thin animate-in fade-in duration-200">
+                                            <div className="space-y-3">
+                                                {Object.entries(data).map(([key, value]) => (
+                                                    <div key={key} className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{key}</span>
+                                                        <div className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                                                            {typeof value === 'object' ? (
+                                                                <pre className="whitespace-pre-wrap font-mono text-[11px] bg-white/50 dark:bg-black/20 p-2 rounded">
+                                                                    {JSON.stringify(value, null, 2)}
+                                                                </pre>
+                                                            ) : String(value).startsWith('http') ? (
+                                                                <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                                                    {String(value)}
+                                                                    <ExternalLink size={14} />
+                                                                </a>
+                                                            ) : String(value)}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             <div className="mt-auto flex flex-col gap-3">
                                 <div className="space-y-2">
-                                    {(pdfUrl || data?.pdf || data?.pdf_url) && (
+                                    {hasXmlOrPdf && (
                                         <Button 
-                                            onClick={() => setShowPdf(true)} 
+                                            onClick={handleOpenDanfsePdf} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                                         >
-                                            <Eye size={18} />
-                                            Visualizar PDF Aqui
+                                            <FileText size={18} />
+                                            Visualizar PDF (DANFSE)
                                         </Button>
                                     )}
                                     {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado) && (
