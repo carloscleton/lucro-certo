@@ -172,7 +172,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
     const handleResetZoom = () => setZoomLevel(100);
 
-    const activePdfUrl = findDocument(data, 'pdf') || generatedPdfUrl;
+    const activePdfUrl = generatedPdfUrl || findDocument(data, 'pdf');
 
     const handlePrintPdf = () => {
         if (!activePdfUrl) return;
@@ -533,9 +533,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         const tpAmb = data?.tipoAmbiente || data?.tpAmb || data?.payload_enviado?.infDPS?.tpAmb;
                                         const isHomolog = tpAmb === 2 || tpAmb === '2';
                                         const isDPS = chaveLimpa.startsWith('DPS');
-                                        const paramName = isDPS ? 'idDPS' : 'chNFSe';
+                                        const paramName = isDPS ? 'idDps' : 'chNfse';
                                         const ambParam = isHomolog ? '&tpAmb=2' : '';
-                                        const portalUrl = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?${paramName}=${chaveLimpa}${ambParam}`;
+                                        const portalUrl = `https://www.nfse.gov.br/consultanfse/?${paramName}=${chaveLimpa}${ambParam}`;
                                         return (
                                             <a
                                                 href={portalUrl}
