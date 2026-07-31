@@ -2152,6 +2152,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(tribMun.tpRetISSQN)
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
+            // pAliq (Alíquota ISSQN no Regime Normal)
+            const pAliqVal = tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 0);
+            const pAliqXml = (opSimpNac === 1 && pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
+
+            // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal)
+            let tribFedXml = '';
+            const tribFed = trib.tribFed || {};
+            const pPIS = tribFed.pPIS !== undefined ? Number(tribFed.pPIS) : (nat.default_pis_aliquota ? Number(nat.default_pis_aliquota) : 0);
+            const pCOFINS = tribFed.pCOFINS !== undefined ? Number(tribFed.pCOFINS) : (nat.default_cofins_aliquota ? Number(nat.default_cofins_aliquota) : 0);
+            const pCSLL = tribFed.pCSLL !== undefined ? Number(tribFed.pCSLL) : (nat.default_csll_aliquota ? Number(nat.default_csll_aliquota) : 0);
+            const pIRRF = tribFed.pIRRF !== undefined ? Number(tribFed.pIRRF) : (nat.default_irrf_aliquota ? Number(nat.default_irrf_aliquota) : 0);
+
+            if (opSimpNac === 1 && (pPIS > 0 || pCOFINS > 0 || pCSLL > 0 || pIRRF > 0 || tribFed.vPIS !== undefined || tribFed.vIRRF !== undefined)) {
+                const vServ = Number(inf.valores?.vServPrest?.vServ || 0);
+                const vPIS = tribFed.vPIS !== undefined ? Number(tribFed.vPIS).toFixed(2) : (vServ * (pPIS / 100)).toFixed(2);
+                const vCOFINS = tribFed.vCOFINS !== undefined ? Number(tribFed.vCOFINS).toFixed(2) : (vServ * (pCOFINS / 100)).toFixed(2);
+                const vCSLL = tribFed.vCSLL !== undefined ? Number(tribFed.vCSLL).toFixed(2) : (vServ * (pCSLL / 100)).toFixed(2);
+                const vIRRF = tribFed.vIRRF !== undefined ? Number(tribFed.vIRRF).toFixed(2) : (vServ * (pIRRF / 100)).toFixed(2);
+
+                tribFedXml = `<tribFed>${pPIS > 0 ? `<pPIS>${pPIS.toFixed(2)}</pPIS><vPIS>${vPIS}</vPIS>` : ''}${pCOFINS > 0 ? `<pCOFINS>${pCOFINS.toFixed(2)}</pCOFINS><vCOFINS>${vCOFINS}</vCOFINS>` : ''}${pCSLL > 0 ? `<pCSLL>${pCSLL.toFixed(2)}</pCSLL><vCSLL>${vCSLL}</vCSLL>` : ''}${pIRRF > 0 ? `<pIRRF>${pIRRF.toFixed(2)}</pIRRF><vIRRF>${vIRRF}</vIRRF>` : ''}</tribFed>`;
+            }
+
             // totTrib: dependendo de opSimpNac
             // 2 (MEI) ou 3 (ME/EPP) -> pTotTribSN
             // 1 (Normal) -> indTotTrib
@@ -2165,7 +2187,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 totTribXml = `<totTrib><indTotTrib>${indTotTrib}</indTotTrib></totTrib>`;
             }
 
-            const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN></tribMun>${totTribXml}</trib></valores>` : '';
+            const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN>${pAliqXml}</tribMun>${tribFedXml}${totTribXml}</trib></valores>` : '';
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
             const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac><regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest><toma>${tomadorDocXml}<xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>${tomadorEndXml}${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}</toma><serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();

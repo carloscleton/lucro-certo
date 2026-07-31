@@ -224,6 +224,9 @@ export function FiscalSettings() {
         default_cofins_aliquota: '3.00',
         default_csll_aliquota: '1.00',
         default_irrf_aliquota: '1.50',
+        reforma_tributaria_calculadora_ativa: true,
+        reforma_tributaria_cbs_aliquota: '0.90',
+        reforma_tributaria_ibs_aliquota: '0.10',
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
@@ -435,6 +438,9 @@ export function FiscalSettings() {
             default_cofins_aliquota: nat.default_cofins_aliquota || '3.00',
             default_csll_aliquota: nat.default_csll_aliquota || '1.00',
             default_irrf_aliquota: nat.default_irrf_aliquota || '1.50',
+            reforma_tributaria_calculadora_ativa: nat.reforma_tributaria_calculadora_ativa !== undefined ? nat.reforma_tributaria_calculadora_ativa : true,
+            reforma_tributaria_cbs_aliquota: nat.reforma_tributaria_cbs_aliquota || '0.90',
+            reforma_tributaria_ibs_aliquota: nat.reforma_tributaria_ibs_aliquota || '0.10',
             certificado_id: nat.certificado_id || '',
             certificado_vencimento: nat.certificado_vencimento || '',
             certificado_sujeito: nat.certificado_sujeito || '',
@@ -1973,6 +1979,28 @@ export function FiscalSettings() {
                     valores: {
                         vServPrest: {
                             vServ: 100.00
+                        },
+                        trib: {
+                            tribMun: {
+                                tribISSQN: Number(nationalConfig.trib_issqn ?? 1),
+                                tpRetISSQN: Number(nationalConfig.tp_ret_issqn ?? 1),
+                                ...(Number((nationalConfig as any).op_simp_nac) === 1 ? { pAliq: parseFloat(nationalConfig.default_iss_aliquota || '2.00') } : {})
+                            },
+                            ...(Number((nationalConfig as any).op_simp_nac) === 1 ? {
+                                tribFed: {
+                                    pPIS: parseFloat(nationalConfig.default_pis_aliquota || '0.65'),
+                                    pCOFINS: parseFloat(nationalConfig.default_cofins_aliquota || '3.00'),
+                                    pCSLL: parseFloat(nationalConfig.default_csll_aliquota || '1.00'),
+                                    pIRRF: parseFloat(nationalConfig.default_irrf_aliquota || '1.50')
+                                },
+                                totTrib: {
+                                    indTotTrib: 0
+                                }
+                            } : {
+                                totTrib: {
+                                    pTotTribSN: 0.00
+                                }
+                            })
                         }
                     }
                 }
