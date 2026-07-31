@@ -1874,7 +1874,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 
                 try {
                     const pfxInfo = extractCnpjCpfFromPfx(pfxBuffer);
-                    const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00893566000190' && c !== '00000000000000');
+                    const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00000000000000');
                     if (validCnpjs.length > 0) {
                         certSubjectCnpj = validCnpjs[0];
                     } else {
@@ -1882,7 +1882,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         for (const attr of certObj.subject.attributes) {
                             if (attr.value) {
                                 const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
-                                if (matches && matches[0] !== '00000000000000' && matches[0] !== '00893566000190') {
+                                if (matches && matches[0] !== '00000000000000') {
                                     certSubjectCnpj = matches[0];
                                     break;
                                 }
@@ -2064,10 +2064,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const inf = adnPayload.infDPS || {};
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
-            // SefinNacional E0718: O CNPJ do prestador na DPS DEVE coincidir exatamente com o CNPJ do Certificado Digital de assinatura
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
             const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
-            const prestCnpjClean = certSubjectCnpj || configuredCnpj || (rawPrestCnpj !== '41540344000170' ? rawPrestCnpj : '') || '00893566000190';
+            const prestCnpjClean = certSubjectCnpj || configuredCnpj || rawPrestCnpj || '00893566000190';
 
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)

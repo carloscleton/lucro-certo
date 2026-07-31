@@ -424,7 +424,7 @@ export function FiscalSettings() {
         setNationalConfig({
             ambiente: nat.ambiente || 'homologacao',
             certificado_senha: nat.certificado_senha || '',
-            cnpj: (nat.cnpj && nat.cnpj !== '00893566000190') ? nat.cnpj : (currentCompany.cnpj || ''),
+            cnpj: nat.cnpj || currentCompany.cnpj || '',
             inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
             simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
             op_simp_nac: nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? 2 : 1),
