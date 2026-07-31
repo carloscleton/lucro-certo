@@ -23,13 +23,29 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
     let friendlyHint: string | null = null;
     let errorCode: string | null = null;
 
-    const fullStr = (message + ' ' + JSON.stringify(data || {})).toLowerCase();
+    let fullStr = (message + ' ' + JSON.stringify(data || {})).toLowerCase();
+
+    // Se a mensagem principal for genérica, tenta extrair a mensagem detalhada do objeto data
+    if ((friendlyMessage === 'Erro no Teste' || friendlyMessage === 'Erro interno no servidor proxy' || friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)') && data) {
+        const extractedDetail = data.detail || data.message || data.erros || data.error;
+        if (typeof extractedDetail === 'string' && extractedDetail.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(extractedDetail);
+                if (parsed?.erros && Array.isArray(parsed.erros) && parsed.erros.length > 0) {
+                    friendlyMessage = parsed.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
+                }
+            } catch (e) {}
+        } else if (typeof extractedDetail === 'string' && extractedDetail.trim() && !extractedDetail.includes('Erro interno no servidor proxy')) {
+            friendlyMessage = extractedDetail;
+        }
+        fullStr = (friendlyMessage + ' ' + JSON.stringify(data || {})).toLowerCase();
+    }
 
     if (fullStr.includes('e0014') || fullStr.includes('já existe em uma nfs-e') || fullStr.includes('conjunto de série')) {
         errorCode = 'E0014';
         friendlyTitle = '📍 Nota / DPS Já Emitida no Portal Nacional';
         friendlyMessage = 'Esta Nota Fiscal / DPS (Série 1, Número 1) já foi transmitida e AUTORIZADA com sucesso anteriormente no Portal Nacional da NFS-e.';
-        friendlyHint = '💡 Como testar um novo envio: No JSON do teste, altere a chave "nDPS": "1" para "nDPS": "2" (ou um número ainda não usado) e clique em "Emitir Via JSON Manual" novamente.';
+        friendlyHint = '💡 Como testar um novo envio: Clique no botão "Gerar Exemplo" no topo para preencher dados de uma nota inédita e clique em "Emitir Via JSON Manual" novamente.';
     } else if (fullStr.includes('e0160') || fullStr.includes('simples nacional')) {
         errorCode = 'E0160';
         friendlyTitle = '⚠️ Opção do Simples Nacional em Desacordo';
@@ -44,12 +60,18 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
         errorCode = 'E0718';
         friendlyTitle = '🔐 Incompatibilidade no Certificado Digital';
         friendlyMessage = 'O CNPJ do prestador informado na nota difere do CNPJ do titular do Certificado Digital .pfx enviado.';
-        friendlyHint = '💡 Solução: Certifique-se de que o CNPJ no JSON é idêntico ao CNPJ do arquivo .pfx de certificado A1.';
+        friendlyHint = '💡 Solução: Certifique-se de que o CNPJ no JSON é idêntico ao CNPJ do titular do arquivo .pfx de certificado A1.';
     } else if (fullStr.includes('e0120') || fullStr.includes('inscrição municipal')) {
         errorCode = 'E0120';
         friendlyTitle = '🏛️ Inscrição Municipal Incompatível';
         friendlyMessage = 'A Inscrição Municipal informada possui formato diferente do cadastrado na prefeitura.';
         friendlyHint = '💡 Solução: Mantenha o campo de Inscrição Municipal em branco ou preencha com o número oficial da prefeitura.';
+    } else if (fullStr.includes('erro interno no servidor proxy') || fullStr.includes('econnrefused')) {
+        friendlyTitle = '⚠️ Comunicação com o Servidor Proxy';
+        if (friendlyMessage === 'Erro interno no servidor proxy') {
+            friendlyMessage = 'O servidor proxy encontrou uma falha de conexão temporária ao tentar validar o Certificado Digital com o Portal Nacional.';
+        }
+        friendlyHint = '💡 Dica: Verifique se o Certificado Digital A1 (.pfx) e a Senha foram anexados corretamente nas configurações da Nota Fiscal Nacional.';
     }
 
     return { friendlyTitle, friendlyMessage, friendlyHint, errorCode };

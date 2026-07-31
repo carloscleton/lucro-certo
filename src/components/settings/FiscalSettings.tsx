@@ -1699,8 +1699,8 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'other' ? 'other' : 'tecnospeed');
-            const result = await fiscalService.checkStatus(id, currentEntity.id, token, targetProvider);
+            const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
+            const result = await fiscalService.checkStatus(id, currentEntity.id, token, targetProvider as any);
             const wrappedResult = wrapFiscalLinks(result, currentEntity.id, token);
             
             const rawStatus = (result.status || result.data?.status || result.flowStatus || '').toLowerCase();
@@ -1713,14 +1713,14 @@ export function FiscalSettings() {
             // Injeção manual de links se concluído via download de blobs
             if (isDone && id) {
                 try {
-                    const pdfBlob = await fiscalService.downloadPDF(id, noteType, currentEntity.id, token, targetProvider);
+                    const pdfBlob = await fiscalService.downloadPDF(id, noteType, currentEntity.id, token, targetProvider as any);
                     finalPdfUrl = window.URL.createObjectURL(pdfBlob);
                 } catch (pdfErr) {
                     console.error('[LabTest-Status] Erro ao buscar PDF:', pdfErr);
                 }
                 
                 try {
-                    const xmlBlob = await fiscalService.downloadXML(id, noteType, currentEntity.id, token, targetProvider);
+                    const xmlBlob = await fiscalService.downloadXML(id, noteType, currentEntity.id, token, targetProvider as any);
                     finalXmlUrl = window.URL.createObjectURL(xmlBlob);
                 } catch (xmlErr) {
                     console.error('[LabTest-Status] Erro ao buscar XML:', xmlErr);
@@ -1734,14 +1734,14 @@ export function FiscalSettings() {
                 wrappedResult.xml = { url: finalXmlUrl };
             }
 
-            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : 'TecnoSpeed';
+            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : (targetProvider === 'national' ? 'Portal Nacional (ADN gov.br)' : (targetProvider === 'other' ? 'Webhook Externo' : 'TecnoSpeed'));
 
             setResultModal({
                 isOpen: true,
                 title: isDone ? 'Processamento Concluído' : 'Ainda em Processamento',
                 message: isDone 
                     ? 'O status da nota foi atualizado.' 
-                    : `A nota ainda está sendo processada pela ${providerName}. Tente novamente em instantes.`,
+                    : `A nota ainda está sendo processada pelo ${providerName}. Tente novamente em instantes.`,
                 type: isDone ? 'success' : 'info',
                 data: wrappedResult,
                 action: !isDone ? {
@@ -1867,12 +1867,42 @@ export function FiscalSettings() {
             const isAlreadyEmitted = error.response?.status === 409;
             const conflictId = error.response?.data?.id || error.response?.data?.data?.id || error.response?.data?.detail?.id;
             
-            const rawMessage = 
-                (typeof error.response?.data?.error === 'string' ? error.response.data.error : undefined) ||
-                error.response?.data?.error?.message || 
-                error.response?.data?.message || 
-                error.response?.data?.detail || 
-                error.message;
+            const dataErr = error.response?.data;
+            let rawMessage = '';
+
+            if (dataErr) {
+                if (dataErr.detail && typeof dataErr.detail === 'string' && dataErr.detail.trim() && dataErr.detail !== 'undefined') {
+                    try {
+                        const parsedDetail = JSON.parse(dataErr.detail);
+                        if (parsedDetail?.erros && Array.isArray(parsedDetail.erros) && parsedDetail.erros.length > 0) {
+                            rawMessage = parsedDetail.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join('\n');
+                        } else if (parsedDetail?.mensagem || parsedDetail?.message) {
+                            rawMessage = parsedDetail.mensagem || parsedDetail.message;
+                        } else {
+                            rawMessage = dataErr.detail;
+                        }
+                    } catch (e) {
+                        rawMessage = dataErr.detail;
+                    }
+                } else if (dataErr.erros && Array.isArray(dataErr.erros) && dataErr.erros.length > 0) {
+                    rawMessage = dataErr.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join('\n');
+                } else if (dataErr.message && typeof dataErr.message === 'string' && dataErr.message !== 'Erro interno no servidor proxy' && dataErr.message !== 'Erro retornado pelo Portal Nacional (ADN gov.br)') {
+                    rawMessage = dataErr.message;
+                } else if (typeof dataErr.error === 'string' && dataErr.error !== 'Erro interno no servidor proxy' && dataErr.error !== 'Erro retornado pelo Portal Nacional (ADN gov.br)') {
+                    rawMessage = dataErr.error;
+                } else if (dataErr.error?.message) {
+                    rawMessage = dataErr.error.message;
+                } else if (dataErr.message) {
+                    rawMessage = String(dataErr.message);
+                } else if (dataErr.error) {
+                    rawMessage = typeof dataErr.error === 'object' ? JSON.stringify(dataErr.error) : String(dataErr.error);
+                }
+            }
+
+            if (!rawMessage) {
+                rawMessage = error.message || 'Erro ao processar o JSON ou na emissão.';
+            }
+
             const safeMessage = typeof rawMessage === 'object' ? JSON.stringify(rawMessage) : String(rawMessage || '');
             const isInactiveDocError = safeMessage.includes('Documento não está ativo para este emissor');
             
@@ -1880,7 +1910,7 @@ export function FiscalSettings() {
             const token = session.data.session?.access_token;
             
             const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
-            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : (targetProvider === 'national' ? 'Portal Nacional' : 'TecnoSpeed');
+            const providerName = targetProvider === 'nfeio' ? 'NFe.io' : (targetProvider === 'national' ? 'Portal Nacional (ADN gov.br)' : (targetProvider === 'other' ? 'Webhook Externo' : 'TecnoSpeed'));
 
             setResultModal({
                 isOpen: true,
