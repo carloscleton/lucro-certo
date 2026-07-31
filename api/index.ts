@@ -2114,6 +2114,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // opSimpNac é usado para decidir qual tag de totTrib usar
             const opSimpNac = optSNVal; // 1=Não Optante, 2=MEI, 3=ME/EPP
 
+            const regApTribSNVal = inf.prest?.regTrib?.regApTribSN !== undefined 
+                ? Number(inf.prest.regTrib.regApTribSN) 
+                : (nat.reg_ap_trib_sn !== undefined ? Number(nat.reg_ap_trib_sn) : 1);
+            const regApTribSNXml = (opSimpNac === 3 || inf.prest?.regTrib?.regApTribSN !== undefined) ? `<regApTribSN>${regApTribSNVal}</regApTribSN>` : '';
+
             const regEspTrib = inf.prest?.regTrib?.regEspTrib !== undefined
                 ? Number(inf.prest.regTrib.regEspTrib)
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
@@ -2211,7 +2216,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN>${pAliqXml}</tribMun>${tribFedXml}${totTribXml}</trib></valores>` : '';
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac><regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest><toma>${tomadorDocXml}<xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>${tomadorEndXml}${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}</toma><serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest><toma>${tomadorDocXml}<xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>${tomadorEndXml}${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}</toma><serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 

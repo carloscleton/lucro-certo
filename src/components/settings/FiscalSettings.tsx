@@ -214,6 +214,7 @@ export function FiscalSettings() {
         inscricao_municipal: '',
         simples_nacional: true,
         op_simp_nac: 2,
+        reg_ap_trib_sn: 1,
         reg_esp_trib: 0,
         trib_issqn: 1,
         tp_ret_issqn: 1,
@@ -428,6 +429,7 @@ export function FiscalSettings() {
             inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
             simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
             op_simp_nac: nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? 2 : 1),
+            reg_ap_trib_sn: nat.reg_ap_trib_sn !== undefined ? Number(nat.reg_ap_trib_sn) : 1,
             reg_esp_trib: nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0,
             trib_issqn: nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1,
             tp_ret_issqn: nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1,
@@ -1948,7 +1950,8 @@ export function FiscalSettings() {
                         ...(effectiveIm.trim() ? { IM: effectiveIm.trim().replace(/\D/g, '') } : {}),
                         email: (currentCompany as any)?.email || "contato@empresa.com.br",
                         regTrib: {
-                            opSimpNac: Number((nationalConfig as any).op_simp_nac || (nationalConfig.simples_nacional ? 2 : 1))
+                            opSimpNac: Number((nationalConfig as any).op_simp_nac || (nationalConfig.simples_nacional ? 2 : 1)),
+                            ...(Number((nationalConfig as any).op_simp_nac || 2) === 3 ? { regApTribSN: Number(nationalConfig.reg_ap_trib_sn || 1) } : {})
                         }
                     },
                     toma: {
@@ -4924,6 +4927,19 @@ export function FiscalSettings() {
                                     <option value="3">3 - Optante pelo Simples Nacional (ME / EPP)</option>
                                 </select>
                             </div>
+                            {Number(nationalConfig.op_simp_nac) === 3 && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Regime de Apuração dos Tributos do SN (Obrigatório para ME/EPP)</label>
+                                    <select
+                                        value={nationalConfig.reg_ap_trib_sn ?? 1}
+                                        onChange={(e) => setNationalConfig(prev => ({ ...prev, reg_ap_trib_sn: Number(e.target.value) }))}
+                                        className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                    >
+                                        <option value="1">1 - Regime de Competência (PGDAS-D)</option>
+                                        <option value="2">2 - Regime de Caixa</option>
+                                    </select>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Regime Especial de Tributação</label>
                                 <select
