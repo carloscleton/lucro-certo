@@ -2161,12 +2161,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         'http://www.w3.org/2001/10/xml-exc-c14n#',
                     ],
                     digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
+                    uri: `#${dpsId}`
                 });
 
                 // Provedor de informações do certificado (obrigatoriamente exigido pela receita/Sefin)
                 sig.keyInfoProvider = {
                     getKeyInfo(key, prefix) {
-                        const certClean = certificatePem
+                        // Extrair apenas o certificado folha (primeiro certificado do PEM)
+                        const leafCertPem = certificatePem.includes('-----END CERTIFICATE-----')
+                            ? certificatePem.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
+                            : certificatePem;
+                        const certClean = leafCertPem
                             .replace(/-----BEGIN CERTIFICATE-----/g, '')
                             .replace(/-----END CERTIFICATE-----/g, '')
                             .replace(/\s+/g, '');
