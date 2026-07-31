@@ -2167,6 +2167,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     privateKey: privateKeyPem,
                     signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
                     canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                    idAttribute: 'Id'
                 });
                 
                 sig.addReference({
