@@ -2014,6 +2014,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 opSimpNac = 2; // MEI
             }
 
+            const regEspTrib = inf.prest?.regTrib?.regEspTrib !== undefined
+                ? Number(inf.prest.regTrib.regEspTrib)
+                : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
+
             const prestIM = inf.prest?.IM ? `<IM>${inf.prest.IM}</IM>` : '';
             
             const tomadorDocXml = inf.toma?.CPF 
@@ -2068,9 +2072,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
             const tribMun = trib.tribMun || {};
-            const tribISSQN = tribMun.tribISSQN || 1;
+            const tribISSQN = tribMun.tribISSQN !== undefined
+                ? Number(tribMun.tribISSQN)
+                : (nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1);
             // tpRetISSQN: 1 = Não Retido, 2 = Retido
-            const tpRetISSQN = tribMun.tpRetISSQN || (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1);
+            const tpRetISSQN = tribMun.tpRetISSQN !== undefined
+                ? Number(tribMun.tpRetISSQN)
+                : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `
     <valores>
@@ -2102,7 +2110,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
       ${prestIM}
       <regTrib>
         <opSimpNac>${opSimpNac}</opSimpNac>
-        <regEspTrib>0</regEspTrib>
+        <regEspTrib>${regEspTrib}</regEspTrib>
       </regTrib>
     </prest>
     <toma>

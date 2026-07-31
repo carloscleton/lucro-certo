@@ -213,6 +213,9 @@ export function FiscalSettings() {
         cnpj: '',
         inscricao_municipal: '',
         simples_nacional: true,
+        reg_esp_trib: 0,
+        trib_issqn: 1,
+        tp_ret_issqn: 1,
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
@@ -4748,6 +4751,49 @@ export function FiscalSettings() {
                                 >
                                     <option value="true">Sim, Optante pelo Simples Nacional</option>
                                     <option value="false">Não, Regime Normal (Lucro Presumido / Real)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Regime Especial de Tributação</label>
+                                <select
+                                    value={nationalConfig.reg_esp_trib ?? 0}
+                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, reg_esp_trib: Number(e.target.value) }))}
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                >
+                                    <option value="0">0 - Sem Regime Especial</option>
+                                    <option value="1">1 - Microempresa municipal</option>
+                                    <option value="2">2 - Estimativa</option>
+                                    <option value="3">3 - Sociedade de profissionais</option>
+                                    <option value="4">4 - Cooperativa</option>
+                                    <option value="5">5 - Microempresário Individual (MEI)</option>
+                                    <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Exigibilidade do ISS (Padrão)</label>
+                                <select
+                                    value={nationalConfig.trib_issqn ?? 1}
+                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, trib_issqn: Number(e.target.value) }))}
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                >
+                                    <option value="1">1 - Exigível (Tributável)</option>
+                                    <option value="2">2 - Não incidência</option>
+                                    <option value="3">3 - Isenção</option>
+                                    <option value="4">4 - Exportação</option>
+                                    <option value="5">5 - Imunidade</option>
+                                    <option value="6">6 - Suspensa por Decisão Judicial</option>
+                                    <option value="7">7 - Suspensa por Processo Administrativo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Retenção de ISS (Padrão)</label>
+                                <select
+                                    value={nationalConfig.tp_ret_issqn ?? 1}
+                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, tp_ret_issqn: Number(e.target.value) }))}
+                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                >
+                                    <option value="1">1 - Não Retido</option>
+                                    <option value="2">2 - Retido pelo Tomador</option>
                                 </select>
                             </div>
                         </div>
