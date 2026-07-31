@@ -1823,7 +1823,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     throw new Error('Não foi possível extrair a chave privada ou certificado em formato PEM.');
                 }
                 
-                console.log(`✅ [ADN-NACIONAL] PFX descriptografado com sucesso. Private Key: ${privateKeyPem.substring(0, 40)}... | Certs size: ${certificatePem.length} bytes`);
+                let certSubjectCnpj = '';
+                try {
+                    const certObj = forge.pki.certificateFromPem(certificatePem);
+                    for (const attr of certObj.subject.attributes) {
+                        if (attr.value) {
+                            const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
+                            if (matches && matches[0] !== '00000000000000') {
+                                certSubjectCnpj = matches[0];
+                                break;
+                            }
+                        }
+                    }
+                } catch (certParseErr: any) {
+                    console.warn(`⚠️ [ADN-NACIONAL] Não foi possível extrair o CNPJ do assunto do certificado:`, certParseErr.message);
+                }
+                
+                console.log(`✅ [ADN-NACIONAL] PFX descriptografado com sucesso. Private Key: ${privateKeyPem.substring(0, 40)}... | Cert Subject CNPJ: ${certSubjectCnpj || 'Não extraído'} | Certs size: ${certificatePem.length} bytes`);
             } catch (pfxErr: any) {
                 console.error('❌ [ADN-NACIONAL-PFX-DECRYPT] Erro na descriptografia com node-forge:', pfxErr.message);
                 return res.status(400).json({
@@ -1986,11 +2002,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (firstItem?.tomador?.email) {
                     adnPayload.infDPS.toma.email = firstItem.tomador.email;
                 }
-
-                // Opção Simples Nacional
-                if (simplesNacional) {
-                    adnPayload.infDPS.optSN = simplesNacional;
-                }
             }
 
             console.log(`📤 [ADN-NACIONAL] Payload DPS (JSON):`, JSON.stringify(adnPayload, null, 2));
@@ -2000,8 +2011,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
-            const realNatCnpj = String(nat.cnpj || '').replace(/\D/g, '');
+            const realNatCnpj = String(nat.cnpj || certSubjectCnpj || '').replace(/\D/g, '');
             const prestCnpjClean = (rawPrestCnpj === '00893566000190' && realNatCnpj) ? realNatCnpj : (rawPrestCnpj || realNatCnpj);
+            if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
+            delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
+            
             const cLocEmi = String(nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);

@@ -1936,8 +1936,7 @@ export function FiscalSettings() {
                         vServPrest: {
                             vServ: 100.00
                         }
-                    },
-                    optSN: nationalConfig.simples_nacional ? 1 : 3
+                    }
                 }
             };
 
