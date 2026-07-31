@@ -2230,15 +2230,33 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const finalRequestPayload = { dpsXmlGZipB64 };
 
             try {
-                const adnResponse = await axios.post(
-                    `${sefinBaseUrl}/nfse`,
-                    finalRequestPayload,
-                    {
-                        httpsAgent,
-                        headers: { 'Content-Type': 'application/json' },
-                        timeout: 30000
+                let adnResponse;
+                try {
+                    adnResponse = await axios.post(
+                        `${sefinBaseUrl}/dps`,
+                        finalRequestPayload,
+                        {
+                            httpsAgent,
+                            headers: { 'Content-Type': 'application/json' },
+                            timeout: 30000
+                        }
+                    );
+                } catch (dpsErr: any) {
+                    if (dpsErr.response?.status === 404) {
+                        console.warn(`⚠️ [ADN-NACIONAL] /dps retornou 404, tentando endpoint de fallback /nfse...`);
+                        adnResponse = await axios.post(
+                            `${sefinBaseUrl}/nfse`,
+                            finalRequestPayload,
+                            {
+                                httpsAgent,
+                                headers: { 'Content-Type': 'application/json' },
+                                timeout: 30000
+                            }
+                        );
+                    } else {
+                        throw dpsErr;
                     }
-                );
+                }
 
                 const adnData = adnResponse.data;
                 const docId = adnData?.nNFSe || adnData?.chNFSe || adnData?.id || idIntegracao;
