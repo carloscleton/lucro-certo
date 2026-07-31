@@ -1993,11 +1993,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // 1. Gerar o XML correspondente à DPS
             const inf = adnPayload.infDPS || {};
             
-            // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições)
+            // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
             const prestCnpjClean = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
-            const rawId = inf.Id || inf.id || `${prestCnpjClean}${Date.now()}`;
-            const idDigits = rawId.replace(/\D/g, '').substring(0, 42).padEnd(42, '0');
-            const dpsId = `DPS${idDigits}`;
+            const cLocEmi = String(nat.codigo_municipio || '3106200').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
+            const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
+            const serie = '90001'; // Série DPS (5 dígitos)
+            const numero = String(Date.now()).substring(0, 15).padStart(15, '0'); // Número DPS (15 dígitos)
+            const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serie}${numero}`;
 
             const prestIM = inf.prest?.IM ? `<IM>${inf.prest.IM}</IM>` : '';
             
