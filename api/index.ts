@@ -2176,10 +2176,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     .replace(/-----END CERTIFICATE-----/g, '')
                     .replace(/\s+/g, '');
 
-                // 2. Assinar XML utilizando xml-crypto com mTLS e publicCert nativo
+                // 2. Assinar XML utilizando xml-crypto com mTLS e publicCert nativo em formato PEM
                 const sig = new SignedXml({
                     privateKey: privateKeyPem,
-                    publicCert: certClean,
+                    publicCert: leafCertPem,
                     signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
                     canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
                     idAttribute: 'Id'
