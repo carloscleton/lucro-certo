@@ -1304,7 +1304,7 @@ export function FiscalSettings() {
         setUploadingCert(true);
         const isNfeio = activeSubTab === 'nfeio';
         const isNational = activeSubTab === 'national';
-        const isExternal = !!config.use_external_webhook;
+        const isExternal = activeSubTab === 'tecnospeed' && !!config.use_external_webhook;
         const targetProviderName = isNfeio ? 'NFe.io' : (isNational ? 'Portal Nacional' : (isExternal ? 'Webhook Externo' : 'TecnoSpeed'));
 
         const targetWebhookUrl = activeSubTab === 'other' ? certWebhookUrl : config.external_webhook_url;

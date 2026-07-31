@@ -617,10 +617,21 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
     let form: any = null;
 
     try {
-        // Usar config enviada pelo frontend ou buscar no banco se não houver
-        const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
+        let bodyConfig: any = null;
+        if (req.body.config) {
+            if (typeof req.body.config === 'object') {
+                bodyConfig = req.body.config;
+            } else if (typeof req.body.config === 'string') {
+                try {
+                    bodyConfig = JSON.parse(req.body.config);
+                } catch (e) {
+                    bodyConfig = null;
+                }
+            }
+        }
+
         const { config: dbConfig, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
-        const reqProvider = provider || req.query?.provider || (req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config).provider : req.body.config.provider) : null);
+        const reqProvider = provider || req.query?.provider || bodyConfig?.provider || null;
         const activeProvider = reqProvider || settings?.fiscal_provider || 'tecnospeed';
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN gov.br) ---
