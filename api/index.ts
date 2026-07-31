@@ -684,7 +684,9 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
                     id: certId,
                     vencimento: certVencimento,
                     sujeito: certSujeito,
-                    status: 'ativo'
+                    status: 'ativo',
+                    certificado_pfx_base64: pfxBase64,
+                    certificado_senha: String(senha)
                 });
             } catch (natErr: any) {
                 console.error('❌ [NACIONAL-CERT] Erro ao processar/armazenar certificado:', natErr.message);
@@ -1762,22 +1764,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             console.log(`🏛️ [ADN-NACIONAL] certificado_senha presente: ${!!nat.certificado_senha} | ambiente: ${nat.ambiente || 'homologacao'}`);
             console.log(`🏛️ [ADN-NACIONAL] cnpj: ${nat.cnpj || '(não definido)'} | inscricao_municipal: ${nat.inscricao_municipal || '(não definido)'}`);
 
+            const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64 || settings?.nfeio_config?.certificado_pfx_base64;
+            const pfxPassword = nat.certificado_senha || settings?.certificado_senha || settings?.nfeio_config?.certificado_senha || '';
+
             // Validar certificado armazenado
-            if (!nat.certificado_pfx_base64) {
+            if (!pfxBase64) {
                 console.error(`❌ [ADN-NACIONAL] certificado_pfx_base64 NÃO encontrado em settings.national_config. Settings keys: ${Object.keys(settings || {}).join(', ')}`);
                 return res.status(400).json({ 
                     error: 'Certificado digital não encontrado para o Portal Nacional. Faça o upload do certificado PFX na aba "Portal Nacional" das Configurações Fiscais.',
                     debug: {
                         national_config_keys: Object.keys(nat),
                         settings_keys: Object.keys(settings || {}),
-                        has_certificado: !!nat.certificado_pfx_base64,
+                        has_certificado: false,
                         companyId,
                         resolvedId
                     }
                 });
             }
 
-            const pfxBuffer = Buffer.from(nat.certificado_pfx_base64, 'base64');
+            const pfxBuffer = Buffer.from(pfxBase64, 'base64');
             const pfxPassword = nat.certificado_senha || '';
             const adnAmbiente = nat.ambiente || 'homologacao';
             const tpAmb = adnAmbiente === 'producao' ? 1 : 2; // 1=Produção, 2=Homologação

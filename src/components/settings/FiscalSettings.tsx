@@ -1248,11 +1248,15 @@ export function FiscalSettings() {
         }
         setSavingNational(true);
         try {
+            const existingNatConfig = currentCompany?.settings?.national_config || {};
+            const natAny = nationalConfig as any;
             const updatedSettings = {
                 ...(currentCompany?.settings || {}),
                 national_config: {
-                    ...(currentCompany?.settings?.national_config || {}),
-                    ...nationalConfig
+                    ...existingNatConfig,
+                    ...nationalConfig,
+                    certificado_pfx_base64: natAny.certificado_pfx_base64 || existingNatConfig.certificado_pfx_base64,
+                    certificado_senha: natAny.certificado_senha || existingNatConfig.certificado_senha
                 }
             };
             await updateCompany(currentEntity.id, {
@@ -1389,12 +1393,15 @@ export function FiscalSettings() {
                 }));
             } else if (isNational) {
                 // Para Portal Nacional
+                const natAny = nationalConfig as any;
                 const updatedNatConfig = {
                     ...nationalConfig,
                     certificado_id: response.id,
                     certificado_vencimento: response.vencimento,
                     certificado_sujeito: response.sujeito,
-                    certificado_status: 'ativo'
+                    certificado_status: 'ativo',
+                    certificado_pfx_base64: response.certificado_pfx_base64 || natAny.certificado_pfx_base64,
+                    certificado_senha: certPassword || natAny.certificado_senha
                 };
                 setNationalConfig(updatedNatConfig);
 
