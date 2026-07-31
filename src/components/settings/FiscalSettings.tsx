@@ -2000,7 +2000,15 @@ export function FiscalSettings() {
                                 totTrib: {
                                     pTotTribSN: 0.00
                                 }
-                            })
+                            }),
+                            ...(nationalConfig.reforma_tributaria_calculadora_ativa ? {
+                                reformaTributaria: {
+                                    pCBS: parseFloat(nationalConfig.reforma_tributaria_cbs_aliquota || '0.90'),
+                                    pIBS: parseFloat(nationalConfig.reforma_tributaria_ibs_aliquota || '0.10'),
+                                    vCBS: parseFloat((100 * (parseFloat(nationalConfig.reforma_tributaria_cbs_aliquota || '0.90') / 100)).toFixed(2)),
+                                    vIBS: parseFloat((100 * (parseFloat(nationalConfig.reforma_tributaria_ibs_aliquota || '0.10') / 100)).toFixed(2))
+                                }
+                            } : {})
                         }
                     }
                 }
