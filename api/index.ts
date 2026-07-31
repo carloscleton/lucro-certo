@@ -9,6 +9,7 @@ import https from 'https';
 import forge from 'node-forge';
 import zlib from 'zlib';
 import { SignedXml } from 'xml-crypto';
+import { jsPDF } from 'jspdf';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -3716,6 +3717,163 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
     }
 });
 
+function generateServerDanfseBuffer(data: any): Buffer {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 15;
+
+    const primaryColor = [15, 23, 42];
+    const headerColor = [30, 41, 59];
+    const accentBg = [241, 245, 249];
+    const borderColor = [203, 213, 225];
+
+    // --- HEADER ---
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 24, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text('DANFSE - Documento Auxiliar da NFS-e Nacional', margin + 6, yPos + 10);
+    
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Nota Fiscal de Serviço Eletrônica | Ambiente: ${data.ambiente === 'producao' ? 'PRODUÇÃO' : 'HOMOLOGAÇÃO (TESTE)'}`, margin + 6, yPos + 17);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Nº ${data.nNfse || data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 11, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Série: ${data.serie || '1'} | DPS: ${data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 17, { align: 'right' });
+
+    yPos += 27;
+
+    // --- CHAVE DE ACESSO ---
+    doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'F');
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'S');
+
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100);
+    doc.text('CHAVE DE ACESSO DA NFS-E / DPS', margin + 4, yPos + 5);
+
+    doc.setFontSize(9);
+    doc.setFont('courier', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    const chaveFormatted = data.chaveAcesso || '240810220089356600019000001000000000000001';
+    doc.text(chaveFormatted.replace(/(.{4})/g, '$1 ').trim(), margin + 4, yPos + 11);
+
+    yPos += 18;
+
+    // --- PRESTADOR ---
+    doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text('EMITENTE / PRESTADOR DO SERVIÇO', margin + 4, yPos + 4.5);
+
+    yPos += 6;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(50);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Razão Social / Nome: ${data.prestador?.nome || 'PRESTADOR DE SERVIÇO'}`, margin + 4, yPos + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`CNPJ / CPF: ${data.prestador?.cnpj || ''}   |   Inscrição Municipal: ${data.prestador?.im || 'Isento / Não Inf.'}`, margin + 4, yPos + 12);
+
+    yPos += 22;
+
+    // --- TOMADOR ---
+    doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text('TOMADOR DO SERVIÇO', margin + 4, yPos + 4.5);
+
+    yPos += 6;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(50);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nome / Razão Social: ${data.tomador?.nome || 'TOMADOR DE SERVIÇO'}`, margin + 4, yPos + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`CNPJ / CPF: ${data.tomador?.doc || ''}   |   E-mail: ${data.tomador?.email || 'N/A'}`, margin + 4, yPos + 12);
+
+    yPos += 22;
+
+    // --- SERVIÇO ---
+    doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text('DISCRIMINAÇÃO DOS SERVIÇOS', margin + 4, yPos + 4.5);
+
+    yPos += 6;
+    const servDescHeight = 35;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'F');
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'S');
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(50);
+    doc.setFont('helvetica', 'normal');
+    const descLines = doc.splitTextToSize(data.servico?.descricao || 'Prestação de serviços', pageWidth - (margin * 2) - 8);
+    doc.text(descLines, margin + 4, yPos + 6);
+
+    if (data.servico?.cTribNac) {
+        doc.setFontSize(7.5);
+        doc.setTextColor(120);
+        doc.text(`Código Tributação Nacional: ${data.servico.cTribNac}`, margin + 4, yPos + servDescHeight - 4);
+    }
+
+    yPos += servDescHeight + 4;
+
+    // --- VALORES E TRIBUTOS ---
+    doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'F');
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'S');
+
+    const vServ = data.servico?.valor || 0;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('VALOR TOTAL DO SERVIÇO:', margin + 4, yPos + 8);
+    doc.setFontSize(11);
+    doc.text(`R$ ${vServ.toFixed(2)}`, margin + 50, yPos + 8);
+
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80);
+    doc.text(`ISSQN: R$ ${(data.impostos?.issqn || 0).toFixed(2)}  |  PIS: R$ ${(data.impostos?.pis || 0).toFixed(2)}  |  COFINS: R$ ${(data.impostos?.cofins || 0).toFixed(2)}`, margin + 4, yPos + 16);
+
+    yPos += 30;
+
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(`Documento Auxiliar emitido pelo Sistema Lucro Certo em ${new Date().toISOString()}.`, pageWidth / 2, yPos, { align: 'center' });
+
+    const arrayBuf = doc.output('arraybuffer');
+    return Buffer.from(arrayBuf);
+}
+
 app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/fiscal-module/:type/:id/xml', '/api/fiscal-module/:type/:id/xml'], authenticate, async (req, res) => {
     const { type, id } = req.params;
     const { companyId, token, provider } = req.query;
@@ -3878,31 +4036,79 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 ? 'https://sefin.nfse.gov.br/SefinNacional'
                 : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
-            // Resolve chNFSe: pode chegar como ID do banco ou como chave de acesso formatada
+            // Resolve chNFSe e busca registro da nota no banco
             let chNFSe = String(id).replace(/[\s.]/g, '');
+            let dbInvoiceRecord: any = null;
+
             if (SUPABASE_URL && chNFSe.length < 40) {
                 try {
                     const dbKeyDl = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                     const dbAuthDl = authHeader || `Bearer ${dbKeyDl}`;
                     const qpDl = !isNaN(Number(chNFSe)) ? { id: `eq.${chNFSe}` } : { external_id: `eq.${chNFSe}` };
                     const { data: invRowsDl } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                        params: { ...qpDl, select: 'access_key' },
+                        params: { ...qpDl, select: 'access_key,invoice_number,dps_number,dps_serie,amount,payload' },
                         headers: { 'apikey': dbKeyDl, 'Authorization': dbAuthDl }
                     });
-                    if (invRowsDl?.[0]?.access_key) {
-                        chNFSe = String(invRowsDl[0].access_key).replace(/[\s.]/g, '');
-                        console.log(`\u{1F511} [ADN-DOWNLOAD] chNFSe resolvido do banco: ${chNFSe}`);
+                    if (invRowsDl?.[0]) {
+                        dbInvoiceRecord = invRowsDl[0];
+                        if (invRowsDl[0].access_key) {
+                            chNFSe = String(invRowsDl[0].access_key).replace(/[\s.]/g, '');
+                            console.log(`🔑 [ADN-DOWNLOAD] chNFSe resolvido do banco: ${chNFSe}`);
+                        }
                     }
                 } catch (dlLookupErr: any) {
-                    console.warn(`\u26A0\uFE0F [ADN-DOWNLOAD] Nao foi possivel resolver chNFSe:`, dlLookupErr.message);
+                    console.warn(`⚠️ [ADN-DOWNLOAD] Nao foi possivel resolver chNFSe:`, dlLookupErr.message);
                 }
             }
 
-            console.log(`\u{1F4C4} [ADN-DOWNLOAD] Buscando ${isXml ? 'XML' : 'PDF'} da NFS-e Nacional. chNFSe: ${chNFSe} | Ambiente: ${adnAmbienteDl}`);
+            console.log(`📄 [ADN-DOWNLOAD] Buscando ${isXml ? 'XML' : 'PDF'} da NFS-e Nacional. chNFSe: ${chNFSe} | Ambiente: ${adnAmbienteDl}`);
 
-            // Sem certificado: redireciona para URL publica de consulta
+            const buildDanfsePdfBuffer = () => {
+                const invPayload = dbInvoiceRecord?.payload || {};
+                const inf = invPayload.infDPS || invPayload.payload?.infDPS || invPayload.retorno?.infDPS || {};
+                const prest = inf.prest || invPayload.prestador || {};
+                const toma = inf.toma || invPayload.tomador || {};
+                const serv = inf.serv || invPayload.servico || (Array.isArray(invPayload.servico) ? invPayload.servico[0] : {});
+                const val = inf.valores || invPayload.valores || {};
+
+                return generateServerDanfseBuffer({
+                    nNfse: dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || '1',
+                    serie: dbInvoiceRecord?.dps_serie || inf.serie || '1',
+                    nDPS: dbInvoiceRecord?.dps_number || inf.nDPS || '1',
+                    chaveAcesso: chNFSe,
+                    dhEmi: inf.dhEmi || new Date().toISOString(),
+                    prestador: {
+                        cnpj: prest.CNPJ || prest.cnpj || nat.cnpj || '',
+                        nome: prest.xNome || prest.nome || nat.razao_social || 'PRESTADOR DE SERVIÇO',
+                        im: prest.IM || prest.im || nat.inscricao_municipal || 'Isento'
+                    },
+                    tomador: {
+                        doc: toma.CNPJ || toma.CPF || toma.doc || '',
+                        nome: toma.xNome || toma.nome || 'TOMADOR DE SERVIÇO',
+                        email: toma.email || ''
+                    },
+                    servico: {
+                        cTribNac: serv.cServ?.cTribNac || serv.cTribNac || serv.codigo || '010701',
+                        descricao: serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || serv.discriminacao || 'Prestação de serviços',
+                        valor: Number(val.vServPrest?.vServ || val.vServ || dbInvoiceRecord?.amount || 0)
+                    },
+                    impostos: {
+                        issqn: Number(val.trib?.tribMun?.vISSQN || 0),
+                        pis: Number(val.trib?.tribFed?.vPIS || 0),
+                        cofins: Number(val.trib?.tribFed?.vCOFINS || 0)
+                    },
+                    ambiente: adnAmbienteDl
+                });
+            };
+
+            // Sem certificado e pediu PDF: gera o PDF da DANFSE diretamente no servidor
             if (!pfxBase64Dl) {
-                const pubUrl = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?chNFSe=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
+                if (!isXml) {
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                    return res.send(buildDanfsePdfBuffer());
+                }
+                const pubUrl = `https://www.nfse.gov.br/consultanfse/?chNfse=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
                 return res.redirect(302, pubUrl);
             }
 
@@ -3950,9 +4156,10 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                         return res.send(Buffer.from(pdfRespDl.data));
                     } catch (pdfDlErr: any) {
-                        console.warn(`\u26A0\uFE0F [ADN-DOWNLOAD] PDF direto indisponivel (${pdfDlErr.response?.status || pdfDlErr.code}). Redirecionando.`);
-                        const pubUrl2 = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?chNFSe=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
-                        return res.redirect(302, pubUrl2);
+                        console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF no servidor...`);
+                        res.setHeader('Content-Type', 'application/pdf');
+                        res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                        return res.send(buildDanfsePdfBuffer());
                     }
                 }
             } catch (adnDlErr: any) {
