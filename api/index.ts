@@ -2086,7 +2086,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const totTrib = trib.totTrib || {};
             let totTribXml = '';
             if (opSimpNac === 2 || opSimpNac === 3) {
-                const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(4) : '0.0000';
+                const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(2) : '0.00';
                 totTribXml = `<totTrib><pTotTribSN>${pTotTribSN}</pTotTribSN></totTrib>`;
             } else {
                 const indTotTrib = totTrib.indTotTrib !== undefined ? Number(totTrib.indTotTrib) : 0;
