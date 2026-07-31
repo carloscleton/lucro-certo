@@ -631,6 +631,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         }
 
         const { config: dbConfig, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
+        const config = bodyConfig || dbConfig || {};
         const reqProvider = provider || req.query?.provider || bodyConfig?.provider || null;
         const activeProvider = reqProvider || settings?.fiscal_provider || 'tecnospeed';
 
