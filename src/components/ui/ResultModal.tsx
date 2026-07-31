@@ -503,6 +503,27 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar XML Assinado
                                         </Button>
                                     )}
+                                    {(() => {
+                                        const chave = data?.chNFSe || data?.chaveAcesso || data?.access_key;
+                                        const tpAmb = data?.tipoAmbiente || data?.tpAmb;
+                                        if (!chave) return null;
+                                        const chaveLimpa = String(chave).replace(/[\s.]/g, '');
+                                        const isHomolog = tpAmb === 2 || tpAmb === '2';
+                                        const portalUrl = isHomolog
+                                            ? `https://sefin.producaorestrita.nfse.gov.br/SefinNacional/nfse/contribuinte/consulta.html?chNFSe=${chaveLimpa}`
+                                            : `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?chNFSe=${chaveLimpa}`;
+                                        return (
+                                            <a
+                                                href={portalUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full h-12 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-colors"
+                                            >
+                                                <ExternalLink size={18} />
+                                                Ver Nota no Portal Nacional (gov.br)
+                                            </a>
+                                        );
+                                    })()}
                                 </div>
 
                                 {action && (
