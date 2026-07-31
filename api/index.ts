@@ -2121,7 +2121,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     <dCompet>${inf.dCompet || dCompet}</dCompet>
     <tpEmit>1</tpEmit>
     <cLocEmi>${cLocEmi}</cLocEmi>
-    <optSN>${optSNVal}</optSN>
     <prest>
       <CNPJ>${prestCnpjClean}</CNPJ>
       ${prestIM}
@@ -2141,6 +2140,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
       ${servItemXml}
     </serv>
     ${valoresXml}
+    <optSN>${optSNVal}</optSN>
   </infDPS>
 </DPS>`.trim();
 
