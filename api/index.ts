@@ -1851,7 +1851,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101';
             const inscricaoMunicipal = firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '';
             const descricao = servItem.discriminacao || servItem.descricao || 'Prestação de serviços';
-            const simplesNacional = nat.simples_nacional ? 1 : 0; // 1=SN, 0=Não optante
+            // optSN no XSD: 1=Não Optante, 2=MEI, 3=ME/EPP (Simples Nacional)
+            // nat.simples_nacional (bool) + nat.reg_esp_trib (number)
+            // Se não optante => 1; se simples e MEI => 2; se simples normal => 3
+            const simplesNacional = nat.simples_nacional
+                ? (nat.reg_esp_trib === 6 ? 2 : 3) // 6=MEI no regEspTrib => MEI
+                : 1; // Não optante
             const idIntegracao = firstItem?.idIntegracao || `DPS${prestadorCnpj}${Date.now()}`.substring(0, 42).padEnd(42, '0');
             // O cTribNac no padrão nacional deve ter exatamente 6 dígitos numéricos.
             // Se vier 9 dígitos (como '010101001'), extrai os primeiros 6 dígitos.
@@ -2007,12 +2012,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serieId}${numero}`;
 
             const optSNVal = Number(inf.optSN || simplesNacional || 1);
-            let opSimpNac = 3; // Default Optante ME/EPP
-            if (optSNVal === 3) {
-                opSimpNac = 1; // Não Optante
-            } else if (optSNVal === 2) {
-                opSimpNac = 2; // MEI
-            }
+            // optSN / opSimpNac no XSD: 1=Não Optante, 2=MEI, 3=ME/EPP
+            // opSimpNac é usado para decidir qual tag de totTrib usar
+            const opSimpNac = optSNVal; // 1=Não Optante, 2=MEI, 3=ME/EPP
 
             const regEspTrib = inf.prest?.regTrib?.regEspTrib !== undefined
                 ? Number(inf.prest.regTrib.regEspTrib)
@@ -2119,6 +2121,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     <dCompet>${inf.dCompet || dCompet}</dCompet>
     <tpEmit>1</tpEmit>
     <cLocEmi>${cLocEmi}</cLocEmi>
+    <optSN>${optSNVal}</optSN>
     <prest>
       <CNPJ>${prestCnpjClean}</CNPJ>
       ${prestIM}
@@ -2138,7 +2141,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
       ${servItemXml}
     </serv>
     ${valoresXml}
-    <optSN>${inf.optSN || simplesNacional || 1}</optSN>
   </infDPS>
 </DPS>`.trim();
 
