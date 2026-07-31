@@ -1846,6 +1846,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
+            const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101';
             // O cTribNac no padrão nacional deve ter exatamente 6 dígitos numéricos.
             // Se vier 9 dígitos (como '010101001'), extrai os primeiros 6 dígitos.
             const codigoTribNac6 = codigoTribNac.replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
