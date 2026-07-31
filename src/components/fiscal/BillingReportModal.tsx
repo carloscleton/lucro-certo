@@ -122,16 +122,21 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         return new Date().toISOString().split('T')[0];
     };
 
-    // Helper para extrair o valor correto da nota fiscal (independente de NFe.io, TecnoSpeed, etc.)
-    const getInvoiceAmount = (p: any): number => {
+    const getInvoiceAmount = (p: any, invoiceAmount?: number): number => {
+        if (invoiceAmount) return Number(invoiceAmount);
         if (!p) return 0;
         const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
         const val = p.servicesAmount || 
                     p.retorno?.servicesAmount || 
                     p.retorno?.valorTotal || 
+                    p.infDPS?.valores?.vServPrest?.vServ ||
+                    p.valores?.vServPrest?.vServ ||
+                    p.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                    p.retorno?.valores?.vServPrest?.vServ ||
                     servicos[0]?.valor?.servico || 
                     p.valorTotal || 
                     p.valorTotalBruto || 
+                    p.vServ ||
                     0;
         return Number(val);
     };
@@ -162,7 +167,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         );
 
         authorizedInvoices.forEach(i => {
-            const amount = getInvoiceAmount(i.payload);
+            const amount = getInvoiceAmount(i.payload, i.amount);
             totalFaturado += amount;
 
             const p = i.payload || {};
@@ -328,17 +333,17 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         // Valores das ativas/autorizadas
         authorizedAmount: filteredInvoices
             .filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
         // Valores das canceladas
         cancelledAmount: filteredInvoices
             .filter(i => i.status?.toLowerCase() === 'cancelado')
-            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
         // Valores das em processamento
         processingAmount: filteredInvoices
             .filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0),
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
         // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
         billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
@@ -346,7 +351,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         // Soma dos valores das notas cobráveis
         billableAmount: filteredInvoices
             .filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase()))
-            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload), 0)
+            .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0)
     };
 
     // Exportação em formato CSV com suporte UTF-8 BOM
@@ -379,7 +384,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                p?.retorno?.borrower?.name || 
                                'Cliente';
                                
-            const val = getInvoiceAmount(p);
+            const val = getInvoiceAmount(p, inv.amount);
             
             const emissor = inv.created_by_profile?.full_name || inv.created_by_profile?.email || 'N/A';
             const status = inv.status;

@@ -12,15 +12,21 @@ export function FiscalSummaryWidget({ invoices, fiscalSettings, fiscalEnabled }:
         return null;
     }
 
-    const getInvoiceAmount = (p: any): number => {
+    const getInvoiceAmount = (p: any, invoiceAmount?: number): number => {
+        if (invoiceAmount) return Number(invoiceAmount);
         if (!p) return 0;
         const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
         const val = p.servicesAmount || 
                     p.retorno?.servicesAmount || 
                     p.retorno?.valorTotal || 
+                    p.infDPS?.valores?.vServPrest?.vServ ||
+                    p.valores?.vServPrest?.vServ ||
+                    p.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                    p.retorno?.valores?.vServPrest?.vServ ||
                     servicos[0]?.valor?.servico || 
                     p.valorTotal || 
                     p.valorTotalBruto || 
+                    p.vServ ||
                     0;
         return Number(val);
     };
@@ -44,7 +50,7 @@ export function FiscalSummaryWidget({ invoices, fiscalSettings, fiscalEnabled }:
         );
 
         authorizedInvoices.forEach(i => {
-            const amount = getInvoiceAmount(i.payload);
+            const amount = getInvoiceAmount(i.payload, i.amount);
             totalFaturado += amount;
 
             const p = i.payload || {};

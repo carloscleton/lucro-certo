@@ -2317,13 +2317,21 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 // Salvar no banco fiscal_invoices
                 if (SUPABASE_URL) {
-                    try {
+                        const vServ = Number(adnPayload?.infDPS?.valores?.vServPrest?.vServ || adnPayload?.valores?.vServPrest?.vServ || 0);
+                        const nDPS = adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
+                        const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
+
                         await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                             company_id: resolvedId,
                             quote_id: quoteId || null,
                             external_id: String(docId),
                             type: 'national',
                             status: 'concluido',
+                            amount: vServ,
+                            invoice_number: nDPS,
+                            access_key: chaveAcesso || null,
+                            dps_number: nDPS,
+                            dps_serie: sDPS,
                             payload: { ...adnPayload, retorno: adnData },
                             created_at: new Date().toISOString()
                         }, {

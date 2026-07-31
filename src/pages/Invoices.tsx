@@ -1377,13 +1377,19 @@ ${messageWithPlaceholder}`;
                                                         const servico = servicos[0];
                                                         
                                                         // Tenta várias fontes de valor
-                                                        const val = p?.servicesAmount || 
-                                                                   p?.retorno?.servicesAmount || 
-                                                                   p?.retorno?.valorTotal || 
-                                                                   servico?.valor?.servico || 
-                                                                   p?.valorTotal || 
-                                                                   p?.valorTotalBruto || 
-                                                                   0;
+                                                        const val = invoice.amount || 
+                                                                    p?.servicesAmount || 
+                                                                    p?.retorno?.servicesAmount || 
+                                                                    p?.retorno?.valorTotal || 
+                                                                    p?.infDPS?.valores?.vServPrest?.vServ ||
+                                                                    p?.valores?.vServPrest?.vServ ||
+                                                                    p?.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                                                                    p?.retorno?.valores?.vServPrest?.vServ ||
+                                                                    servico?.valor?.servico || 
+                                                                    p?.valorTotal || 
+                                                                    p?.valorTotalBruto || 
+                                                                    p?.vServ ||
+                                                                    0;
                                                         
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
                                                     })()}
@@ -1815,14 +1821,19 @@ ${messageWithPlaceholder}`;
                     transaction={(() => {
                         const inv = cancelModal.invoice;
                         const p = inv.payload;
-                        const servicos = p ? (Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : [])) : [];
-                        const val = p?.servicesAmount || 
-                                                                    p?.retorno?.servicesAmount || 
-                                                                    p?.retorno?.valorTotal || 
-                                                                    servicos[0]?.valor?.servico || 
-                                                                    p?.valorTotal || 
-                                                                    p?.valorTotalBruto || 
-                                                                    0;
+                        const val = inv.amount ||
+                                    p?.servicesAmount || 
+                                    p?.retorno?.servicesAmount || 
+                                    p?.retorno?.valorTotal || 
+                                    p?.infDPS?.valores?.vServPrest?.vServ ||
+                                    p?.valores?.vServPrest?.vServ ||
+                                    p?.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                                    p?.retorno?.valores?.vServPrest?.vServ ||
+                                    p?.servico?.[0]?.valor?.servico || 
+                                    p?.valorTotal || 
+                                    p?.valorTotalBruto || 
+                                    p?.vServ ||
+                                    0;
                         return {
                             description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
                             amount: val,

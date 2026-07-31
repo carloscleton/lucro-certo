@@ -143,13 +143,17 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         ? `${addr.logradouro}, ${addr.numero || 'S/N'}${addr.complemento ? ' - ' + addr.complemento : ''} - ${addr.bairro || ''}, ${addr.descricaoCidade || addr.cidade || ''}/${addr.estado || addr.uf || ''} (CEP: ${addr.cep || ''})`
         : '';
 
-    // Extrair valores
     const totalAmount = invoice.amount || 
                         payload.servicesAmount || 
                         payload.retorno?.servicesAmount || 
                         payload.retorno?.valorTotal || 
+                        payload.infDPS?.valores?.vServPrest?.vServ ||
+                        payload.valores?.vServPrest?.vServ ||
+                        payload.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                        payload.retorno?.valores?.vServPrest?.vServ ||
                         payload.servico?.[0]?.valor?.servico || 
                         payload.itens?.[0]?.valorUnitario?.comercial || 
+                        payload.vServ ||
                         0;
 
     const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount);
