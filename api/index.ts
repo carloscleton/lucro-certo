@@ -1995,7 +1995,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
             const prestCnpjClean = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
-            const cLocEmi = String(nat.codigo_municipio || '3106200').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            const cLocEmi = String(nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
@@ -2005,6 +2005,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const numDpsInt = String(Date.now()).substring(0, 15);
             const numero = numDpsInt.padStart(15, '0'); // Número DPS (15 dígitos)
             const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serieId}${numero}`;
+
+            const optSNVal = Number(inf.optSN || simplesNacional || 1);
+            let opSimpNac = 3; // Default Optante ME/EPP
+            if (optSNVal === 3) {
+                opSimpNac = 1; // Não Optante
+            } else if (optSNVal === 2) {
+                opSimpNac = 2; // MEI
+            }
 
             const prestIM = inf.prest?.IM ? `<IM>${inf.prest.IM}</IM>` : '';
             
@@ -2079,6 +2087,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     <prest>
       <CNPJ>${prestCnpjClean}</CNPJ>
       ${prestIM}
+      <regTrib>
+        <opSimpNac>${opSimpNac}</opSimpNac>
+        <regEspTrib>0</regEspTrib>
+      </regTrib>
     </prest>
     <toma>
       ${tomadorDocXml}

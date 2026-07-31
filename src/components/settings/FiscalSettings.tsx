@@ -1903,28 +1903,27 @@ export function FiscalSettings() {
                         ...(effectiveIm ? { IM: effectiveIm.replace(/\D/g, '') } : {})
                     },
                     toma: {
-                        CNPJ: "00000000000191", // Tomador de teste padrão válido
+                        CNPJ: "11222333000181",
                         xNome: "Empresa de Teste LTDA",
                         end: {
                             endNac: {
-                                cMun: "3106200",
-                                CEP: "31000000"
+                                cMun: "2408102",
+                                CEP: "59010000"
                             },
-                            xLgr: "Barao do rio branco",
+                            xLgr: "Rua Barão do Rio Branco",
                             nro: "1001",
-                            xCpl: "sala 01",
-                            xBairro: "Centro"
+                            xCpl: "Sala 01",
+                            xBairro: "Cidade Alta"
                         },
                         email: "teste@nfe.io"
                     },
                     serv: {
                         locPrest: {
-                            cLocPrestacao: "3106200"
+                            cLocPrestacao: "2408102"
                         },
                         cServ: {
-                            cTribNac: "010101",
-                            cTribMun: "010101",
-                            xDescServ: "Descrição dos serviços prestados via Laboratório JSON"
+                            cTribNac: "010701",
+                            xDescServ: "Descrição dos serviços prestados"
                         }
                     },
                     valores: {
