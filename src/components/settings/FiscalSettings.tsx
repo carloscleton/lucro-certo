@@ -220,8 +220,10 @@ export function FiscalSettings() {
         default_cTribNac: '010101',
         default_xDescServ: 'Análise e desenvolvimento de sistemas',
         default_iss_aliquota: '2.00',
-        default_pis_aliquota: '0.00',
-        default_cofins_aliquota: '0.00',
+        default_pis_aliquota: '0.65',
+        default_cofins_aliquota: '3.00',
+        default_csll_aliquota: '1.00',
+        default_irrf_aliquota: '1.50',
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
@@ -429,8 +431,10 @@ export function FiscalSettings() {
             default_cTribNac: nat.default_cTribNac || '010101',
             default_xDescServ: nat.default_xDescServ || 'Análise e desenvolvimento de sistemas',
             default_iss_aliquota: nat.default_iss_aliquota || '2.00',
-            default_pis_aliquota: nat.default_pis_aliquota || '0.00',
-            default_cofins_aliquota: nat.default_cofins_aliquota || '0.00',
+            default_pis_aliquota: nat.default_pis_aliquota || '0.65',
+            default_cofins_aliquota: nat.default_cofins_aliquota || '3.00',
+            default_csll_aliquota: nat.default_csll_aliquota || '1.00',
+            default_irrf_aliquota: nat.default_irrf_aliquota || '1.50',
             certificado_id: nat.certificado_id || '',
             certificado_vencimento: nat.certificado_vencimento || '',
             certificado_sujeito: nat.certificado_sujeito || '',
@@ -4962,7 +4966,7 @@ export function FiscalSettings() {
                                                             label="Alíquota PIS (%)"
                                                             type="number"
                                                             step="0.01"
-                                                            value={nationalConfig.default_pis_aliquota || '0.00'}
+                                                            value={nationalConfig.default_pis_aliquota || '0.65'}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_pis_aliquota: e.target.value }))}
                                                             placeholder="Ex: 0.65"
                                                         />
@@ -4972,9 +4976,29 @@ export function FiscalSettings() {
                                                             label="Alíquota COFINS (%)"
                                                             type="number"
                                                             step="0.01"
-                                                            value={nationalConfig.default_cofins_aliquota || '0.00'}
+                                                            value={nationalConfig.default_cofins_aliquota || '3.00'}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cofins_aliquota: e.target.value }))}
                                                             placeholder="Ex: 3.00"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Input
+                                                            label="Alíquota CSLL (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={nationalConfig.default_csll_aliquota || '1.00'}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_csll_aliquota: e.target.value }))}
+                                                            placeholder="Ex: 1.00"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Input
+                                                            label="Alíquota IRRF / Imposto de Renda (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={nationalConfig.default_irrf_aliquota || '1.50'}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_irrf_aliquota: e.target.value }))}
+                                                            placeholder="Ex: 1.50"
                                                         />
                                                     </div>
                                                 </>
