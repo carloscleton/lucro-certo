@@ -23,23 +23,55 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
     let friendlyHint: string | null = null;
     let errorCode: string | null = null;
 
-    let fullStr = (message + ' ' + JSON.stringify(data || {})).toLowerCase();
+    // Detecta mensagens genéricas do Axios/Express
+    const isGenericMsg = 
+        !friendlyMessage ||
+        friendlyMessage === 'Erro no Teste' || 
+        friendlyMessage === 'Erro interno no servidor proxy' || 
+        friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)' ||
+        friendlyMessage.includes('Request failed with status code') ||
+        friendlyMessage.includes('status code 400') ||
+        friendlyMessage.includes('status code 500');
 
-    // Se a mensagem principal for genérica, tenta extrair a mensagem detalhada do objeto data
-    if ((friendlyMessage === 'Erro no Teste' || friendlyMessage === 'Erro interno no servidor proxy' || friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)') && data) {
-        const extractedDetail = data.detail || data.message || data.erros || data.error;
-        if (typeof extractedDetail === 'string' && extractedDetail.startsWith('{')) {
+    if (data) {
+        let realMessage = '';
+
+        // Tenta extrair de data.detail (pode ser JSON serializado da prefeitura)
+        if (data.detail && typeof data.detail === 'string') {
             try {
-                const parsed = JSON.parse(extractedDetail);
+                const parsed = JSON.parse(data.detail);
                 if (parsed?.erros && Array.isArray(parsed.erros) && parsed.erros.length > 0) {
-                    friendlyMessage = parsed.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
+                    realMessage = parsed.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
+                } else if (parsed?.mensagem || parsed?.message) {
+                    realMessage = parsed.mensagem || parsed.message;
                 }
-            } catch (e) {}
-        } else if (typeof extractedDetail === 'string' && extractedDetail.trim() && !extractedDetail.includes('Erro interno no servidor proxy')) {
-            friendlyMessage = extractedDetail;
+            } catch (e) {
+                if (!data.detail.includes('Erro interno no servidor proxy')) {
+                    realMessage = data.detail;
+                }
+            }
         }
-        fullStr = (friendlyMessage + ' ' + JSON.stringify(data || {})).toLowerCase();
+
+        if (!realMessage && data.erros && Array.isArray(data.erros) && data.erros.length > 0) {
+            realMessage = data.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
+        }
+
+        if (!realMessage && data.error && typeof data.error === 'string' && !data.error.includes('Erro interno no servidor proxy')) {
+            realMessage = data.error;
+        }
+
+        if (!realMessage && data.message && typeof data.message === 'string' && !data.message.includes('Request failed with status code')) {
+            realMessage = data.message;
+        }
+
+        if (realMessage) {
+            if (isGenericMsg) {
+                friendlyMessage = realMessage;
+            }
+        }
     }
+
+    const fullStr = (friendlyMessage + ' ' + JSON.stringify(data || {})).toLowerCase();
 
     if (fullStr.includes('e0014') || fullStr.includes('já existe em uma nfs-e') || fullStr.includes('conjunto de série')) {
         errorCode = 'E0014';
@@ -66,12 +98,16 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
         friendlyTitle = '🏛️ Inscrição Municipal Incompatível';
         friendlyMessage = 'A Inscrição Municipal informada possui formato diferente do cadastrado na prefeitura.';
         friendlyHint = '💡 Solução: Mantenha o campo de Inscrição Municipal em branco ou preencha com o número oficial da prefeitura.';
-    } else if (fullStr.includes('erro interno no servidor proxy') || fullStr.includes('econnrefused')) {
-        friendlyTitle = '⚠️ Comunicação com o Servidor Proxy';
-        if (friendlyMessage === 'Erro interno no servidor proxy') {
-            friendlyMessage = 'O servidor proxy encontrou uma falha de conexão temporária ao tentar validar o Certificado Digital com o Portal Nacional.';
+    } else if (fullStr.includes('certificado digital não encontrado')) {
+        friendlyTitle = '📜 Certificado Digital A1 Não Anexado';
+        friendlyMessage = 'Não encontramos o arquivo do Certificado Digital (.pfx) para o Portal Nacional da NFS-e.';
+        friendlyHint = '💡 Solução: Na aba "Portal Nacional (ADN gov.br)", faça o upload do seu arquivo de certificado .pfx, digite a senha e clique em "Salvar Configurações".';
+    } else if (fullStr.includes('erro interno no servidor proxy') || fullStr.includes('econnrefused') || isGenericMsg) {
+        friendlyTitle = '⚠️ Falha na Comunicação com o Servidor Fiscal';
+        if (friendlyMessage.includes('Request failed with status code') || friendlyMessage === 'Erro interno no servidor proxy') {
+            friendlyMessage = 'O servidor fiscal não conseguiu processar a requisição ou conectar ao Portal Nacional da NFS-e.';
         }
-        friendlyHint = '💡 Dica: Verifique se o Certificado Digital A1 (.pfx) e a Senha foram anexados corretamente nas configurações da Nota Fiscal Nacional.';
+        friendlyHint = '💡 Dica: Verifique se o Certificado Digital A1 (.pfx) e a Senha foram informados e salvos corretamente nas configurações da empresa.';
     }
 
     return { friendlyTitle, friendlyMessage, friendlyHint, errorCode };
