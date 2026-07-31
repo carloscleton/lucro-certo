@@ -1893,7 +1893,7 @@ export function FiscalSettings() {
         const isNational = activeSubTab === 'national';
 
         if (isNational) {
-            const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "41540344000170";
+            const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "00893566000190";
             const effectiveIm = nationalConfig.inscricao_municipal || '';
             const effectiveMun = (nationalConfig as any).codigo_municipio || "2408102";
             const now = new Date();

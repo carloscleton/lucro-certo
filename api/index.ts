@@ -2063,11 +2063,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const inf = adnPayload.infDPS || {};
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
+            // SefinNacional E0718: O CNPJ do prestador na DPS DEVE coincidir exatamente com o CNPJ do Certificado Digital de assinatura
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
-            const certExtractedCnpj = certSubjectCnpj || (nat.cnpj && nat.cnpj !== '00893566000190' ? nat.cnpj : '');
-            const prestCnpjClean = (rawPrestCnpj === '00893566000190' || !rawPrestCnpj) 
-                ? (certExtractedCnpj || '00893566000190') 
-                : (rawPrestCnpj || certExtractedCnpj);
+            const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
+            const prestCnpjClean = certSubjectCnpj || configuredCnpj || (rawPrestCnpj !== '41540344000170' ? rawPrestCnpj : '') || '00893566000190';
 
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
