@@ -1802,7 +1802,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             const pfxBuffer = Buffer.from(pfxBase64, 'base64');
-            const pfxPassword = nat.certificado_senha || '';
             const adnAmbiente = nat.ambiente || 'homologacao';
             const tpAmb = adnAmbiente === 'producao' ? 1 : 2; // 1=Produção, 2=Homologação
             const sefinBaseUrl = adnAmbiente === 'producao'
