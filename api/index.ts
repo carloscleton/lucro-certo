@@ -2140,7 +2140,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
       ${servItemXml}
     </serv>
     ${valoresXml}
-    <optSN>${optSNVal}</optSN>
   </infDPS>
 </DPS>`.trim();
 
