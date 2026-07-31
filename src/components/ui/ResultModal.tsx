@@ -198,6 +198,14 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             setXmlContent(null);
             setShowTechDetails(false);
             setGeneratedPdfUrl(null);
+
+            // Se for nota autorizada/emitida ou com dados de DPS/chave, gera e abre o PDF no modal automaticamente
+            const hasNoteData = data.nNFSe || data.chNFSe || data.idDPS || data.chaveAcesso || data.payload_enviado || data.infDPS || data.payload;
+            if (hasNoteData) {
+                setTimeout(() => {
+                    handleOpenDanfsePdf();
+                }, 50);
+            }
         }
     }, [isOpen, data]);
     
@@ -307,7 +315,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30'
     };
 
-    const hasXmlOrPdf = !!(activePdfUrl || data?.pdf || data?.pdf_url || data?.xml_assinado || data?.payload || data?.infDPS || xmlUrl);
+    const hasXmlOrPdf = !!(activePdfUrl || data?.pdf || data?.pdf_url || data?.xml_assinado || data?.payload || data?.infDPS || xmlUrl || data?.payload_enviado || data?.chNFSe || data?.idDPS || data?.detail);
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -507,47 +515,6 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar XML Assinado
                                         </Button>
                                     )}
-                                    {(() => {
-                                        let chave = data?.chNFSe || data?.chaveAcesso || data?.access_key || data?.idDPS;
-                                        if (!chave && data?.detail) {
-                                            try {
-                                                const parsedDetail = typeof data.detail === 'string' ? JSON.parse(data.detail) : data.detail;
-                                                chave = parsedDetail?.chNFSe || parsedDetail?.idDPS || parsedDetail?.chaveAcesso;
-                                            } catch (e) {}
-                                        }
-                                        if (!chave && data?.payload_enviado?.infDPS) {
-                                            const inf = data.payload_enviado.infDPS;
-                                            const cLocEmi = String(inf.cLocEmi || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
-                                            const prestCnpj = String(inf.prest?.CNPJ || '').replace(/\D/g, '');
-                                            if (prestCnpj) {
-                                                const tpInsc = prestCnpj.length === 11 ? '1' : '2';
-                                                const insc = prestCnpj.padStart(14, '0').substring(0, 14);
-                                                const serie = String(inf.serie || '1').padStart(5, '0').substring(0, 5);
-                                                const nDPS = String(inf.nDPS || '1').padStart(15, '0').substring(0, 15);
-                                                chave = `DPS${cLocEmi}${tpInsc}${insc}${serie}${nDPS}`;
-                                            }
-                                        }
-
-                                        if (!chave) return null;
-                                        const chaveLimpa = String(chave).replace(/[\s.]/g, '');
-                                        const tpAmb = data?.tipoAmbiente || data?.tpAmb || data?.payload_enviado?.infDPS?.tpAmb;
-                                        const isHomolog = tpAmb === 2 || tpAmb === '2';
-                                        const isDPS = chaveLimpa.startsWith('DPS');
-                                        const paramName = isDPS ? 'idDps' : 'chNfse';
-                                        const ambParam = isHomolog ? '&tpAmb=2' : '';
-                                        const portalUrl = `https://www.nfse.gov.br/consultanfse/?${paramName}=${chaveLimpa}${ambParam}`;
-                                        return (
-                                            <a
-                                                href={portalUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="w-full h-12 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-colors mt-2"
-                                            >
-                                                <ExternalLink size={18} />
-                                                Ver Nota no Portal Nacional (gov.br)
-                                            </a>
-                                        );
-                                    })()}
                                 </div>
 
                                 {action && (
