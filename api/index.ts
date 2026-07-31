@@ -6,6 +6,7 @@ import multer from 'multer';
 import FormData from 'form-data';
 import nodemailer from 'nodemailer';
 import https from 'https';
+import forge from 'node-forge';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1784,10 +1785,56 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             console.log(`🏛️ [ADN-NACIONAL] Emitindo NFS-e via ADN gov.br | Ambiente: ${adnAmbiente} (tpAmb=${tpAmb}) | URL: ${adnBaseUrl} | PFX size: ${pfxBuffer.length} bytes`);
 
-            // Criar agente HTTPS com mTLS (certificado da empresa)
+            // 🔐 Descriptografar e extrair o certificado e chave privada em formato PEM usando node-forge
+            // Isso evita o erro "Unsupported PKCS12 PFX data" causado por limitações de algoritmos legados/novos do OpenSSL no Node.js v17+
+            let privateKeyPem = '';
+            let certificatePem = '';
+
+            try {
+                const pfxDer = pfxBuffer.toString('binary');
+                const pfx = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxDer), false, pfxPassword);
+
+                // Extrair chave privada
+                const keyBags = pfx.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag];
+                if (keyBag && keyBag.length > 0) {
+                    const privateKey = keyBag[0].key;
+                    privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+                } else {
+                    const plainKeyBags = pfx.getBags({ bagType: forge.pki.oids.keyBag });
+                    const plainKeyBag = plainKeyBags[forge.pki.oids.keyBag];
+                    if (plainKeyBag && plainKeyBag.length > 0) {
+                        const privateKey = plainKeyBag[0].key;
+                        privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+                    }
+                }
+
+                // Extrair certificados (cert e cadeia se houver)
+                const certBags = pfx.getBags({ bagType: forge.pki.oids.certBag });
+                const certBag = certBags[forge.pki.oids.certBag];
+                if (certBag && certBag.length > 0) {
+                    const certs = certBag.map(b => forge.pki.certificateToPem(b.cert));
+                    certificatePem = certs.join('\n');
+                }
+
+                if (!privateKeyPem || !certificatePem) {
+                    throw new Error('Não foi possível extrair a chave privada ou certificado em formato PEM.');
+                }
+                
+                console.log(`✅ [ADN-NACIONAL] PFX descriptografado com sucesso. Private Key: ${privateKeyPem.substring(0, 40)}... | Certs size: ${certificatePem.length} bytes`);
+            } catch (pfxErr: any) {
+                console.error('❌ [ADN-NACIONAL-PFX-DECRYPT] Erro na descriptografia com node-forge:', pfxErr.message);
+                return res.status(400).json({
+                    error: 'Erro ao descriptografar o certificado digital PFX para o Portal Nacional.',
+                    detail: pfxErr.message || 'Verifique se a senha informada nas configurações está correta.',
+                    hint: 'Se a senha estiver correta, pode ser que o arquivo PFX esteja corrompido.'
+                });
+            }
+
+            // Criar agente HTTPS com mTLS usando chaves PEM
             const httpsAgent = new https.Agent({
-                pfx: pfxBuffer,
-                passphrase: pfxPassword,
+                key: privateKeyPem,
+                cert: certificatePem,
                 rejectUnauthorized: true,
                 keepAlive: false
             });
