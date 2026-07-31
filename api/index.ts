@@ -2080,6 +2080,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(tribMun.tpRetISSQN)
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
+            // totTrib: dependendo de opSimpNac
+            // 2 (MEI) ou 3 (ME/EPP) -> pTotTribSN
+            // 1 (Normal) -> indTotTrib
+            const totTrib = trib.totTrib || {};
+            let totTribXml = '';
+            if (opSimpNac === 2 || opSimpNac === 3) {
+                const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(4) : '0.0000';
+                totTribXml = `<totTrib><pTotTribSN>${pTotTribSN}</pTotTribSN></totTrib>`;
+            } else {
+                const indTotTrib = totTrib.indTotTrib !== undefined ? Number(totTrib.indTotTrib) : 0;
+                totTribXml = `<totTrib><indTotTrib>${indTotTrib}</indTotTrib></totTrib>`;
+            }
+
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `
     <valores>
       <vServPrest>
@@ -2090,6 +2103,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
           <tribISSQN>${tribISSQN}</tribISSQN>
           <tpRetISSQN>${tpRetISSQN}</tpRetISSQN>
         </tribMun>
+        ${totTribXml}
       </trib>
     </valores>` : '';
 
