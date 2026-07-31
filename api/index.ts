@@ -1873,13 +1873,26 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
                 
                 try {
-                    const pfxInfo = extractCnpjCpfFromPfx(pfxBuffer);
-                    const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00000000000000');
-                    if (validCnpjs.length > 0) {
-                        certSubjectCnpj = validCnpjs[0];
-                    } else {
-                        const certObj = forge.pki.certificateFromPem(certificatePem);
-                        for (const attr of certObj.subject.attributes) {
+                    const leafCertObj = forge.pki.certificateFromPem(leafCertificatePem || certificatePem);
+                    
+                    // 1. Procurar nas extensões SubjectAlternativeName (SAN) por OID de CNPJ da ICP-Brasil (2.16.76.1.3.3)
+                    for (const ext of leafCertObj.extensions) {
+                        if (ext.name === 'subjectAltName' && ext.altNames) {
+                            for (const alt of ext.altNames) {
+                                if (alt.value) {
+                                    const match = String(alt.value).replace(/\D/g, '').match(/\d{14}/);
+                                    if (match && match[0] !== '00000000000000') {
+                                        certSubjectCnpj = match[0];
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 2. Se não encontrou no SAN, procurar em Subject Attributes (CN, OU, etc.)
+                    if (!certSubjectCnpj) {
+                        for (const attr of leafCertObj.subject.attributes) {
                             if (attr.value) {
                                 const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
                                 if (matches && matches[0] !== '00000000000000') {
@@ -1887,6 +1900,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     break;
                                 }
                             }
+                        }
+                    }
+
+                    // 3. Fallback para varredura binária via extractCnpjCpfFromPfx se não encontrou no X509
+                    if (!certSubjectCnpj) {
+                        const pfxInfo = extractCnpjCpfFromPfx(pfxBuffer);
+                        const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00000000000000');
+                        if (validCnpjs.length > 0) {
+                            certSubjectCnpj = validCnpjs[0];
                         }
                     }
                 } catch (certParseErr: any) {
@@ -2063,10 +2085,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // 1. Gerar o XML correspondente à DPS
             const inf = adnPayload.infDPS || {};
             
-            // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
             const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
-            const prestCnpjClean = certSubjectCnpj || configuredCnpj || rawPrestCnpj || '00893566000190';
+            // Respeita estritamente o CNPJ informado no JSON (rawPrestCnpj). Caso não venha no JSON, usa o CNPJ do Certificado ou das configurações.
+            const prestCnpjClean = rawPrestCnpj || certSubjectCnpj || configuredCnpj || '00893566000190';
 
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
