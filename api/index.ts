@@ -1998,8 +1998,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cLocEmi = String(nat.codigo_municipio || '3106200').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
+            
+            const verAplic = '1.0.0';
             const serie = '90001'; // Série DPS (5 dígitos)
-            const numero = String(Date.now()).substring(0, 15).padStart(15, '0'); // Número DPS (15 dígitos)
+            const numDpsInt = String(Date.now()).substring(0, 15);
+            const numero = numDpsInt.padStart(15, '0'); // Número DPS (15 dígitos)
             const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serie}${numero}`;
 
             const prestIM = inf.prest?.IM ? `<IM>${inf.prest.IM}</IM>` : '';
@@ -2066,6 +2069,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
   <infDPS Id="${dpsId}">
     <tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb>
     <dhEmi>${inf.dhEmi || dhEmi}</dhEmi>
+    <verAplic>${verAplic}</verAplic>
+    <serie>${serie}</serie>
+    <nDPS>${parseInt(numDpsInt)}</nDPS>
     <dCompet>${inf.dCompet || dCompet}</dCompet>
     <prest>
       <CNPJ>${prestCnpjClean}</CNPJ>
