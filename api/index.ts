@@ -1825,13 +1825,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 
                 let certSubjectCnpj = '';
                 try {
-                    const certObj = forge.pki.certificateFromPem(certificatePem);
-                    for (const attr of certObj.subject.attributes) {
-                        if (attr.value) {
-                            const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
-                            if (matches && matches[0] !== '00000000000000') {
-                                certSubjectCnpj = matches[0];
-                                break;
+                    const pfxInfo = extractCnpjCpfFromPfx(pfxBuffer);
+                    const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00893566000190' && c !== '00000000000000');
+                    if (validCnpjs.length > 0) {
+                        certSubjectCnpj = validCnpjs[0];
+                    } else {
+                        const certObj = forge.pki.certificateFromPem(certificatePem);
+                        for (const attr of certObj.subject.attributes) {
+                            if (attr.value) {
+                                const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
+                                if (matches && matches[0] !== '00000000000000' && matches[0] !== '00893566000190') {
+                                    certSubjectCnpj = matches[0];
+                                    break;
+                                }
                             }
                         }
                     }
@@ -2011,8 +2017,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
-            const realNatCnpj = String(nat.cnpj || certSubjectCnpj || '').replace(/\D/g, '');
-            const prestCnpjClean = (rawPrestCnpj === '00893566000190' && realNatCnpj) ? realNatCnpj : (rawPrestCnpj || realNatCnpj);
+            const certExtractedCnpj = certSubjectCnpj || (nat.cnpj && nat.cnpj !== '00893566000190' ? nat.cnpj : '');
+            const prestCnpjClean = (rawPrestCnpj === '00893566000190' || !rawPrestCnpj) 
+                ? (certExtractedCnpj || '00893566000190') 
+                : (rawPrestCnpj || certExtractedCnpj);
+
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
             
