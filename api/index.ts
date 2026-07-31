@@ -2317,6 +2317,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 // Salvar no banco fiscal_invoices
                 if (SUPABASE_URL) {
+                    try {
                         const vServ = Number(adnPayload?.infDPS?.valores?.vServPrest?.vServ || adnPayload?.valores?.vServPrest?.vServ || 0);
                         const nDPS = adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
                         const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
