@@ -2127,7 +2127,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
                 : '';
 
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}${inf.serv.cServ.cNBS ? `<cNBS>${inf.serv.cServ.cNBS}</cNBS>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
