@@ -1244,7 +1244,10 @@ export function FiscalSettings() {
         try {
             const updatedSettings = {
                 ...(currentCompany?.settings || {}),
-                national_config: nationalConfig
+                national_config: {
+                    ...(currentCompany?.settings?.national_config || {}),
+                    ...nationalConfig
+                }
             };
             await updateCompany(currentEntity.id, {
                 settings: updatedSettings,
@@ -1388,14 +1391,6 @@ export function FiscalSettings() {
                     certificado_status: 'ativo'
                 };
                 setNationalConfig(updatedNatConfig);
-
-                const updatedSettings = {
-                    ...(currentCompany?.settings || {}),
-                    national_config: updatedNatConfig
-                };
-                await updateCompany(currentEntity.id, {
-                    settings: updatedSettings
-                });
 
                 setDiagnostic(prev => ({
                     ...prev,
