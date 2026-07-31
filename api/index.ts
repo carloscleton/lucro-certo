@@ -2036,7 +2036,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             },
                             cServ: {
                                 cTribNac: codigoTribNac6,
-                                ...(servItem.codigo ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
+                                ...(servItem.codigo && String(servItem.codigo).replace(/\D/g, '') !== codigoTribNac6 ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
                                 ...(servItem.cnae || nat.default_cnae ? { CNAE: String(servItem.cnae || nat.default_cnae).replace(/\D/g, '').substring(0, 7) } : {}),
                                 xDescServ: descricao
                             }
@@ -2167,7 +2167,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cnaeVal = String(inf.serv?.cServ?.CNAE || servItem?.cnae || nat.default_cnae || '').replace(/\D/g, '');
             const cnaeXml = (cnaeVal.length === 7) ? `<CNAE>${cnaeVal}</CNAE>` : '';
 
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${cnaeXml}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
+            const cTribMunVal = inf.serv?.cServ?.cTribMun;
+            const cTribMunXml = (cTribMunVal && String(cTribMunVal) !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
+
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
