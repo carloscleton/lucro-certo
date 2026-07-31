@@ -1999,7 +1999,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const inf = adnPayload.infDPS || {};
             
             // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições) conforme a regra TSIdDPS
-            const prestCnpjClean = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
+            const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
+            const realNatCnpj = String(nat.cnpj || '').replace(/\D/g, '');
+            const prestCnpjClean = (rawPrestCnpj === '00893566000190' && realNatCnpj) ? realNatCnpj : (rawPrestCnpj || realNatCnpj);
             const cLocEmi = String(nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
@@ -2112,7 +2114,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
             const dpsXml = `<?xml version="1.0" encoding="UTF-8"?>
 <DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
-  <infDPS Id="${dpsId}">
+  <infDPS xmlns="http://www.sped.fazenda.gov.br/nfse" Id="${dpsId}">
     <tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb>
     <dhEmi>${inf.dhEmi || dhEmi}</dhEmi>
     <verAplic>${verAplic}</verAplic>
