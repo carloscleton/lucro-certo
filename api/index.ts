@@ -2099,7 +2099,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(inf.prest.regTrib.regEspTrib)
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
 
-            const prestIM = (inf.prest?.IM && String(inf.prest.IM).trim() !== '') ? `<IM>${String(inf.prest.IM).trim()}</IM>` : '';
+            const configuredIm = String(nat.inscricao_municipal || '').trim();
+            const payloadIm = String(inf.prest?.IM || '').trim();
+            const effectivePrestIm = (configuredIm !== '') ? configuredIm : (payloadIm !== '' && payloadIm !== '1254103' ? payloadIm : '');
+            const prestIM = effectivePrestIm ? `<IM>${effectivePrestIm}</IM>` : '';
             
             const tomadorDocXml = inf.toma?.CPF 
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
