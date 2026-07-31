@@ -1873,27 +1873,94 @@ export function FiscalSettings() {
 
     const handleGenerateExample = () => {
         const isNfeio = activeSubTab === 'nfeio';
+        const isNational = activeSubTab === 'national';
+
+        if (isNational) {
+            const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "08187168000160";
+            const effectiveIm = nationalConfig.inscricao_municipal || "1234567";
+            const now = new Date();
+            const pad = (num: number) => String(num).padStart(2, '0');
+            const formatLocal = (date: Date) => {
+                const year = date.getFullYear();
+                const month = pad(date.getMonth() + 1);
+                const day = pad(date.getDate());
+                const hours = pad(date.getHours());
+                const minutes = pad(date.getMinutes());
+                const seconds = pad(date.getSeconds());
+                const offset = date.getTimezoneOffset();
+                const sign = offset > 0 ? '-' : '+';
+                const absOffset = Math.abs(offset);
+                return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
+            };
+
+            const mock = {
+                infDPS: {
+                    tpAmb: nationalConfig.ambiente === 'producao' ? 1 : 2,
+                    dhEmi: formatLocal(now),
+                    dCompet: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+                    prest: {
+                        CNPJ: effectiveCnpj.replace(/\D/g, ''),
+                        ...(effectiveIm ? { IM: effectiveIm.replace(/\D/g, '') } : {})
+                    },
+                    toma: {
+                        CNPJ: "00000000000191", // Tomador de teste padrão válido
+                        xNome: "Empresa de Teste LTDA",
+                        end: {
+                            endNac: {
+                                cMun: "3106200",
+                                CEP: "31000000"
+                            },
+                            xLgr: "Barao do rio branco",
+                            nro: "1001",
+                            xCpl: "sala 01",
+                            xBairro: "Centro"
+                        },
+                        email: "teste@nfe.io"
+                    },
+                    serv: {
+                        locPrest: {
+                            cLocPrestacao: "3106200"
+                        },
+                        cServ: {
+                            cTribNac: "010101",
+                            cTribMun: "010101",
+                            xDescServ: "Descrição dos serviços prestados via Laboratório JSON"
+                        }
+                    },
+                    valores: {
+                        vServPrest: {
+                            vServ: 100.00
+                        }
+                    },
+                    optSN: nationalConfig.simples_nacional ? 1 : 3
+                }
+            };
+
+            setTestJson(JSON.stringify(mock, null, 2));
+            return;
+        }
+
         const isTest = isNfeio ? true : config.use_test_data;
-        const isNacional = isNfeio ? false : !!config.nfse_nacional;
+        const isNacionalLegacy = isNfeio ? false : !!config.nfse_nacional;
         
         const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
         const effectiveCity = isNfeio
             ? (config.endereco?.codigoCidade || "3550308")
             : (isTest 
-                ? (isNacional ? "3106200" : "4115200")
-                : (config.endereco?.codigoCidade || (isNacional ? "3106200" : "4115200")));
+                ? (isNacionalLegacy ? "3106200" : "4115200")
+                : (config.endereco?.codigoCidade || (isNacionalLegacy ? "3106200" : "4115200")));
         
         const effectiveUf = isNfeio
             ? (config.endereco?.uf || "SP")
             : (isTest 
-                ? (isNacional ? "MG" : "PR")
-                : (config.endereco?.uf || (isNacional ? "MG" : "PR")));
+                ? (isNacionalLegacy ? "MG" : "PR")
+                : (config.endereco?.uf || (isNacionalLegacy ? "MG" : "PR")));
 
         const effectiveCityDesc = isNfeio
             ? (config.endereco?.cidade || "Sao Paulo")
             : (isTest
-                ? (isNacional ? "Belo Horizonte" : "Maringa")
-                : (config.endereco?.cidade || (isNacional ? "Belo Horizonte" : "Maringa")));
+                ? (isNacionalLegacy ? "Belo Horizonte" : "Maringa")
+                : (config.endereco?.cidade || (isNacionalLegacy ? "Belo Horizonte" : "Maringa")));
 
         const isRegimeNormal = config.regime_tributario === '3';
         const isSimples = ['1', '2', '4'].includes(String(config.regime_tributario || ''));
@@ -1903,7 +1970,7 @@ export function FiscalSettings() {
         const serviceItem: any = {
             codigo: isNfeio 
                 ? (nfeioConfig.cityServiceCode || nfeioConfig.cnae || "1.01")
-                : (isNacional ? "010101" : "01.01"),
+                : (isNacionalLegacy ? "010101" : "01.01"),
             discriminacao: isNfeio ? "Prestação de serviço de teste via NFe.io" : "Descrição dos serviços prestados via Laboratório JSON",
             iss: {
                 tipoTributacao: isNfeio ? 1 : defaultTipoTributacao,
@@ -1942,7 +2009,7 @@ export function FiscalSettings() {
         const mock: any = [
             {
                 idIntegracao: `TEST_${Date.now()}`,
-                ...(isNacional ? { versao: "1.00" } : {}),
+                ...(isNacionalLegacy ? { versao: "1.00" } : {}),
                 emitente: {
                     tipo: 1,
                     codigoCidade: effectiveCity
@@ -1951,7 +2018,7 @@ export function FiscalSettings() {
                     cpfCnpj: effectiveCnpj,
                     inscricaoMunicipal: isNfeio
                         ? (nfeioConfig.inscricaoMunicipal || "123456")
-                        : (isNacional 
+                        : (isNacionalLegacy 
                             ? (isTest ? "1234567" : (config.inscricao_municipal || "1234567"))
                             : (config.inscricao_municipal || "123456"))
                 },
@@ -1962,7 +2029,7 @@ export function FiscalSettings() {
                     email: "teste@nfe.io",
                     endereco: {
                         descricaoCidade: effectiveCityDesc,
-                        cep: isNfeio ? "01001000" : (isNacional ? "31000000" : "87020100"),
+                        cep: isNfeio ? "01001000" : (isNacionalLegacy ? "31000000" : "87020100"),
                         tipoLogradouro: "Rua",
                         logradouro: "Barao do rio branco",
                         tipoBairro: "Centro",
