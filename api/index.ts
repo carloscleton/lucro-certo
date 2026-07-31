@@ -1791,6 +1791,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Isso evita o erro "Unsupported PKCS12 PFX data" causado por limitações de algoritmos legados/novos do OpenSSL no Node.js v17+
             let privateKeyPem = '';
             let certificatePem = '';
+            let certSubjectCnpj = '';
 
             try {
                 const pfxDer = pfxBuffer.toString('binary');
@@ -1823,7 +1824,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     throw new Error('Não foi possível extrair a chave privada ou certificado em formato PEM.');
                 }
                 
-                let certSubjectCnpj = '';
                 try {
                     const pfxInfo = extractCnpjCpfFromPfx(pfxBuffer);
                     const validCnpjs = pfxInfo.cnpjs.filter(c => c !== '00893566000190' && c !== '00000000000000');
