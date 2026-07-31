@@ -2074,6 +2074,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
     <serie>${serieVal}</serie>
     <nDPS>${parseInt(numDpsInt)}</nDPS>
     <dCompet>${inf.dCompet || dCompet}</dCompet>
+    <tpEmit>1</tpEmit>
+    <cLocEmi>${cLocEmi}</cLocEmi>
     <prest>
       <CNPJ>${prestCnpjClean}</CNPJ>
       ${prestIM}
