@@ -1779,11 +1779,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const pfxPassword = nat.certificado_senha || '';
             const adnAmbiente = nat.ambiente || 'homologacao';
             const tpAmb = adnAmbiente === 'producao' ? 1 : 2; // 1=Produção, 2=Homologação
-            const adnBaseUrl = adnAmbiente === 'producao'
-                ? 'https://adn.nfse.gov.br'
-                : 'https://adn.producaorestrita.nfse.gov.br';
+            const sefinBaseUrl = adnAmbiente === 'producao'
+                ? 'https://sefin.nfse.gov.br/SefinNacional'
+                : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
-            console.log(`🏛️ [ADN-NACIONAL] Emitindo NFS-e via ADN gov.br | Ambiente: ${adnAmbiente} (tpAmb=${tpAmb}) | URL: ${adnBaseUrl} | PFX size: ${pfxBuffer.length} bytes`);
+            console.log(`🏛️ [ADN-NACIONAL] Emitindo NFS-e via Sefin Nacional | Ambiente: ${adnAmbiente} (tpAmb=${tpAmb}) | URL: ${sefinBaseUrl} | PFX size: ${pfxBuffer.length} bytes`);
 
             // 🔐 Descriptografar e extrair o certificado e chave privada em formato PEM usando node-forge
             // Isso evita o erro "Unsupported PKCS12 PFX data" causado por limitações de algoritmos legados/novos do OpenSSL no Node.js v17+
@@ -1990,7 +1990,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             try {
                 const adnResponse = await axios.post(
-                    `${adnBaseUrl}/nfse`,
+                    `${sefinBaseUrl}/nfse`,
                     adnPayload,
                     {
                         httpsAgent,
