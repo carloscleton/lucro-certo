@@ -11,10 +11,27 @@ import { useEntity } from '../context/EntityContext';
 export function Companies() {
     const { profile } = useAuth(); // Get user profile for max_companies
     const { companies, loading, addCompany, updateCompany, deleteCompany } = useCompanies();
-    const { currentEntity } = useEntity();
+    const { currentEntity, switchEntity, availableEntities } = useEntity();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
     const { t } = useTranslation();
+
+    const handleSelectCompany = (company: Company) => {
+        const found = availableEntities.find(e => e.id === company.id);
+        if (found) {
+            switchEntity(found);
+        } else {
+            switchEntity({
+                type: 'company',
+                id: company.id,
+                name: company.trade_name,
+                legal_name: company.legal_name,
+                cnpj: company.cnpj,
+                logo_url: company.logo_url,
+                status: company.status
+            });
+        }
+    };
 
     const handleOpenModal = (company?: Company) => {
         if (company) {
@@ -42,10 +59,6 @@ export function Companies() {
 
     const maxCompanies = profile?.max_companies ?? 1; // Default to 1 if not set
     const canCreateCompany = (companies.length < maxCompanies) && (profile?.settings?.can_create_companies !== false);
-
-    const filteredCompanies = currentEntity.type === 'company'
-        ? companies.filter(c => c.id === currentEntity.id)
-        : companies;
 
     const limitPercentage = Math.min((companies.length / maxCompanies) * 100, 100);
 
@@ -107,9 +120,11 @@ export function Companies() {
             </div>
 
             <CompanyList
-                companies={filteredCompanies}
+                companies={companies}
+                currentEntityId={currentEntity.id}
                 onEdit={handleOpenModal}
                 onDelete={deleteCompany}
+                onSelect={handleSelectCompany}
             />
 
             <CompanyForm

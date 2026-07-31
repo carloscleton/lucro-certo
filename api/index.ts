@@ -912,9 +912,7 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         apiKey = sanitizeKey(config.tecnospeed_api_key || dbConfig?.tecnospeed_api_key || '');
         const isSandbox = config.ambiente === 'homologacao';
         if (!apiKey) {
-            apiKey = isSandbox 
-                ? 'f0df81e0-7bd2-498f-adbf-81e6-ed263514e487' 
-                : '2da392a6-79d2-4304-a8b7-959572c7e44d';
+            apiKey = '2da392a6-79d2-4304-a8b7-959572c7e44d';
         }
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
@@ -2350,8 +2348,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
 
         if (!config.tecnospeed_api_key) {
-
-            return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
+            config.tecnospeed_api_key = '2da392a6-79d2-4304-a8b7-959572c7e44d';
         }
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
         const isSandbox = config.ambiente === 'homologacao';

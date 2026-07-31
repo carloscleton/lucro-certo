@@ -152,7 +152,7 @@ export function FiscalSettings() {
             uf: ''
         },
         regime_tributario: '1', 
-        tecnospeed_api_key: '',
+        tecnospeed_api_key: '2da392a6-79d2-4304-a8b7-959572c7e44d',
         ambiente: 'homologacao',
         endpoint_homologacao: '',
         endpoint_producao: '',
@@ -361,7 +361,11 @@ export function FiscalSettings() {
             Object.assign(newConfig, tc);
             
             // ... resto das atribuições (removido para brevidade no diff, mas mantido no arquivo)
-            if (newConfig.tecnospeed_api_key) newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.trim();
+            if (newConfig.tecnospeed_api_key) {
+                newConfig.tecnospeed_api_key = newConfig.tecnospeed_api_key.trim();
+            } else {
+                newConfig.tecnospeed_api_key = '2da392a6-79d2-4304-a8b7-959572c7e44d';
+            }
             if (newConfig.endpoint_homologacao) newConfig.endpoint_homologacao = newConfig.endpoint_homologacao.toLowerCase();
             if (newConfig.endpoint_producao) newConfig.endpoint_producao = newConfig.endpoint_producao.toLowerCase();
             if ((!newConfig.cnpj || newConfig.cnpj === '00893566000190') && currentCompany.cnpj) newConfig.cnpj = currentCompany.cnpj;
