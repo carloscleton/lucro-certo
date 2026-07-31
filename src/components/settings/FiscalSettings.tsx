@@ -1890,7 +1890,7 @@ export function FiscalSettings() {
 
         if (isNational) {
             const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "41540344000170";
-            const effectiveIm = nationalConfig.inscricao_municipal || "1254103";
+            const effectiveIm = nationalConfig.inscricao_municipal || '';
             const effectiveMun = (nationalConfig as any).codigo_municipio || "2408102";
             const now = new Date();
             const pad = (num: number) => String(num).padStart(2, '0');
@@ -1919,7 +1919,7 @@ export function FiscalSettings() {
                     cLocEmi: effectiveMun.replace(/\D/g, ''),
                     prest: {
                         CNPJ: effectiveCnpj.replace(/\D/g, ''),
-                        ...(effectiveIm ? { IM: effectiveIm.replace(/\D/g, '') } : {}),
+                        ...(effectiveIm.trim() ? { IM: effectiveIm.trim().replace(/\D/g, '') } : {}),
                         email: (currentCompany as any)?.email || "contato@empresa.com.br",
                         regTrib: {
                             opSimpNac: nationalConfig.simples_nacional ? 1 : 1
