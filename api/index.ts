@@ -2091,33 +2091,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
                 
                 if (cMunToma || cepToma) {
-                    endNacXml = `
-        <endNac>
-          ${cMunToma ? `<cMun>${cMunToma}</cMun>` : ''}
-          ${cepToma ? `<CEP>${cepToma}</CEP>` : ''}
-        </endNac>`;
+                    endNacXml = `<endNac>${cMunToma ? `<cMun>${cMunToma}</cMun>` : ''}${cepToma ? `<CEP>${cepToma}</CEP>` : ''}</endNac>`;
                 }
             }
 
-            const tomadorEndXml = tomadorEnd ? `
-      <end>${endNacXml}
-        ${tomadorEnd.xLgr ? `<xLgr>${tomadorEnd.xLgr}</xLgr>` : ''}
-        ${tomadorEnd.nro ? `<nro>${tomadorEnd.nro}</nro>` : ''}
-        ${tomadorEnd.xCpl ? `<xCpl>${tomadorEnd.xCpl}</xCpl>` : ''}
-        ${tomadorEnd.xBairro ? `<xBairro>${tomadorEnd.xBairro}</xBairro>` : ''}
-      </end>` : '';
+            const tomadorEndXml = tomadorEnd ? `<end>${endNacXml}${tomadorEnd.xLgr ? `<xLgr>${tomadorEnd.xLgr}</xLgr>` : ''}${tomadorEnd.nro ? `<nro>${tomadorEnd.nro}</nro>` : ''}${tomadorEnd.xCpl ? `<xCpl>${tomadorEnd.xCpl}</xCpl>` : ''}${tomadorEnd.xBairro ? `<xBairro>${tomadorEnd.xBairro}</xBairro>` : ''}</end>` : '';
 
             const servLocXml = inf.serv?.locPrest?.cLocPrestacao 
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
                 : '';
 
-            const servItemXml = inf.serv?.cServ ? `
-      <cServ>
-        <cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>
-        ${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}
-        ${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}
-        <xDescServ>${inf.serv.cServ.xDescServ}</xDescServ>
-      </cServ>` : '';
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
@@ -2143,53 +2127,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 totTribXml = `<totTrib><indTotTrib>${indTotTrib}</indTotTrib></totTrib>`;
             }
 
-            const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `
-    <valores>
-      <vServPrest>
-        <vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ>
-      </vServPrest>
-      <trib>
-        <tribMun>
-          <tribISSQN>${tribISSQN}</tribISSQN>
-          <tpRetISSQN>${tpRetISSQN}</tpRetISSQN>
-        </tribMun>
-        ${totTribXml}
-      </trib>
-    </valores>` : '';
+            const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN></tribMun>${totTribXml}</trib></valores>` : '';
 
-            // Montar XML da DPS conforme o leiaute nacional do contribuinte
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?>
-<DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
-  <infDPS xmlns="http://www.sped.fazenda.gov.br/nfse" Id="${dpsId}">
-    <tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb>
-    <dhEmi>${inf.dhEmi || dhEmi}</dhEmi>
-    <verAplic>${verAplic}</verAplic>
-    <serie>${serieVal}</serie>
-    <nDPS>${parseInt(numDpsInt)}</nDPS>
-    <dCompet>${inf.dCompet || dCompet}</dCompet>
-    <tpEmit>1</tpEmit>
-    <cLocEmi>${cLocEmi}</cLocEmi>
-    <prest>
-      <CNPJ>${prestCnpjClean}</CNPJ>
-      ${prestIM}
-      <regTrib>
-        <opSimpNac>${opSimpNac}</opSimpNac>
-        <regEspTrib>${regEspTrib}</regEspTrib>
-      </regTrib>
-    </prest>
-    <toma>
-      ${tomadorDocXml}
-      <xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>
-      ${tomadorEndXml}
-      ${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}
-    </toma>
-    <serv>
-      ${servLocXml}
-      ${servItemXml}
-    </serv>
-    ${valoresXml}
-  </infDPS>
-</DPS>`.trim();
+            // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac><regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest><toma>${tomadorDocXml}<xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>${tomadorEndXml}${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}</toma><serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
