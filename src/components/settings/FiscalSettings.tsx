@@ -1935,13 +1935,29 @@ export function FiscalSettings() {
                 return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
             };
 
+            let nextDpsNumber = "1";
+            try {
+                const existingObj = JSON.parse(testJson);
+                if (existingObj?.infDPS?.nDPS) {
+                    const currentDps = parseInt(String(existingObj.infDPS.nDPS).replace(/\D/g, ''), 10);
+                    if (!isNaN(currentDps) && currentDps > 0) {
+                        nextDpsNumber = String(currentDps + 1);
+                    }
+                }
+            } catch (e) {}
+
+            if (nextDpsNumber === "1") {
+                const timeBasedNum = String(Math.floor(Date.now() / 1000)).substring(4);
+                nextDpsNumber = timeBasedNum && parseInt(timeBasedNum) > 0 ? timeBasedNum : String(Date.now()).substring(7);
+            }
+
             const mock = {
                 infDPS: {
                     tpAmb: nationalConfig.ambiente === 'producao' ? 1 : 2,
                     dhEmi: formatLocal(now),
                     verAplic: "1.01",
                     serie: "1",
-                    nDPS: "1",
+                    nDPS: nextDpsNumber,
                     dCompet: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
                     tpEmit: 1,
                     cLocEmi: effectiveMun.replace(/\D/g, ''),
