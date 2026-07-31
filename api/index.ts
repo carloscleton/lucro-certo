@@ -620,8 +620,8 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
         // Usar config enviada pelo frontend ou buscar no banco se não houver
         const bodyConfig = req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config) : req.body.config) : null;
         const { config: dbConfig, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId);
-        const config = bodyConfig || dbConfig;
-        const activeProvider = provider || settings?.fiscal_provider || 'tecnospeed';
+        const reqProvider = provider || req.query?.provider || (req.body.config ? (typeof req.body.config === 'string' ? JSON.parse(req.body.config).provider : req.body.config.provider) : null);
+        const activeProvider = reqProvider || settings?.fiscal_provider || 'tecnospeed';
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN gov.br) ---
         // Armazena o PFX em base64 no settings.national_config para uso mTLS direto na emissão
@@ -663,14 +663,22 @@ app.post(['/fiscal-module/upload-certificate', '/api/fiscal-module/upload-certif
                         national_config: updatedNatConfig
                     };
 
+                    const dbHeaders: any = {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                        'Content-Type': 'application/json'
+                    };
+                    if (SUPABASE_SERVICE_ROLE_KEY) {
+                        dbHeaders['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+                    } else if (authHeader) {
+                        dbHeaders['Authorization'] = authHeader;
+                    } else {
+                        dbHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY!}`;
+                    }
+
                     await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
                         settings: updatedSettings
                     }, {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY!,
-                            'Authorization': authHeader!,
-                            'Content-Type': 'application/json'
-                        }
+                        headers: dbHeaders
                     });
 
                     fiscalConfigCache.delete(resolvedId);
