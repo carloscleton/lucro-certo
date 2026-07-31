@@ -1990,7 +1990,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             try {
                 const adnResponse = await axios.post(
-                    `${adnBaseUrl}/contribuintes/nfse`,
+                    `${adnBaseUrl}/nfse`,
                     adnPayload,
                     {
                         httpsAgent,
