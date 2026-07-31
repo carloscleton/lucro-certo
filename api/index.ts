@@ -3857,8 +3857,108 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             return res.send(Buffer.from(response.data));
         }
 
+        // ─── PORTAL NACIONAL (ADN gov.br) — Download XML/PDF via Sefin mTLS ───
+        const isNational = resolvedType === 'national' || (provider as string) === 'national' ||
+            (!dbFound && settings?.fiscal_provider === 'national');
+
+        if (isNational) {
+            const nat = settings?.national_config || {};
+            const pfxBase64Dl = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64;
+            const pfxPasswordDl = nat.certificado_senha || settings?.certificado_senha || '';
+            const adnAmbienteDl = nat.ambiente || 'homologacao';
+            const sefinBaseUrlDl = adnAmbienteDl === 'producao'
+                ? 'https://sefin.nfse.gov.br/SefinNacional'
+                : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
+
+            // Resolve chNFSe: pode chegar como ID do banco ou como chave de acesso formatada
+            let chNFSe = String(id).replace(/[\s.]/g, '');
+            if (SUPABASE_URL && chNFSe.length < 40) {
+                try {
+                    const dbKeyDl = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+                    const dbAuthDl = authHeader || `Bearer ${dbKeyDl}`;
+                    const qpDl = !isNaN(Number(chNFSe)) ? { id: `eq.${chNFSe}` } : { external_id: `eq.${chNFSe}` };
+                    const { data: invRowsDl } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        params: { ...qpDl, select: 'access_key' },
+                        headers: { 'apikey': dbKeyDl, 'Authorization': dbAuthDl }
+                    });
+                    if (invRowsDl?.[0]?.access_key) {
+                        chNFSe = String(invRowsDl[0].access_key).replace(/[\s.]/g, '');
+                        console.log(`\u{1F511} [ADN-DOWNLOAD] chNFSe resolvido do banco: ${chNFSe}`);
+                    }
+                } catch (dlLookupErr: any) {
+                    console.warn(`\u26A0\uFE0F [ADN-DOWNLOAD] Nao foi possivel resolver chNFSe:`, dlLookupErr.message);
+                }
+            }
+
+            console.log(`\u{1F4C4} [ADN-DOWNLOAD] Buscando ${isXml ? 'XML' : 'PDF'} da NFS-e Nacional. chNFSe: ${chNFSe} | Ambiente: ${adnAmbienteDl}`);
+
+            // Sem certificado: redireciona para URL publica de consulta
+            if (!pfxBase64Dl) {
+                const pubUrl = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?chNFSe=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
+                return res.redirect(302, pubUrl);
+            }
+
+            try {
+                const pfxBufDl = Buffer.from(pfxBase64Dl, 'base64');
+                const pfxObjDl = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxBufDl.toString('binary')), false, pfxPasswordDl);
+
+                let privKeyPemDl = '';
+                let certPemDl = '';
+
+                const kBags = pfxObjDl.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                const kBag = kBags[forge.pki.oids.pkcs8ShroudedKeyBag];
+                if (kBag?.[0]?.key) {
+                    privKeyPemDl = forge.pki.privateKeyToPem(kBag[0].key);
+                } else {
+                    const pkBags = pfxObjDl.getBags({ bagType: forge.pki.oids.keyBag });
+                    const pkBag = pkBags[forge.pki.oids.keyBag];
+                    if (pkBag?.[0]?.key) privKeyPemDl = forge.pki.privateKeyToPem(pkBag[0].key);
+                }
+                const cBags = pfxObjDl.getBags({ bagType: forge.pki.oids.certBag });
+                const cBag = cBags[forge.pki.oids.certBag];
+                if (cBag?.length > 0) certPemDl = cBag.map((b: any) => forge.pki.certificateToPem(b.cert)).join('\n');
+
+                const httpsAgentDl = new https.Agent({ key: privKeyPemDl, cert: certPemDl, rejectUnauthorized: true, keepAlive: false });
+
+                if (isXml) {
+                    const xmlRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}`, {
+                        httpsAgent: httpsAgentDl,
+                        headers: { 'Accept': 'application/xml, text/xml, */*' },
+                        timeout: 15000,
+                        responseType: 'arraybuffer'
+                    });
+                    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                    res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                    return res.send(Buffer.from(xmlRespDl.data));
+                } else {
+                    try {
+                        const pdfRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}/pdf`, {
+                            httpsAgent: httpsAgentDl,
+                            headers: { 'Accept': 'application/pdf' },
+                            timeout: 15000,
+                            responseType: 'arraybuffer'
+                        });
+                        res.setHeader('Content-Type', 'application/pdf');
+                        res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                        return res.send(Buffer.from(pdfRespDl.data));
+                    } catch (pdfDlErr: any) {
+                        console.warn(`\u26A0\uFE0F [ADN-DOWNLOAD] PDF direto indisponivel (${pdfDlErr.response?.status || pdfDlErr.code}). Redirecionando.`);
+                        const pubUrl2 = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?chNFSe=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
+                        return res.redirect(302, pubUrl2);
+                    }
+                }
+            } catch (adnDlErr: any) {
+                console.error('\u274C [ADN-DOWNLOAD] Erro ao buscar no Sefin:', adnDlErr.message);
+                return res.status(adnDlErr.response?.status || 500).json({
+                    error: 'Erro ao buscar documento no Portal Nacional',
+                    detail: adnDlErr.message,
+                    chNFSe
+                });
+            }
+        }
+
         if (!config || !config.tecnospeed_api_key) {
-            return res.status(404).json({ error: 'Configuração fiscal não encontrada ou sem API Key.' });
+            return res.status(404).json({ error: 'Configuracao fiscal nao encontrada ou sem API Key.' });
         }
 
         const apiKey = sanitizeKey(config.tecnospeed_api_key);
