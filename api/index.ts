@@ -2151,14 +2151,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const sig = new SignedXml({
                     privateKey: privateKeyPem,
                     signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-                    canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#',
+                    canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
                 });
                 
                 sig.addReference({
                     xpath: "//*[local-name()='infDPS']",
                     transforms: [
                         'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-                        'http://www.w3.org/2001/10/xml-exc-c14n#',
+                        'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
                     ],
                     digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
                     uri: `#${dpsId}`
