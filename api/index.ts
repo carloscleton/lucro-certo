@@ -1678,8 +1678,24 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
         }
 
-        // --- FLUXO PADRÃO TECNOSPEED ---
+        // --- FLUXO PADRÃO TECNOSPEED / PORTAL NACIONAL (via PlugNotas) ---
+        // Para o Portal Nacional, a empresa DEVE ter sua própria API Key da PlugNotas configurada.
+        // A chave padrão de fallback da plataforma NÃO tem acesso à conta da empresa.
+        const PLATFORM_FALLBACK_KEYS = [
+            'f0df81e0-7bd2-498f-adbf-81e6-ed263514e487',
+            '2da392a6-79d2-4304-a8b7-959572c7e44d'
+        ];
+        const rawApiKey = config.tecnospeed_api_key || '';
+        const isUsingFallbackKey = PLATFORM_FALLBACK_KEYS.includes(rawApiKey.trim());
+
+        if (activeProvider === 'national' && (!rawApiKey || isUsingFallbackKey)) {
+            return res.status(400).json({ 
+                error: 'Para usar o Portal Nacional, você precisa configurar sua própria API Key da PlugNotas na aba "TecnoSpeed/PlugNotas" das configurações fiscais. A chave deve ser de uma conta PlugNotas com o módulo NFS-e Nacional habilitado.' 
+            });
+        }
+
         if (!config.tecnospeed_api_key) {
+
             return res.status(400).json({ error: 'Configuração TecnoSpeed incompleta (API Key ausente).' });
         }
         const apiKey = sanitizeKey(config.tecnospeed_api_key);

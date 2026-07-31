@@ -522,12 +522,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 setError('Configurações da NFe.io não encontradas ou incompletas.');
                 return;
             }
+        } else if (activeProvider === 'national') {
+            const FALLBACK_KEYS = ['f0df81e0-7bd2-498f-adbf-81e6-ed263514e487', '2da392a6-79d2-4304-a8b7-959572c7e44d'];
+            const apiKey = (currentCompany.tecnospeed_config?.tecnospeed_api_key || '').trim();
+            if (!apiKey || FALLBACK_KEYS.includes(apiKey)) {
+                setError('Para usar o Portal Nacional, configure sua própria API Key da PlugNotas na aba "TecnoSpeed/PlugNotas" das Configurações Fiscais. A chave deve ser de uma conta PlugNotas com o módulo NFS-e Nacional habilitado.');
+                return;
+            }
         } else {
             if (!currentCompany.tecnospeed_config) {
                 setError('Configurações fiscais da empresa (TecnoSpeed) não encontradas.');
                 return;
             }
         }
+
 
         if (activeProvider === 'nfeio' && type === 'nfe') {
             setError('O emissor NFe.io está configurado apenas para NFS-e (Serviço). Para emitir NF-e (Produto), use a TecnoSpeed.');
