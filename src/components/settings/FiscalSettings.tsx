@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, ChevronDown, Info, Scale, Trash2, Activity } from 'lucide-react';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, ChevronDown, Info, Scale, Trash2, Activity, Percent } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -213,9 +213,15 @@ export function FiscalSettings() {
         cnpj: '',
         inscricao_municipal: '',
         simples_nacional: true,
+        op_simp_nac: 2,
         reg_esp_trib: 0,
         trib_issqn: 1,
         tp_ret_issqn: 1,
+        default_cTribNac: '010101',
+        default_xDescServ: 'Análise e desenvolvimento de sistemas',
+        default_iss_aliquota: '2.00',
+        default_pis_aliquota: '0.00',
+        default_cofins_aliquota: '0.00',
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
@@ -416,9 +422,15 @@ export function FiscalSettings() {
             cnpj: (nat.cnpj && nat.cnpj !== '00893566000190') ? nat.cnpj : (currentCompany.cnpj || ''),
             inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
             simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
+            op_simp_nac: nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? 2 : 1),
             reg_esp_trib: nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0,
             trib_issqn: nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1,
             tp_ret_issqn: nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1,
+            default_cTribNac: nat.default_cTribNac || '010101',
+            default_xDescServ: nat.default_xDescServ || 'Análise e desenvolvimento de sistemas',
+            default_iss_aliquota: nat.default_iss_aliquota || '2.00',
+            default_pis_aliquota: nat.default_pis_aliquota || '0.00',
+            default_cofins_aliquota: nat.default_cofins_aliquota || '0.00',
             certificado_id: nat.certificado_id || '',
             certificado_vencimento: nat.certificado_vencimento || '',
             certificado_sujeito: nat.certificado_sujeito || '',
@@ -1926,7 +1938,7 @@ export function FiscalSettings() {
                         ...(effectiveIm.trim() ? { IM: effectiveIm.trim().replace(/\D/g, '') } : {}),
                         email: (currentCompany as any)?.email || "contato@empresa.com.br",
                         regTrib: {
-                            opSimpNac: nationalConfig.simples_nacional ? 1 : 1
+                            opSimpNac: Number((nationalConfig as any).op_simp_nac || (nationalConfig.simples_nacional ? 2 : 1))
                         }
                     },
                     toma: {
@@ -1949,9 +1961,9 @@ export function FiscalSettings() {
                             cLocPrestacao: effectiveMun.replace(/\D/g, '')
                         },
                         cServ: {
-                            cTribNac: "010101",
+                            cTribNac: nationalConfig.default_cTribNac || "010101",
                             cNBS: "101010000",
-                            xDescServ: "Análise e desenvolvimento de sistemas"
+                            xDescServ: nationalConfig.default_xDescServ || "Análise e desenvolvimento de sistemas"
                         }
                     },
                     valores: {
@@ -4854,14 +4866,22 @@ export function FiscalSettings() {
                                 placeholder="Inscrição Municipal da Empresa"
                             />
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Opção pelo Simples Nacional</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Opção pelo Simples Nacional (Regime Tributário)</label>
                                 <select
-                                    value={nationalConfig.simples_nacional ? 'true' : 'false'}
-                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, simples_nacional: e.target.value === 'true' }))}
+                                    value={nationalConfig.op_simp_nac ?? (nationalConfig.simples_nacional ? 2 : 1)}
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setNationalConfig(prev => ({ 
+                                            ...prev, 
+                                            op_simp_nac: val,
+                                            simples_nacional: val === 2 || val === 3
+                                        }));
+                                    }}
                                     className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                 >
-                                    <option value="true">Sim, Optante pelo Simples Nacional</option>
-                                    <option value="false">Não, Regime Normal (Lucro Presumido / Real)</option>
+                                    <option value="1">1 - Não Optante (Regime Normal: Lucro Presumido / Real)</option>
+                                    <option value="2">2 - Optante pelo Simples Nacional (ME / EPP)</option>
+                                    <option value="3">3 - Optante pelo Simples Nacional (MEI - Microempreendedor Individual)</option>
                                 </select>
                             </div>
                             <div>
@@ -4906,6 +4926,60 @@ export function FiscalSettings() {
                                     <option value="1">1 - Não Retido</option>
                                     <option value="2">2 - Retido pelo Tomador</option>
                                 </select>
+                            </div>
+
+                            <div className="col-span-full pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4">
+                                <h4 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-2">
+                                    <Percent size={16} /> Alíquotas e Valores Padrão (Portal Nacional)
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <Input
+                                            label="Código Tributação Nacional (cTribNac)"
+                                            value={nationalConfig.default_cTribNac || '010101'}
+                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cTribNac: e.target.value }))}
+                                            placeholder="Ex: 010101"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Input
+                                            label="Alíquota ISSQN Padrão (%)"
+                                            type="number"
+                                            step="0.01"
+                                            value={nationalConfig.default_iss_aliquota || '2.00'}
+                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
+                                            placeholder="Ex: 2.00"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Input
+                                            label="Alíquota PIS (%)"
+                                            type="number"
+                                            step="0.01"
+                                            value={nationalConfig.default_pis_aliquota || '0.00'}
+                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_pis_aliquota: e.target.value }))}
+                                            placeholder="Ex: 0.65"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Input
+                                            label="Alíquota COFINS (%)"
+                                            type="number"
+                                            step="0.01"
+                                            value={nationalConfig.default_cofins_aliquota || '0.00'}
+                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cofins_aliquota: e.target.value }))}
+                                            placeholder="Ex: 3.00"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            label="Descrição Padrão do Serviço (xDescServ)"
+                                            value={nationalConfig.default_xDescServ || 'Análise e desenvolvimento de sistemas'}
+                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_xDescServ: e.target.value }))}
+                                            placeholder="Descrição dos serviços prestados"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
