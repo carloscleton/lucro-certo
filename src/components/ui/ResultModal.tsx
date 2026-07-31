@@ -530,9 +530,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         const isHomolog = tpAmb === 2 || tpAmb === '2';
                                         const isDPS = chaveLimpa.startsWith('DPS');
                                         const paramName = isDPS ? 'idDPS' : 'chNFSe';
-                                        const portalUrl = isHomolog
-                                            ? `https://sefin.producaorestrita.nfse.gov.br/SefinNacional/nfse/contribuinte/consulta.html?${paramName}=${chaveLimpa}`
-                                            : `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?${paramName}=${chaveLimpa}`;
+                                        const ambParam = isHomolog ? '&tpAmb=2' : '';
+                                        const portalUrl = `https://www.nfse.gov.br/ConsultarNfse/consulta.aspx?${paramName}=${chaveLimpa}${ambParam}`;
                                         return (
                                             <a
                                                 href={portalUrl}
