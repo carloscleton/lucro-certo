@@ -1882,70 +1882,108 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
 
             // Payload DPS conforme especificação ADN NFS-e Nacional
-            const adnPayload: any = {
-                infDPS: {
-                    tpAmb,
-                    dhEmi,
-                    dCompet,
-                    prest: {
-                        CNPJ: prestadorCnpj,
-                        ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {})
-                    },
-                    toma: tomadorDoc.length === 11
-                        ? { CPF: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
-                        : { CNPJ: tomadorDoc || '00000000000000', xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' },
-                    serv: {
-                        locPrest: {
-                            cLocPrestacao
-                        },
-                        cServ: {
-                            cTribNac: codigoTribNac6,
-                            ...(servItem.codigo ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
-                            ...(nat.default_cnae ? { CNAE: nat.default_cnae } : {}),
-                            xDescServ: descricao
-                        }
-                    },
-                    valores: {
-                        vServPrest: {
-                            vServ: valorTotal
-                        }
+            // O payload final enviado para o governo
+            let adnPayload: any;
+
+            if (payload && payload.infDPS) {
+                // 1. FORMATO DIRETO ADN (RAW JSON): O usuário enviou o JSON no formato oficial infDPS
+                console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
+                adnPayload = { ...payload };
+
+                // Mescla valores padrões necessários se não definidos
+                if (!adnPayload.infDPS.tpAmb) adnPayload.infDPS.tpAmb = tpAmb;
+                if (!adnPayload.infDPS.dhEmi) adnPayload.infDPS.dhEmi = dhEmi;
+                if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
+
+                // Garante que o cTribNac tenha 6 dígitos se presente
+                if (adnPayload.infDPS.serv?.cServ?.cTribNac) {
+                    adnPayload.infDPS.serv.cServ.cTribNac = String(adnPayload.infDPS.serv.cServ.cTribNac).replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                }
+
+                // Ajusta a estrutura do endereço se fornecido no formato antigo (CEP/cMun fora do endNac)
+                const endToma = adnPayload.infDPS.toma?.end;
+                if (endToma && !endToma.endNac) {
+                    const cMun = endToma.cMun || endToma.codigoCidade || '';
+                    const cep = endToma.CEP || endToma.cep || '';
+                    if (cMun || cep) {
+                        endToma.endNac = {
+                            ...(cMun ? { cMun: String(cMun).replace(/\D/g, '') } : {}),
+                            ...(cep ? { CEP: String(cep).replace(/\D/g, '') } : {})
+                        };
+                        delete endToma.cMun;
+                        delete endToma.codigoCidade;
+                        delete endToma.cep;
+                        delete endToma.CEP;
                     }
                 }
-            };
+            } else {
+                // 2. FORMATO PLUGNOTAS (SISTEMA): O payload vem do formulário padrão do lucro-certo
+                console.log(`🏛️ [ADN-NACIONAL] Mapeando payload do padrão PlugNotas para o padrão nacional ADN.`);
+                adnPayload = {
+                    infDPS: {
+                        tpAmb,
+                        dhEmi,
+                        dCompet,
+                        prest: {
+                            CNPJ: prestadorCnpj,
+                            ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {})
+                        },
+                        toma: tomadorDoc.length === 11
+                            ? { CPF: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
+                            : { CNPJ: tomadorDoc || '00000000000000', xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' },
+                        serv: {
+                            locPrest: {
+                                cLocPrestacao
+                            },
+                            cServ: {
+                                cTribNac: codigoTribNac6,
+                                ...(servItem.codigo ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
+                                ...(nat.default_cnae ? { CNAE: nat.default_cnae } : {}),
+                                xDescServ: descricao
+                            }
+                        },
+                        valores: {
+                            vServPrest: {
+                                vServ: valorTotal
+                            }
+                        }
+                    }
+                };
 
-            // Adicionar endereço do tomador se disponível
-            const tomadorEnd = firstItem?.tomador?.endereco;
-            if (tomadorEnd) {
-                const endToma: any = {};
-                if (tomadorEnd.logradouro) endToma.xLgr = tomadorEnd.logradouro;
-                if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
-                if (tomadorEnd.complemento) endToma.xCpl = tomadorEnd.complemento;
-                if (tomadorEnd.bairro) endToma.xBairro = tomadorEnd.bairro;
-                
-                // Endereço Nacional exige agrupamento de cMun e CEP dentro do objeto endNac
-                const cMunToma = String(tomadorEnd.codigoCidade || tomadorEnd.cMun || '').replace(/\D/g, '');
-                const cepToma = String(tomadorEnd.cep || '').replace(/\D/g, '');
-                
-                if (cMunToma || cepToma) {
-                    endToma.endNac = {
-                        ...(cMunToma ? { cMun: cMunToma } : {}),
-                        ...(cepToma ? { CEP: cepToma } : {})
-                    };
+                // Adicionar endereço do tomador se disponível
+                const tomadorEnd = firstItem?.tomador?.endereco;
+                if (tomadorEnd) {
+                    const endToma: any = {};
+                    if (tomadorEnd.logradouro) endToma.xLgr = tomadorEnd.logradouro;
+                    if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
+                    if (tomadorEnd.complemento) endToma.xCpl = tomadorEnd.complemento;
+                    if (tomadorEnd.bairro) endToma.xBairro = tomadorEnd.bairro;
+                    
+                    // Endereço Nacional exige agrupamento de cMun e CEP dentro do objeto endNac
+                    const cMunToma = String(tomadorEnd.codigoCidade || tomadorEnd.cMun || '').replace(/\D/g, '');
+                    const cepToma = String(tomadorEnd.cep || '').replace(/\D/g, '');
+                    
+                    if (cMunToma || cepToma) {
+                        endToma.endNac = {
+                            ...(cMunToma ? { cMun: cMunToma } : {}),
+                            ...(cepToma ? { CEP: cepToma } : {})
+                        };
+                    }
+                    
+                    if (Object.keys(endToma).length > 0) {
+                        adnPayload.infDPS.toma.end = endToma;
+                    }
                 }
-                
-                if (Object.keys(endToma).length > 0) {
-                    adnPayload.infDPS.toma.end = endToma;
+
+                // Adicionar e-mail do tomador se disponível
+                if (firstItem?.tomador?.email) {
+                    adnPayload.infDPS.toma.email = firstItem.tomador.email;
                 }
-            }
 
-            // Adicionar e-mail do tomador se disponível
-            if (firstItem?.tomador?.email) {
-                adnPayload.infDPS.toma.email = firstItem.tomador.email;
-            }
-
-            // Opção Simples Nacional
-            if (simplesNacional) {
-                adnPayload.infDPS.optSN = simplesNacional;
+                // Opção Simples Nacional
+                if (simplesNacional) {
+                    adnPayload.infDPS.optSN = simplesNacional;
+                }
             }
 
             console.log(`📤 [ADN-NACIONAL] Payload DPS:`, JSON.stringify(adnPayload, null, 2));
