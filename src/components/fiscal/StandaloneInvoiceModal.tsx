@@ -523,10 +523,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 return;
             }
         } else if (activeProvider === 'national') {
-            const FALLBACK_KEYS = ['f0df81e0-7bd2-498f-adbf-81e6-ed263514e487', '2da392a6-79d2-4304-a8b7-959572c7e44d'];
-            const apiKey = (currentCompany.tecnospeed_config?.tecnospeed_api_key || '').trim();
-            if (!apiKey || FALLBACK_KEYS.includes(apiKey)) {
-                setError('Para usar o Portal Nacional, configure sua própria API Key da PlugNotas na aba "TecnoSpeed/PlugNotas" das Configurações Fiscais. A chave deve ser de uma conta PlugNotas com o módulo NFS-e Nacional habilitado.');
+            const natConfig = currentCompany?.settings?.national_config;
+            if (!natConfig?.certificado_pfx_base64) {
+                setError('Para usar o Portal Nacional, faça o upload do certificado digital PFX/A1 na aba "Portal Nacional" das Configurações Fiscais antes de emitir.');
                 return;
             }
         } else {

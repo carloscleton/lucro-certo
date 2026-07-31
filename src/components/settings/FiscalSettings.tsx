@@ -209,8 +209,7 @@ export function FiscalSettings() {
     const [savingNational, setSavingNational] = useState(false);
     const [nationalConfig, setNationalConfig] = useState({
         ambiente: 'homologacao',
-        client_id: '',
-        client_secret: '',
+        certificado_senha: '',
         cnpj: '',
         inscricao_municipal: '',
         simples_nacional: true,
@@ -406,8 +405,7 @@ export function FiscalSettings() {
         const nat = currentCompany.settings?.national_config || {};
         setNationalConfig({
             ambiente: nat.ambiente || 'homologacao',
-            client_id: nat.client_id || '',
-            client_secret: nat.client_secret || '',
+            certificado_senha: nat.certificado_senha || '',
             cnpj: nat.cnpj || currentCompany.cnpj || '',
             inscricao_municipal: nat.inscricao_municipal || currentCompany.settings?.inscricao_municipal || '',
             simples_nacional: nat.simples_nacional !== undefined ? nat.simples_nacional : true,
@@ -4619,9 +4617,24 @@ export function FiscalSettings() {
                         </div>
                     </details>
 
-                    {/* Bloco de Credenciais e Ambiente */}
+                    {/* Bloco de Ambiente */}
                     <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Credenciais do Portal Nacional (Serpro)</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Configuração do Ambiente — ADN gov.br</h4>
+
+                        {/* Aviso sobre autenticação mTLS */}
+                        <div className="mb-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                                <span className="text-blue-500 text-lg mt-0.5">🔐</span>
+                                <div>
+                                    <p className="text-xs font-bold text-blue-700 dark:text-blue-400">Autenticação por Certificado Digital (mTLS)</p>
+                                    <p className="text-[11px] text-blue-600/80 dark:text-blue-400/70 mt-1 leading-relaxed">
+                                        O Portal Nacional NFS-e (ADN gov.br) usa autenticação pelo próprio certificado digital da empresa — não há API Key, Consumer Key ou senha de portal.
+                                        Faça o upload do seu certificado A1/PFX abaixo e informe a senha do arquivo. O sistema usará o certificado diretamente para autenticar cada emissão.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ambiente</label>
@@ -4630,27 +4643,21 @@ export function FiscalSettings() {
                                     onChange={(e) => setNationalConfig(prev => ({ ...prev, ambiente: e.target.value }))}
                                     className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                 >
-                                    <option value="homologacao">Produção Restrita (REST_RESTRITA - Testes)</option>
-                                    <option value="producao">Produção (PRODUCAO - Real)</option>
+                                    <option value="homologacao">Produção Restrita (adn.producaorestrita.nfse.gov.br — Testes)</option>
+                                    <option value="producao">Produção (adn.nfse.gov.br — Notas com validade jurídica)</option>
                                 </select>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight">
-                                    <strong>Homologação</strong> permite simular emissões sem efeito fiscal. <strong>Produção</strong> emite notas com validade jurídica.
+                                    Em <strong>Produção Restrita</strong>, as notas são simuladas. Em <strong>Produção</strong>, as notas têm validade fiscal real.
                                 </p>
                             </div>
 
                             <Input
-                                label="Client ID / Consumer Key"
-                                value={nationalConfig.client_id || ''}
-                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, client_id: e.target.value }))}
-                                placeholder="Chave do Consumidor gerada no Serpro"
-                            />
-
-                            <Input
-                                label="Client Secret / Consumer Secret"
+                                label="Senha do Certificado Digital (PFX)"
                                 type="password"
-                                value={nationalConfig.client_secret || ''}
-                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, client_secret: e.target.value }))}
-                                placeholder="Segredo do Consumidor gerado no Serpro"
+                                value={(nationalConfig as any).certificado_senha || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, certificado_senha: e.target.value }))}
+                                placeholder="Senha do arquivo .pfx / .p12"
+                                helpText="Informe a senha do arquivo de certificado antes de fazer o upload abaixo."
                             />
                         </div>
                     </div>
