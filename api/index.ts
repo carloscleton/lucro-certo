@@ -7,6 +7,8 @@ import FormData from 'form-data';
 import nodemailer from 'nodemailer';
 import https from 'https';
 import forge from 'node-forge';
+import zlib from 'zlib';
+import { SignedXml } from 'xml-crypto';
 import { PaymentFactory } from './services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1986,12 +1988,170 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-            console.log(`📤 [ADN-NACIONAL] Payload DPS:`, JSON.stringify(adnPayload, null, 2));
+            console.log(`📤 [ADN-NACIONAL] Payload DPS (JSON):`, JSON.stringify(adnPayload, null, 2));
+
+            // 1. Gerar o XML correspondente à DPS
+            const inf = adnPayload.infDPS || {};
+            
+            // Gerar Id único da DPS de 42 posições numéricas + prefixo DPS (45 posições)
+            const prestCnpjClean = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
+            const rawId = inf.Id || inf.id || `${prestCnpjClean}${Date.now()}`;
+            const idDigits = rawId.replace(/\D/g, '').substring(0, 42).padEnd(42, '0');
+            const dpsId = `DPS${idDigits}`;
+
+            const prestIM = inf.prest?.IM ? `<IM>${inf.prest.IM}</IM>` : '';
+            
+            const tomadorDocXml = inf.toma?.CPF 
+                ? `<CPF>${inf.toma.CPF}</CPF>` 
+                : (inf.toma?.CNPJ ? `<CNPJ>${inf.toma.CNPJ}</CNPJ>` : '');
+            
+            // Extrair endereço do tomador de forma robusta
+            const tomadorEnd = inf.toma?.end;
+            let cMunToma = '';
+            let cepToma = '';
+            let endNacXml = '';
+            
+            if (tomadorEnd) {
+                const endNac = tomadorEnd.endNac;
+                if (endNac) {
+                    cMunToma = String(endNac.cMun || '').replace(/\D/g, '');
+                    cepToma = String(endNac.CEP || endNac.cep || '').replace(/\D/g, '');
+                } else {
+                    cMunToma = String(tomadorEnd.cMun || tomadorEnd.codigoCidade || '').replace(/\D/g, '');
+                    cepToma = String(tomadorEnd.cep || tomadorEnd.CEP || '').replace(/\D/g, '');
+                }
+                
+                if (cMunToma || cepToma) {
+                    endNacXml = `
+        <endNac>
+          ${cMunToma ? `<cMun>${cMunToma}</cMun>` : ''}
+          ${cepToma ? `<CEP>${cepToma}</CEP>` : ''}
+        </endNac>`;
+                }
+            }
+
+            const tomadorEndXml = tomadorEnd ? `
+      <end>${endNacXml}
+        ${tomadorEnd.xLgr ? `<xLgr>${tomadorEnd.xLgr}</xLgr>` : ''}
+        ${tomadorEnd.nro ? `<nro>${tomadorEnd.nro}</nro>` : ''}
+        ${tomadorEnd.xCpl ? `<xCpl>${tomadorEnd.xCpl}</xCpl>` : ''}
+        ${tomadorEnd.xBairro ? `<xBairro>${tomadorEnd.xBairro}</xBairro>` : ''}
+      </end>` : '';
+
+            const servLocXml = inf.serv?.locPrest?.cLocPrestacao 
+                ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
+                : '';
+
+            const servItemXml = inf.serv?.cServ ? `
+      <cServ>
+        <cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>
+        ${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}
+        ${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}
+        <xDescServ>${inf.serv.cServ.xDescServ}</xDescServ>
+      </cServ>` : '';
+
+            const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `
+    <valores>
+      <vServPrest>
+        <vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ>
+      </vServPrest>
+    </valores>` : '';
+
+            // Montar XML da DPS conforme o leiaute nacional do contribuinte
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+  <infDPS Id="${dpsId}">
+    <tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb>
+    <dhEmi>${inf.dhEmi || dhEmi}</dhEmi>
+    <dCompet>${inf.dCompet || dCompet}</dCompet>
+    <prest>
+      <CNPJ>${prestCnpjClean}</CNPJ>
+      ${prestIM}
+    </prest>
+    <toma>
+      ${tomadorDocXml}
+      <xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>
+      ${tomadorEndXml}
+      ${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}
+    </toma>
+    <serv>
+      ${servLocXml}
+      ${servItemXml}
+    </serv>
+    ${valoresXml}
+    <optSN>${inf.optSN || simplesNacional || 1}</optSN>
+  </infDPS>
+</DPS>`.trim();
+
+            console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
+
+            let signedXml = '';
+            try {
+                // 2. Assinar XML utilizando xml-crypto com mTLS
+                const sig = new SignedXml({
+                    privateKey: privateKeyPem,
+                    signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                    canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#',
+                });
+                
+                sig.addReference({
+                    xpath: "//*[local-name()='infDPS']",
+                    transforms: [
+                        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+                        'http://www.w3.org/2001/10/xml-exc-c14n#',
+                    ],
+                    digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
+                });
+
+                // Provedor de informações do certificado (obrigatoriamente exigido pela receita/Sefin)
+                sig.keyInfoProvider = {
+                    getKeyInfo(key, prefix) {
+                        const certClean = certificatePem
+                            .replace(/-----BEGIN CERTIFICATE-----/g, '')
+                            .replace(/-----END CERTIFICATE-----/g, '')
+                            .replace(/\s+/g, '');
+                        
+                        const pref = prefix ? `${prefix}:` : '';
+                        return `<${pref}X509Data><${pref}X509Certificate>${certClean}</${pref}X509Certificate></${pref}X509Data>`;
+                    },
+                    getKey() {
+                        return Buffer.from(privateKeyPem);
+                    }
+                };
+
+                sig.computeSignature(dpsXml, {
+                    prefix: '',
+                    location: {
+                        reference: "//*[local-name()='infDPS']",
+                        action: 'after',
+                    },
+                });
+
+                signedXml = sig.getSignedXml();
+                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso.`);
+            } catch (signErr: any) {
+                console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
+                throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
+            }
+
+            // 3. Compactar em Gzip e converter para Base64
+            let dpsXmlGZipB64 = '';
+            try {
+                const gzipBuffer = zlib.gzipSync(Buffer.from(signedXml, 'utf-8'));
+                dpsXmlGZipB64 = gzipBuffer.toString('base64');
+                console.log(`📦 [ADN-NACIONAL] Compactação Gzip e codificação Base64 concluídas. Tamanho final: ${dpsXmlGZipB64.length} caracteres`);
+            } catch (gzipErr: any) {
+                console.error('❌ [ADN-NACIONAL-GZIP] Erro ao compactar XML em Gzip:', gzipErr.message);
+                throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
+            }
+
+            // 4. Montar o payload final com a propriedade dpsXmlGZipB64
+            const finalRequestPayload = { dpsXmlGZipB64 };
 
             try {
                 const adnResponse = await axios.post(
                     `${sefinBaseUrl}/nfse`,
-                    adnPayload,
+                    finalRequestPayload,
                     {
                         httpsAgent,
                         headers: { 'Content-Type': 'application/json' },

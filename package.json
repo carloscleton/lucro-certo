@@ -44,7 +44,8 @@
     "react-router-dom": "^7.13.0",
     "react-to-print": "^3.3.0",
     "recharts": "^3.7.0",
-    "stripe": "^20.4.0"
+    "stripe": "^20.4.0",
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
