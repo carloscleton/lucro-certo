@@ -4928,59 +4928,70 @@ export function FiscalSettings() {
                                 </select>
                             </div>
 
-                            <div className="col-span-full pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4">
-                                <h4 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-2">
-                                    <Percent size={16} /> Alíquotas e Valores Padrão (Portal Nacional)
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <Input
-                                            label="Código Tributação Nacional (cTribNac)"
-                                            value={nationalConfig.default_cTribNac || '010101'}
-                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cTribNac: e.target.value }))}
-                                            placeholder="Ex: 010101"
-                                        />
+                            {(() => {
+                                const isRegimeNormal = Number(nationalConfig.op_simp_nac) === 1;
+                                return (
+                                    <div className="col-span-full pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4">
+                                        <h4 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-2">
+                                            <Percent size={16} /> {isRegimeNormal ? 'Alíquotas e Valores Padrão (Regime Normal)' : 'Valores e Dados Padrão (Simples Nacional)'}
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <Input
+                                                    label="Código Tributação Nacional (cTribNac)"
+                                                    value={nationalConfig.default_cTribNac || '010101'}
+                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cTribNac: e.target.value }))}
+                                                    placeholder="Ex: 010101"
+                                                />
+                                            </div>
+                                            
+                                            {isRegimeNormal && (
+                                                <>
+                                                    <div>
+                                                        <Input
+                                                            label="Alíquota ISSQN Padrão (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={nationalConfig.default_iss_aliquota || '2.00'}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
+                                                            placeholder="Ex: 2.00"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Input
+                                                            label="Alíquota PIS (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={nationalConfig.default_pis_aliquota || '0.00'}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_pis_aliquota: e.target.value }))}
+                                                            placeholder="Ex: 0.65"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Input
+                                                            label="Alíquota COFINS (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={nationalConfig.default_cofins_aliquota || '0.00'}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cofins_aliquota: e.target.value }))}
+                                                            placeholder="Ex: 3.00"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            <div className="md:col-span-2">
+                                                <Input
+                                                    label="Descrição Padrão do Serviço (xDescServ)"
+                                                    value={nationalConfig.default_xDescServ || 'Análise e desenvolvimento de sistemas'}
+                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_xDescServ: e.target.value }))}
+                                                    placeholder="Descrição dos serviços prestados"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Input
-                                            label="Alíquota ISSQN Padrão (%)"
-                                            type="number"
-                                            step="0.01"
-                                            value={nationalConfig.default_iss_aliquota || '2.00'}
-                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
-                                            placeholder="Ex: 2.00"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Input
-                                            label="Alíquota PIS (%)"
-                                            type="number"
-                                            step="0.01"
-                                            value={nationalConfig.default_pis_aliquota || '0.00'}
-                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_pis_aliquota: e.target.value }))}
-                                            placeholder="Ex: 0.65"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Input
-                                            label="Alíquota COFINS (%)"
-                                            type="number"
-                                            step="0.01"
-                                            value={nationalConfig.default_cofins_aliquota || '0.00'}
-                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cofins_aliquota: e.target.value }))}
-                                            placeholder="Ex: 3.00"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Input
-                                            label="Descrição Padrão do Serviço (xDescServ)"
-                                            value={nationalConfig.default_xDescServ || 'Análise e desenvolvimento de sistemas'}
-                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_xDescServ: e.target.value }))}
-                                            placeholder="Descrição dos serviços prestados"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
                         </div>
                     </div>
 
