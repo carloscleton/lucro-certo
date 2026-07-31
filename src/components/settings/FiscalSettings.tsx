@@ -1889,8 +1889,9 @@ export function FiscalSettings() {
         const isNational = activeSubTab === 'national';
 
         if (isNational) {
-            const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "08187168000160";
-            const effectiveIm = nationalConfig.inscricao_municipal || "1234567";
+            const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "41540344000170";
+            const effectiveIm = nationalConfig.inscricao_municipal || "1254103";
+            const effectiveMun = (nationalConfig as any).codigo_municipio || "2408102";
             const now = new Date();
             const pad = (num: number) => String(num).padStart(2, '0');
             const formatLocal = (date: Date) => {
@@ -1910,33 +1911,43 @@ export function FiscalSettings() {
                 infDPS: {
                     tpAmb: nationalConfig.ambiente === 'producao' ? 1 : 2,
                     dhEmi: formatLocal(now),
+                    verAplic: "1.01",
+                    serie: "80000",
+                    nDPS: "1",
                     dCompet: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+                    tpEmit: 1,
+                    cLocEmi: effectiveMun.replace(/\D/g, ''),
                     prest: {
                         CNPJ: effectiveCnpj.replace(/\D/g, ''),
-                        ...(effectiveIm ? { IM: effectiveIm.replace(/\D/g, '') } : {})
+                        ...(effectiveIm ? { IM: effectiveIm.replace(/\D/g, '') } : {}),
+                        email: (currentCompany as any)?.email || "contato@empresa.com.br",
+                        regTrib: {
+                            opSimpNac: nationalConfig.simples_nacional ? 1 : 1
+                        }
                     },
                     toma: {
                         CNPJ: "11222333000181",
-                        xNome: "Empresa de Teste LTDA",
+                        xNome: "EMPRESA DE TESTE LTDA",
+                        email: "teste@nfe.io",
                         end: {
                             endNac: {
-                                cMun: "2408102",
+                                cMun: effectiveMun.replace(/\D/g, ''),
                                 CEP: "59010000"
                             },
                             xLgr: "Rua Barão do Rio Branco",
                             nro: "1001",
                             xCpl: "Sala 01",
                             xBairro: "Cidade Alta"
-                        },
-                        email: "teste@nfe.io"
+                        }
                     },
                     serv: {
                         locPrest: {
-                            cLocPrestacao: "2408102"
+                            cLocPrestacao: effectiveMun.replace(/\D/g, '')
                         },
                         cServ: {
-                            cTribNac: "010701",
-                            xDescServ: "Descrição dos serviços prestados"
+                            cTribNac: "010101",
+                            cNBS: "101010000",
+                            xDescServ: "Análise e desenvolvimento de sistemas"
                         }
                     },
                     valores: {

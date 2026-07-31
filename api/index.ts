@@ -2074,18 +2074,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
             
-            const cLocEmi = String(nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            const cLocEmi = String(inf.cLocEmi || nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '2' : '1';
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
-            const verAplic = '1.0.0';
-            const serieId = '00001'; // Série DPS no ID (5 dígitos fixos)
-            const serieVal = '1'; // Série DPS no tag XML (máxima compatibilidade com schemas antigos e novos)
-            const numDpsInt = String(Date.now()).substring(0, 15);
+            const verAplic = inf.verAplic || '1.0.0';
+            const serieVal = inf.serie !== undefined ? String(inf.serie) : '1';
+            const serieId = serieVal.padStart(5, '0').substring(0, 5); // Série DPS no ID (5 dígitos fixos)
+            const numDpsInt = inf.nDPS !== undefined ? String(inf.nDPS) : String(Date.now()).substring(0, 15);
             const numero = numDpsInt.padStart(15, '0'); // Número DPS (15 dígitos)
             const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serieId}${numero}`;
 
-            const optSNVal = Number(inf.optSN || simplesNacional || 1);
+            const optSNVal = Number(inf.prest?.regTrib?.opSimpNac !== undefined ? inf.prest.regTrib.opSimpNac : (inf.optSN !== undefined ? inf.optSN : (simplesNacional || 1)));
             // optSN / opSimpNac no XSD: 1=Não Optante, 2=MEI, 3=ME/EPP
             // opSimpNac é usado para decidir qual tag de totTrib usar
             const opSimpNac = optSNVal; // 1=Não Optante, 2=MEI, 3=ME/EPP
@@ -2127,7 +2127,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
                 : '';
 
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${inf.serv.cServ.cTribMun ? `<cTribMun>${inf.serv.cServ.cTribMun}</cTribMun>` : ''}${inf.serv.cServ.CNAE ? `<CNAE>${inf.serv.cServ.CNAE}</CNAE>` : ''}${inf.serv.cServ.cNBS ? `<cNBS>${inf.serv.cServ.cNBS}</cNBS>` : ''}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
