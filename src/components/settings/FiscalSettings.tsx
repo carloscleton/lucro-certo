@@ -1946,64 +1946,6 @@ export function FiscalSettings() {
 
         const isTest = isNfeio ? true : config.use_test_data;
         const isNacionalLegacy = isNfeio ? false : !!config.nfse_nacional;
-    };
-
-    const handleSyncFromCompanyProfile = () => {
-        if (!currentCompany) return;
-
-        const companyCnpj = currentCompany.cnpj || '';
-        const legalName = currentCompany.legal_name || currentCompany.name || '';
-        const tradeName = currentCompany.trade_name || currentCompany.name || '';
-        const phone = currentCompany.phone || '';
-        const email = currentCompany.email || '';
-        const im = currentCompany.settings?.inscricao_municipal || (currentCompany as any).inscricao_municipal || '';
-        const ie = currentCompany.settings?.inscricao_estadual || (currentCompany as any).inscricao_estadual || '';
-
-        const street = currentCompany.street || '';
-        const number = currentCompany.number || '';
-        const complement = currentCompany.complement || '';
-        const neighborhood = currentCompany.neighborhood || '';
-        const city = currentCompany.city || '';
-        const zipCode = currentCompany.zip_code || '';
-        const state = currentCompany.state || '';
-        const cityCode = currentCompany.city_code || (currentCompany as any).codigo_municipio || '';
-
-        // Atualiza Configuração TecnoSpeed
-        setConfig((prev: any) => ({
-            ...prev,
-            cnpj: companyCnpj,
-            razao_social: legalName,
-            nome_fantasia: tradeName,
-            telefone: phone,
-            email: email,
-            inscricao_municipal: im || prev.inscricao_municipal,
-            inscricao_estadual: ie || prev.inscricao_estadual,
-            endereco: {
-                ...prev.endereco,
-                logradouro: street || prev.endereco?.logradouro,
-                numero: number || prev.endereco?.numero,
-                complemento: complement || prev.endereco?.complemento,
-                bairro: neighborhood || prev.endereco?.bairro,
-                cidade: city || prev.endereco?.cidade,
-                cep: zipCode || prev.endereco?.cep,
-                uf: state || prev.endereco?.uf,
-                codigoCidade: cityCode || prev.endereco?.codigoCidade
-            }
-        }));
-
-        // Atualiza Configuração Portal Nacional (ADN)
-        setNationalConfig((prev: any) => ({
-            ...prev,
-            cnpj: companyCnpj,
-            razao_social: legalName,
-            nome_fantasia: tradeName,
-            inscricao_municipal: im || prev.inscricao_municipal,
-            codigo_municipio: cityCode || prev.codigo_municipio,
-            uf: state || prev.uf
-        }));
-
-        toast.success("Dados da empresa importados do cadastro com sucesso!");
-    };
         
         const effectiveCnpj = isTest ? "08187168000160" : (config.cnpj ? config.cnpj.replace(/\D/g, '') : "08187168000160");
         const effectiveCity = isNfeio
@@ -2106,6 +2048,69 @@ export function FiscalSettings() {
             }
         ];
         setTestJson(JSON.stringify(mock, null, 2));
+    };
+
+    const handleSyncFromCompanyProfile = () => {
+        if (!currentCompany) return;
+
+        const comp = currentCompany as any;
+        const companyCnpj = comp.cnpj || '';
+        const legalName = comp.legal_name || comp.name || '';
+        const tradeName = comp.trade_name || comp.name || '';
+        const phone = comp.phone || '';
+        const email = comp.email || '';
+        const im = comp.settings?.inscricao_municipal || comp.inscricao_municipal || '';
+        const ie = comp.settings?.inscricao_estadual || comp.inscricao_estadual || '';
+
+        const street = comp.street || '';
+        const number = comp.number || '';
+        const complement = comp.complement || '';
+        const neighborhood = comp.neighborhood || '';
+        const city = comp.city || '';
+        const zipCode = comp.zip_code || '';
+        const state = comp.state || '';
+        const cityCode = comp.city_code || comp.codigo_municipio || '';
+
+        // Atualiza Configuração TecnoSpeed
+        setConfig((prev: any) => ({
+            ...prev,
+            cnpj: companyCnpj,
+            razao_social: legalName,
+            nome_fantasia: tradeName,
+            telefone: phone,
+            email: email,
+            inscricao_municipal: im || prev.inscricao_municipal,
+            inscricao_estadual: ie || prev.inscricao_estadual,
+            endereco: {
+                ...prev.endereco,
+                logradouro: street || prev.endereco?.logradouro,
+                numero: number || prev.endereco?.numero,
+                complemento: complement || prev.endereco?.complemento,
+                bairro: neighborhood || prev.endereco?.bairro,
+                cidade: city || prev.endereco?.cidade,
+                cep: zipCode || prev.endereco?.cep,
+                uf: state || prev.endereco?.uf,
+                codigoCidade: cityCode || prev.endereco?.codigoCidade
+            }
+        }));
+
+        // Atualiza Configuração Portal Nacional (ADN)
+        setNationalConfig((prev: any) => ({
+            ...prev,
+            cnpj: companyCnpj,
+            razao_social: legalName,
+            nome_fantasia: tradeName,
+            inscricao_municipal: im || prev.inscricao_municipal,
+            codigo_municipio: cityCode || prev.codigo_municipio,
+            uf: state || prev.uf
+        }));
+
+        setResultModal({
+            isOpen: true,
+            title: 'Dados Importados!',
+            message: 'Os dados da empresa foram importados do cadastro com sucesso.',
+            type: 'success'
+        });
     };
 
     const handleSyncIssuer = async () => {
