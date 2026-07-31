@@ -2065,11 +2065,24 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         <xDescServ>${inf.serv.cServ.xDescServ}</xDescServ>
       </cServ>` : '';
 
+            // Extrair ou inicializar tributação municipal
+            const trib = inf.valores?.trib || {};
+            const tribMun = trib.tribMun || {};
+            const tribISSQN = tribMun.tribISSQN || 1;
+            // tpRetISSQN: 1 = Não Retido, 2 = Retido
+            const tpRetISSQN = tribMun.tpRetISSQN || (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1);
+
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `
     <valores>
       <vServPrest>
         <vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ>
       </vServPrest>
+      <trib>
+        <tribMun>
+          <tribISSQN>${tribISSQN}</tribISSQN>
+          <tpRetISSQN>${tpRetISSQN}</tpRetISSQN>
+        </tribMun>
+      </trib>
     </valores>` : '';
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
