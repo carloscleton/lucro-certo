@@ -1912,7 +1912,7 @@ export function FiscalSettings() {
                     tpAmb: nationalConfig.ambiente === 'producao' ? 1 : 2,
                     dhEmi: formatLocal(now),
                     verAplic: "1.01",
-                    serie: "80000",
+                    serie: "1",
                     nDPS: "1",
                     dCompet: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
                     tpEmit: 1,

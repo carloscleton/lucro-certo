@@ -2079,7 +2079,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
             const verAplic = inf.verAplic || '1.0.0';
-            const serieVal = inf.serie !== undefined ? String(inf.serie) : '1';
+            let serieVal = inf.serie !== undefined ? String(inf.serie) : '1';
+            // Séries 80000 a 89999 são reservadas ao Fisco (Nota Avulsa). Contribuintes normais usam Séries 1 a 999.
+            if (serieVal === '80000' || serieVal.startsWith('800')) {
+                console.warn(`⚠️ [ADN-NACIONAL] Série ${serieVal} é reservada ao Fisco. Ajustando para Série 1 para emissão pelo contribuinte.`);
+                serieVal = '1';
+            }
             const serieId = serieVal.padStart(5, '0').substring(0, 5); // Série DPS no ID (5 dígitos fixos)
             const numDpsInt = inf.nDPS !== undefined ? String(inf.nDPS) : String(Date.now()).substring(0, 15);
             const numero = numDpsInt.padStart(15, '0'); // Número DPS (15 dígitos)
