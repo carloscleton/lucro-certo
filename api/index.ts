@@ -2708,13 +2708,34 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         const isTimeout = error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED' || error.message?.includes('timeout');
         const is503 = error.response?.status === 503;
         
-        let customMessage = error.message;
+        const respData = error.response?.data;
+        let realErrorMsg = '';
+
+        if (respData) {
+            if (typeof respData === 'string') {
+                realErrorMsg = respData;
+            } else if (respData.message && typeof respData.message === 'string') {
+                realErrorMsg = respData.message;
+            } else if (respData.error && typeof respData.error === 'string') {
+                realErrorMsg = respData.error;
+            } else if (respData.erros && Array.isArray(respData.erros) && respData.erros.length > 0) {
+                realErrorMsg = respData.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join('\n');
+            } else if (Array.isArray(respData) && respData[0]?.message) {
+                realErrorMsg = respData.map((e: any) => e.message || JSON.stringify(e)).join('\n');
+            } else if (typeof respData === 'object') {
+                realErrorMsg = JSON.stringify(respData);
+            }
+        }
+
+        let customMessage = realErrorMsg || error.message;
         if (isConnectionReset) {
             customMessage = 'Conexão interrompida (ECONNRESET) com o provedor fiscal. A API do provedor (NFe.io/Tecnospeed) fechou a conexão inesperadamente. Por favor, tente novamente em alguns instantes.';
         } else if (isTimeout) {
             customMessage = 'Tempo limite de resposta excedido (timeout) ao se comunicar com o provedor fiscal. O servidor deles está demorando muito para responder.';
         } else if (is503) {
             customMessage = 'Serviço Indisponível (Erro 503) no provedor fiscal. A API deles (NFe.io/Tecnospeed) pode estar em manutenção ou sobrecarregada. Tente novamente mais tarde.';
+        } else if (!realErrorMsg && customMessage.includes('Request failed with status code')) {
+            customMessage = 'Erro retornado pelo provedor de Nota Fiscal.';
         }
         
         res.status(error.response?.status || 500).json({ 
