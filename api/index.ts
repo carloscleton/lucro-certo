@@ -1846,16 +1846,32 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
-            const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101';
-            const descricao = servItem.discriminacao || servItem.descricao || 'Prestação de serviços';
-            const inscricaoMunicipal = firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '';
-            const simplesNacional = nat.simples_nacional ? 1 : 0; // 1=SN, 0=Não optante
-            const idIntegracao = firstItem?.idIntegracao || `DPS${prestadorCnpj}${Date.now()}`.substring(0, 42).padEnd(42, '0');
+            // O cTribNac no padrão nacional deve ter exatamente 6 dígitos numéricos.
+            // Se vier 9 dígitos (como '010101001'), extrai os primeiros 6 dígitos.
+            const codigoTribNac6 = codigoTribNac.replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
 
-            // Data/hora de emissão e competência no formato ISO-8601
+            // Data/hora de emissão e competência formatadas localmente com offset (ex: 2026-07-31T09:30:00-03:00)
             const now = new Date();
-            const dhEmi = now.toISOString();
-            const dCompet = now.toISOString().substring(0, 10); // YYYY-MM-DD
+            const formatLocalSefazDate = (date: Date) => {
+                const pad = (num: number) => String(num).padStart(2, '0');
+                const year = date.getFullYear();
+                const month = pad(date.getMonth() + 1);
+                const day = pad(date.getDate());
+                const hours = pad(date.getHours());
+                const minutes = pad(date.getMinutes());
+                const seconds = pad(date.getSeconds());
+                
+                const offset = date.getTimezoneOffset();
+                const sign = offset > 0 ? '-' : '+';
+                const absOffset = Math.abs(offset);
+                const offsetHours = pad(Math.floor(absOffset / 60));
+                const offsetMinutes = pad(absOffset % 60);
+                
+                return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+            };
+
+            const dhEmi = formatLocalSefazDate(now);
+            const dCompet = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             // Código do município de prestação (IBGE 7 dígitos)
             const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
@@ -1878,7 +1894,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             cLocPrestacao
                         },
                         cServ: {
-                            cTribNac: codigoTribNac,
+                            cTribNac: codigoTribNac6,
+                            ...(servItem.codigo ? { cTribMun: String(servItem.codigo).replace(/\D/g, '').substring(0, 20) } : {}),
                             ...(nat.default_cnae ? { CNAE: nat.default_cnae } : {}),
                             xDescServ: descricao
                         }
@@ -1974,27 +1991,33 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.error(`❌ [ADN-NACIONAL] Erro na emissão (HTTP ${errStatus}):`, JSON.stringify(errData, null, 2));
                 console.error(`❌ [ADN-NACIONAL] Detalhes do erro:`, adnErr.message, adnErr.code || '');
 
+                // Tratamento detalhado da resposta de erro do servidor
+                let detailedMessage = '';
+                if (errData) {
+                    if (typeof errData === 'object') {
+                        detailedMessage = JSON.stringify(errData, null, 2);
+                    } else if (Buffer.isBuffer(errData)) {
+                        detailedMessage = errData.toString('utf-8');
+                    } else {
+                        detailedMessage = String(errData);
+                    }
+                } else {
+                    detailedMessage = adnErr.message;
+                }
+
                 // Erros de certificado/mTLS
                 if (errStatus === 496 || adnErr.code === 'ECONNRESET' || adnErr.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || String(adnErr.message).includes('certificate') || String(adnErr.message).includes('ssl') || String(adnErr.message).includes('CERT')) {
                     return res.status(400).json({
                         error: 'Erro de autenticação mTLS no Portal Nacional. Verifique se o certificado digital está correto, válido e cadastrado no Portal Nacional (nfse.gov.br).',
-                        detail: adnErr.message,
+                        detail: detailedMessage,
                         hint: 'Acesse https://nfse.gov.br e verifique se o CNPJ da empresa está habilitado como prestador de serviços no Portal Nacional.'
                     });
                 }
 
-                // Erro de schema/validação da DPS
-                if (errData?.erros || errData?.errors || errData?.mensagem) {
-                    return res.status(errStatus || 400).json({
-                        error: 'Erro de validação no Portal Nacional (ADN gov.br). A DPS enviada contém erros.',
-                        detail: errData,
-                        payload_enviado: adnPayload
-                    });
-                }
-
-                return res.status(errStatus || 500).json({
-                    error: 'Erro na emissão pelo Portal Nacional (ADN gov.br)',
-                    detail: errData || adnErr.message
+                return res.status(errStatus || 400).json({
+                    error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
+                    detail: detailedMessage,
+                    payload_enviado: adnPayload
                 });
             }
         }
