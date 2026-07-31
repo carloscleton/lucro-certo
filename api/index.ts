@@ -1921,7 +1921,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
                 if (tomadorEnd.complemento) endToma.xCpl = tomadorEnd.complemento;
                 if (tomadorEnd.bairro) endToma.xBairro = tomadorEnd.bairro;
-                if (tomadorEnd.cep) endToma.CEP = String(tomadorEnd.cep).replace(/\D/g, '');
+                
+                // Endereço Nacional exige agrupamento de cMun e CEP dentro do objeto endNac
+                const cMunToma = String(tomadorEnd.codigoCidade || tomadorEnd.cMun || '').replace(/\D/g, '');
+                const cepToma = String(tomadorEnd.cep || '').replace(/\D/g, '');
+                
+                if (cMunToma || cepToma) {
+                    endToma.endNac = {
+                        ...(cMunToma ? { cMun: cMunToma } : {}),
+                        ...(cepToma ? { CEP: cepToma } : {})
+                    };
+                }
+                
                 if (Object.keys(endToma).length > 0) {
                     adnPayload.infDPS.toma.end = endToma;
                 }
