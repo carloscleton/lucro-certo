@@ -2167,9 +2167,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             let signedXml = '';
             try {
-                // 2. Assinar XML utilizando xml-crypto com mTLS
+                const targetCert = leafCertificatePem || certificatePem;
+                const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
+                    ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
+                    : targetCert;
+                const certClean = leafCertPem
+                    .replace(/-----BEGIN CERTIFICATE-----/g, '')
+                    .replace(/-----END CERTIFICATE-----/g, '')
+                    .replace(/\s+/g, '');
+
+                // 2. Assinar XML utilizando xml-crypto com mTLS e publicCert nativo
                 const sig = new SignedXml({
                     privateKey: privateKeyPem,
+                    publicCert: certClean,
                     signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
                     canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
                     idAttribute: 'Id'
@@ -2184,26 +2194,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
                     uri: `#${dpsId}`
                 });
-
-                // Provedor de informações do certificado (obrigatoriamente exigido pela receita/Sefin)
-                sig.keyInfoProvider = {
-                    getKeyInfo(key, prefix) {
-                        const targetCert = leafCertificatePem || certificatePem;
-                        const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
-                            ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
-                            : targetCert;
-                        const certClean = leafCertPem
-                            .replace(/-----BEGIN CERTIFICATE-----/g, '')
-                            .replace(/-----END CERTIFICATE-----/g, '')
-                            .replace(/\s+/g, '');
-                        
-                        const pref = prefix ? `${prefix}:` : '';
-                        return `<${pref}X509Data><${pref}X509Certificate>${certClean}</${pref}X509Certificate></${pref}X509Data>`;
-                    },
-                    getKey() {
-                        return Buffer.from(privateKeyPem);
-                    }
-                };
 
                 sig.computeSignature(dpsXml, {
                     prefix: '',
