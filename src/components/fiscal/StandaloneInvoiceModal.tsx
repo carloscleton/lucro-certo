@@ -626,7 +626,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
                         
                         if (isNacional) {
-                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || '';
+                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || config?.codigo_tributacao_nacional || '010701';
                             const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
                             const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '').trim();
                             
@@ -634,10 +634,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 item.codigoTributacao = cleanMunCode;
                             }
 
-                            if (cleanNatCode) {
-                                const finalNatCode = cleanNatCode.substring(0, 9).padEnd(9, '0');
-                                item.codigoTributacaoNacional = finalNatCode;
-                            }
+                            const validCode = (cleanNatCode.length >= 6 && cleanNatCode !== '010101') ? cleanNatCode : '010701';
+                            item.codigoTributacaoNacional = validCode.substring(0, 9).padEnd(9, '0');
                             
                             item.codigo = cleanMunCode.substring(0, 6).padEnd(6, '0');
                             

@@ -1941,19 +1941,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
-            const codigoTribNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || '010101';
-            const inscricaoMunicipal = firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '';
-            const descricao = servItem.discriminacao || servItem.descricao || 'Prestação de serviços';
-            // optSN no XSD: 1=Não Optante, 2=MEI, 3=ME/EPP (Simples Nacional)
-            // nat.simples_nacional (bool) + nat.reg_esp_trib (number)
-            // Se não optante => 1; se simples e MEI => 2; se simples normal => 3
-            const simplesNacional = nat.simples_nacional
-                ? (nat.reg_esp_trib === 6 ? 2 : 3) // 6=MEI no regEspTrib => MEI
-                : 1; // Não optante
-            const idIntegracao = firstItem?.idIntegracao || `DPS${prestadorCnpj}${Date.now()}`.substring(0, 42).padEnd(42, '0');
-            // O cTribNac no padrão nacional deve ter exatamente 6 dígitos numéricos.
-            // Se vier 9 dígitos (como '010101001'), extrai os primeiros 6 dígitos.
-            const codigoTribNac6 = codigoTribNac.replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+            const rawCodeNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || nat.codigo_tributacao_nacional || '010701';
+            let cleanCode6 = String(rawCodeNac).replace(/\D/g, '').substring(0, 6);
+            if (!cleanCode6 || cleanCode6 === '010101' || cleanCode6.length < 6) {
+                cleanCode6 = '010701'; // Código de Tributação Nacional oficial padrão (TI / Suporte Técnico)
+            }
+            const codigoTribNac6 = cleanCode6;
 
             // Data/hora de emissão e competência formatadas localmente com offset (ex: 2026-07-31T09:30:00-03:00)
             const formatBrasiliaSefazDate = (date: Date) => {
