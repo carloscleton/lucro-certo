@@ -1941,6 +1941,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
+            const inscricaoMunicipal = String(firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '').trim();
             const rawCodeNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || nat.codigo_tributacao_nacional || '010701';
             let cleanCode6 = String(rawCodeNac).replace(/\D/g, '').substring(0, 6);
             if (!cleanCode6 || cleanCode6 === '010101' || cleanCode6.length < 6) {

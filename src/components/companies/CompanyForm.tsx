@@ -25,6 +25,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [tradeName, setTradeName] = useState('');
     const [legalName, setLegalName] = useState('');
     const [cnpj, setCnpj] = useState('');
+    const [inscricaoMunicipal, setInscricaoMunicipal] = useState('');
     const [entityType, setEntityType] = useState<'PF' | 'PJ'>('PJ');
     const [cpf, setCpf] = useState('');
     const [slug, setSlug] = useState('');
@@ -92,6 +93,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setTradeName(initialData.trade_name || '');
             setLegalName(initialData.legal_name || '');
             setCnpj(initialData.cnpj || '');
+            setInscricaoMunicipal(initialData.inscricao_municipal || (initialData as any).state_tax_number || '');
             setZipCode(initialData.zip_code || '');
             setStreet(initialData.street || '');
             setNumber(initialData.number || '');
@@ -229,6 +231,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 trade_name: tradeName,
                 legal_name: legalName,
                 cnpj: entityType === 'PJ' ? cnpj : null,
+                inscricao_municipal: inscricaoMunicipal || null,
                 cpf: entityType === 'PF' ? cpf : null,
                 slug: slug || null,
                 entity_type: entityType,
@@ -349,26 +352,44 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     </div>
 
                     {entityType === 'PJ' ? (
-                        <div className="relative">
+                        <>
+                            <div className="relative">
+                                <Input
+                                    label="CNPJ"
+                                    value={cnpj}
+                                    onChange={e => setCnpj(e.target.value)}
+                                    onBlur={() => handleCNPJLookup(cnpj)}
+                                    placeholder="00.000.000/0000-00"
+                                    className={isFetchingCNPJ ? 'opacity-50' : ''}
+                                />
+                                {isFetchingCNPJ && (
+                                    <div className="absolute right-3 top-[34px] animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                                )}
+                            </div>
                             <Input
-                                label="CNPJ"
-                                value={cnpj}
-                                onChange={e => setCnpj(e.target.value)}
-                                onBlur={() => handleCNPJLookup(cnpj)}
-                                placeholder="00.000.000/0000-00"
-                                className={isFetchingCNPJ ? 'opacity-50' : ''}
+                                label="Inscrição Municipal (IM)"
+                                value={inscricaoMunicipal}
+                                onChange={e => setInscricaoMunicipal(e.target.value)}
+                                placeholder="Ex: 1254103"
+                                helpText="Importante para emissão de Nota Fiscal (NFS-e)"
                             />
-                            {isFetchingCNPJ && (
-                                <div className="absolute right-3 top-[34px] animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
-                            )}
-                        </div>
+                        </>
                     ) : (
-                        <Input
-                            label="CPF"
-                            value={cpf}
-                            onChange={e => setCpf(e.target.value)}
-                            placeholder="000.000.000-00"
-                        />
+                        <>
+                            <Input
+                                label="CPF"
+                                value={cpf}
+                                onChange={e => setCpf(e.target.value)}
+                                placeholder="000.000.000-00"
+                            />
+                            <Input
+                                label="Inscrição Municipal (IM)"
+                                value={inscricaoMunicipal}
+                                onChange={e => setInscricaoMunicipal(e.target.value)}
+                                placeholder="Ex: 1254103"
+                                helpText="Importante para emissão de Nota Fiscal (NFS-e)"
+                            />
+                        </>
                     )}
 
                     <Input

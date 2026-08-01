@@ -1175,6 +1175,7 @@ export function FiscalSettings() {
         try {
             await updateCompany(currentEntity.id, {
                 tecnospeed_config: config,
+                inscricao_municipal: config.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || null,
                 fiscal_module_enabled: moduleEnabled
             });
             
@@ -1289,6 +1290,7 @@ export function FiscalSettings() {
             };
             await updateCompany(currentEntity.id, {
                 settings: updatedSettings,
+                inscricao_municipal: nationalConfig.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || null,
                 tecnospeed_config: config,
                 fiscal_module_enabled: moduleEnabled
             });

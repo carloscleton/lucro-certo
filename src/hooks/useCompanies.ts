@@ -8,6 +8,7 @@ export interface Company {
     trade_name: string; // Nome Fantasia
     legal_name: string; // Razão Social
     cnpj: string;
+    inscricao_municipal?: string;
     entity_type: 'PF' | 'PJ';
     cpf?: string;
     user_id: string;
@@ -133,6 +134,10 @@ export function useCompanies() {
         }
 
         const newCompanyId = data.company_id;
+
+        if (company.inscricao_municipal) {
+            await supabase.from('companies').update({ inscricao_municipal: company.inscricao_municipal }).eq('id', newCompanyId);
+        }
 
         // 2. Upload logo if file provided
         if (company.logo_file) {
