@@ -2087,23 +2087,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const inf = adnPayload.infDPS || {};
             
             // Previne erro E0008 (Data de emissão posterior ao processamento no SefinNacional):
-            // Garante que o dhEmi esteja sempre a pelo menos 5 minutos no passado relativo ao relógio atômico do governo.
-            const fiveMinPast = new Date(Date.now() - 5 * 60 * 1000);
-            const oneMinPast = new Date(Date.now() - 1 * 60 * 1000);
-            const safeDhEmiStr = formatLocalSefazDate(fiveMinPast);
-
-            if (inf.dhEmi) {
-                try {
-                    const payloadDate = new Date(inf.dhEmi);
-                    if (isNaN(payloadDate.getTime()) || payloadDate.getTime() > oneMinPast.getTime()) {
-                        inf.dhEmi = safeDhEmiStr;
-                    }
-                } catch (e) {
-                    inf.dhEmi = safeDhEmiStr;
-                }
-            } else {
-                inf.dhEmi = safeDhEmiStr;
-            }
+            // Força incondicionalmente que dhEmi seja emitido a 15 minutos no passado em relação ao momento atual.
+            // Isso elimina qualquer desincronização entre a Vercel, o navegador do usuário e o relógio atômico do SefinNacional.
+            const fifteenMinPast = new Date(Date.now() - 15 * 60 * 1000);
+            inf.dhEmi = formatLocalSefazDate(fifteenMinPast);
             
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
             const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
