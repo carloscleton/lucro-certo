@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code, FileText } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 import { PDFService } from '../../services/pdfService';
@@ -511,8 +511,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             onClick={handleOpenDanfsePdf} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                                         >
-                                            <FileText size={18} />
-                                            Visualizar PDF (DANFSE)
+                                            <Eye size={18} />
+                                            Visualizar Nota Fiscal (DANFSE)
                                         </Button>
                                     )}
                                     {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado) && (

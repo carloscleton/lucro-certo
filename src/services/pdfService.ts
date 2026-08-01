@@ -331,17 +331,26 @@ export class PDFService {
             nome?: string;
             im?: string;
             municipio?: string;
+            email?: string;
+            telefone?: string;
+            endereco?: string;
+            cep?: string;
         };
         tomador: {
             doc: string;
             nome: string;
             email?: string;
+            telefone?: string;
             endereco?: string;
+            cep?: string;
+            municipio?: string;
         };
         servico: {
             cTribNac?: string;
+            cTribMun?: string;
             descricao: string;
             valor: number;
+            nbs?: string;
         };
         impostos?: {
             issqn?: number;
@@ -354,160 +363,277 @@ export class PDFService {
         };
         ambiente?: string;
     }): Promise<Blob> {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
-        let yPos = 15;
+        const doc = new jsPDF({
+            orientation: 'p',
+            unit: 'mm',
+            format: 'a4'
+        });
+        const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+        const margin = 10;
+        const w = pageWidth - (margin * 2); // 190mm
+        let y = 10;
 
-        const primaryColor = [15, 23, 42]; // Slate 900
-        const headerColor = [30, 41, 59]; // Slate 800
-        const accentBg = [241, 245, 249]; // Slate 100
-        const borderColor = [203, 213, 225]; // Slate 300
+        doc.setLineWidth(0.3);
+        doc.setDrawColor(0, 0, 0);
 
-        // --- HEADER DANFSE ---
-        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 24, 'F');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(255, 255, 255);
-        doc.text('DANFSE - Documento Auxiliar da NFS-e Nacional', margin + 6, yPos + 10);
+        // --- 1. CABEÇALHO DANFSE v1.0 ---
+        doc.rect(margin, y, w, 22);
         
-        doc.setFontSize(8.5);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Nota Fiscal de Serviço Eletrônica | Ambiente: ${data.ambiente === 'producao' ? 'PRODUÇÃO' : 'HOMOLOGAÇÃO (TESTE)'}`, margin + 6, yPos + 17);
-
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text(`Nº ${data.nNfse || data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 11, { align: 'right' });
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Série: ${data.serie || '1'} | DPS: ${data.nDPS || '1'}`, pageWidth - margin - 6, yPos + 17, { align: 'right' });
-
-        yPos += 27;
-
-        // --- CHAVE DE ACESSO ---
-        doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'F');
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 14, 'S');
-
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(100);
-        doc.text('CHAVE DE ACESSO DA NFS-E', margin + 4, yPos + 5);
-
-        doc.setFontSize(9);
-        doc.setFont('courier', 'bold');
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        const chaveFormatted = data.chaveAcesso || '240810220089356600019000001000000000000001';
-        doc.text(chaveFormatted.replace(/(.{4})/g, '$1 ').trim(), margin + 4, yPos + 11);
-
-        yPos += 18;
-
-        // --- PRESTADOR ---
-        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text('EMITENTE / PRESTADOR DO SERVIÇO', margin + 4, yPos + 4.5);
-
-        yPos += 6;
-        doc.setFillColor(255, 255, 255);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
-
-        doc.setFontSize(8.5);
-        doc.setTextColor(50);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Razão Social / Nome: ${data.prestador.nome || 'CARLOSCLETON CARVALHO FERNANDES'}`, margin + 4, yPos + 6);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`CNPJ / CPF: ${data.prestador.cnpj || '00.893.566/0001-90'}   |   Inscrição Municipal: ${data.prestador.im || 'Isento / Não Inf.'}`, margin + 4, yPos + 12);
-
-        yPos += 22;
-
-        // --- TOMADOR ---
-        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text('TOMADOR DO SERVIÇO', margin + 4, yPos + 4.5);
-
-        yPos += 6;
-        doc.setFillColor(255, 255, 255);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'F');
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 18, 'S');
-
-        doc.setFontSize(8.5);
-        doc.setTextColor(50);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Nome / Razão Social: ${data.tomador.nome || 'EMPRESA DE TESTE LTDA'}`, margin + 4, yPos + 6);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`CNPJ / CPF: ${data.tomador.doc || '11.222.333/0001-81'}   |   E-mail: ${data.tomador.email || 'teste@nfe.io'}`, margin + 4, yPos + 12);
-
-        yPos += 22;
-
-        // --- SERVIÇO PRESTADO ---
-        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 6, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text('DISCRIMINAÇÃO DOS SERVIÇOS', margin + 4, yPos + 4.5);
-
-        yPos += 6;
-        const servDescHeight = 35;
-        doc.setFillColor(255, 255, 255);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'F');
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), servDescHeight, 'S');
-
-        doc.setFontSize(8.5);
-        doc.setTextColor(50);
-        doc.setFont('helvetica', 'normal');
-        const descLines = doc.splitTextToSize(data.servico.descricao || 'Análise e desenvolvimento de sistemas', pageWidth - (margin * 2) - 8);
-        doc.text(descLines, margin + 4, yPos + 6);
-
-        if (data.servico.cTribNac) {
-            doc.setFontSize(7.5);
-            doc.setTextColor(120);
-            doc.text(`Código Tributação Nacional: ${data.servico.cTribNac}`, margin + 4, yPos + servDescHeight - 4);
-        }
-
-        yPos += servDescHeight + 4;
-
-        // --- VALORES E TRIBUTOS ---
-        doc.setFillColor(accentBg[0], accentBg[1], accentBg[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'F');
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(margin, yPos, pageWidth - (margin * 2), 22, 'S');
-
-        const locale = 'pt-BR';
-        const vServ = data.servico.valor || 100.00;
-
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text('VALOR TOTAL DO SERVIÇO:', margin + 4, yPos + 8);
-        doc.setFontSize(11);
-        doc.text(vServ.toLocaleString(locale, { style: 'currency', currency: 'BRL' }), margin + 50, yPos + 8);
-
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(80);
-        doc.text(`ISSQN: R$ ${(data.impostos?.issqn || 0).toFixed(2)}  |  PIS: R$ ${(data.impostos?.pis || 0).toFixed(2)}  |  COFINS: R$ ${(data.impostos?.cofins || 0).toFixed(2)}`, margin + 4, yPos + 16);
-        doc.text(`IBS (Reforma): R$ ${(data.impostos?.ibs || 0).toFixed(2)}  |  CBS (Reforma): R$ ${(data.impostos?.cbs || 0).toFixed(2)}`, pageWidth - margin - 4, yPos + 16, { align: 'right' });
-
-        yPos += 30;
-
-        // Rodapé de Autenticidade
+        doc.setFontSize(16);
+        doc.setTextColor(16, 110, 50);
+        doc.text('NFS-e', margin + 3, y + 10);
         doc.setFontSize(7);
-        doc.setTextColor(150);
-        doc.text(`Documento Auxiliar emitido pelo Sistema Lucro Certo em ${new Date().toLocaleString(locale)}.`, pageWidth / 2, yPos, { align: 'center' });
+        doc.setTextColor(80, 80, 80);
+        doc.text('Nota Fiscal de Serviço eletrônica', margin + 3, y + 15);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text('DANFSe v1.0', margin + (w / 2), y + 9, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text('Documento Auxiliar da NFS-e', margin + (w / 2), y + 15, { align: 'center' });
+
+        doc.setFontSize(8);
+        doc.text(`Município: ${data.prestador.municipio || 'Natal - RN'}`, margin + w - 3, y + 8, { align: 'right' });
+        doc.setFontSize(7);
+        doc.text('Secretaria Municipal de Finanças - SEFIN', margin + w - 3, y + 13, { align: 'right' });
+
+        y += 22;
+
+        // --- 2. CHAVE DE ACESSO DA NFS-e ---
+        doc.rect(margin, y, w, 9);
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Chave de Acesso da NFS-e', margin + 2, y + 3.5);
+        doc.setFontSize(8.5);
+        doc.setFont('courier', 'bold');
+        const chave = (data.chaveAcesso || '2408102200893566000190000000000001326073660461869').replace(/\D/g, '').padStart(50, '0');
+        doc.text(chave, margin + 2, y + 7.5);
+
+        y += 9;
+
+        // --- 3. DADOS DE EMISSÃO ---
+        const colW = w / 3;
+        doc.rect(margin, y, colW, 8);
+        doc.rect(margin + colW, y, colW, 8);
+        doc.rect(margin + (colW * 2), y, colW, 8);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text('Número da NFS-e', margin + 2, y + 3);
+        doc.text('Competência da NFS-e', margin + colW + 2, y + 3);
+        doc.text('Data e Hora da emissão da NFS-e', margin + (colW * 2) + 2, y + 3);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(data.nNfse || data.nDPS || '13', margin + 2, y + 6.5);
+        const dataEmiFormatted = data.dhEmi ? new Date(data.dhEmi).toLocaleDateString('pt-BR') : '14/07/2026';
+        doc.text(dataEmiFormatted, margin + colW + 2, y + 6.5);
+        const horaEmiFormatted = data.dhEmi ? new Date(data.dhEmi).toLocaleString('pt-BR') : '14/07/2026 15:04:04';
+        doc.text(horaEmiFormatted, margin + (colW * 2) + 2, y + 6.5);
+
+        y += 8;
+
+        doc.rect(margin, y, colW, 8);
+        doc.rect(margin + colW, y, colW, 8);
+        doc.rect(margin + (colW * 2), y, colW, 8);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text('Número da DPS', margin + 2, y + 3);
+        doc.text('Série da DPS', margin + colW + 2, y + 3);
+        doc.text('Data e Hora da emissão da DPS', margin + (colW * 2) + 2, y + 3);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(data.nDPS || '13', margin + 2, y + 6.5);
+        doc.text(data.serie || '70000', margin + colW + 2, y + 6.5);
+        doc.text(horaEmiFormatted, margin + (colW * 2) + 2, y + 6.5);
+
+        y += 8;
+
+        // --- 4. EMITENTE DA NFS-e / PRESTADOR DO SERVIÇO ---
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y, w, 19, 'F');
+        doc.rect(margin, y, w, 19, 'S');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('EMITENTE DA NFS-e', margin + 2, y + 3);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Prestador do Serviço', margin + 28, y + 3);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('CNPJ / CPF / NIF', margin + 65, y + 3);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.cnpj || '00.893.566/0001-90', margin + 95, y + 3);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Inscrição Municipal', margin + 130, y + 3);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.im || '-', margin + 160, y + 3);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Nome / Nome Empresarial', margin + 2, y + 7);
+        doc.text(data.prestador.nome || 'CARLOSCLETON CARVALHO FERNANDES', margin + 40, y + 7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('E-mail', margin + 130, y + 7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.email || 'CARLOSCLETON.NAT@GMAIL.COM', margin + 142, y + 7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Endereço', margin + 2, y + 11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU', margin + 20, y + 11);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Município', margin + 110, y + 11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.municipio || 'Natal - RN', margin + 125, y + 11);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('CEP', margin + 155, y + 11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.cep || '59068-320', margin + 165, y + 11);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Simples Nacional na Data de Competência', margin + 2, y + 15);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)', margin + 60, y + 15);
+
+        y += 19;
+
+        // --- 5. TOMADOR DO SERVIÇO ---
+        doc.rect(margin, y, w, 16);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('TOMADOR DO SERVIÇO', margin + 2, y + 3.5);
+
+        doc.text('CNPJ / CPF / NIF', margin + 65, y + 3.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.tomador.doc || '47.673.793/0102-17', margin + 95, y + 3.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Nome / Nome Empresarial', margin + 2, y + 7.5);
+        doc.text(data.tomador.nome || 'ASSOCIAÇÃO FUNDO DE INCENTIVO A PESQUISA', margin + 40, y + 7.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('E-mail', margin + 130, y + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.tomador.email || 'pagamentosti@afip.com.br', margin + 142, y + 7.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Endereço', margin + 2, y + 11.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.tomador.endereco || 'PDE MACHADO, 1040, BOSQUE DA SAUDE', margin + 20, y + 11.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Município', margin + 110, y + 11.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.tomador.municipio || 'São Paulo - SP', margin + 125, y + 11.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('CEP', margin + 155, y + 11.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.tomador.cep || '04127-001', margin + 165, y + 11.5);
+
+        y += 16;
+
+        // --- 6. INTERMEDIÁRIO ---
+        doc.rect(margin, y, w, 5);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text('INTERMEDIÁRIO DO SERVIÇO NÃO IDENTIFICADO NA NFS-e', margin + (w / 2), y + 3.5, { align: 'center' });
+
+        y += 5;
+
+        // --- 7. SERVIÇO PRESTADO ---
+        doc.rect(margin, y, w, 28);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('SERVIÇO PRESTADO', margin + 2, y + 3.5);
+
+        doc.setFontSize(6);
+        doc.text('Código de Tributação Nacional', margin + 2, y + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.servico.cTribNac || '01.07.01 - Suporte técnico em informática, inclusive instalação...', margin + 2, y + 10.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Local da Prestação', margin + 95, y + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.municipio || 'Natal - RN', margin + 95, y + 10.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Descrição do Serviço', margin + 2, y + 15);
+        doc.setFont('helvetica', 'normal');
+        const descLines = doc.splitTextToSize(data.servico.descricao || 'Análise e desenvolvimento de sistemas', w - 6);
+        doc.text(descLines, margin + 2, y + 18.5);
+
+        y += 28;
+
+        // --- 8. TRIBUTAÇÃO MUNICIPAL ---
+        doc.rect(margin, y, w, 22);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('TRIBUTAÇÃO MUNICIPAL', margin + 2, y + 3.5);
+
+        doc.setFontSize(6);
+        doc.text('Tributação do ISSQN', margin + 2, y + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Operação Tributável', margin + 2, y + 10.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Município de Incidência do ISSQN', margin + 70, y + 7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(data.prestador.municipio || 'Natal - RN', margin + 70, y + 10.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Valor do Serviço', margin + 2, y + 15);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text(`R$ ${Number(data.servico.valor || 1160).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + 2, y + 18.5);
+
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Retenção do ISSQN', margin + 110, y + 15);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Não Retido', margin + 110, y + 18.5);
+
+        y += 22;
+
+        // --- 9. VALOR TOTAL DA NFS-E ---
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y, w, 15, 'F');
+        doc.rect(margin, y, w, 15, 'S');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('VALOR TOTAL DA NFS-E', margin + 2, y + 3.5);
+
+        doc.setFontSize(6);
+        doc.text('Valor do Serviço', margin + 2, y + 7.5);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`R$ ${Number(data.servico.valor || 1160).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + 2, y + 11.5);
+
+        doc.setFontSize(6);
+        doc.text('Valor Líquido da NFS-e', margin + 130, y + 7.5);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`R$ ${Number(data.servico.valor || 1160).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + 130, y + 11.5);
+
+        y += 15;
+
+        // --- 10. INFORMAÇÕES COMPLEMENTARES ---
+        doc.rect(margin, y, w, 10);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.text('INFORMAÇÕES COMPLEMENTARES', margin + 2, y + 3.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.text(`NBS: ${data.servico.nbs || '115013000'} | Documento Auxiliar emitido via Sistema Lucro Certo.`, margin + 2, y + 7.5);
 
         return doc.output('blob');
     }
