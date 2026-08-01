@@ -2019,6 +2019,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // O payload final enviado para o governo
             let adnPayload: any;
 
+            const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '2.00').replace(',', '.'));
+            const pTotTribSNValDefault = parseFloat(String(nat.default_tot_trib_sn || '6.00').replace(',', '.'));
+            const finalPAliq = !isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 2.00;
+            const finalPTotTribSN = !isNaN(pTotTribSNValDefault) ? pTotTribSNValDefault : 6.00;
+
             if (payload && payload.infDPS) {
                 // 1. FORMATO DIRETO ADN (RAW JSON): O usuário enviou o JSON no formato oficial infDPS
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
@@ -2032,6 +2037,22 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // Garante que o cTribNac tenha 6 dígitos se presente
                 if (adnPayload.infDPS.serv?.cServ?.cTribNac) {
                     adnPayload.infDPS.serv.cServ.cTribNac = String(adnPayload.infDPS.serv.cServ.cTribNac).replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                }
+
+                // Garante alíquotas pAliq e pTotTribSN no JSON fornecido
+                if (adnPayload.infDPS.valores) {
+                    if (!adnPayload.infDPS.valores.trib) adnPayload.infDPS.valores.trib = {};
+                    if (!adnPayload.infDPS.valores.trib.tribMun) {
+                        adnPayload.infDPS.valores.trib.tribMun = { tribISSQN: 1, tpRetISSQN: 1, pAliq: finalPAliq };
+                    } else if (adnPayload.infDPS.valores.trib.tribMun.pAliq === undefined) {
+                        adnPayload.infDPS.valores.trib.tribMun.pAliq = finalPAliq;
+                    }
+
+                    if (!adnPayload.infDPS.valores.trib.totTrib) {
+                        adnPayload.infDPS.valores.trib.totTrib = { pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0 };
+                    } else if (!adnPayload.infDPS.valores.trib.totTrib.pTotTribSN || adnPayload.infDPS.valores.trib.totTrib.pTotTribSN === 0) {
+                        adnPayload.infDPS.valores.trib.totTrib.pTotTribSN = simplesNacional !== 1 ? finalPTotTribSN : 0;
+                    }
                 }
 
                 // Ajusta a estrutura do endereço se fornecido no formato antigo (CEP/cMun fora do endNac)
@@ -2078,6 +2099,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         valores: {
                             vServPrest: {
                                 vServ: valorTotal
+                            },
+                            trib: {
+                                tribMun: {
+                                    tribISSQN: nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1,
+                                    tpRetISSQN: nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1,
+                                    pAliq: finalPAliq
+                                },
+                                totTrib: {
+                                    pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0
+                                }
                             }
                         }
                     }
