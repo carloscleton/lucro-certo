@@ -2129,9 +2129,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         tpAmb,
                         dhEmi,
                         dCompet,
+                        cLocEmi: cLocEmi || nat.codigo_municipio || '2408102',
+                        nDPS: String(Date.now()).substring(4, 12),
+                        serie: '1',
                         prest: {
                             CNPJ: prestadorCnpj,
-                            ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {})
+                            ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {}),
+                            // E0625: regTrib com opSimpNac explícito evita fallback incorreto no gerador de XML
+                            regTrib: {
+                                opSimpNac: simplesNacional, // 1=Normal, 2=MEI, 3=ME/EPP
+                                ...(simplesNacional === 3 ? { regApTribSN: nat.reg_ap_trib_sn !== undefined ? Number(nat.reg_ap_trib_sn) : 1 } : {}),
+                                regEspTrib: nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0
+                            }
                         },
                         ...((firstItem?.noTomador || !firstItem?.tomador || (!tomadorDoc && (!firstItem?.tomador?.razaoSocial || firstItem?.tomador?.razaoSocial === 'NÃO IDENTIFICADO'))) ? {} : {
                             toma: tomadorDoc.length === 11
@@ -2167,6 +2176,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         }
                     }
                 };
+
 
                 // Adicionar endereço do tomador se disponível
                 const tomadorEnd = firstItem?.tomador?.endereco;
