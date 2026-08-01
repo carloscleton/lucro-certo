@@ -324,7 +324,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30'
     };
 
-    const hasXmlOrPdf = !!(activePdfUrl || data?.pdf || data?.pdf_url || data?.xml_assinado || data?.payload || data?.infDPS || xmlUrl || data?.payload_enviado || data?.chNFSe || data?.idDPS || data?.detail);
+    const hasXmlOrPdf = !!(data && typeof data === 'object' && Object.keys(data).length > 0);
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
