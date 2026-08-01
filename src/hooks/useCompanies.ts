@@ -77,7 +77,14 @@ export function useCompanies() {
             if (error) throw error;
 
             const companiesList = (data || [])
-                .map((item: any) => item.company)
+                .map((item: any) => {
+                    const c = item.company;
+                    if (!c) return null;
+                    return {
+                        ...c,
+                        inscricao_municipal: c.inscricao_municipal || c.settings?.inscricao_municipal || c.settings?.national_config?.inscricao_municipal || ''
+                    };
+                })
                 .filter(Boolean)
                 .sort((a: any, b: any) => (a.trade_name || '').localeCompare(b.trade_name || ''));
 
@@ -102,29 +109,22 @@ export function useCompanies() {
         return publicUrl;
     };
 
-    const addCompany = async (company: Omit<Company, 'id' | 'user_id'> & { logo_file?: File }) => {
-        if (!user) return;
+    const addCompany = async (company: Partial<Company> & { logo_file?: File }) => {
+        if (!user) throw new Error("User not authenticated");
 
-        let logoUrl = company.logo_url;
+        // 1. Create company via RPC
+        const { logo_file, inscricao_municipal, ...restCompany } = company as any;
+        const initialSettings = {
+            ...(restCompany.settings || {}),
+            ...(inscricao_municipal ? { inscricao_municipal } : {})
+        };
 
-        // 1. Create company first
-        const { data, error } = await supabase.rpc('create_company', {
-            name_input: company.legal_name,
-            trade_name_input: company.trade_name,
-            cnpj_input: company.cnpj || '',
-            entity_type_input: company.entity_type || 'PJ',
-            cpf_input: company.cpf || null,
-            email_input: '',
-            phone_input: company.phone || '',
-            address_input: company.street ? `${company.street}, ${company.number}${company.complement ? ' - ' + company.complement : ''} - ${company.city}/${company.state}` : '',
-            zip_code_input: company.zip_code || null,
-            street_input: company.street || null,
-            number_input: company.number || null,
-            complement_input: company.complement || null,
-            neighborhood_input: company.neighborhood || null,
-            city_input: company.city || null,
-            state_input: company.state || null,
-            slug_input: (company as any).slug || null
+        const { data, error } = await supabase.rpc('create_company_with_admin', {
+            company_data: {
+                ...restCompany,
+                settings: initialSettings,
+                user_id: user.id
+            }
         });
 
         if (error) throw error;
@@ -135,26 +135,32 @@ export function useCompanies() {
 
         const newCompanyId = data.company_id;
 
-        if (company.inscricao_municipal) {
-            await supabase.from('companies').update({ inscricao_municipal: company.inscricao_municipal }).eq('id', newCompanyId);
+        if (inscricao_municipal) {
+            try {
+                const { data: cData } = await supabase.from('companies').select('settings').eq('id', newCompanyId).single();
+                const updatedSettings = {
+                    ...(cData?.settings || {}),
+                    inscricao_municipal
+                };
+                await supabase.from('companies').update({ settings: updatedSettings }).eq('id', newCompanyId);
+            } catch (e) {
+                console.warn('Erro ao salvar inscricao_municipal em settings:', e);
+            }
         }
 
         // 2. Upload logo if file provided
         if (company.logo_file) {
             try {
-                logoUrl = await uploadLogo(newCompanyId, company.logo_file);
+                const logoUrl = await uploadLogo(newCompanyId, company.logo_file);
 
-                // 3. Update company with logo URL
                 await supabase
                     .from('companies')
                     .update({ logo_url: logoUrl })
                     .eq('id', newCompanyId);
             } catch (err) {
                 console.error("Failed to upload logo during creation", err);
-                // Non-blocking error? Or should we warn user?
             }
         } else if (company.logo_url) {
-            // Update with manually provided URL if no file
             await supabase
                 .from('companies')
                 .update({ logo_url: company.logo_url })
@@ -169,8 +175,6 @@ export function useCompanies() {
 
         if (updates.logo_file) {
             try {
-                // 1. Cleanup: Remove OLD images from this company's folder to prevent accumulation
-                // We list all files in the company's folder and delete them
                 const existingFiles = await storageService.list('company-logos', `logos/${id}/`);
 
                 if (existingFiles && existingFiles.length > 0) {
@@ -185,11 +189,20 @@ export function useCompanies() {
             }
         }
 
-        // Clean up updates object to remove logo_file before sending to DB
-        const { logo_file, ...companyUpdates } = updates;
+        // Clean up updates object to remove logo_file and top-level inscricao_municipal before sending to DB
+        const { logo_file, inscricao_municipal, ...companyUpdates } = updates as any;
 
-        const finalUpdates = { ...companyUpdates };
+        const finalUpdates: any = { ...companyUpdates };
         if (logoUrl) finalUpdates.logo_url = logoUrl;
+
+        if (inscricao_municipal !== undefined) {
+            const currentComp = companies.find(c => c.id === id);
+            const existingSettings = finalUpdates.settings || currentComp?.settings || {};
+            finalUpdates.settings = {
+                ...existingSettings,
+                inscricao_municipal: inscricao_municipal || ''
+            };
+        }
 
         const { error } = await supabase
             .from('companies')

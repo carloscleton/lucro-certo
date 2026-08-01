@@ -1173,9 +1173,13 @@ export function FiscalSettings() {
         }
         setSaving(true);
         try {
+            const updatedSettings = {
+                ...(currentCompany?.settings || {}),
+                inscricao_municipal: config.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || ''
+            };
             await updateCompany(currentEntity.id, {
+                settings: updatedSettings,
                 tecnospeed_config: config,
-                inscricao_municipal: config.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || null,
                 fiscal_module_enabled: moduleEnabled
             });
             
@@ -1281,16 +1285,17 @@ export function FiscalSettings() {
             const natAny = nationalConfig as any;
             const updatedSettings = {
                 ...(currentCompany?.settings || {}),
+                inscricao_municipal: nationalConfig.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || existingNatConfig.inscricao_municipal || '',
                 national_config: {
                     ...existingNatConfig,
                     ...nationalConfig,
+                    inscricao_municipal: nationalConfig.inscricao_municipal || existingNatConfig.inscricao_municipal || '',
                     certificado_pfx_base64: natAny.certificado_pfx_base64 || existingNatConfig.certificado_pfx_base64,
                     certificado_senha: natAny.certificado_senha || existingNatConfig.certificado_senha
                 }
             };
             await updateCompany(currentEntity.id, {
                 settings: updatedSettings,
-                inscricao_municipal: nationalConfig.inscricao_municipal || (currentCompany as any)?.inscricao_municipal || null,
                 tecnospeed_config: config,
                 fiscal_module_enabled: moduleEnabled
             });
