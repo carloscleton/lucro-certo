@@ -2233,9 +2233,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(tribMun.tpRetISSQN)
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
-            // pAliq (Alíquota ISSQN no Regime Normal)
+            // pAliq (Alíquota ISSQN)
             const pAliqVal = tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 0);
-            const pAliqXml = (opSimpNac === 1 && pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
+            const pAliqXml = (pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
             // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal)
             let tribFedXml = '';
@@ -2261,7 +2261,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const totTrib = trib.totTrib || {};
             let totTribXml = '';
             if (opSimpNac === 2 || opSimpNac === 3) {
-                const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(2) : '0.00';
+                const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(2) : (nat.default_tot_trib_sn !== undefined ? Number(nat.default_tot_trib_sn).toFixed(2) : '0.00');
                 totTribXml = `<totTrib><pTotTribSN>${pTotTribSN}</pTotTribSN></totTrib>`;
             } else {
                 const indTotTrib = totTrib.indTotTrib !== undefined ? Number(totTrib.indTotTrib) : 0;

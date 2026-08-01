@@ -221,6 +221,7 @@ export function FiscalSettings() {
         default_cTribNac: '010101',
         default_xDescServ: 'Análise e desenvolvimento de sistemas',
         default_iss_aliquota: '2.00',
+        default_tot_trib_sn: '0.00',
         default_pis_aliquota: '0.65',
         default_cofins_aliquota: '3.00',
         default_csll_aliquota: '1.00',
@@ -436,6 +437,7 @@ export function FiscalSettings() {
             default_cTribNac: nat.default_cTribNac || '010101',
             default_xDescServ: nat.default_xDescServ || 'Análise e desenvolvimento de sistemas',
             default_iss_aliquota: nat.default_iss_aliquota || '2.00',
+            default_tot_trib_sn: nat.default_tot_trib_sn || '0.00',
             default_pis_aliquota: nat.default_pis_aliquota || '0.65',
             default_cofins_aliquota: nat.default_cofins_aliquota || '3.00',
             default_csll_aliquota: nat.default_csll_aliquota || '1.00',
@@ -5074,18 +5076,34 @@ export function FiscalSettings() {
                                                 />
                                             </div>
                                             
+                                            <div>
+                                                <Input
+                                                    label="Alíquota ISSQN Padrão (%)"
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={nationalConfig.default_iss_aliquota || '2.00'}
+                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
+                                                    placeholder="Ex: 2.00"
+                                                    helpText="Alíquota de ISS do município (pAliq: 2% a 5%)"
+                                                />
+                                            </div>
+
+                                            {!isRegimeNormal && (
+                                                <div>
+                                                    <Input
+                                                        label="Alíquota Total Estimada Tributos (%)"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={nationalConfig.default_tot_trib_sn || '0.00'}
+                                                        onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_tot_trib_sn: e.target.value }))}
+                                                        placeholder="Ex: 2.01"
+                                                        helpText="Conforme IBPT / Transparência (pTotTribSN)"
+                                                    />
+                                                </div>
+                                            )}
+
                                             {isRegimeNormal && (
                                                 <>
-                                                    <div>
-                                                        <Input
-                                                            label="Alíquota ISSQN Padrão (%)"
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={nationalConfig.default_iss_aliquota || '2.00'}
-                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
-                                                            placeholder="Ex: 2.00"
-                                                        />
-                                                    </div>
                                                     <div>
                                                         <Input
                                                             label="Alíquota PIS (%)"
