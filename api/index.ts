@@ -1956,28 +1956,55 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const codigoTribNac6 = codigoTribNac.replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
 
             // Data/hora de emissão e competência formatadas localmente com offset (ex: 2026-07-31T09:30:00-03:00)
-            const now = new Date();
-            const formatLocalSefazDate = (date: Date) => {
-                const pad = (num: number) => String(num).padStart(2, '0');
-                const year = date.getFullYear();
-                const month = pad(date.getMonth() + 1);
-                const day = pad(date.getDate());
-                const hours = pad(date.getHours());
-                const minutes = pad(date.getMinutes());
-                const seconds = pad(date.getSeconds());
-                
-                const offset = date.getTimezoneOffset();
-                const sign = offset > 0 ? '-' : '+';
-                const absOffset = Math.abs(offset);
-                const offsetHours = pad(Math.floor(absOffset / 60));
-                const offsetMinutes = pad(absOffset % 60);
-                
-                return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+            const formatBrasiliaSefazDate = (date: Date) => {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+
+                const parts = formatter.formatToParts(date);
+                const map: Record<string, string> = {};
+                for (const part of parts) {
+                    if (part.type !== 'literal') {
+                        map[part.type] = part.value;
+                    }
+                }
+
+                let hours = map.hour === '24' ? '00' : (map.hour || '00').padStart(2, '0');
+                const year = map.year;
+                const month = (map.month || '01').padStart(2, '0');
+                const day = (map.day || '01').padStart(2, '0');
+                const minutes = (map.minute || '00').padStart(2, '0');
+                const seconds = (map.second || '00').padStart(2, '0');
+
+                return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
             };
 
-            const safePastDate = new Date(Date.now() - 2 * 60 * 1000);
-            const dhEmi = formatLocalSefazDate(safePastDate);
-            const dCompet = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const getBrasiliaCompetDate = (date: Date) => {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                const parts = formatter.formatToParts(date);
+                const map: Record<string, string> = {};
+                for (const part of parts) {
+                    if (part.type !== 'literal') map[part.type] = part.value;
+                }
+                return `${map.year}-${(map.month || '01').padStart(2, '0')}-${(map.day || '01').padStart(2, '0')}`;
+            };
+
+            const now = new Date();
+            const safePastDate = new Date(Date.now() - 5 * 60 * 1000);
+            const dhEmi = formatBrasiliaSefazDate(safePastDate);
+            const dCompet = getBrasiliaCompetDate(now);
 
             // Código do município de prestação (IBGE 7 dígitos)
             const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
@@ -2090,7 +2117,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Força incondicionalmente que dhEmi seja emitido a 15 minutos no passado em relação ao momento atual.
             // Isso elimina qualquer desincronização entre a Vercel, o navegador do usuário e o relógio atômico do SefinNacional.
             const fifteenMinPast = new Date(Date.now() - 15 * 60 * 1000);
-            inf.dhEmi = formatLocalSefazDate(fifteenMinPast);
+            inf.dhEmi = formatBrasiliaSefazDate(fifteenMinPast);
             
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
             const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
