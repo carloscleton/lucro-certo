@@ -1957,6 +1957,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 cleanCode6 = '010701'; // Código de Tributação Nacional oficial padrão (TI / Suporte Técnico)
             }
             const codigoTribNac6 = cleanCode6;
+            const simplesNacional = nat.simples_nacional !== false
+                ? (nat.reg_esp_trib === 6 ? 2 : 3) // 6=MEI no regEspTrib => MEI
+                : 1; // Não optante
 
             // Data/hora de emissão e competência formatadas localmente com offset (ex: 2026-07-31T09:30:00-03:00)
             const formatBrasiliaSefazDate = (date: Date) => {
