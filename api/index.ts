@@ -2087,14 +2087,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const inf = adnPayload.infDPS || {};
             
             // Previne erro E0008 (Data de emissão posterior ao processamento no SefinNacional):
-            // Garante que o dhEmi esteja sempre a pelo menos 2 minutos no passado relativo ao relógio atômico do governo.
-            const twoMinPast = new Date(Date.now() - 2 * 60 * 1000);
-            const safeDhEmiStr = formatLocalSefazDate(twoMinPast);
+            // Garante que o dhEmi esteja sempre a pelo menos 5 minutos no passado relativo ao relógio atômico do governo.
+            const fiveMinPast = new Date(Date.now() - 5 * 60 * 1000);
+            const oneMinPast = new Date(Date.now() - 1 * 60 * 1000);
+            const safeDhEmiStr = formatLocalSefazDate(fiveMinPast);
 
             if (inf.dhEmi) {
                 try {
                     const payloadDate = new Date(inf.dhEmi);
-                    if (isNaN(payloadDate.getTime()) || payloadDate.getTime() > twoMinPast.getTime()) {
+                    if (isNaN(payloadDate.getTime()) || payloadDate.getTime() > oneMinPast.getTime()) {
                         inf.dhEmi = safeDhEmiStr;
                     }
                 } catch (e) {

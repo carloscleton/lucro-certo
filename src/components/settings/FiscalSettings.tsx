@@ -1970,7 +1970,7 @@ export function FiscalSettings() {
             const effectiveCnpj = nationalConfig.cnpj || currentCompany?.cnpj || "00893566000190";
             const effectiveIm = nationalConfig.inscricao_municipal || '';
             const effectiveMun = (nationalConfig as any).codigo_municipio || "2408102";
-            const now = new Date();
+            const now = new Date(Date.now() - 5 * 60 * 1000);
             const pad = (num: number) => String(num).padStart(2, '0');
             const formatLocal = (date: Date) => {
                 const year = date.getFullYear();
