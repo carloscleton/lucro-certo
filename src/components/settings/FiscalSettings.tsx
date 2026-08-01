@@ -2062,7 +2062,15 @@ export function FiscalSettings() {
                             tribMun: {
                                 tribISSQN: Number(nationalConfig.trib_issqn ?? 1),
                                 tpRetISSQN: Number(nationalConfig.tp_ret_issqn ?? 1),
-                                pAliq: parseFloat(nationalConfig.default_iss_aliquota || '2.00')
+                                // E0625: NÃO incluir pAliq para Simples Nacional (opSimpNac=2 ou 3) sem retenção (tpRetISSQN=1)
+                                ...(() => {
+                                    const opSN = Number((nationalConfig as any).op_simp_nac ?? (nationalConfig.simples_nacional ? 3 : 1));
+                                    const tpRet = Number(nationalConfig.tp_ret_issqn ?? 1);
+                                    const isSimplesSemRetencao = (opSN === 2 || opSN === 3) && tpRet === 1;
+                                    if (isSimplesSemRetencao) return {};
+                                    const pAliq = parseFloat(nationalConfig.default_iss_aliquota || '0');
+                                    return pAliq > 0 ? { pAliq } : {};
+                                })()
                             },
                             ...(Number((nationalConfig as any).op_simp_nac) === 1 ? {
                                 tribFed: {

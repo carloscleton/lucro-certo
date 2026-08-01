@@ -2052,6 +2052,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
             const finalPAliq = isSimplesSemRetencao ? 0 : (!isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0);
             const finalPTotTribSN = !isNaN(pTotTribSNValDefault) ? pTotTribSNValDefault : 6.00;
+            // 🔍 Diagnóstico E0625: confirma no log da Vercel quais valores foram computados
+            console.log(`🔍 [E0625-DIAG] simples_nacional=${nat.simples_nacional} | reg_esp_trib=${nat.reg_esp_trib} | tp_ret_issqn=${nat.tp_ret_issqn} | simplesNacionalDefault=${simplesNacionalDefault} | tpRetISSQNDefault=${tpRetISSQNDefault} | isSimplesSemRetencao=${isSimplesSemRetencao} | finalPAliq=${finalPAliq} | default_iss_aliquota=${nat.default_iss_aliquota} | default_tot_trib_sn=${nat.default_tot_trib_sn}`);
 
             if (payload && payload.infDPS) {
                 // 1. FORMATO DIRETO ADN (RAW JSON): O usuário enviou o JSON no formato oficial infDPS
