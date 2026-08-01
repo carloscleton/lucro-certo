@@ -1472,10 +1472,14 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {invoice.external_id && invoice.pdf_url && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
-                                                    <Tooltip content="Ver Link Externo">
+                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                    <Tooltip content="Ver Link Externo (DANFSE Oficial)">
                                                         <button
-                                                            onClick={() => window.open(invoice.pdf_url, '_blank')}
+                                                            onClick={() => {
+                                                                const baseApi = API_BASE_URL.replace(/\/$/, '');
+                                                                const targetUrl = invoice.pdf_url || `${baseApi}/fiscal-module/${invoice.type || 'national'}/${invoice.external_id}/pdf?companyId=${invoice.company_id || currentEntity.id}`;
+                                                                window.open(targetUrl, '_blank');
+                                                            }}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all shadow-sm"
                                                         >
                                                             <ExternalLink size={18} />
