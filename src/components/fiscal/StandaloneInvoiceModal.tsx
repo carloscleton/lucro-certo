@@ -574,6 +574,24 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         }
 
         setLoading(true);
+        
+        // Busca o código IBGE correto do CEP do tomador via ViaCEP (evita erro E0240)
+        let tomadorCityCode = cityCode; // fallback: cidade da empresa
+        if (!noTomador && contact?.zip_code) {
+            try {
+                const cepClean = contact.zip_code.replace(/\D/g, '');
+                const viaCepRes = await fetch(`https://viacep.com.br/ws/${cepClean}/json/`);
+                if (viaCepRes.ok) {
+                    const viaCepData = await viaCepRes.json();
+                    if (viaCepData?.ibge && !viaCepData.erro) {
+                        tomadorCityCode = viaCepData.ibge;
+                    }
+                }
+            } catch (err) {
+                console.warn('[ViaCEP] Falha ao buscar código IBGE do CEP do tomador. Usando fallback.', err);
+            }
+        }
+        
         try {
             let payload: any;
             const totalAmount = items.reduce((acc, i) => {
@@ -607,7 +625,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             numero: contact?.number || 'S/N',
                             bairro: contact?.neighborhood || '',
                             cep: contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: cityCode,
+                            codigoCidade: tomadorCityCode, // código IBGE do município do TOMADOR (buscado via ViaCEP)
                             cidade: contact?.city || '',
                             descricaoCidade: contact?.city || '',
                             uf: contact?.state || ''
@@ -880,7 +898,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             numero: contact?.number || 'S/N',
                             bairro: contact?.neighborhood || '',
                             cep: contact?.zip_code?.replace(/\D/g, '') || '',
-                            codigoCidade: cityCode,
+                            codigoCidade: tomadorCityCode, // código IBGE do município do DESTINATÁRIO (buscado via ViaCEP)
                             cidade: contact?.city || '',
                             descricaoCidade: contact?.city || '',
                             uf: contact?.state || ''
