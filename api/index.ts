@@ -2083,9 +2083,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             CNPJ: prestadorCnpj,
                             ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {})
                         },
-                        toma: tomadorDoc.length === 11
-                            ? { CPF: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
-                            : { CNPJ: tomadorDoc || '00000000000000', xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' },
+                        ...((firstItem?.noTomador || !firstItem?.tomador || (!tomadorDoc && (!firstItem?.tomador?.razaoSocial || firstItem?.tomador?.razaoSocial === 'NÃO IDENTIFICADO'))) ? {} : {
+                            toma: tomadorDoc.length === 11
+                                ? { CPF: tomadorDoc, xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
+                                : { CNPJ: tomadorDoc || '00000000000000', xNome: firstItem?.tomador?.razaoSocial || 'NÃO IDENTIFICADO' }
+                        }),
                         serv: {
                             locPrest: {
                                 cLocPrestacao
@@ -2301,8 +2303,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN>${pAliqXml}</tribMun>${tribFedXml}${totTribXml}</trib></valores>` : '';
 
+            const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO'));
+            const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
+
             // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest><toma>${tomadorDocXml}<xNome>${inf.toma?.xNome || 'NÃO IDENTIFICADO'}</xNome>${tomadorEndXml}${inf.toma?.email ? `<email>${inf.toma.email}</email>` : ''}</toma><serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 

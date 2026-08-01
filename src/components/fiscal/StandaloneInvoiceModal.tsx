@@ -162,6 +162,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     };
     const [sendEmail, setSendEmail] = useState(false);
     const [sendWhatsApp, setSendWhatsApp] = useState(false);
+    const [noTomador, setNoTomador] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [notes, setNotes] = useState(initialNotes || '');
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -502,17 +503,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         }
 
         const contact = contacts.find(c => c.id === contactId);
-        if (!contact) {
-            setError('Selecione um cliente válido.');
-            return;
-        }
-        if (!contact.tax_id) {
-            setError('O cliente selecionado não possui CPF/CNPJ cadastrado.');
-            return;
-        }
-        if (!contact.zip_code || !contact.street || !contact.neighborhood || !contact.city || !contact.state) {
-            setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, bairro, cidade, estado são obrigatórios para emissão).');
-            return;
+        if (!noTomador) {
+            if (!contact) {
+                setError('Selecione um cliente válido ou marque "Não identificar tomador".');
+                return;
+            }
+            if (!contact.tax_id) {
+                setError('O cliente selecionado não possui CPF/CNPJ cadastrado.');
+                return;
+            }
+            if (!contact.zip_code || !contact.street || !contact.neighborhood || !contact.city || !contact.state) {
+                setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, bairro, cidade, estado são obrigatórios para emissão).');
+                return;
+            }
         }
 
         if (!currentCompany) {
@@ -587,21 +590,22 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                  config?.regime_tributario === '4' ? 5 : 
                                                  parseInt(config?.default_regime_especial || '0')
                     },
-                    tomador: {
-                        cpfCnpj: contact.tax_id.replace(/\D/g, ''),
-                        razaoSocial: contact.name,
-                        email: contact.email,
+                    tomador: noTomador ? null : {
+                        cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
+                        razaoSocial: contact?.name || 'NÃO IDENTIFICADO',
+                        email: contact?.email || '',
                         endereco: {
-                            logradouro: contact.street || '',
-                            numero: contact.number || 'S/N',
-                            bairro: contact.neighborhood || '',
-                            cep: contact.zip_code?.replace(/\D/g, ''),
+                            logradouro: contact?.street || '',
+                            numero: contact?.number || 'S/N',
+                            bairro: contact?.neighborhood || '',
+                            cep: contact?.zip_code?.replace(/\D/g, ''),
                             codigoCidade: cityCode,
-                            cidade: contact.city || '',
-                            descricaoCidade: contact.city || '',
-                            uf: contact.state || ''
+                            cidade: contact?.city || '',
+                            descricaoCidade: contact?.city || '',
+                            uf: contact?.state || ''
                         }
                     },
+                    noTomador: noTomador,
                     servico: items.map(i => {
                         const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                         const val = parseFloat(cleanValue);
@@ -700,7 +704,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     payload.informacoesComplementares = notes.replace(/\n/g, '|');
                 }
 
-                if (sendEmail) {
+                if (sendEmail && contact?.email) {
                     payload.configuracao = {
                         email: {
                             envio: true,
@@ -808,7 +812,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
                 }
 
-                const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                const recipientPhone = String(contact?.whatsapp || contact?.phone || '').replace(/\D/g, '');
                 const rawStatus = String(result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
                 const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
                 
@@ -825,7 +829,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
                                 const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
-                                const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
+                                const message = `Olá, *${contact?.name || 'Cliente'}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                                 await whatsappService.sendMessage({
                                     instanceName: instance.instance_name || instance.name,
                                     token: instance.evolution_instance_id,
@@ -854,18 +858,18 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     presenca: 1,
                     natureza: 'Venda de Mercadoria',
                     destinatario: {
-                        cpfCnpj: contact.tax_id.replace(/\D/g, ''),
-                        razaoSocial: contact.name,
-                        email: contact.email,
+                        cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
+                        razaoSocial: contact?.name || 'Consumidor Não Identificado',
+                        email: contact?.email || '',
                         endereco: {
-                            logradouro: contact.street || '',
-                            numero: contact.number || 'S/N',
-                            bairro: contact.neighborhood || '',
-                            cep: contact.zip_code?.replace(/\D/g, ''),
+                            logradouro: contact?.street || '',
+                            numero: contact?.number || 'S/N',
+                            bairro: contact?.neighborhood || '',
+                            cep: contact?.zip_code?.replace(/\D/g, '') || '',
                             codigoCidade: cityCode,
-                            cidade: contact.city || '',
-                            descricaoCidade: contact.city || '',
-                            uf: contact.state || ''
+                            cidade: contact?.city || '',
+                            descricaoCidade: contact?.city || '',
+                            uf: contact?.state || ''
                         }
                     },
                     itens: items.map((i, idx) => {
@@ -899,7 +903,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     };
                 }
 
-                if (sendEmail) {
+                if (sendEmail && contact?.email) {
                     payload.configuracao = {
                         email: {
                             envio: true,
@@ -989,7 +993,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
                 }
 
-                const recipientPhone = String(contact.whatsapp || contact.phone || '').replace(/\D/g, '');
+                const recipientPhone = String(contact?.whatsapp || contact?.phone || '').replace(/\D/g, '');
                 const rawStatus = String(result.data?.status || result.data?.situacao || result.status || 'processando').toLowerCase();
                 const isAuthorized = ['concluido', 'autorizado', 'emitida', 'sucesso'].includes(rawStatus);
 
@@ -1006,7 +1010,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             // Ignora URLs privadas da TecnoSpeed e força o uso do nosso proxy público
                             const pdfUrl = `${apiBase}/fiscal-module/${type}/${externalId}/pdf?companyId=${currentEntity.id}`;
 
-                            const message = `Olá, *${contact.name}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
+                            const message = `Olá, *${contact?.name || 'Cliente'}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`;
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name || instance.name,
                                 token: instance.evolution_instance_id,
@@ -1290,7 +1294,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         <div className="flex items-center justify-between ml-1">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente / Destinatário</label>
                             <div className="flex items-center gap-3">
-                                {contactId && (
+                                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-violet-600 dark:text-violet-400 hover:opacity-80">
+                                    <input
+                                        type="checkbox"
+                                        checked={noTomador}
+                                        onChange={(e) => {
+                                            setNoTomador(e.target.checked);
+                                            if (e.target.checked) setContactId('');
+                                        }}
+                                        className="rounded border-gray-300 text-violet-600 focus:ring-violet-500 h-3.5 w-3.5"
+                                    />
+                                    Não identificar tomador
+                                </label>
+                                {!noTomador && contactId && (
                                     <button 
                                         type="button" 
                                         onClick={() => {
@@ -1303,30 +1319,41 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         <Pencil size={12} /> Editar
                                     </button>
                                 )}
-                                <button 
-                                    type="button" 
-                                    onClick={() => {
-                                        setEditingContact(null);
-                                        setShowContactModal(true);
-                                    }} 
-                                    className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
-                                >
-                                    <Plus size={12} /> Novo
-                                </button>
+                                {!noTomador && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => {
+                                            setEditingContact(null);
+                                            setShowContactModal(true);
+                                        }} 
+                                        className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+                                    >
+                                        <Plus size={12} /> Novo
+                                    </button>
+                                )}
                             </div>
                         </div>
-                        <select
-                            value={contactId}
-                            onChange={(e) => setContactId(e.target.value)}
-                            className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
-                            required
-                        >
-                            <option value="">Selecione um cliente...</option>
-                            {contacts.map(c => (
-                                <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : ''}</option>
-                            ))}
-                        </select>
-                        {contactValidation && !contactValidation.isValid && (
+
+                        {noTomador ? (
+                            <div className="flex items-center justify-between px-4 py-3 bg-violet-50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-300 rounded-2xl border border-violet-100 dark:border-violet-950/20 text-xs font-bold animate-fadeIn">
+                                <span>Nota Fiscal sem identificação do tomador (Consumidor Final)</span>
+                                <span className="text-[10px] bg-violet-100 dark:bg-violet-900/40 px-2 py-0.5 rounded-full uppercase tracking-wider">Opcional no Portal Nacional</span>
+                            </div>
+                        ) : (
+                            <select
+                                value={contactId}
+                                onChange={(e) => setContactId(e.target.value)}
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                                required={!noTomador}
+                            >
+                                <option value="">Selecione um cliente...</option>
+                                {contacts.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : ''}</option>
+                                ))}
+                            </select>
+                        )}
+
+                        {!noTomador && contactValidation && !contactValidation.isValid && (
                             <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-100 dark:border-amber-950/10 text-xs mt-1.5 animate-fadeIn">
                                 <AlertCircle size={16} className="shrink-0 mt-0.5" />
                                 <div>
