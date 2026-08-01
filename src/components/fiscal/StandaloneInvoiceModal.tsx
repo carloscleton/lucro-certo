@@ -1452,9 +1452,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                             value={item.taxCode}
                                             onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
                                             placeholder={type === 'nfse' ? (isNacional ? 'Ex: 010701' : 'Ex: 01.01') : '84713019'}
+                                            list={isNacional ? "ctribnac-list" : undefined}
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />
+                                        {isNacional && (
+                                            <datalist id="ctribnac-list">
+                                                <option value="010701">010701 - Suporte técnico em TI / Informática</option>
+                                                <option value="010101">010101 - Análise e desenvolvimento de sistemas</option>
+                                                <option value="010201">010201 - Programação</option>
+                                                <option value="010301">010301 - Processamento de dados</option>
+                                                <option value="010501">010501 - Licenciamento de software</option>
+                                                <option value="010601">010601 - Assessoria e consultoria em TI</option>
+                                                <option value="170601">170601 - Propaganda e marketing</option>
+                                            </datalist>
+                                        )}
                                     </div>
 
                                     {isNacional && type === 'nfse' && (
