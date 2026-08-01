@@ -192,16 +192,46 @@ export const affiliateService = {
     getAffiliateStats: async (affiliateId: string) => {
         try {
             // 1. Busca indicados
-            const { data: referrals } = await withRetry(() => supabase
+            const { data: rawReferrals } = await withRetry(() => supabase
                 .from('referrals')
-                .select(`
-                    *,
-                    referred_company:companies(id, trade_name, legal_name, created_at, status),
-                    referred_profile:profiles!referred_user_id(id, full_name, email)
-                `)
+                .select('*')
                 .eq('affiliate_id', affiliateId)
                 .order('created_at', { ascending: false })
             );
+
+            let referrals: any[] = [];
+            if (rawReferrals && rawReferrals.length > 0) {
+                const companyIds = Array.from(new Set(rawReferrals.map((r: any) => r.referred_company_id).filter(Boolean)));
+                const userIds = Array.from(new Set(rawReferrals.map((r: any) => r.referred_user_id).filter(Boolean)));
+
+                let companyMap: Record<string, any> = {};
+                if (companyIds.length > 0) {
+                    const { data: compData } = await supabase
+                        .from('companies')
+                        .select('id, trade_name, legal_name, created_at, status')
+                        .in('id', companyIds);
+                    if (compData) {
+                        compData.forEach((c: any) => { companyMap[c.id] = c; });
+                    }
+                }
+
+                let profileMap: Record<string, any> = {};
+                if (userIds.length > 0) {
+                    const { data: profData } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, email')
+                        .in('id', userIds);
+                    if (profData) {
+                        profData.forEach((p: any) => { profileMap[p.id] = p; });
+                    }
+                }
+
+                referrals = rawReferrals.map((r: any) => ({
+                    ...r,
+                    referred_company: companyMap[r.referred_company_id] || null,
+                    referred_profile: profileMap[r.referred_user_id] || null
+                }));
+            }
 
             // 2. Busca comissões
             const { data: commissions } = await withRetry(() => supabase
