@@ -5070,7 +5070,7 @@ export function FiscalSettings() {
                                             <div>
                                                 <Input
                                                     label="Código Tributação Nacional (cTribNac)"
-                                                    value={nationalConfig.default_cTribNac || '010101'}
+                                                    value={nationalConfig.default_cTribNac ?? ''}
                                                     onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cTribNac: e.target.value }))}
                                                     placeholder="Ex: 010101"
                                                 />
@@ -5081,7 +5081,7 @@ export function FiscalSettings() {
                                                     label="Alíquota ISSQN Padrão (%)"
                                                     type="number"
                                                     step="0.01"
-                                                    value={nationalConfig.default_iss_aliquota || '2.00'}
+                                                    value={nationalConfig.default_iss_aliquota ?? ''}
                                                     onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
                                                     placeholder="Ex: 2.00"
                                                     helpText="Alíquota de ISS do município (pAliq: 2% a 5%)"
@@ -5094,7 +5094,7 @@ export function FiscalSettings() {
                                                         label="Alíquota Total Estimada Tributos (%)"
                                                         type="number"
                                                         step="0.01"
-                                                        value={nationalConfig.default_tot_trib_sn || '0.00'}
+                                                        value={nationalConfig.default_tot_trib_sn ?? ''}
                                                         onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_tot_trib_sn: e.target.value }))}
                                                         placeholder="Ex: 2.01"
                                                         helpText="Conforme IBPT / Transparência (pTotTribSN)"
@@ -5109,7 +5109,7 @@ export function FiscalSettings() {
                                                             label="Alíquota PIS (%)"
                                                             type="number"
                                                             step="0.01"
-                                                            value={nationalConfig.default_pis_aliquota || '0.65'}
+                                                            value={nationalConfig.default_pis_aliquota ?? ''}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_pis_aliquota: e.target.value }))}
                                                             placeholder="Ex: 0.65"
                                                         />
@@ -5119,7 +5119,7 @@ export function FiscalSettings() {
                                                             label="Alíquota COFINS (%)"
                                                             type="number"
                                                             step="0.01"
-                                                            value={nationalConfig.default_cofins_aliquota || '3.00'}
+                                                            value={nationalConfig.default_cofins_aliquota ?? ''}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cofins_aliquota: e.target.value }))}
                                                             placeholder="Ex: 3.00"
                                                         />
@@ -5129,7 +5129,7 @@ export function FiscalSettings() {
                                                             label="Alíquota CSLL (%)"
                                                             type="number"
                                                             step="0.01"
-                                                            value={nationalConfig.default_csll_aliquota || '1.00'}
+                                                            value={nationalConfig.default_csll_aliquota ?? ''}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_csll_aliquota: e.target.value }))}
                                                             placeholder="Ex: 1.00"
                                                         />
