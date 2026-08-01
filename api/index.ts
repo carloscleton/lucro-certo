@@ -4155,30 +4155,13 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     return res.send(Buffer.from(mockXml));
                 } else {
                     const mockPdfBase64 = 'JVBERi0xLjQKMSAwIG9iagogIDw8CiAgICAvVHlwZSAvQ2F0YWxvZwogICAgL1BhZ2VzIDIgMCBSagogID4+CmVuZG9iagoyIDAgb2JqCiAgPDwKICAgIC9UeXBlIC9QYWdlcwogICAgL0tpZHMgWzMgMCBSXQogICAgL0NvdW50IDEKICA+PgplbmRvYmoKMyAwIG9iagogIDw8CiAgICAvVHlwZSAvUGFnZQogICAgL1BhcmVudCAyIDAgUgogICAgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0KICAgIC9SZXNvdXJjZXMgPDwKICAgICAgL0ZvbnQgPDwKICAgICAgICAvRjEgNCAwIFIKICAgICAgPj4KICAgID4+CiAgICAvQ29udGVudHMgNSAwIFIKICA+PgplbmRvYmoKNCAwIG9iagogIDw8CiAgICAvVHlwZSAvRm9udAogICAgL1N1YnR5cGUgL1R5cGUxCiAgICAvQmFzZUZvbnQgL0hlbHZldGljYQogID4+CmVuZG9iago1IDAgb2JqCiAgPDwKICAgIC9MZW5ndGggNDQKICA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcwIDcwMCBUZCAoTkZlLmlvIFNhbmRib3ggLSBOb3RhIFNpbXVsYWRhKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDgwIDAwMDAwIG4gCjAwMDAwMDAxNDMgMDAwMDAgbCAKMDAwMDAwMDMwMiAwMDAwMCBuIAowMDAwMDAwMzg0IDAwMDAwIG4gCnRyYWlsZXIKICA8PAogICAgL1NpemUgNgogICAgL1Jvb3QgMSAwIFIKICA+PgpzdGFydHhyZWYKNDc5CiUlRU9GCg==';
-                    res.setHeader('Content-Type', 'application/pdf');
-                    res.setHeader('Content-Disposition', `inline; filename="nfeio-${id}.pdf"`);
-                    return res.send(Buffer.from(mockPdfBase64, 'base64'));
-                }
-            }
-
-            console.log(`📄 [NFEIO-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para nota NFe.io ID: ${id}`);
-            
-            const response = await axiosNfeioRequest({
-                method: 'GET',
-                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`,
-                headers: {
-                    'Authorization': apiKeyNfe
-                },
-                responseType: 'arraybuffer'
-            });
-
-            res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
-            res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
-            return res.send(Buffer.from(response.data));
-        }
-
-        // ─── PORTAL NACIONAL (ADN gov.br) — Download XML/PDF via Sefin mTLS ───
-        const isNational = resolvedType === 'national' || (provider as string) === 'national' ||
+                    res.setHeader('Content-Type', 'applicati        // ─── PORTAL NACIONAL (ADN gov.br) — Download XML/PDF via Sefin mTLS ───
+        const isNationalKey = typeof id === 'string' && (id.startsWith('DPS') || id.length >= 30);
+        const isNational = isNationalKey ||
+            resolvedType === 'national' ||
+            type === 'national' ||
+            type === 'nfsenac' ||
+            (provider as string) === 'national' ||
             (!dbFound && settings?.fiscal_provider === 'national');
 
         if (isNational) {
@@ -4194,13 +4177,15 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
             let chNFSe = String(id).replace(/[\s.]/g, '');
             let dbInvoiceRecord: any = null;
 
-            if (SUPABASE_URL && chNFSe.length < 40) {
+            if (SUPABASE_URL) {
                 try {
                     const dbKeyDl = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                     const dbAuthDl = authHeader || `Bearer ${dbKeyDl}`;
-                    const qpDl = !isNaN(Number(chNFSe)) ? { id: `eq.${chNFSe}` } : { external_id: `eq.${chNFSe}` };
+                    const searchOr = !isNaN(Number(chNFSe))
+                        ? `(id.eq.${chNFSe},external_id.eq.${chNFSe},access_key.eq.${chNFSe})`
+                        : `(external_id.eq.${chNFSe},access_key.eq.${chNFSe})`;
                     const { data: invRowsDl } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                        params: { ...qpDl, select: 'access_key,invoice_number,dps_number,dps_serie,amount,payload' },
+                        params: { or: searchOr, select: 'access_key,invoice_number,dps_number,dps_serie,amount,payload' },
                         headers: { 'apikey': dbKeyDl, 'Authorization': dbAuthDl }
                     });
                     if (invRowsDl?.[0]) {
@@ -4255,12 +4240,21 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 });
             };
 
+            // Se for XML e tiver o XML assinado salvo no banco, pode servi-lo diretamente
+            const invPayloadObj = dbInvoiceRecord?.payload || {};
+            const savedXml = invPayloadObj.xml_assinado || invPayloadObj.retorno?.xml_assinado || invPayloadObj.xml;
+
             // Sem certificado e pediu PDF: gera o PDF da DANFSE diretamente no servidor
             if (!pfxBase64Dl) {
                 if (!isXml) {
                     res.setHeader('Content-Type', 'application/pdf');
                     res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                     return res.send(buildDanfsePdfBuffer());
+                }
+                if (savedXml) {
+                    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                    res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                    return res.send(Buffer.from(savedXml));
                 }
                 return res.status(400).json({ error: 'Certificado digital não configurado no Portal Nacional para download do XML.' });
             }
@@ -4288,15 +4282,25 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const httpsAgentDl = new https.Agent({ key: privKeyPemDl, cert: certPemDl, rejectUnauthorized: true, keepAlive: false });
 
                 if (isXml) {
-                    const xmlRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}`, {
-                        httpsAgent: httpsAgentDl,
-                        headers: { 'Accept': 'application/xml, text/xml, */*' },
-                        timeout: 15000,
-                        responseType: 'arraybuffer'
-                    });
-                    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-                    res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
-                    return res.send(Buffer.from(xmlRespDl.data));
+                    try {
+                        const xmlRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}`, {
+                            httpsAgent: httpsAgentDl,
+                            headers: { 'Accept': 'application/xml, text/xml, */*' },
+                            timeout: 15000,
+                            responseType: 'arraybuffer'
+                        });
+                        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                        res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                        return res.send(Buffer.from(xmlRespDl.data));
+                    } catch (xmlSefinErr: any) {
+                        if (savedXml) {
+                            console.log(`📝 [ADN-DOWNLOAD] Sefin XML indisponivel. Servindo xml_assinado salvo no banco...`);
+                            res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                            res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                            return res.send(Buffer.from(savedXml));
+                        }
+                        throw xmlSefinErr;
+                    }
                 } else {
                     try {
                         const pdfRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}/pdf`, {
@@ -4307,6 +4311,34 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         });
                         res.setHeader('Content-Type', 'application/pdf');
                         res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                        return res.send(Buffer.from(pdfRespDl.data));
+                    } catch (pdfDlErr: any) {
+                        console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF no servidor...`);
+                        res.setHeader('Content-Type', 'application/pdf');
+                        res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                        return res.send(buildDanfsePdfBuffer());
+                    }
+                }
+            } catch (adnDlErr: any) {
+                console.error('❌ [ADN-DOWNLOAD] Erro ao buscar no Sefin:', adnDlErr.message);
+                if (!isXml) {
+                    console.log('📄 [ADN-DOWNLOAD] Fallback: Gerando DANFSE PDF no servidor...');
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
+                    return res.send(buildDanfsePdfBuffer());
+                }
+                if (savedXml) {
+                    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                    res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                    return res.send(Buffer.from(savedXml));
+                }
+                return res.status(adnDlErr.response?.status || 500).json({
+                    error: 'Erro ao buscar documento no Portal Nacional',
+                    detail: adnDlErr.message,
+                    chNFSe
+                });
+            }
+        }                   res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                         return res.send(Buffer.from(pdfRespDl.data));
                     } catch (pdfDlErr: any) {
                         console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF no servidor...`);
