@@ -361,9 +361,24 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             if (i.id === id) {
                 const updated = { ...i, [field]: value };
                 
-                // Keep taxationCode in sync with taxCode
+                // Mapeamento automático de cTribNac (6 dígitos) para NBS (9 dígitos)
+                const NBS_MAP: Record<string, string> = {
+                    '010701': '115013000', // Suporte técnico em TI / Informática
+                    '010101': '115011000', // Análise e desenvolvimento de sistemas
+                    '010201': '115012000', // Programação
+                    '010301': '115021000', // Processamento de dados
+                    '010501': '115014000', // Licenciamento de software
+                    '010601': '115030000', // Assessoria e consultoria em TI
+                    '170601': '114011000'  // Propaganda e marketing
+                };
+
+                // Keep taxationCode in sync with taxCode and auto-fill NBS
                 if (field === 'taxCode') {
                     updated.taxationCode = value;
+                    const cleanCode = String(value || '').replace(/\D/g, '');
+                    if (NBS_MAP[cleanCode] && (!updated.codigoTributacaoNacional || updated.codigoTributacaoNacional.length === 6 || updated.codigoTributacaoNacional === '010101001')) {
+                        updated.codigoTributacaoNacional = NBS_MAP[cleanCode];
+                    }
                 }
 
                 // If description changed, check for auto-fill
