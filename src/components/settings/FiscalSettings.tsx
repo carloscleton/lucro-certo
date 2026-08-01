@@ -2062,7 +2062,7 @@ export function FiscalSettings() {
                             tribMun: {
                                 tribISSQN: Number(nationalConfig.trib_issqn ?? 1),
                                 tpRetISSQN: Number(nationalConfig.tp_ret_issqn ?? 1),
-                                ...(Number((nationalConfig as any).op_simp_nac) === 1 ? { pAliq: parseFloat(nationalConfig.default_iss_aliquota || '2.00') } : {})
+                                pAliq: parseFloat(nationalConfig.default_iss_aliquota || '2.00')
                             },
                             ...(Number((nationalConfig as any).op_simp_nac) === 1 ? {
                                 tribFed: {
@@ -2076,7 +2076,7 @@ export function FiscalSettings() {
                                 }
                             } : {
                                 totTrib: {
-                                    pTotTribSN: 0.00
+                                    pTotTribSN: parseFloat(nationalConfig.default_tot_trib_sn || '6.00')
                                 }
                             }),
                             ...(nationalConfig.reforma_tributaria_calculadora_ativa ? {
