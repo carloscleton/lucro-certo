@@ -2467,7 +2467,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                 const adnData = adnResponse.data;
-                const docId = adnData?.nNFSe || adnData?.chNFSe || adnData?.id || idIntegracao;
+                const docId = adnData?.nNFSe || adnData?.chNFSe || adnData?.id || adnData?.idIntegracao || dpsId;
                 const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || docId;
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. ID: ${docId} | Chave: ${chaveAcesso}`);
