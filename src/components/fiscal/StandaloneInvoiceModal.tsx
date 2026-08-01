@@ -56,6 +56,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errorDetail, setErrorDetail] = useState('');
+    const [rawGovResponse, setRawGovResponse] = useState<any>(null);
+    const [showRawResponse, setShowRawResponse] = useState(false);
     const [resultModal, setResultModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -496,6 +498,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         e.preventDefault();
         setError('');
         setErrorDetail('');
+        setRawGovResponse(null);
+        setShowRawResponse(false);
 
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
@@ -1137,36 +1141,46 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
             // Extrai erros do Portal Nacional (ADN gov.br / SEFIN Nacional) de múltiplos formatos de resposta
             const errData = error.response?.data;
-            console.error('❌ [EMISSÃO] Detalhes completos do erro:', JSON.stringify(errData, null, 2));
+            console.error('❌ [EMISSÃO] Resposta completa do erro:', JSON.stringify(errData, null, 2));
             
-            // Loga o XML assinado se disponível — para diagnosticar o que foi enviado ao governo
+            // Loga o XML assinado se disponível
             if (errData?.xml_assinado) {
-                console.warn('📝 [XML-ENVIADO-AO-GOVERNO] Abaixo está o XML que foi enviado ao Portal Nacional. Verifique se pAliq está presente:');
+                console.warn('📝 [XML-ENVIADO-AO-GOVERNO] XML enviado ao Portal Nacional:');
                 console.warn(errData.xml_assinado);
             }
+
+            // Guardar resposta bruta completa para exibição
+            setRawGovResponse(errData);
             
-            // Tentar extrair erros do governo diretamente
+            // Tentar extrair erros do governo de múltiplos formatos possíveis
             let govErros: any[] = [];
             try {
                 if (Array.isArray(errData?.erros)) govErros = errData.erros;
                 else if (Array.isArray(errData?.detail?.erros)) govErros = errData.detail.erros;
                 else if (typeof errData?.detail === 'string') {
-                    const parsed = JSON.parse(errData.detail);
-                    if (Array.isArray(parsed?.erros)) govErros = parsed.erros;
+                    try {
+                        const parsed = JSON.parse(errData.detail);
+                        if (Array.isArray(parsed?.erros)) govErros = parsed.erros;
+                        else if (parsed?.erros) govErros = [parsed.erros];
+                    } catch { /* not JSON */ }
+                }
+                // Formato alternativo: detail como objeto direto
+                else if (errData?.detail && typeof errData.detail === 'object') {
+                    const d = errData.detail;
+                    if (Array.isArray(d.erros)) govErros = d.erros;
+                    else if (d.Codigo || d.codigo) govErros = [d];
                 }
             } catch (e) { /* ignora parse error */ }
 
             if (govErros.length > 0) {
-                const firstErr = govErros[0];
-                const errCode = firstErr.Codigo || firstErr.codigo || 'ERRO';
-                const errDesc = firstErr.Descricao || firstErr.descricao || 'Erro retornado pelo Portal Nacional.';
+                const allCodes = govErros.map((e: any) => `[${e.Codigo || e.codigo || '?'}] ${e.Descricao || e.descricao || ''}`).join('\n');
                 setError(`Erro retornado pelo Portal Nacional (ADN gov.br)`);
-                setErrorDetail(`[${errCode}] ${errDesc}`);
+                setErrorDetail(allCodes);
             } else {
                 const rawErrorMsg = typeof errData?.error === 'string'
                     ? errData.error
                     : (errData?.error?.message || errData?.message || error.message);
-                setError(rawErrorMsg);
+                setError(rawErrorMsg || 'Erro desconhecido');
                 const detail = errData?.detail || errData || error.message;
                 setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : String(detail));
             }
@@ -1179,23 +1193,52 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         <Modal isOpen={true} onClose={onClose} title="Nova Nota Fiscal Avulsa" icon={Receipt} maxWidth="max-w-3xl">
             <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
-                    <div className="bg-rose-50 dark:bg-rose-900/10 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-900/20 animate-in shake duration-500">
-                        <div className="flex items-start gap-4">
-                            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl">
-                                <AlertCircle size={20} className="text-rose-600 dark:text-rose-400" />
+                    <div className="bg-rose-50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/30 animate-in fade-in duration-300 space-y-3">
+                        {/* Cabeçalho do erro */}
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl shrink-0">
+                                <AlertCircle size={18} className="text-rose-600 dark:text-rose-400" />
                             </div>
-                            <div className="flex-1">
+                            <div>
                                 <p className="text-sm font-bold text-rose-700 dark:text-rose-400">Falha na Emissão</p>
-                                <p className="text-xs text-rose-600/80 dark:text-rose-400/60 mt-1 font-medium leading-relaxed">
-                                    {error}
-                                </p>
-                                {errorDetail && (
-                                    <div className="mt-3 pt-3 border-t border-rose-200/30 dark:border-rose-900/30 font-mono text-[10px] text-rose-500/70 break-all bg-white/30 dark:bg-black/20 p-2 rounded-lg">
-                                        DETALHE TÉCNICO: {errorDetail}
+                                <p className="text-xs text-rose-500 dark:text-rose-400/70 font-medium">{error}</p>
+                            </div>
+                        </div>
+
+                        {/* Código(s) de erro do governo — destaque visual */}
+                        {errorDetail && (
+                            <div className="bg-rose-100/60 dark:bg-rose-900/20 rounded-xl p-3 border border-rose-200/60 dark:border-rose-800/30">
+                                <p className="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-1">Código do Erro (Portal Nacional)</p>
+                                <pre className="text-xs font-mono text-rose-700 dark:text-rose-300 whitespace-pre-wrap break-all leading-relaxed">{errorDetail}</pre>
+                            </div>
+                        )}
+
+                        {/* Resposta bruta completa — expansível */}
+                        {rawGovResponse && (
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRawResponse(v => !v)}
+                                    className="text-[10px] text-rose-400 hover:text-rose-600 dark:text-rose-500 dark:hover:text-rose-300 underline font-mono transition-colors"
+                                >
+                                    {showRawResponse ? '▲ Ocultar' : '▼ Ver'} resposta completa do Portal Nacional
+                                </button>
+                                {showRawResponse && (
+                                    <div className="mt-2 relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => navigator.clipboard.writeText(JSON.stringify(rawGovResponse, null, 2))}
+                                            className="absolute top-2 right-2 text-[9px] bg-rose-200 dark:bg-rose-800 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded hover:bg-rose-300 dark:hover:bg-rose-700 transition-colors font-mono"
+                                        >
+                                            📋 Copiar
+                                        </button>
+                                        <pre className="text-[9px] font-mono text-rose-600/80 dark:text-rose-400/60 bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-rose-200/30 dark:border-rose-900/30 overflow-auto max-h-48 whitespace-pre-wrap break-all leading-relaxed">
+                                            {JSON.stringify(rawGovResponse, null, 2)}
+                                        </pre>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        )}
                     </div>
                 )}
 

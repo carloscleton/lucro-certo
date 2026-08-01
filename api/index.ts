@@ -2544,7 +2544,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 return res.status(errStatus || 400).json({
                     error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
+                    erros: errData?.erros || (Array.isArray(errData) ? errData : undefined),
                     detail: detailedMessage,
+                    raw_sefin: errData,
                     payload_enviado: adnPayload,
                     xml_assinado: signedXml || undefined,
                     idDPS: dpsId,
