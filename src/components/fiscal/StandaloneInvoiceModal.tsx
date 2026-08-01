@@ -269,6 +269,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         }));
     }, [config, type, currentEntity.id]);
 
+    const nationalConfig = useMemo(() => {
+        return (currentCompany as any)?.settings?.national_config || {};
+    }, [currentCompany]);
+
     useEffect(() => {
         if (activeProvider === 'nfeio' && type !== 'nfse') {
             setType('nfse');
@@ -1181,14 +1185,23 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 </span>
                             </div>
                             
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Alíquota ISS / Simples">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Alíquota ISS">
                                 <span className="text-[9px] font-medium text-gray-400">ISS:</span>
-                                <span className="text-[9px] font-bold text-gray-700 dark:text-gray-300">
-                                    { (config.regime_tributario === '1' || config.regime_tributario === '2' || config.regime_tributario === '4') 
-                                        ? (config.simples_nacional_aliquota || '0') 
-                                        : (config.default_iss_aliquota || (config.ambiente === 'homologacao' ? '3' : '0')) }%
+                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                                    {activeProvider === 'national' 
+                                        ? `${nationalConfig.default_iss_aliquota || '2.00'}%` 
+                                        : `${config.default_iss_aliquota || '2.00'}%`}
                                 </span>
                             </div>
+
+                            {activeProvider === 'national' && nationalConfig.default_tot_trib_sn && (
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-800" title="Alíquota Total Estimada Simples Nacional">
+                                    <span className="text-[9px] font-medium text-gray-400">Est. SN:</span>
+                                    <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                        {nationalConfig.default_tot_trib_sn}%
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Retenções Federais — PIS / COFINS / CSLL / IRRF */}
                             {(() => {
