@@ -4876,6 +4876,24 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             });
         }
 
+        // Bypass para notas do Portal Nacional (ADN gov.br / Direct National)
+        if (activeProvider === 'national' || type === 'nfsenac' || String(id).startsWith('DPS')) {
+            console.log(`🌐 [FISCAL-STATUS] Nota do Portal Nacional detectada (${id}). Retornando dados salvos do banco.`);
+            const statusVal = dbRecord?.status || 'concluido';
+            return res.json({
+                id,
+                status: statusVal,
+                flowStatus: statusVal,
+                number: dbRecord?.invoice_number || null,
+                verificationCode: dbRecord?.access_key || id,
+                pdf: dbRecord?.pdf_url || null,
+                xml: dbRecord?.xml_url || null,
+                error_message: dbRecord?.error_message || null,
+                message: `Nota do Portal Nacional: ${statusVal}`,
+                data: dbRecord || { id, status: statusVal }
+            });
+        }
+
         if (type === 'nfeio' || (activeProvider === 'nfeio' && !isRecordFound)) {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
