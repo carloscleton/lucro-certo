@@ -1975,7 +1975,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
             };
 
-            const dhEmi = formatLocalSefazDate(now);
+            const safePastDate = new Date(Date.now() - 2 * 60 * 1000);
+            const dhEmi = formatLocalSefazDate(safePastDate);
             const dCompet = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             // Código do município de prestação (IBGE 7 dígitos)
@@ -2084,6 +2085,24 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // 1. Gerar o XML correspondente à DPS
             const inf = adnPayload.infDPS || {};
+            
+            // Previne erro E0008 (Data de emissão posterior ao processamento no SefinNacional):
+            // Garante que o dhEmi esteja sempre a pelo menos 2 minutos no passado relativo ao relógio atômico do governo.
+            const twoMinPast = new Date(Date.now() - 2 * 60 * 1000);
+            const safeDhEmiStr = formatLocalSefazDate(twoMinPast);
+
+            if (inf.dhEmi) {
+                try {
+                    const payloadDate = new Date(inf.dhEmi);
+                    if (isNaN(payloadDate.getTime()) || payloadDate.getTime() > twoMinPast.getTime()) {
+                        inf.dhEmi = safeDhEmiStr;
+                    }
+                } catch (e) {
+                    inf.dhEmi = safeDhEmiStr;
+                }
+            } else {
+                inf.dhEmi = safeDhEmiStr;
+            }
             
             const rawPrestCnpj = String(inf.prest?.CNPJ || prestadorCnpj || '').replace(/\D/g, '');
             const configuredCnpj = nat.cnpj ? String(nat.cnpj).replace(/\D/g, '') : '';
