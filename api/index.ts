@@ -1951,12 +1951,35 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 'Prestação de serviços'
             ).trim();
             const descricao = descVal || 'Prestação de serviços';
-            const rawCodeNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || nat.codigo_tributacao_nacional || '010701';
-            let cleanCode6 = String(rawCodeNac).replace(/\D/g, '').substring(0, 6);
-            if (!cleanCode6 || cleanCode6 === '010101' || cleanCode6.length < 6) {
-                cleanCode6 = '010701'; // Código de Tributação Nacional oficial padrão (TI / Suporte Técnico)
+            const is6DigitTribNac = (code: any) => {
+                const clean = String(code || '').replace(/\D/g, '');
+                return clean.length === 6;
+            };
+
+            const munCodeClean = String(servItem.codigoTributacao || servItem.codigo || '').replace(/\D/g, '');
+            const natCodeClean = String(servItem.codigoTributacaoNacional || servItem.cNBS || '').replace(/\D/g, '');
+
+            let codigoTribNac6 = '010701';
+            let codigoNBS9 = '';
+
+            if (is6DigitTribNac(munCodeClean)) {
+                codigoTribNac6 = munCodeClean;
+            } else if (is6DigitTribNac(natCodeClean)) {
+                codigoTribNac6 = natCodeClean;
+            } else if (is6DigitTribNac(nat.default_cTribNac)) {
+                codigoTribNac6 = String(nat.default_cTribNac).replace(/\D/g, '').substring(0, 6);
+            } else if (is6DigitTribNac(nat.codigo_tributacao_nacional)) {
+                codigoTribNac6 = String(nat.codigo_tributacao_nacional).replace(/\D/g, '').substring(0, 6);
             }
-            const codigoTribNac6 = cleanCode6;
+
+            if (natCodeClean.length === 9) {
+                codigoNBS9 = natCodeClean;
+            } else if (munCodeClean.length === 9) {
+                codigoNBS9 = munCodeClean;
+            } else if (servItem.cNBS && String(servItem.cNBS).replace(/\D/g, '').length === 9) {
+                codigoNBS9 = String(servItem.cNBS).replace(/\D/g, '');
+            }
+
             const simplesNacional = nat.simples_nacional !== false
                 ? (nat.reg_esp_trib === 6 ? 2 : 3) // 6=MEI no regEspTrib => MEI
                 : 1; // Não optante
@@ -2036,7 +2059,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 // Garante que o cTribNac tenha 6 dígitos se presente
                 if (adnPayload.infDPS.serv?.cServ?.cTribNac) {
-                    adnPayload.infDPS.serv.cServ.cTribNac = String(adnPayload.infDPS.serv.cServ.cTribNac).replace(/\D/g, '').substring(0, 6).padEnd(6, '0');
+                    const rawTrib = String(adnPayload.infDPS.serv.cServ.cTribNac).replace(/\D/g, '');
+                    if (rawTrib.length === 6) {
+                        adnPayload.infDPS.serv.cServ.cTribNac = rawTrib;
+                    } else if (rawTrib.length === 9) {
+                        adnPayload.infDPS.serv.cServ.cNBS = rawTrib;
+                        adnPayload.infDPS.serv.cServ.cTribNac = codigoTribNac6;
+                    }
+                } else {
+                    if (!adnPayload.infDPS.serv) adnPayload.infDPS.serv = { locPrest: { cLocPrestacao }, cServ: {} };
+                    if (!adnPayload.infDPS.serv.cServ) adnPayload.infDPS.serv.cServ = {};
+                    adnPayload.infDPS.serv.cServ.cTribNac = codigoTribNac6;
                 }
 
                 // Garante alíquotas pAliq e pTotTribSN no JSON fornecido
@@ -2094,6 +2127,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             },
                             cServ: {
                                 cTribNac: codigoTribNac6,
+                                ...(codigoNBS9 ? { cNBS: codigoNBS9 } : {}),
                                 ...(servItem.codigo && String(servItem.codigo).replace(/\D/g, '').length === 7 && String(servItem.codigo).replace(/\D/g, '') !== codigoTribNac6 ? { cTribMun: String(servItem.codigo).replace(/\D/g, '') } : {}),
                                 xDescServ: descricao
                             }

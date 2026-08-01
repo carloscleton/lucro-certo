@@ -635,23 +635,29 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         }
                         
                         if (isNacional) {
-                            const rawNatCode = i.codigoTributacaoNacional || i.taxationCode || config?.codigo_tributacao_nacional || '010701';
-                            const cleanNatCode = String(rawNatCode).replace(/\D/g, '').trim();
-                            const cleanMunCode = String(i.taxCode || '').replace(/\D/g, '').trim();
+                            const cleanTaxCode = String(i.taxCode || '').replace(/\D/g, '').trim();
+                            const cleanNatCode = String(i.codigoTributacaoNacional || '').replace(/\D/g, '').trim();
                             
-                            if (cleanMunCode) {
-                                item.codigoTributacao = cleanMunCode;
+                            // cTribNac deve ser 6 dígitos (ex: 010701)
+                            const cTribNac6 = (cleanTaxCode.length === 6) 
+                                ? cleanTaxCode 
+                                : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
+                            
+                            item.codigoTributacao = cTribNac6;
+                            item.codigo = cTribNac6;
+                            
+                            // Se foi informado código de 9 dígitos, ele é o cNBS
+                            if (cleanNatCode.length === 9) {
+                                item.cNBS = cleanNatCode;
+                                item.codigoTributacaoNacional = cTribNac6;
+                            } else {
+                                item.codigoTributacaoNacional = cTribNac6;
                             }
 
-                            const validCode = (cleanNatCode.length >= 6 && cleanNatCode !== '010101') ? cleanNatCode : '010701';
-                            item.codigoTributacaoNacional = validCode.substring(0, 9).padEnd(9, '0');
-                            
-                            item.codigo = cleanMunCode.substring(0, 6).padEnd(6, '0');
-                            
-                            if (cleanMunCode.length >= 4) {
-                                item.itemListaServico = cleanMunCode.substring(0, 2) + '.' + cleanMunCode.substring(2, 4);
+                            if (cTribNac6.length >= 4) {
+                                item.itemListaServico = cTribNac6.substring(0, 2) + '.' + cTribNac6.substring(2, 4);
                             } else {
-                                item.itemListaServico = '01.01';
+                                item.itemListaServico = '01.07';
                             }
                             
                             item.naturezaOperacao = 1;
@@ -1440,12 +1446,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <div className={`grid grid-cols-1 ${isNacional && type === 'nfse' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                                     <div className="space-y-1.5">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                            {type === 'nfse' ? (isNacional ? 'Cód. Municipal (6)' : 'Cód. Municipal') : 'NCM'}
+                                            {type === 'nfse' ? (isNacional ? 'Cód. Tributação (6 dígs)' : 'Cód. Municipal') : 'NCM'}
                                         </label>
                                         <Input
                                             value={item.taxCode}
                                             onChange={(e: any) => updateItem(item.id, 'taxCode', e.target.value)}
-                                            placeholder={type === 'nfse' ? (isNacional ? 'Ex: 123456' : 'Ex: 01.01') : '84713019'}
+                                            placeholder={type === 'nfse' ? (isNacional ? 'Ex: 010701' : 'Ex: 01.01') : '84713019'}
                                             required
                                             className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                         />
@@ -1454,13 +1460,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     {isNacional && type === 'nfse' && (
                                         <div className="space-y-1.5 animate-in fade-in zoom-in duration-300">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                                Cód. Nacional (9)
+                                                Cód. NBS (9 dígs - Opcional)
                                             </label>
                                             <Input
                                                 value={item.codigoTributacaoNacional}
                                                 onChange={(e: any) => updateItem(item.id, 'codigoTributacaoNacional', e.target.value)}
-                                                placeholder="Ex: 010101001"
-                                                required
+                                                placeholder="Ex: 115013000"
                                                 className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-indigo-500/20 shadow-sm h-11"
                                             />
                                         </div>
