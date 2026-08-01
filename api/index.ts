@@ -2037,6 +2037,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Código do município de prestação (IBGE 7 dígitos)
             const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
+            const cLocEmiVal = String(nat.codigo_municipio || firstItem?.codigoIbge || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
 
             // Payload DPS conforme especificação ADN NFS-e Nacional
             // O payload final enviado para o governo
@@ -2129,7 +2130,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         tpAmb,
                         dhEmi,
                         dCompet,
-                        cLocEmi: cLocEmi || nat.codigo_municipio || '2408102',
+                        cLocEmi: cLocEmiVal,
                         nDPS: String(Date.now()).substring(4, 12),
                         serie: '1',
                         prest: {
@@ -2237,7 +2238,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 delete (inf.toma as any).IE;
             }
             
-            const cLocEmi = String(inf.cLocEmi || nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            const cLocEmi = String(inf.cLocEmi || cLocEmiVal).replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '1' : '2'; // 1 = CPF, 2 = CNPJ no idDPS do SefinNacional
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
