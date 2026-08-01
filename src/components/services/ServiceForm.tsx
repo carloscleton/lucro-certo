@@ -69,6 +69,20 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
         }
     }, [initialData, isOpen]);
 
+    // Auto-preenche o NBS (9 dígitos) sempre que munCode mudar e tiver 6 dígitos válidos
+    useEffect(() => {
+        const clean = munCode.replace(/\D/g, '');
+        if (clean.length === 6 && CTRIBNAC_NBS_MAP[clean]) {
+            // Só auto-preenche se o NBS estiver vazio ou já era gerado automaticamente
+            if (!natCode || nbsAutoFilled) {
+                setNatCode(CTRIBNAC_NBS_MAP[clean]);
+                setNbsAutoFilled(true);
+            }
+        } else if (clean.length < 6) {
+            setNbsAutoFilled(false);
+        }
+    }, [munCode]);
+
     const { clearCache } = useAutoSave(
         'service_form',
         { name, description, price, unit, showInPdf, munCode, lcItem, natCode },
@@ -227,26 +241,21 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                         </div>
                                         <Input
                                             value={munCode}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setMunCode(val);
-                                                const clean = val.replace(/\D/g, '');
-                                                if (clean.length === 6 && CTRIBNAC_NBS_MAP[clean]) {
-                                                    setNatCode(CTRIBNAC_NBS_MAP[clean]);
-                                                    setNbsAutoFilled(true);
-                                                } else if (clean.length < 6) {
-                                                    setNbsAutoFilled(false);
-                                                }
-                                            }}
+                                            onChange={e => setMunCode(e.target.value)}
                                             placeholder={isNacional ? "Ex: 170601 / 010701" : "Ex: 1.01 / 0101"}
                                             list="ctribnac-list-service"
                                             helpText={isNacional ? "Cód. Tributação Nacional (Exatamente 6 dígitos)" : "Código de tributação do município"}
                                         />
                                         {isNacional && (
                                             <datalist id="ctribnac-list-service">
-                                                {Object.entries(CTRIBNAC_DESCRIPTIONS).map(([code, desc]) => (
-                                                    <option key={code} value={code}>{code} - {desc}</option>
-                                                ))}
+                                                {Object.entries(CTRIBNAC_DESCRIPTIONS).map(([code, desc]) => {
+                                                    const nbs = CTRIBNAC_NBS_MAP[code];
+                                                    return (
+                                                        <option key={code} value={code}>
+                                                            {code} → NBS: {nbs} | {desc}
+                                                        </option>
+                                                    );
+                                                })}
                                             </datalist>
                                         )}
                                     </div>
