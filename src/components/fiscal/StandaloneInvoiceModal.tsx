@@ -1135,13 +1135,35 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 return;
             }
 
-            const rawErrorMsg = typeof error.response?.data?.error === 'string'
-                ? error.response.data.error
-                : (error.response?.data?.error?.message || error.response?.data?.message || error.message);
-            setError(rawErrorMsg);
+            // Extrai erros do Portal Nacional (ADN gov.br / SEFIN Nacional) de múltiplos formatos de resposta
+            const errData = error.response?.data;
+            console.error('❌ [EMISSÃO] Detalhes completos do erro:', JSON.stringify(errData, null, 2));
             
-            const detail = error.response?.data?.detail || error.response?.data || error.message;
-            setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : detail);
+            // Tentar extrair erros do governo diretamente
+            let govErros: any[] = [];
+            try {
+                if (Array.isArray(errData?.erros)) govErros = errData.erros;
+                else if (Array.isArray(errData?.detail?.erros)) govErros = errData.detail.erros;
+                else if (typeof errData?.detail === 'string') {
+                    const parsed = JSON.parse(errData.detail);
+                    if (Array.isArray(parsed?.erros)) govErros = parsed.erros;
+                }
+            } catch (e) { /* ignora parse error */ }
+
+            if (govErros.length > 0) {
+                const firstErr = govErros[0];
+                const errCode = firstErr.Codigo || firstErr.codigo || 'ERRO';
+                const errDesc = firstErr.Descricao || firstErr.descricao || 'Erro retornado pelo Portal Nacional.';
+                setError(`Erro retornado pelo Portal Nacional (ADN gov.br)`);
+                setErrorDetail(`[${errCode}] ${errDesc}`);
+            } else {
+                const rawErrorMsg = typeof errData?.error === 'string'
+                    ? errData.error
+                    : (errData?.error?.message || errData?.message || error.message);
+                setError(rawErrorMsg);
+                const detail = errData?.detail || errData || error.message;
+                setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : String(detail));
+            }
         } finally {
             setLoading(false);
         }
