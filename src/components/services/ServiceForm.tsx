@@ -12,8 +12,8 @@ import type { Service } from '../../hooks/useServices';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { supabase } from '../../lib/supabase';
 import { useNotification } from '../../context/NotificationContext';
-import { LC116_ITEMS } from '../../constants/fiscal';
-import { Search } from 'lucide-react';
+import { LC116_ITEMS, CTRIBNAC_NBS_MAP, CTRIBNAC_DESCRIPTIONS } from '../../constants/fiscal';
+import { Search, CheckCircle } from 'lucide-react';
 
 interface ServiceFormProps {
     isOpen: boolean;
@@ -34,13 +34,15 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const [natCode, setNatCode] = useState('');
     const [isLoyalty, setIsLoyalty] = useState(false);
     const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+    const [nbsAutoFilled, setNbsAutoFilled] = useState(false);
 
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
     const { notify } = useNotification();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     const isFiscalEnabled = currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
-    const isNacional = !!(currentCompany?.tecnospeed_config?.nfse_nacional || currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional);
+    const activeProvider = (currentCompany as any)?.settings?.fiscal_provider || 'tecnospeed';
+    const isNacional = activeProvider === 'national' || !!(currentCompany?.tecnospeed_config?.nfse_nacional || currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional);
 
     useEffect(() => {
         if (initialData) {
@@ -53,6 +55,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setLcItem(initialData.item_lista_servico || '');
             setNatCode(initialData.codigo_tributacao_nacional || '');
             setIsLoyalty(initialData.is_loyalty || false);
+            setNbsAutoFilled(false);
         } else {
             setName('');
             setDescription('');
@@ -208,44 +211,84 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                         <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Dados Fiscais (NFS-e)</h4>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cód. Serviço Municipal</label>
-                                    <button 
-                                        type="button"
-                                        onClick={handleConsultarPrefeitura}
-                                        className="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline"
-                                    >
-                                        <Search size={10} /> CONSULTAR
-                                    </button>
+                                    {/* Campo cTribNac (6 dígitos) */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {isNacional ? "Cód. Tributação (6 dígs)" : "Cód. Serviço Municipal"}
+                                            </label>
+                                            <button 
+                                                type="button"
+                                                onClick={handleConsultarPrefeitura}
+                                                className="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline"
+                                            >
+                                                <Search size={10} /> CONSULTAR
+                                            </button>
+                                        </div>
+                                        <Input
+                                            value={munCode}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setMunCode(val);
+                                                const clean = val.replace(/\D/g, '');
+                                                if (clean.length === 6 && CTRIBNAC_NBS_MAP[clean]) {
+                                                    setNatCode(CTRIBNAC_NBS_MAP[clean]);
+                                                    setNbsAutoFilled(true);
+                                                } else if (clean.length < 6) {
+                                                    setNbsAutoFilled(false);
+                                                }
+                                            }}
+                                            placeholder={isNacional ? "Ex: 170601 / 010701" : "Ex: 1.01 / 0101"}
+                                            list="ctribnac-list-service"
+                                            helpText={isNacional ? "Cód. Tributação Nacional (Exatamente 6 dígitos)" : "Código de tributação do município"}
+                                        />
+                                        {isNacional && (
+                                            <datalist id="ctribnac-list-service">
+                                                {Object.entries(CTRIBNAC_DESCRIPTIONS).map(([code, desc]) => (
+                                                    <option key={code} value={code}>{code} - {desc}</option>
+                                                ))}
+                                            </datalist>
+                                        )}
+                                    </div>
+
+                                    {/* Campo NBS (9 dígitos) */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {isNacional ? "Código NBS (9 dígitos)" : "Item Lista Serviço (LC 116)"}
+                                            </label>
+                                            {nbsAutoFilled && (
+                                                <span style={{ color: '#16a34a', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                    <CheckCircle size={10} /> PREENCHIDO AUTO
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={nbsAutoFilled ? { borderRadius: 6, boxShadow: '0 0 0 2px #16a34a55', transition: 'box-shadow 0.3s' } : {}}>
+                                            <Input
+                                                value={isNacional ? natCode : lcItem}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (isNacional) {
+                                                        setNatCode(val);
+                                                        setNbsAutoFilled(false);
+                                                    } else {
+                                                        setLcItem(val);
+                                                    }
+                                                }}
+                                                placeholder={isNacional ? "Ex: 114011000 / 115013000" : "Ex: 01.01"}
+                                                list={isNacional ? "" : "lc116-items"}
+                                                helpText={isNacional ? "Código NBS (Nomenclatura Brasileira de Serviços)" : "Item da Lei Complementar 116/2003"}
+                                            />
+                                        </div>
+                                        {!isNacional && (
+                                            <datalist id="lc116-items">
+                                                {LC116_ITEMS.map(item => (
+                                                    <option key={item.id} value={item.id}>{item.description}</option>
+                                                ))}
+                                            </datalist>
+                                        )}
+                                    </div>
                                 </div>
-                                <Input
-                                    value={munCode}
-                                    onChange={e => setMunCode(e.target.value)}
-                                    placeholder={isNacional ? "Ex: 6 dígitos" : "Ex: 1.01 / 0101"}
-                                    helpText={isNacional ? "Cód. Municipal (Exatamente 6 dígitos)" : "Código de tributação do município"}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    {isNacional ? "Código Nacional (9 dígitos)" : "Item Lista Serviço (LC 116)"}
-                                </label>
-                                <Input
-                                    value={isNacional ? natCode : lcItem}
-                                    onChange={e => isNacional ? setNatCode(e.target.value) : setLcItem(e.target.value)}
-                                    placeholder={isNacional ? "010101001" : "Ex: 01.01"}
-                                    list={isNacional ? "" : "lc116-items"}
-                                    helpText={isNacional ? "Código de Tributação Nacional" : "Item da Lei Complementar 116/2003"}
-                                />
-                                {!isNacional && (
-                                    <datalist id="lc116-items">
-                                        {LC116_ITEMS.map(item => (
-                                            <option key={item.id} value={item.id}>{item.description}</option>
-                                        ))}
-                                    </datalist>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 )}
 
