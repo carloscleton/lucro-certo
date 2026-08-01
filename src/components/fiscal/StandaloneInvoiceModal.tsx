@@ -1139,6 +1139,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const errData = error.response?.data;
             console.error('❌ [EMISSÃO] Detalhes completos do erro:', JSON.stringify(errData, null, 2));
             
+            // Loga o XML assinado se disponível — para diagnosticar o que foi enviado ao governo
+            if (errData?.xml_assinado) {
+                console.warn('📝 [XML-ENVIADO-AO-GOVERNO] Abaixo está o XML que foi enviado ao Portal Nacional. Verifique se pAliq está presente:');
+                console.warn(errData.xml_assinado);
+            }
+            
             // Tentar extrair erros do governo diretamente
             let govErros: any[] = [];
             try {
