@@ -200,6 +200,69 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         }
     };
 
+    const handleOpenDanfsePdf = async () => {
+        try {
+            let parsedDetail: any = {};
+            if (typeof data?.detail === 'string') {
+                try { parsedDetail = JSON.parse(data.detail); } catch (e) {}
+            }
+
+            const inf = data?.payload?.infDPS || data?.infDPS || data?.payload_enviado?.infDPS || parsedDetail?.infDPS || data?.payload || {};
+            const prest = inf.prest || data?.prestador || parsedDetail?.prestador || {};
+            const toma = inf.toma || data?.tomador || parsedDetail?.tomador || {};
+            const serv = inf.serv || data?.servico || (Array.isArray(data?.servico) ? data.servico[0] : {});
+            const val = inf.valores || data?.valores || parsedDetail?.valores || {};
+
+            const cTribNac = serv.cServ?.cTribNac || serv.cTribNac || serv.codigo || '010701';
+            const descServ = serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || serv.discriminacao || 'Análise e desenvolvimento de sistemas';
+            const valServ = Number(val.vServPrest?.vServ || val.vServ || serv.valor?.servico || data?.valor || 100);
+
+            const idDPSFromDetail = parsedDetail?.idDPS || data?.idDPS || data?.chNFSe || data?.chaveAcesso;
+            let nDPSComputed = inf.nDPS || data?.nDPS;
+            if (!nDPSComputed && idDPSFromDetail) {
+                const matchNDps = String(idDPSFromDetail).match(/\d{15}$/);
+                if (matchNDps) nDPSComputed = String(parseInt(matchNDps[0], 10));
+            }
+
+            const pdfBlob = await PDFService.generateDanfsePDF({
+                nNfse: data?.nNFSe || nDPSComputed || '1',
+                serie: inf.serie || data?.serie || '1',
+                nDPS: nDPSComputed || '1',
+                chaveAcesso: idDPSFromDetail || '240810220089356600019000001000000000000001',
+                dhEmi: inf.dhEmi || data?.dhEmi || new Date().toISOString(),
+                prestador: {
+                    cnpj: prest.CNPJ || prest.cnpj || prest.cpfCnpj || '00.893.566/0001-90',
+                    nome: prest.xNome || prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES',
+                    im: prest.IM || prest.im || prest.inscricaoMunicipal || 'Isento',
+                },
+                tomador: {
+                    doc: toma.CNPJ || toma.CPF || toma.doc || toma.cpfCnpj || '11.222.333/0001-81',
+                    nome: toma.xNome || toma.nome || toma.razaoSocial || 'EMPRESA DE TESTE LTDA',
+                    email: toma.email || 'teste@nfe.io'
+                },
+                servico: {
+                    cTribNac,
+                    descricao: descServ,
+                    valor: valServ
+                },
+                impostos: {
+                    issqn: Number(val.trib?.tribMun?.vISSQN || 0),
+                    pis: Number(val.trib?.tribFed?.vPIS || 0),
+                    cofins: Number(val.trib?.tribFed?.vCOFINS || 0),
+                    ibs: Number(val.trib?.reformaTributaria?.vIBS || 0),
+                    cbs: Number(val.trib?.reformaTributaria?.vCBS || 0)
+                },
+                ambiente: (data?.tipoAmbiente === 1 || inf.tpAmb === 1) ? 'producao' : 'homologacao'
+            });
+            const newUrl = window.URL.createObjectURL(pdfBlob);
+            setGeneratedPdfUrl(newUrl);
+            setShowXml(false);
+            setShowPdf(true);
+        } catch (err) {
+            console.error('Erro ao gerar DANFSE em PDF:', err);
+        }
+    };
+
     useEffect(() => {
         if (isOpen && data) {
             setShowPdf(false);
@@ -220,74 +283,6 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const { friendlyTitle, friendlyMessage, friendlyHint, errorCode } = humanizeFiscalError(title, message, data);
     
     const xmlUrl = findDocument(data, 'xml');
-
-    const handleOpenDanfsePdf = async () => {
-        let url = generatedPdfUrl;
-        if (!url && data) {
-            try {
-                let parsedDetail: any = {};
-                if (typeof data.detail === 'string') {
-                    try { parsedDetail = JSON.parse(data.detail); } catch (e) {}
-                }
-
-                const inf = data.payload?.infDPS || data.infDPS || data.payload_enviado?.infDPS || parsedDetail?.infDPS || data.payload || {};
-                const prest = inf.prest || data.prestador || parsedDetail?.prestador || {};
-                const toma = inf.toma || data.tomador || parsedDetail?.tomador || {};
-                const serv = inf.serv || data.servico || (Array.isArray(data.servico) ? data.servico[0] : {});
-                const val = inf.valores || data.valores || parsedDetail?.valores || {};
-
-                const cTribNac = serv.cServ?.cTribNac || serv.cTribNac || serv.codigo || '010701';
-                const descServ = serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || serv.discriminacao || 'Análise e desenvolvimento de sistemas';
-                const valServ = Number(val.vServPrest?.vServ || val.vServ || serv.valor?.servico || data.valor || 100);
-
-                const idDPSFromDetail = parsedDetail?.idDPS || data.idDPS || data.chNFSe || data.chaveAcesso;
-                let nDPSComputed = inf.nDPS || data.nDPS;
-                if (!nDPSComputed && idDPSFromDetail) {
-                    const matchNDps = String(idDPSFromDetail).match(/\d{15}$/);
-                    if (matchNDps) nDPSComputed = String(parseInt(matchNDps[0], 10));
-                }
-
-                const pdfBlob = await PDFService.generateDanfsePDF({
-                    nNfse: data.nNFSe || nDPSComputed || '1',
-                    serie: inf.serie || data.serie || '1',
-                    nDPS: nDPSComputed || '1',
-                    chaveAcesso: idDPSFromDetail || '240810220089356600019000001000000000000001',
-                    dhEmi: inf.dhEmi || data.dhEmi || new Date().toISOString(),
-                    prestador: {
-                        cnpj: prest.CNPJ || prest.cnpj || prest.cpfCnpj || '00.893.566/0001-90',
-                        nome: prest.xNome || prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES',
-                        im: prest.IM || prest.im || prest.inscricaoMunicipal || 'Isento',
-                    },
-                    tomador: {
-                        doc: toma.CNPJ || toma.CPF || toma.doc || toma.cpfCnpj || '11.222.333/0001-81',
-                        nome: toma.xNome || toma.nome || toma.razaoSocial || 'EMPRESA DE TESTE LTDA',
-                        email: toma.email || 'teste@nfe.io'
-                    },
-                    servico: {
-                        cTribNac,
-                        descricao: descServ,
-                        valor: valServ
-                    },
-                    impostos: {
-                        issqn: Number(val.trib?.tribMun?.vISSQN || 0),
-                        pis: Number(val.trib?.tribFed?.vPIS || 0),
-                        cofins: Number(val.trib?.tribFed?.vCOFINS || 0),
-                        ibs: Number(val.trib?.reformaTributaria?.vIBS || 0),
-                        cbs: Number(val.trib?.reformaTributaria?.vCBS || 0)
-                    },
-                    ambiente: (data.tipoAmbiente === 1 || inf.tpAmb === 1) ? 'producao' : 'homologacao'
-                });
-                const newUrl = window.URL.createObjectURL(pdfBlob);
-                setGeneratedPdfUrl(newUrl);
-                url = newUrl;
-            } catch (err) {
-                console.error('Erro ao gerar DANFSE em PDF:', err);
-            }
-        }
-
-        setShowXml(false);
-        setShowPdf(true);
-    };
 
     const handleViewXml = async () => {
         setShowPdf(false);
