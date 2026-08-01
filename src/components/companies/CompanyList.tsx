@@ -1,4 +1,4 @@
-import { Edit2, Trash2, Building2, CheckCircle2 } from 'lucide-react';
+import { Edit2, Trash2, Building2, CheckCircle2, Eye } from 'lucide-react';
 import type { Company } from '../../hooks/useCompanies';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -8,9 +8,10 @@ interface CompanyListProps {
     onEdit: (company: Company) => void;
     onDelete: (id: string) => void;
     onSelect?: (company: Company) => void;
+    onViewFiscalSettings?: (company: Company) => void;
 }
 
-export function CompanyList({ companies, currentEntityId, onEdit, onDelete, onSelect }: CompanyListProps) {
+export function CompanyList({ companies, currentEntityId, onEdit, onDelete, onSelect, onViewFiscalSettings }: CompanyListProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {companies.length === 0 ? (
@@ -41,6 +42,16 @@ export function CompanyList({ companies, currentEntityId, onEdit, onDelete, onSe
                                     </div>
                                 </div>
                                 <div className="flex gap-1 shrink-0">
+                                    {onViewFiscalSettings && (
+                                        <Tooltip content="Ver Configurações Fiscais / Emissão">
+                                            <button
+                                                onClick={() => onViewFiscalSettings(company)}
+                                                className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+                                            >
+                                                <Eye size={16} />
+                                            </button>
+                                        </Tooltip>
+                                    )}
                                     <Tooltip content="Editar">
                                         <button
                                             onClick={() => onEdit(company)}

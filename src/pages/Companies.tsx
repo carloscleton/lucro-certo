@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useCompanies, type Company } from '../hooks/useCompanies';
 import { CompanyList } from '../components/companies/CompanyList';
 import { CompanyForm } from '../components/companies/CompanyForm';
+import { CompanyFiscalModal } from '../components/companies/CompanyFiscalModal';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -14,6 +15,7 @@ export function Companies() {
     const { currentEntity, switchEntity, availableEntities } = useEntity();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+    const [viewingFiscalCompany, setViewingFiscalCompany] = useState<Company | null>(null);
     const { t } = useTranslation();
 
     const handleSelectCompany = (company: Company) => {
@@ -125,6 +127,7 @@ export function Companies() {
                 onEdit={handleOpenModal}
                 onDelete={deleteCompany}
                 onSelect={handleSelectCompany}
+                onViewFiscalSettings={(company) => setViewingFiscalCompany(company)}
             />
 
             <CompanyForm
@@ -132,6 +135,12 @@ export function Companies() {
                 onClose={handleCloseModal}
                 onSubmit={handleSubmit}
                 initialData={editingCompany}
+            />
+
+            <CompanyFiscalModal
+                isOpen={!!viewingFiscalCompany}
+                onClose={() => setViewingFiscalCompany(null)}
+                company={viewingFiscalCompany}
             />
         </div>
     );
