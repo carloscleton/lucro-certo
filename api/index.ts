@@ -2035,9 +2035,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const dhEmi = formatBrasiliaSefazDate(safePastDate);
             const dCompet = getBrasiliaCompetDate(now);
 
-            // Código do município de prestação (IBGE 7 dígitos)
+            // Código do município de emissão e prestação (IBGE 7 dígitos)
             const cLocPrestacao = String(firstItem?.codigoIbge || nat.codigo_municipio || '3106200').replace(/\D/g, '');
-            const cLocEmiVal = String(nat.codigo_municipio || firstItem?.codigoIbge || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            const cLocEmi = String(payload?.infDPS?.cLocEmi || payload?.cLocEmi || nat.codigo_municipio || firstItem?.codigoIbge || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
 
             // Payload DPS conforme especificação ADN NFS-e Nacional
             // O payload final enviado para o governo
@@ -2130,7 +2130,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         tpAmb,
                         dhEmi,
                         dCompet,
-                        cLocEmi: cLocEmiVal,
+                        cLocEmi,
                         nDPS: String(Date.now()).substring(4, 12),
                         serie: '1',
                         prest: {
@@ -2238,7 +2238,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 delete (inf.toma as any).IE;
             }
             
-            const cLocEmi = String(inf.cLocEmi || cLocEmiVal).replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
+            // cLocEmi já foi calculado previamente no início do handler
+            const finalCLocEmi = String(inf.cLocEmi || cLocEmi).replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '1' : '2'; // 1 = CPF, 2 = CNPJ no idDPS do SefinNacional
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
@@ -2252,7 +2253,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const serieId = serieVal.padStart(5, '0').substring(0, 5); // Série DPS no ID (5 dígitos fixos)
             const numDpsInt = inf.nDPS !== undefined ? String(inf.nDPS) : String(Date.now()).substring(0, 15);
             const numero = numDpsInt.padStart(15, '0'); // Número DPS (15 dígitos)
-            const dpsId = `DPS${cLocEmi}${tpInsc}${insc}${serieId}${numero}`;
+            const dpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieId}${numero}`;
 
             const optSNVal = Number(inf.prest?.regTrib?.opSimpNac !== undefined ? inf.prest.regTrib.opSimpNac : (inf.optSN !== undefined ? inf.optSN : (simplesNacional || 1)));
             // optSN / opSimpNac no XSD: 1=Não Optante, 2=MEI, 3=ME/EPP
@@ -2373,7 +2374,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${cLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
