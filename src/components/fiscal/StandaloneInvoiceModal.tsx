@@ -621,7 +621,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
                         };
 
-                        if (i.cnae) {
+                        if (i.cnae && !isNacional) {
                             item.cnae = String(i.cnae).replace(/\D/g, '').substring(0, 7);
                         }
                         
