@@ -2094,6 +2094,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
             
+            // Previne erro E1235: A tag <toma> no XSD da DPS (SefinNacional) não aceita <im>, <IM> ou <IE>
+            if (inf.toma) {
+                delete (inf.toma as any).im;
+                delete (inf.toma as any).IM;
+                delete (inf.toma as any).inscricaoMunicipal;
+                delete (inf.toma as any).ie;
+                delete (inf.toma as any).IE;
+            }
+            
             const cLocEmi = String(inf.cLocEmi || nat.codigo_municipio || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
             const tpInsc = prestCnpjClean.length === 11 ? '1' : '2'; // 1 = CPF, 2 = CNPJ no idDPS do SefinNacional
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
