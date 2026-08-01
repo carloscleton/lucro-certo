@@ -132,11 +132,11 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const { clearCache } = useAutoSave(
         'company_form',
         { 
-            tradeName, legalName, cnpj, entityType, cpf, zipCode, street, number, complement, 
+            tradeName, legalName, cnpj, inscricaoMunicipal, entityType, cpf, zipCode, street, number, complement, 
             neighborhood, city, state, phone, loyaltyModuleEnabled
         },
         {
-            tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, entityType: setEntityType as any,
+            tradeName: setTradeName, legalName: setLegalName, cnpj: setCnpj, inscricaoMunicipal: setInscricaoMunicipal, entityType: setEntityType as any,
             cpf: setCpf, zipCode: setZipCode, street: setStreet, number: setNumber,
             complement: setComplement, neighborhood: setNeighborhood, city: setCity,
             state: setState, phone: setPhone, loyaltyModuleEnabled: setLoyaltyModuleEnabled

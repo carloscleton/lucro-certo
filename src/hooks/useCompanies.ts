@@ -198,9 +198,20 @@ export function useCompanies() {
         if (inscricao_municipal !== undefined) {
             const currentComp = companies.find(c => c.id === id);
             const existingSettings = finalUpdates.settings || currentComp?.settings || {};
+            const existingNatConfig = existingSettings.national_config || {};
+            const existingNfeioConfig = existingSettings.nfeio_config || {};
+
             finalUpdates.settings = {
                 ...existingSettings,
-                inscricao_municipal: inscricao_municipal || ''
+                inscricao_municipal: inscricao_municipal || '',
+                national_config: {
+                    ...existingNatConfig,
+                    inscricao_municipal: inscricao_municipal || existingNatConfig.inscricao_municipal || ''
+                },
+                nfeio_config: {
+                    ...existingNfeioConfig,
+                    inscricao_municipal: inscricao_municipal || existingNfeioConfig.inscricao_municipal || ''
+                }
             };
         }
 

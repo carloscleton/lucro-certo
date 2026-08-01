@@ -451,7 +451,7 @@ export function FiscalSettings() {
             send_whatsapp_automatically: nat.send_whatsapp_automatically || false
         });
 
-    }, [currentCompany?.id]); // Depender apenas do ID
+    }, [currentCompany?.id, currentCompany?.settings?.inscricao_municipal, currentCompany?.settings?.national_config?.inscricao_municipal]);
 
     const currentCertInfo = useMemo(() => {
         if (activeSubTab === 'nfeio') {
