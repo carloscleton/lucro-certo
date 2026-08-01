@@ -2042,9 +2042,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // O payload final enviado para o governo
             let adnPayload: any;
 
-            const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '2.00').replace(',', '.'));
+            const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '0').replace(',', '.'));
             const pTotTribSNValDefault = parseFloat(String(nat.default_tot_trib_sn || '6.00').replace(',', '.'));
-            const finalPAliq = !isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 2.00;
+            // Regra E0625: para Simples Nacional (opSimpNac=3) com ISSQN Não Retido (tpRetISSQN=1),
+            // NÃO enviar pAliq. Para outros casos, usa o valor configurado (sem forçar fallback de 2.00).
+            const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
+            const simplesNacionalDefault = nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1;
+            const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
+            // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
+            const finalPAliq = isSimplesSemRetencao ? 0 : (!isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0);
             const finalPTotTribSN = !isNaN(pTotTribSNValDefault) ? pTotTribSNValDefault : 6.00;
 
             if (payload && payload.infDPS) {
@@ -2076,9 +2082,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 if (adnPayload.infDPS.valores) {
                     if (!adnPayload.infDPS.valores.trib) adnPayload.infDPS.valores.trib = {};
                     if (!adnPayload.infDPS.valores.trib.tribMun) {
-                        adnPayload.infDPS.valores.trib.tribMun = { tribISSQN: 1, tpRetISSQN: 1, pAliq: finalPAliq };
-                    } else if (adnPayload.infDPS.valores.trib.tribMun.pAliq === undefined) {
-                        adnPayload.infDPS.valores.trib.tribMun.pAliq = finalPAliq;
+                        adnPayload.infDPS.valores.trib.tribMun = { 
+                            tribISSQN: 1, 
+                            tpRetISSQN: tpRetISSQNDefault,
+                            ...(finalPAliq > 0 ? { pAliq: finalPAliq } : {})
+                        };
+                    } else {
+                        // Remove pAliq se existir e não deve ser enviado
+                        if (isSimplesSemRetencao) {
+                            delete adnPayload.infDPS.valores.trib.tribMun.pAliq;
+                        } else if (adnPayload.infDPS.valores.trib.tribMun.pAliq === undefined && finalPAliq > 0) {
+                            adnPayload.infDPS.valores.trib.tribMun.pAliq = finalPAliq;
+                        }
                     }
 
                     if (!adnPayload.infDPS.valores.trib.totTrib) {
@@ -2139,8 +2154,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             trib: {
                                 tribMun: {
                                     tribISSQN: nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1,
-                                    tpRetISSQN: nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1,
-                                    pAliq: finalPAliq
+                                    tpRetISSQN: tpRetISSQNDefault,
+                                    // E0625: NÃO enviar pAliq para Simples Nacional sem retenção (tpRetISSQN=1)
+                                    ...(finalPAliq > 0 ? { pAliq: finalPAliq } : {})
                                 },
                                 totTrib: {
                                     pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0
