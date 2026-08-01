@@ -612,6 +612,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             codigoIbge: companyCityCode,
                             discriminacao: `${i.description}${descSuffix}`,
+                            descricao: `${i.description}${descSuffix}`,
                             valor: {
                                 servico: totalVal,
                                 descontoCondicionado: 0,

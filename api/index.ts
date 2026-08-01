@@ -1942,7 +1942,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
             const inscricaoMunicipal = String(firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '').trim();
-            const descricao = String(servItem.discriminacao || servItem.descricao || 'Prestação de serviços').trim();
+            const descVal = String(
+                servItem?.discriminacao || 
+                servItem?.descricao || 
+                servItem?.xDescServ || 
+                firstItem?.servico?.[0]?.discriminacao || 
+                firstItem?.servico?.[0]?.descricao || 
+                'Prestação de serviços'
+            ).trim();
+            const descricao = descVal || 'Prestação de serviços';
             const rawCodeNac = servItem.codigoTributacaoNacional || servItem.codigoTributacao || nat.codigo_tributacao_nacional || '010701';
             let cleanCode6 = String(rawCodeNac).replace(/\D/g, '').substring(0, 6);
             if (!cleanCode6 || cleanCode6 === '010101' || cleanCode6.length < 6) {
@@ -2208,7 +2216,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cTribMunVal = String(inf.serv?.cServ?.cTribMun || '').replace(/\D/g, '');
             const cTribMunXml = (cTribMunVal.length === 7 && cTribMunVal !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
 
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}<xDescServ>${inf.serv.cServ.xDescServ}</xDescServ></cServ>` : '';
+            const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
