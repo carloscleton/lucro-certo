@@ -2467,40 +2467,57 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                 const adnData = adnResponse.data;
-                const docId = adnData?.nNFSe || adnData?.chNFSe || adnData?.id || adnData?.idIntegracao || dpsId;
-                const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || docId;
+                const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || dpsId;
+                const nNFSeVal = adnData?.nNFSe || adnData?.numeroNfse || adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
+                const nDPS = adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
+                const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
+                const docId = chaveAcesso || dpsId;
 
-                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. ID: ${docId} | Chave: ${chaveAcesso}`);
-                console.log(`✅ [ADN-NACIONAL] Resposta completa:`, JSON.stringify(adnData, null, 2));
+                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${chaveAcesso} | Número NFS-e: ${nNFSeVal} | DPS: ${nDPS}`);
+                console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
+
+                const pdfUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${docId}/pdf?companyId=${resolvedId}`;
+                const xmlUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${docId}/xml?companyId=${resolvedId}`;
 
                 // Salvar no banco fiscal_invoices
                 if (SUPABASE_URL) {
                     try {
                         const vServ = Number(adnPayload?.infDPS?.valores?.vServPrest?.vServ || adnPayload?.valores?.vServPrest?.vServ || 0);
-                        const nDPS = adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
-                        const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
 
-                        await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        const invoiceRecordData = {
                             company_id: resolvedId,
                             quote_id: quoteId || null,
                             external_id: String(docId),
                             type: 'national',
                             status: 'concluido',
                             amount: vServ,
-                            invoice_number: nDPS,
+                            invoice_number: nNFSeVal || nDPS,
                             access_key: chaveAcesso || null,
                             dps_number: nDPS,
                             dps_serie: sDPS,
-                            payload: { ...adnPayload, retorno: adnData },
+                            pdf_url: pdfUrlProxy,
+                            xml_url: xmlUrlProxy,
+                            payload: {
+                                ...adnPayload,
+                                xml_assinado: signedXml,
+                                retorno: adnData,
+                                chaveAcesso,
+                                nNFSe: nNFSeVal,
+                                nDPS,
+                                serie: sDPS
+                            },
                             created_at: new Date().toISOString()
-                        }, {
+                        };
+
+                        await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, invoiceRecordData, {
                             headers: {
-                                'apikey': SUPABASE_ANON_KEY!,
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
                                 'Authorization': authHeader!,
                                 'Content-Type': 'application/json',
                                 'Prefer': 'return=minimal'
                             }
                         });
+                        console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
                     } catch (dbErr: any) {
                         console.error('❌ [ADN-NACIONAL] Erro ao salvar nota no banco:', dbErr.message);
                     }
@@ -2508,10 +2525,29 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 return res.json({
                     id: docId,
+                    external_id: docId,
                     chaveAcesso,
+                    access_key: chaveAcesso,
+                    invoice_number: nNFSeVal || nDPS,
+                    nNFSe: nNFSeVal,
+                    nDPS,
+                    serie: sDPS,
                     status: 'Emitida',
+                    flowStatus: 'concluido',
+                    pdf_url: pdfUrlProxy,
+                    xml_url: xmlUrlProxy,
+                    documents: [{ id: docId, status: 'AUTORIZADO', chaveAcesso }],
+                    payload: {
+                        ...adnPayload,
+                        xml_assinado: signedXml,
+                        retorno: adnData,
+                        chaveAcesso,
+                        nNFSe: nNFSeVal,
+                        nDPS,
+                        serie: sDPS
+                    },
                     ...adnData,
-                    proxy_version: '1.0.37_nacional',
+                    proxy_version: '1.0.39_nacional',
                     mode: 'national_adn'
                 });
 
