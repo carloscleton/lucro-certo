@@ -1821,6 +1821,26 @@ export function FiscalSettings() {
 
             console.log('🧪 [LAB-DEBUG] Resposta Emissão:', { externalId, isProcessing, response });
 
+            // Checagem estrita de erros do Portal Nacional (ADN gov.br / Sefin Nacional)
+            const detailObj = typeof response.detail === 'string' ? (() => { try { return JSON.parse(response.detail); } catch(e) { return {}; } })() : (response.detail || {});
+            const govtErros = response.erros || response.detail?.erros || response.data?.erros || detailObj.erros || [];
+
+            if (Array.isArray(govtErros) && govtErros.length > 0) {
+                const firstErr = govtErros[0] || {};
+                const errCode = firstErr.Codigo || firstErr.codigo || 'ERRO';
+                const errDesc = firstErr.Descricao || firstErr.descricao || 'Erro retornado pelo Portal Nacional da NFS-e.';
+
+                setResultModal({
+                    isOpen: true,
+                    title: 'Falha na Emissão',
+                    message: `[${errCode}] ${errDesc}`,
+                    type: 'error',
+                    data: wrappedResponse
+                });
+                setLastTestResult(wrappedResponse);
+                return;
+            }
+
             let finalPdfUrl = null;
             let finalXmlUrl = null;
 
