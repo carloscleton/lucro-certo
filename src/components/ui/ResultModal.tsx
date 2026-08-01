@@ -172,7 +172,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
     const handleResetZoom = () => setZoomLevel(100);
 
-    const activePdfUrl = generatedPdfUrl || findDocument(data, 'pdf');
+    const rawDocPdf = findDocument(data, 'pdf');
+    const isGovUrl = typeof rawDocPdf === 'string' && (rawDocPdf.includes('nfse.gov.br') || rawDocPdf.includes('consulta.aspx'));
+    const activePdfUrl = generatedPdfUrl || (!isGovUrl ? rawDocPdf : null);
 
     const handlePrintPdf = () => {
         if (!activePdfUrl) return;
@@ -188,7 +190,12 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             }
         }
         
-        window.open(activePdfUrl, '_blank');
+        if (activePdfUrl.startsWith('blob:')) {
+            const a = document.createElement('a');
+            a.href = activePdfUrl;
+            a.download = `danfse-${data?.nNFSe || data?.nDPS || 'nota'}.pdf`;
+            a.click();
+        }
     };
 
     useEffect(() => {
@@ -199,13 +206,10 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             setShowTechDetails(false);
             setGeneratedPdfUrl(null);
 
-            // Se for nota autorizada/emitida ou com dados de DPS/chave, gera e abre o PDF no modal automaticamente
-            const hasNoteData = data.nNFSe || data.chNFSe || data.idDPS || data.chaveAcesso || data.payload_enviado || data.infDPS || data.payload;
-            if (hasNoteData) {
-                setTimeout(() => {
-                    handleOpenDanfsePdf();
-                }, 50);
-            }
+            // Gera e abre o DANFSE PDF no modal automaticamente para qualquer resposta com dados
+            setTimeout(() => {
+                handleOpenDanfsePdf();
+            }, 50);
         }
     }, [isOpen, data]);
     
@@ -219,21 +223,33 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         let url = generatedPdfUrl;
         if (!url && data) {
             try {
-                const inf = data.payload?.infDPS || data.infDPS || data.payload_enviado?.infDPS || data.payload || {};
-                const prest = inf.prest || data.prestador || {};
-                const toma = inf.toma || data.tomador || {};
+                let parsedDetail: any = {};
+                if (typeof data.detail === 'string') {
+                    try { parsedDetail = JSON.parse(data.detail); } catch (e) {}
+                }
+
+                const inf = data.payload?.infDPS || data.infDPS || data.payload_enviado?.infDPS || parsedDetail?.infDPS || data.payload || {};
+                const prest = inf.prest || data.prestador || parsedDetail?.prestador || {};
+                const toma = inf.toma || data.tomador || parsedDetail?.tomador || {};
                 const serv = inf.serv || data.servico || (Array.isArray(data.servico) ? data.servico[0] : {});
-                const val = inf.valores || data.valores || {};
+                const val = inf.valores || data.valores || parsedDetail?.valores || {};
 
                 const cTribNac = serv.cServ?.cTribNac || serv.cTribNac || serv.codigo || '010701';
                 const descServ = serv.cServ?.xDescServ || serv.xDescServ || serv.descricao || serv.discriminacao || 'Análise e desenvolvimento de sistemas';
-                const valServ = Number(val.vServPrest?.vServ || val.vServ || serv.valor?.servico || 100);
+                const valServ = Number(val.vServPrest?.vServ || val.vServ || serv.valor?.servico || data.valor || 100);
+
+                const idDPSFromDetail = parsedDetail?.idDPS || data.idDPS || data.chNFSe || data.chaveAcesso;
+                let nDPSComputed = inf.nDPS || data.nDPS;
+                if (!nDPSComputed && idDPSFromDetail) {
+                    const matchNDps = String(idDPSFromDetail).match(/\d{15}$/);
+                    if (matchNDps) nDPSComputed = String(parseInt(matchNDps[0], 10));
+                }
 
                 const pdfBlob = await PDFService.generateDanfsePDF({
-                    nNfse: data.nNFSe || data.nDPS || inf.nDPS || '1',
+                    nNfse: data.nNFSe || nDPSComputed || '1',
                     serie: inf.serie || data.serie || '1',
-                    nDPS: inf.nDPS || data.nDPS || '1',
-                    chaveAcesso: data.chNFSe || data.chaveAcesso || data.idDPS || '240810220089356600019000001000000000000001',
+                    nDPS: nDPSComputed || '1',
+                    chaveAcesso: idDPSFromDetail || '240810220089356600019000001000000000000001',
                     dhEmi: inf.dhEmi || data.dhEmi || new Date().toISOString(),
                     prestador: {
                         cnpj: prest.CNPJ || prest.cnpj || prest.cpfCnpj || '00.893.566/0001-90',
@@ -267,10 +283,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             }
         }
 
-        if (url) {
-            setShowXml(false);
-            setShowPdf(true);
-        }
+        setShowXml(false);
+        setShowPdf(true);
     };
 
     const handleViewXml = async () => {

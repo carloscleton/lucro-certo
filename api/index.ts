@@ -4108,8 +4108,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                     return res.send(buildDanfsePdfBuffer());
                 }
-                const pubUrl = `https://www.nfse.gov.br/consultanfse/?chNfse=${chNFSe}${adnAmbienteDl !== 'producao' ? '&tpAmb=2' : ''}`;
-                return res.redirect(302, pubUrl);
+                return res.status(400).json({ error: 'Certificado digital não configurado no Portal Nacional para download do XML.' });
             }
 
             try {
