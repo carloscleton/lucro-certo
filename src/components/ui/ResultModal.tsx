@@ -112,10 +112,12 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
 
     return { friendlyTitle, friendlyMessage, friendlyHint, errorCode };
 };
+const isGovUrl = (url: string) => typeof url === 'string' && (url.includes('nfse.gov.br') || url.includes('consulta.aspx') || url.includes('ConsultarNfse'));
+
 const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     if (!obj || typeof obj !== 'object') return null;
     
-    // 1. Tenta campos diretos (prioridade absoluta - http ou blob)
+    // 1. Tenta campos diretos (prioridade absoluta - http ou blob, ignorando URLs do portal nacional com erro 404)
     const candidates = [
         obj[`${format}_url`], 
         obj[format]?.url, 
@@ -125,15 +127,15 @@ const findDocument = (obj: any, format: 'pdf' | 'xml'): string | null => {
     ];
 
     for (const cand of candidates) {
-        if (typeof cand === 'string' && (cand.startsWith('http') || cand.startsWith('blob:'))) return cand;
-        if (typeof cand === 'object' && cand !== null && typeof cand.url === 'string' && (cand.url.startsWith('http') || cand.url.startsWith('blob:'))) return cand.url;
+        if (typeof cand === 'string' && (cand.startsWith('http') || cand.startsWith('blob:')) && !isGovUrl(cand)) return cand;
+        if (typeof cand === 'object' && cand !== null && typeof cand.url === 'string' && (cand.url.startsWith('http') || cand.url.startsWith('blob:')) && !isGovUrl(cand.url)) return cand.url;
     }
 
     // 2. Busca exaustiva em todas as chaves (http ou blob)
     for (const k in obj) {
         const val = obj[k];
         
-        if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('blob:'))) {
+        if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('blob:')) && !isGovUrl(val)) {
             const low = val.toLowerCase();
             if (format === 'pdf' && (low.includes('pdf') || low.includes('impressao') || low.includes('danfe') || low.endsWith('.pdf'))) return val;
             if (format === 'xml' && (low.includes('xml') || low.includes('arquivo') || low.endsWith('.xml'))) return val;
@@ -173,8 +175,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleResetZoom = () => setZoomLevel(100);
 
     const rawDocPdf = findDocument(data, 'pdf');
-    const isGovUrl = typeof rawDocPdf === 'string' && (rawDocPdf.includes('nfse.gov.br') || rawDocPdf.includes('consulta.aspx'));
-    const activePdfUrl = generatedPdfUrl || (!isGovUrl ? rawDocPdf : null);
+    const isGovPdf = typeof rawDocPdf === 'string' && (rawDocPdf.includes('nfse.gov.br') || rawDocPdf.includes('consulta.aspx'));
+    const activePdfUrl = generatedPdfUrl || (!isGovPdf ? rawDocPdf : null);
 
     const handlePrintPdf = () => {
         if (!activePdfUrl) return;
@@ -494,7 +496,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                                                 <pre className="whitespace-pre-wrap font-mono text-[11px] bg-white/50 dark:bg-black/20 p-2 rounded">
                                                                     {JSON.stringify(value, null, 2)}
                                                                 </pre>
-                                                            ) : String(value).startsWith('http') ? (
+                                                            ) : (String(value).startsWith('http') && !isGovUrl(String(value))) ? (
                                                                 <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
                                                                     {String(value)}
                                                                     <ExternalLink size={14} />
