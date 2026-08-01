@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code, FileText } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
@@ -263,20 +263,18 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         }
     };
 
+    const prevOpenRef = useRef(false);
+
     useEffect(() => {
-        if (isOpen && data) {
+        if (isOpen && !prevOpenRef.current) {
             setShowPdf(false);
             setShowXml(false);
             setXmlContent(null);
             setShowTechDetails(false);
             setGeneratedPdfUrl(null);
-
-            // Gera e abre o DANFSE PDF no modal automaticamente para qualquer resposta com dados
-            setTimeout(() => {
-                handleOpenDanfsePdf();
-            }, 50);
         }
-    }, [isOpen, data]);
+        prevOpenRef.current = isOpen;
+    }, [isOpen]);
     
     if (!isOpen) return null;
 
