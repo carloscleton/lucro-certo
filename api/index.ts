@@ -1369,7 +1369,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             return res.status(400).json({ error: 'Configuração fiscal não encontrada.' });
         }
 
-        const activeProvider = isLabTest ? (provider || settings?.fiscal_provider || 'tecnospeed') : (settings?.fiscal_provider || 'tecnospeed');
+        const activeProvider = (provider as string) || settings?.fiscal_provider || 'tecnospeed';
         let isNacional = activeProvider === 'national' || !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
 
         // Se o provedor ativo é Portal Nacional, mescla national_config para que o backend
@@ -1802,7 +1802,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             const pfxBuffer = Buffer.from(pfxBase64, 'base64');
-            const adnAmbiente = nat.ambiente || 'homologacao';
+            const adnAmbiente = nat.ambiente || settings?.ambiente || config.ambiente || 'producao';
             const tpAmb = adnAmbiente === 'producao' ? 1 : 2; // 1=Produção, 2=Homologação
             const sefinBaseUrl = adnAmbiente === 'producao'
                 ? 'https://sefin.nfse.gov.br/SefinNacional'
