@@ -2354,8 +2354,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO'));
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
-            // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
+            // Montar XML da DPS conforme o leiaute nacional do contribuinte (com xmlns explicito em infDPS para compatibilidade C14N)
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS xmlns="http://www.sped.fazenda.gov.br/nfse" Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
@@ -2572,12 +2572,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     });
                 }
 
-                // Trata erro 500 genérico do SERPRO/SEFIN no ambiente de Produção Restrita ou instabilidade
+                // Trata erro 500 genérico do SERPRO/SEFIN
                 if (errStatus === 500 || String(errData?.error?.message || '').includes('server error') || String(detailedMessage).includes('server error')) {
+                    const isProd = adnAmbiente === 'producao';
                     return res.status(400).json({
-                        error: 'O ambiente de Produção Restrita (Testes) da Receita Federal retornou um Erro Interno (500).',
-                        detail: 'O ambiente de homologação do Governo (producaorestrita.nfse.gov.br) rejeita CNPJs reais com erro 500 ou passa por instabilidades frequentes. Para emitir notas reais válidas, altere o Ambiente nas Configurações Fiscais de "Produção Restrita" para "Produção".',
-                        hint: 'Acesse Configurações -> Configurações Fiscais -> Portal Nacional -> Altere o Ambiente para "Produção" e salve.',
+                        error: isProd 
+                            ? 'O servidor da SEFIN (Portal Nacional em Produção) retornou um Erro Interno (500).'
+                            : 'O ambiente de Produção Restrita (Testes) da Receita Federal retornou um Erro Interno (500).',
+                        detail: isProd
+                            ? 'A SEFIN Nacional em Produção retornou erro 500 durante o processamento do lote. Verifique se as inscrições municipais ou dados do tomador coincidem com a RFB.'
+                            : 'O ambiente de homologação do Governo (producaorestrita.nfse.gov.br) rejeita CNPJs reais com erro 500 ou passa por instabilidades frequentes. Para emitir notas reais válidas, altere o Ambiente nas Configurações Fiscais de "Produção Restrita" para "Produção".',
+                        hint: isProd
+                            ? 'Consulte se o CNPJ/IM do prestador está ativo no Portal Nacional da NFS-e (nfse.gov.br).'
+                            : 'Acesse Configurações -> Configurações Fiscais -> Portal Nacional -> Altere o Ambiente para "Produção" e salve.',
                         raw_sefin: errData,
                         idDPS: dpsId
                     });
