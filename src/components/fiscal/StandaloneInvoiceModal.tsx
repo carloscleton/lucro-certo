@@ -948,8 +948,17 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
                 }
 
-                if (notes) {
-                    payload.informacoesComplementares = notes.replace(/\n/g, '|');
+                let finalNotes = notes || '';
+                const firstItemNbs = items[0]?.codigoTributacaoNacional || items[0]?.taxationCode;
+                if (isNacional && firstItemNbs && firstItemNbs.replace(/\D/g, '').length === 9) {
+                    const cleanNbs = firstItemNbs.replace(/\D/g, '');
+                    if (!finalNotes.includes(`NBS: ${cleanNbs}`)) {
+                        finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cleanNbs}` : `NBS: ${cleanNbs}`;
+                    }
+                }
+
+                if (finalNotes) {
+                    payload.informacoesComplementares = finalNotes.replace(/\n/g, '|');
                 }
 
                 if (sendEmail && contact?.email) {
