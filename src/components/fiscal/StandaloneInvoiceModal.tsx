@@ -850,7 +850,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     const tomaCep = contact?.zip_code?.replace(/\D/g, '');
 
                     const now = new Date();
-                    const fiveMinPast = new Date(Date.now() - 5 * 60 * 1000);
 
                     payload = {
                         infDPS: {
