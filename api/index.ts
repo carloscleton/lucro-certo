@@ -2358,8 +2358,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO'));
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
-            // Montar XML da DPS conforme o leiaute nacional do contribuinte (com xmlns explicito em infDPS para compatibilidade C14N)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS xmlns="http://www.sped.fazenda.gov.br/nfse" Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
+            // Montar XML da DPS conforme o leiaute nacional do contribuinte
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
@@ -2410,7 +2410,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 });
 
                 signedXml = sig.getSignedXml();
-                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso.`);
+                if (signedXml.includes('<Signature>') && !signedXml.includes('<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">')) {
+                    signedXml = signedXml.replace('<Signature>', '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">');
+                }
+                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso (Signature namespace injetado).`);
             } catch (signErr: any) {
                 console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
                 throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
