@@ -813,7 +813,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const totalAmount = items.reduce((acc, i) => {
                 const clean = (i.amount || '').replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                 const parsed = parseFloat(clean);
-                const val = isNaN(parsed) ? 0 : par            if (type === 'nfse') {
+                const val = isNaN(parsed) ? 0 : parsed;
+                return acc + (val * i.quantity);
+            }, 0);
+
+            if (type === 'nfse') {
                 const companyCityCode = cityCode || config?.endereco?.codigoCidade || config?.codigo_municipio || '2408102';
                 
                 if (activeProvider === 'national') {
