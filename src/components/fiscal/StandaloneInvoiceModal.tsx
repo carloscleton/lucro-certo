@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, Repeat } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -256,14 +256,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     id: crypto.randomUUID(),
                                     description: recurringDesc,
                                     taxCode: recurringTaxCode,
-                                    amount: recurringPrice,
+                                    amount: String(recurringPrice),
                                     quantity: 1
                                 }];
                             }
                             const firstItem = prevItems[0];
                             const updatedFirstItem = {
                                 ...firstItem,
-                                amount: recurringPrice,
+                                amount: String(recurringPrice),
                                 description: firstItem.description || recurringDesc,
                                 taxCode: firstItem.taxCode || recurringTaxCode
                             };
