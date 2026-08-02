@@ -1070,10 +1070,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         };
                     }
                 }
-            }t.email]
-                        }
-                    };
-                }
                 // console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFSe(
                     currentEntity.id!,
