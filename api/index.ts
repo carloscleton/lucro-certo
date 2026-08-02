@@ -2432,12 +2432,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
             }
 
-            const dpsXmlB64 = Buffer.from(signedXml, 'utf-8').toString('base64');
-            // 4. Montar o payload final com a propriedade dpsXmlGZipB64
+            // 4. Montar o payload final rigorosamente conforme a especificação do Sefin Nacional
             const finalRequestPayload = {
-                dpsXmlGZipB64,
-                dpsXmlGzipB64: dpsXmlGZipB64,
-                dpsXmlB64
+                dpsXmlGZipB64
             };
 
             try {
@@ -2448,7 +2445,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         finalRequestPayload,
                         {
                             httpsAgent,
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
                             timeout: 30000
                         }
                     );
