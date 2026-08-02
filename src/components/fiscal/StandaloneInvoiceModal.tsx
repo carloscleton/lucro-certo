@@ -862,7 +862,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             cLocEmi: companyCityCode,
                             prest: {
                                 CNPJ: prestCnpj || "00893566000190",
-                                ...(prestIm ? { IM: prestIm } : {}),
                                 regTrib: {
                                     opSimpNac: opSN,
                                     ...(opSN === 3 ? { regApTribSN: Number(config?.reg_ap_trib_sn || 1) } : {})
@@ -893,7 +892,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 },
                                 cServ: {
                                     cTribNac: cTribNac6,
-                                    ...(cNBS9 ? { cNBS: cNBS9 } : {}),
                                     xDescServ: fullDescription
                                 }
                             },
@@ -904,10 +902,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 trib: {
                                     tribMun: {
                                         tribISSQN: 1,
-                                        tpRetISSQN: 1
+                                        tpRetISSQN: 1,
+                                        pAliq: 5.00
                                     },
                                     totTrib: {
-                                        pTotTribSN: parseFloat(config?.default_tot_trib_sn || '6.00')
+                                        pTotTribSN: parseFloat(config?.default_tot_trib_sn || '5.00')
                                     }
                                 }
                             },
