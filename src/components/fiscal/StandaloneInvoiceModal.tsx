@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -41,6 +41,103 @@ interface InvoiceItem {
     csllAliquota?: string;
     irrfAliquota?: string;
     inssAliquota?: string;
+}
+
+interface ItemComboboxProps {
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ id: string; name: string; price: number; description?: string }>;
+    placeholder?: string;
+}
+
+function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [filterText, setFilterText] = useState(value || '');
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setFilterText(value || '');
+    }, [value]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredOptions = useMemo(() => {
+        // Quando abre o dropdown com um valor ja selecionado ou campo limpo, exibe TODOS os servicos
+        if (!filterText || filterText === value) return options;
+        const clean = filterText.toLowerCase();
+        return options.filter(o =>
+            o.name.toLowerCase().includes(clean) ||
+            (o.description && o.description.toLowerCase().includes(clean))
+        );
+    }, [options, filterText, value]);
+
+    return (
+        <div ref={containerRef} className="relative w-full">
+            <div className="relative flex items-center">
+                <input
+                    type="text"
+                    value={filterText}
+                    onChange={(e) => {
+                        const newText = e.target.value;
+                        setFilterText(newText);
+                        onChange(newText);
+                        setIsOpen(true);
+                    }}
+                    onFocus={() => setIsOpen(true)}
+                    placeholder={placeholder || "Ex: Consultoria Técnica Mensal"}
+                    required
+                    className="w-full h-11 px-4 pr-10 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                />
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="absolute right-3 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    tabIndex={-1}
+                >
+                    <ChevronDown size={18} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl py-1 animate-in fade-in zoom-in-95 duration-150 custom-scrollbar">
+                    {filteredOptions.length > 0 ? (
+                        filteredOptions.map(opt => (
+                            <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                    setFilterText(opt.name);
+                                    onChange(opt.name);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs transition-colors flex flex-col gap-0.5 ${opt.name === value ? 'bg-blue-50/60 dark:bg-blue-950/20 font-bold text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'}`}
+                            >
+                                <span className="font-bold text-sm text-gray-900 dark:text-white">{opt.name}</span>
+                                {opt.description && (
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{opt.description}</span>
+                                )}
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(opt.price)}
+                                </span>
+                            </button>
+                        ))
+                    ) : (
+                        <div className="px-4 py-3 text-xs text-gray-400 text-center">
+                            Nenhum item encontrado no catálogo.
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
 }
 
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
@@ -1645,21 +1742,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
                                         Descrição do {type === 'nfse' ? 'Serviço' : 'Produto'}
                                     </label>
-                                    <Input
+                                    <ItemCombobox
                                         value={item.description}
-                                        onChange={(e: any) => updateItem(item.id, 'description', e.target.value)}
+                                        onChange={(val) => updateItem(item.id, 'description', val)}
+                                        options={type === 'nfse' ? services : products}
                                         placeholder={type === 'nfse' ? "Ex: Consultoria Técnica Mensal" : "Ex: Teclado Mecânico RGB"}
-                                        list="invoice-items-list"
-                                        required
-                                        className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
                                     />
-                                    <datalist id="invoice-items-list">
-                                        {type === 'nfse' ? (
-                                            services.map(s => <option key={s.id} value={s.name}>{s.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.price)}</option>)
-                                        ) : (
-                                            products.map(p => <option key={p.id} value={p.name}>{p.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.price)}</option>)
-                                        )}
-                                    </datalist>
                                 </div>
 
                                 <div className={`grid grid-cols-1 ${isNacional && type === 'nfse' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
