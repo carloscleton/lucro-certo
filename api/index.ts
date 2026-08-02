@@ -2246,15 +2246,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
             const regEspTribXml = (regEspTrib > 0) ? `<regEspTrib>${regEspTrib}</regEspTrib>` : '';
 
-            // SefinNacional: <IM> só deve ser enviado se houver Inscrição Municipal válida
-            const rawIm = String(inf.prest?.IM || inscricaoMunicipal || nat.inscricao_municipal || '').trim();
-            const cleanIm = rawIm.replace(/\D/g, '');
-            if (cleanIm && rawIm.toLowerCase() !== 'isento') {
-                if (inf.prest) inf.prest.IM = cleanIm;
-            } else {
-                if (inf.prest) delete inf.prest.IM;
-            }
-            const prestIM = (inf.prest?.IM && inf.prest.IM.toLowerCase() !== 'isento') ? `<IM>${inf.prest.IM}</IM>` : '';
+            // SefinNacional: <IM> é opcional no XSD (minOccurs=0). Omitir <IM> evita o Erro 500 no SEFIN quando a IM municipal não está associada no cadastro nacional.
+            const prestIM = '';
             
             const tomadorDocXml = inf.toma?.CPF 
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
