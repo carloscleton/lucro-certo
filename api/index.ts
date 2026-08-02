@@ -2591,6 +2591,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     });
                 }
 
+                // Trata erro 500 genérico do SERPRO/SEFIN no ambiente de Produção Restrita ou instabilidade
+                if (errStatus === 500 || String(errData?.error?.message || '').includes('server error') || String(detailedMessage).includes('server error')) {
+                    return res.status(400).json({
+                        error: 'O ambiente de Produção Restrita (Testes) da Receita Federal retornou um Erro Interno (500).',
+                        detail: 'O ambiente de homologação do Governo (producaorestrita.nfse.gov.br) rejeita CNPJs reais com erro 500 ou passa por instabilidades frequentes. Para emitir notas reais válidas, altere o Ambiente nas Configurações Fiscais de "Produção Restrita" para "Produção".',
+                        hint: 'Acesse Configurações -> Configurações Fiscais -> Portal Nacional -> Altere o Ambiente para "Produção" e salve.',
+                        raw_sefin: errData,
+                        idDPS: dpsId
+                    });
+                }
+
                 return res.status(errStatus || 400).json({
                     error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
                     erros: errData?.erros || (Array.isArray(errData) ? errData : undefined),
