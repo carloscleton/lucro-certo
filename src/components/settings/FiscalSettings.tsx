@@ -448,10 +448,15 @@ export function FiscalSettings() {
             certificado_id: nat.certificado_id || '',
             certificado_vencimento: nat.certificado_vencimento || '',
             certificado_sujeito: nat.certificado_sujeito || '',
+            certificado_pfx_base64: nat.certificado_pfx_base64 || '',
             certificado_status: nat.certificado_status || '',
             send_email_automatically: nat.send_email_automatically || false,
             send_whatsapp_automatically: nat.send_whatsapp_automatically || false
         });
+
+        if (nat.certificado_senha) {
+            setCertPassword(nat.certificado_senha);
+        }
 
     }, [currentCompany?.id, currentCompany?.settings?.inscricao_municipal, currentCompany?.settings?.national_config?.inscricao_municipal]);
 
@@ -4958,10 +4963,14 @@ export function FiscalSettings() {
                             <Input
                                 label="Senha do Certificado Digital (PFX)"
                                 type="password"
-                                value={(nationalConfig as any).certificado_senha || ''}
-                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, certificado_senha: e.target.value }))}
+                                value={(nationalConfig as any).certificado_senha || certPassword || ''}
+                                onChange={(e: any) => {
+                                    const val = e.target.value;
+                                    setNationalConfig(prev => ({ ...prev, certificado_senha: val }));
+                                    setCertPassword(val);
+                                }}
                                 placeholder="Senha do arquivo .pfx / .p12"
-                                helpText="Informe a senha do arquivo de certificado antes de fazer o upload abaixo."
+                                helpText="Informe a senha do arquivo de certificado para o upload e para as emissões."
                             />
                         </div>
                     </div>
@@ -6136,8 +6145,12 @@ export function FiscalSettings() {
                             <Input
                                 label="Senha do Certificado"
                                 type="password"
-                                value={certPassword}
-                                onChange={(e: any) => setCertPassword(e.target.value)}
+                                value={certPassword || (nationalConfig as any).certificado_senha || ''}
+                                onChange={(e: any) => {
+                                    const val = e.target.value;
+                                    setCertPassword(val);
+                                    setNationalConfig(prev => ({ ...prev, certificado_senha: val }));
+                                }}
                                 placeholder="Sua senha"
                                 autoComplete="current-password"
                             />
