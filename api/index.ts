@@ -2034,8 +2034,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
                 adnPayload = { ...payload };
 
-                // Força incondicionalmente a formatação oficial SEFIN para dhEmi (YYYY-MM-DDThh:mm:ss-03:00)
-                if (!adnPayload.infDPS.tpAmb) adnPayload.infDPS.tpAmb = tpAmb;
+                // Força incondicionalmente a sincronização entre a URL de destino (SEFIN) e tpAmb (1=Produção, 2=Homologação)
+                adnPayload.infDPS.tpAmb = tpAmb;
                 adnPayload.infDPS.dhEmi = dhEmi;
                 if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
 
