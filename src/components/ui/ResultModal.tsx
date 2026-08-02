@@ -161,6 +161,52 @@ const formatXml = (xml: string) => {
     return formatted.substring(1, formatted.length - 3);
 };
 
+function convertJsonToDpsXml(payload: any): string {
+    if (!payload || typeof payload !== 'object') return '';
+    const inf = payload?.infDPS || payload || {};
+    const dpsId = payload?.idDPS || `DPS${String(inf.cLocEmi || '2408102').replace(/\D/g, '')}2${String(inf.prest?.CNPJ || '00893566000190').replace(/\D/g, '').padStart(14, '0')}${String(inf.serie || '1').replace(/\D/g, '').padStart(5, '0')}${String(inf.nDPS || '1').replace(/\D/g, '').padStart(15, '0')}`;
+
+    const prest = inf.prest || {};
+    const toma = inf.toma || {};
+    const serv = inf.serv || {};
+    const val = inf.valores || {};
+    const infComp = inf.infComp || {};
+
+    const prestIM = prest.IM ? `<IM>${prest.IM}</IM>` : '';
+    const tomaDoc = toma.CNPJ ? `<CNPJ>${toma.CNPJ}</CNPJ>` : (toma.CPF ? `<CPF>${toma.CPF}</CPF>` : '');
+    const tomaEnd = toma.end?.endNac ? `<end><endNac><cMun>${toma.end.endNac.cMun}</cMun><CEP>${toma.end.endNac.CEP}</CEP></endNac>${toma.end.xLgr ? `<xLgr>${toma.end.xLgr}</xLgr>` : ''}${toma.end.nro ? `<nro>${toma.end.nro}</nro>` : ''}${toma.end.xCpl ? `<xCpl>${toma.end.xCpl}</xCpl>` : ''}${toma.end.xBairro ? `<xBairro>${toma.end.xBairro}</xBairro>` : ''}</end>` : '';
+    const tomaXml = toma.xNome ? `<toma>${tomaDoc}<xNome>${toma.xNome}</xNome>${tomaEnd}${toma.email ? `<email>${toma.email}</email>` : ''}</toma>` : '';
+    const servXml = `<serv><locPrest><cLocPrestacao>${serv.locPrest?.cLocPrestacao || '2408102'}</cLocPrestacao></locPrest><cServ><cTribNac>${serv.cServ?.cTribNac || '010701'}</cTribNac>${serv.cServ?.cNBS ? `<cNBS>${serv.cServ.cNBS}</cNBS>` : ''}<xDescServ>${serv.cServ?.xDescServ || ''}</xDescServ></cServ></serv>`;
+    const valXml = val.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(val.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${val.trib?.tribMun?.tribISSQN || 1}</tribISSQN><tpRetISSQN>${val.trib?.tribMun?.tpRetISSQN || 1}</tpRetISSQN></tribMun><totTrib><pTotTribSN>${val.trib?.totTrib?.pTotTribSN || '5.00'}</pTotTribSN></totTrib></trib></valores>` : '';
+    const infCompXml = infComp.xInfComp ? `<infComp><xInfComp>${infComp.xInfComp}</xInfComp></infComp>` : '';
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+  <infDPS Id="${dpsId}">
+    <tpAmb>${inf.tpAmb || 2}</tpAmb>
+    <dhEmi>${inf.dhEmi || new Date().toISOString()}</dhEmi>
+    <verAplic>${inf.verAplic || '1.00'}</verAplic>
+    <serie>${inf.serie || '1'}</serie>
+    <nDPS>${inf.nDPS || '1'}</nDPS>
+    <dCompet>${inf.dCompet || new Date().toISOString().substring(0, 10)}</dCompet>
+    <tpEmit>${inf.tpEmit || 1}</tpEmit>
+    <cLocEmi>${inf.cLocEmi || '2408102'}</cLocEmi>
+    <prest>
+      <CNPJ>${prest.CNPJ || '00893566000190'}</CNPJ>
+      ${prestIM}
+      <regTrib>
+        <opSimpNac>${prest.regTrib?.opSimpNac || 3}</opSimpNac>
+        <regApTribSN>${prest.regTrib?.regApTribSN || 1}</regApTribSN>
+      </regTrib>
+    </prest>
+    ${tomaXml}
+    ${servXml}
+    ${valXml}
+    ${infCompXml}
+  </infDPS>
+</DPS>`.trim();
+}
+
 export function ResultModal({ isOpen, onClose, title, message, type = 'info', data, action }: ResultModalProps) {
     const [showPdf, setShowPdf] = useState(false);
     const [showXml, setShowXml] = useState(false);
@@ -314,13 +360,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             return;
         }
 
-        if (data?.payload_enviado || data?.payload) {
-            setXmlContent(JSON.stringify(data.payload_enviado || data.payload, null, 2));
-            return;
-        }
-
-        if (data) {
-            setXmlContent(JSON.stringify(data, null, 2));
+        if (data?.payload_enviado || data?.payload || data) {
+            const convertedXml = convertJsonToDpsXml(data?.payload_enviado || data?.payload || data);
+            setXmlContent(formatXml(convertedXml));
             return;
         }
     };
