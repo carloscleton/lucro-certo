@@ -2268,6 +2268,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const regEspTrib = inf.prest?.regTrib?.regEspTrib !== undefined
                 ? Number(inf.prest.regTrib.regEspTrib)
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
+            const regEspTribXml = (regEspTrib > 0) ? `<regEspTrib>${regEspTrib}</regEspTrib>` : '';
 
             // SefinNacional: <IM> só deve ser enviado se houver Inscrição Municipal válida
             const rawIm = String(inf.prest?.IM || inscricaoMunicipal || nat.inscricao_municipal || '').trim();
@@ -2320,7 +2321,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
             const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cNbsXml}${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}${cNbsXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
 
             // Informações Complementares (infComp / xInfComp)
             const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || informacoesComplementares || '';
@@ -2385,7 +2386,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte (sem namespaces duplicados ou espaços extras)
-            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}<regEspTrib>${regEspTrib}</regEspTrib></regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
+            const dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
