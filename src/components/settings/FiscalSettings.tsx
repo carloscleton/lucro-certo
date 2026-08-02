@@ -2036,7 +2036,7 @@ export function FiscalSettings() {
                         }
                     },
                     toma: {
-                        CNPJ: "11222333000181",
+                        CNPJ: "08187168000160",
                         xNome: "EMPRESA DE TESTE LTDA",
                         email: "teste@nfe.io",
                         end: {

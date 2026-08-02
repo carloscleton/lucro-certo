@@ -515,7 +515,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar Nota Fiscal (DANFSE)
                                         </Button>
                                     )}
-                                    {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado) && (
+                                    {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado || data?.payload?.xml_assinado || data?.signedXml) && (
                                         <Button 
                                             onClick={handleViewXml} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
