@@ -2611,7 +2611,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             : 'Acesse Configurações -> Configurações Fiscais -> Portal Nacional -> Altere o Ambiente para "Produção" e salve.',
                         raw_sefin: errData,
                         payload_enviado: adnPayload,
-                        xml_assinado: signedXml || undefined,
+                        xml_assinado: signedXml || dpsXml || undefined,
                         idDPS: dpsId
                     });
                 }
@@ -2622,7 +2622,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     detail: detailedMessage,
                     raw_sefin: errData,
                     payload_enviado: adnPayload,
-                    xml_assinado: signedXml || undefined,
+                    xml_assinado: signedXml || dpsXml || undefined,
                     idDPS: dpsId,
                     chNFSe: errData?.chNFSe || errData?.idDPS || dpsId,
                     tipoAmbiente: adnPayload?.infDPS?.tpAmb || 2

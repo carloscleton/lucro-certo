@@ -285,8 +285,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleViewXml = async () => {
         setShowPdf(false);
         setShowXml(true);
-        if (data?.xml_assinado || data?.signedXml) {
-            setXmlContent(formatXml(String(data.xml_assinado || data.signedXml)));
+        const targetXml = data?.xml_assinado || data?.signedXml || data?.xml_gerado || data?.xml;
+        if (targetXml && typeof targetXml === 'string') {
+            setXmlContent(targetXml.startsWith('<') || targetXml.includes('<?xml') ? formatXml(targetXml) : targetXml);
             return;
         }
         if (xmlUrl) {
