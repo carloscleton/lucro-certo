@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, ChevronRight, Eye, X, ExternalLink, Search, RefreshCw, Plus, Clock3, Minus, Printer, Code, FileText } from 'lucide-react';
 import { Button } from './Button';
 import { clsx } from 'clsx';
 import { PDFService } from '../../services/pdfService';
@@ -328,7 +328,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     
     const xmlUrl = findDocument(data, 'xml');
 
-    const handleViewXml = async () => {
+    const handleViewDpsXml = async () => {
         setShowPdf(false);
         setShowXml(true);
 
@@ -344,27 +344,54 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             return;
         }
 
+        const convertedXml = convertJsonToDpsXml(data?.payload_enviado || data?.payload || data);
+        setXmlContent(formatXml(convertedXml));
+    };
+
+    const handleViewNfseXml = async () => {
+        setShowPdf(false);
+        setShowXml(true);
+
+        let nfseXml: string | null = null;
+        if (typeof data?.xml_nfse === 'string' && data.xml_nfse.trim()) nfseXml = data.xml_nfse;
+        else if (typeof data?.retorno_xml === 'string' && data.retorno_xml.trim()) nfseXml = data.retorno_xml;
+        else if (typeof data?.xml_autorizado === 'string' && data.xml_autorizado.trim()) nfseXml = data.xml_autorizado;
+        else if (typeof data?.xml === 'string' && data.xml.includes('<NFSe')) nfseXml = data.xml;
+
+        if (nfseXml) {
+            setXmlContent(formatXml(nfseXml));
+            return;
+        }
+
         if (xmlUrl) {
-            if (!xmlContent) {
-                setLoadingXml(true);
-                try {
-                    const res = await fetch(xmlUrl);
-                    const text = await res.text();
-                    setXmlContent(formatXml(text));
-                } catch (e) {
-                    setXmlContent('Erro ao carregar conteúdo do XML.');
-                } finally {
-                    setLoadingXml(false);
-                }
+            setLoadingXml(true);
+            try {
+                const res = await fetch(xmlUrl);
+                const text = await res.text();
+                setXmlContent(formatXml(text));
+            } catch (e) {
+                setXmlContent('Erro ao carregar conteúdo do XML da NFS-e Autorizada.');
+            } finally {
+                setLoadingXml(false);
             }
             return;
         }
 
-        if (data?.payload_enviado || data?.payload || data) {
-            const convertedXml = convertJsonToDpsXml(data?.payload_enviado || data?.payload || data);
-            setXmlContent(formatXml(convertedXml));
-            return;
-        }
+        const inf = data?.payload_enviado?.infDPS || data?.payload?.infDPS || {};
+        const nNfse = data?.nNFSe || inf.nDPS || '1';
+        const chave = data?.chNFSe || data?.chaveAcesso || '00000000000000000000000000000000000000000000000000';
+        
+        setXmlContent(formatXml(`<?xml version="1.0" encoding="UTF-8"?>
+<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+  <infNFSe Id="NFS${chave}">
+    <nNFSe>${nNfse}</nNFSe>
+    <cLocIncid>${inf.cLocEmi || '2408102'}</cLocIncid>
+    <xLocIncid>Natal - RN</xLocIncid>
+    <dhEmi>${inf.dhEmi || new Date().toISOString()}</dhEmi>
+    <status>Aguardando Autorização / Retorno do Governo (SEFIN)</status>
+    <observacao>O XML oficial da NFS-e Autorizada com a chave de acesso definitiva é retornado pelo Portal Nacional assim que a transmissão for concluída com sucesso no Governo.</observacao>
+  </infNFSe>
+</NFSe>`));
     };
 
     const handleClose = () => {
@@ -579,13 +606,22 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                         </Button>
                                     )}
                                     {(xmlUrl || (data && Object.keys(data).length > 0)) && (
-                                        <Button 
-                                            onClick={handleViewXml} 
-                                            className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                                        >
-                                            <Search size={18} />
-                                            {data?.xml_assinado || data?.signedXml ? 'Visualizar XML Assinado' : 'Visualizar XML / Payload'}
-                                        </Button>
+                                        <>
+                                            <Button 
+                                                onClick={handleViewDpsXml} 
+                                                className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                                            >
+                                                <FileText size={18} />
+                                                Visualizar XML da DPS (Enviado / Assinado A1)
+                                            </Button>
+                                            <Button 
+                                                onClick={handleViewNfseXml} 
+                                                className="w-full h-12 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 size={18} />
+                                                Visualizar XML da NFS-e (Retorno do Governo)
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
 
