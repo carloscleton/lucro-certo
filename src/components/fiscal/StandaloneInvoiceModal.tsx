@@ -231,47 +231,45 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                 if (subData) {
                     let recurringPrice = 0;
-                    let recurringDesc = '';
-                    let recurringTaxCode = '';
 
                     const planObj = Array.isArray(subData.plan) ? subData.plan[0] : subData.plan;
                     const serviceObj = Array.isArray(subData.service) ? subData.service[0] : subData.service;
 
                     if (planObj && planObj.price) {
                         recurringPrice = Number(planObj.price);
-                        recurringDesc = `Mensalidade do Plano: ${planObj.name}`;
                     } else if (serviceObj && serviceObj.price) {
                         recurringPrice = Number(serviceObj.price);
-                        recurringDesc = serviceObj.description || serviceObj.name;
-                        recurringTaxCode = serviceObj.codigo_tributacao_nacional || serviceObj.item_lista_servico || serviceObj.codigo_servico_municipal || '';
                     } else if (subData.custom_price) {
                         recurringPrice = Number(subData.custom_price);
-                        recurringDesc = 'Faturamento Recorrente Personalizado';
                     }
 
                     if (recurringPrice > 0) {
+                        // Formatar o valor com a máscara brasileira de moeda (ex: 5.850,00)
+                        const formattedAmountMask = recurringPrice.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+
                         setItems(prevItems => {
                             if (!prevItems || prevItems.length === 0) {
                                 return [{
                                     id: crypto.randomUUID(),
-                                    description: recurringDesc,
-                                    taxCode: recurringTaxCode,
-                                    amount: String(recurringPrice),
+                                    description: '',
+                                    taxCode: '',
+                                    amount: formattedAmountMask,
                                     quantity: 1
                                 }];
                             }
                             const firstItem = prevItems[0];
                             const updatedFirstItem = {
                                 ...firstItem,
-                                amount: String(recurringPrice),
-                                description: firstItem.description || recurringDesc,
-                                taxCode: firstItem.taxCode || recurringTaxCode
+                                amount: formattedAmountMask
                             };
                             return [updatedFirstItem, ...prevItems.slice(1)];
                         });
 
-                        const formattedPrice = recurringPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        setRecurringNotice(`Faturamento Recorrente Ativado! Valor preenchido automaticamente: ${formattedPrice}`);
+                        const formattedCurrencyNotice = recurringPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        setRecurringNotice(`Faturamento Recorrente Ativado! Valor preenchido automaticamente: ${formattedCurrencyNotice}`);
                     } else {
                         setRecurringNotice(null);
                     }
