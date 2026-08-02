@@ -2385,14 +2385,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
                     idAttribute: 'Id'
                 });
-
-                sig.keyInfoProvider = {
-                    getKeyInfo: (key: any, prefix: string) => {
-                        const p = prefix ? `${prefix}:` : '';
-                        return `<${p}X509Data><${p}X509Certificate>${certClean}</${p}X509Certificate></${p}X509Data>`;
-                    },
-                    getKey: () => Buffer.from(privateKeyPem)
-                };
                 
                 sig.addReference({
                     xpath: "//*[local-name()='infDPS']",
@@ -2408,7 +2400,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     prefix: '',
                     location: {
                         reference: "//*[local-name()='infDPS']",
-                        action: 'append',
+                        action: 'after',
                     },
                 });
 
