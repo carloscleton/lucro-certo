@@ -347,7 +347,7 @@ app.get('/health', (req, res) => {
 });
 
 // Proxy para cotações de moedas com fallback robusto contra falhas de CORS/Rede
-app.get(['/exchange-rates', '/api/exchange-rates'], async (req, res) => {
+app.get(['/exchange-rates', '/api/exchange-rates', '/fiscal-module/exchange-rates', '/api/fiscal-module/exchange-rates'], async (req, res) => {
     try {
         const response = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,PYG-BRL,ARS-BRL,GBP-BRL', {
             timeout: 5000
