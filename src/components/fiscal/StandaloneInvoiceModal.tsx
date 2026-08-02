@@ -855,7 +855,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     payload = {
                         infDPS: {
                             tpAmb: config?.ambiente === 'producao' ? 1 : 2,
-                            dhEmi: fiveMinPast.toISOString(),
                             verAplic: "1.00",
                             serie: "1",
                             nDPS: String(Date.now()).substring(4, 12),

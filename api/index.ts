@@ -2034,9 +2034,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
                 adnPayload = { ...payload };
 
-                // Mescla valores padrões necessários se não definidos
+                // Força incondicionalmente a formatação oficial SEFIN para dhEmi (YYYY-MM-DDThh:mm:ss-03:00)
                 if (!adnPayload.infDPS.tpAmb) adnPayload.infDPS.tpAmb = tpAmb;
-                if (!adnPayload.infDPS.dhEmi) adnPayload.infDPS.dhEmi = dhEmi;
+                adnPayload.infDPS.dhEmi = dhEmi;
                 if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
 
                 // Garante que o cTribNac tenha 6 dígitos se presente
