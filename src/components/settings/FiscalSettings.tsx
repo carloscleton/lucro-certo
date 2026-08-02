@@ -1947,6 +1947,14 @@ export function FiscalSettings() {
             const targetProvider = activeSubTab === 'nfeio' ? 'nfeio' : (activeSubTab === 'national' ? 'national' : (activeSubTab === 'other' ? 'other' : 'tecnospeed'));
             const providerName = targetProvider === 'nfeio' ? 'NFe.io' : (targetProvider === 'national' ? 'Portal Nacional (ADN gov.br)' : (targetProvider === 'other' ? 'Webhook Externo' : 'TecnoSpeed'));
 
+            const rawErrData = error.response?.data || {};
+            try {
+                const parsedSentPayload = JSON.parse(testJson);
+                if (!rawErrData.payload_enviado) {
+                    rawErrData.payload_enviado = parsedSentPayload;
+                }
+            } catch (e) {}
+
             setResultModal({
                 isOpen: true,
                 title: isAlreadyEmitted ? 'Nota Já Emitida' : (isInactiveDocError ? `CNPJ Não Habilitado na ${providerName}` : 'Erro no Teste'),
@@ -1956,7 +1964,7 @@ export function FiscalSettings() {
                         ? `A ${providerName} rejeitou a nota. Para resolver, acesse seu painel de emissão e verifique se o CNPJ de teste está devidamente cadastrado/liberado.`
                         : (safeMessage || 'Erro ao processar o JSON ou na emissão.'),
                 type: isAlreadyEmitted ? 'info' : 'error',
-                data: error.response?.data ? wrapFiscalLinks(error.response.data, currentEntity.id!, token || undefined) : undefined,
+                data: wrapFiscalLinks(rawErrData, currentEntity.id!, token || undefined),
                 action: isAlreadyEmitted && conflictId ? {
                     label: '🔍 Verificar Status da Nota',
                     onClick: () => handleCheckTestStatus(conflictId)
