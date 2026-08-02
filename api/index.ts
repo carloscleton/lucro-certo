@@ -2269,15 +2269,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(inf.prest.regTrib.regEspTrib)
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
 
-            // SefinNacional E0120: <IM> só deve ser enviado se houver Inscrição Municipal oficial cadastrada no perfil da empresa
+            // SefinNacional: <IM> só deve ser enviado se houver Inscrição Municipal válida
             const rawIm = String(inf.prest?.IM || inscricaoMunicipal || nat.inscricao_municipal || '').trim();
             const cleanIm = rawIm.replace(/\D/g, '');
-            if (!rawIm || rawIm === '1254103' || rawIm.toLowerCase() === 'isento' || !cleanIm) {
-                if (inf.prest) delete inf.prest.IM;
-            } else {
+            if (cleanIm && rawIm.toLowerCase() !== 'isento') {
                 if (inf.prest) inf.prest.IM = cleanIm;
+            } else {
+                if (inf.prest) delete inf.prest.IM;
             }
-            const prestIM = (inf.prest?.IM && inf.prest.IM !== '1254103' && inf.prest.IM.toLowerCase() !== 'isento') ? `<IM>${inf.prest.IM}</IM>` : '';
+            const prestIM = (inf.prest?.IM && inf.prest.IM.toLowerCase() !== 'isento') ? `<IM>${inf.prest.IM}</IM>` : '';
             
             const tomadorDocXml = inf.toma?.CPF 
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
