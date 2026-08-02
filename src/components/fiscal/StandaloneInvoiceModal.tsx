@@ -494,14 +494,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             updated.taxCode = service.codigo_servico_municipal || service.item_lista_servico || '';
                             updated.taxationCode = service.codigo_servico_municipal || service.item_lista_servico || '';
                             updated.codigoTributacaoNacional = service.codigo_tributacao_nacional || '';
-                            updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(service.price);
+                            // Só substitui pelo preço do catálogo se o cliente NÃO tiver faturamento recorrente ativo
+                            if (!recurringNotice) {
+                                updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(service.price);
+                            }
                         }
                     } else {
                         const product = products.find(p => p.name === value);
                         if (product) {
                             updated.taxCode = product.ncm || '';
                             updated.taxationCode = product.ncm || '';
-                            updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(product.price);
+                            if (!recurringNotice) {
+                                updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(product.price);
+                            }
                         }
                     }
                 }
