@@ -1836,6 +1836,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     if (!leafCertificatePem) {
                         leafCertificatePem = certs[0];
                     }
+
+                    // Reordenar a cadeia PEM para que o Certificado FOLHA (leafCertificatePem) seja OBRIGATORIAMENTE o PRIMEIRO no bundle do httpsAgent
+                    const otherCerts = certs.filter(c => c.trim() !== leafCertificatePem.trim());
+                    certificatePem = [leafCertificatePem, ...otherCerts].join('\n');
                 }
 
                 if (!privateKeyPem || !certificatePem) {
