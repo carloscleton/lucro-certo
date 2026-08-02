@@ -2311,12 +2311,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? Number(tribMun.tpRetISSQN)
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
-            // pAliq (Alíquota ISSQN)
-            // E0625: Regra do Portal Nacional — Simples Nacional (opSimpNac=3) + Não Retido (tpRetISSQN=1) → NÃO enviar pAliq
-            const opSimpNacXml = Number(inf.prest?.regTrib?.opSimpNac !== undefined ? inf.prest.regTrib.opSimpNac : (simplesNacionalDefault || 3));
-            const isSimplesSemRetencaoXml = (opSimpNacXml === 2 || opSimpNacXml === 3) && tpRetISSQN === 1;
-            const pAliqVal = isSimplesSemRetencaoXml ? 0 : (tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 0));
-            const pAliqXml = (!isSimplesSemRetencaoXml && pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
+            // pAliq (Alíquota ISSQN / Simples Nacional)
+            // Quando regApTribSN === 1 (Informar alíquota do Simples Nacional), pAliq é OBRIGATÓRIO no XSD (ex: <pAliq>5.00</pAliq>)
+            const pAliqVal = tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 5.00);
+            const pAliqXml = (regApTribSNVal === 1 || pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
             // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal)
             let tribFedXml = '';
