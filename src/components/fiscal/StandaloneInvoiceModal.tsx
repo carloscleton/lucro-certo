@@ -818,7 +818,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             }, 0);
 
             if (type === 'nfse') {
-                const companyCityCode = config?.endereco?.codigoCidade || config?.codigo_municipio || '3106200';
+                const companyCityCode = cityCode || config?.endereco?.codigoCidade || config?.codigo_municipio || '2408102';
                 
                 payload = {
                     idIntegracao: `AVULSA_${Date.now()}`,
@@ -858,11 +858,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const formattedTotal = totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         const descSuffix = i.quantity > 1 ? ` (${i.quantity} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
 
+                        const itemNotes = notes?.trim() || '';
+                        const fullDescription = itemNotes ? `${i.description}\n${itemNotes}` : i.description;
+
                         const item: any = {
                             codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
                             codigoIbge: companyCityCode,
-                            discriminacao: `${i.description}${descSuffix}`,
-                            descricao: `${i.description}${descSuffix}`,
+                            discriminacao: `${fullDescription}${descSuffix}`,
+                            descricao: `${fullDescription}${descSuffix}`,
                             valor: {
                                 servico: totalVal,
                                 descontoCondicionado: 0,
@@ -1759,6 +1762,19 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     />
                                 </div>
 
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                        Corpo da Nota / Informações Complementares (Detalhamento do Serviço)
+                                    </label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder="Detalhamento do serviço, observações adicionais, condições de pagamento..."
+                                        rows={3}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-xs font-semibold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none resize-none"
+                                    />
+                                </div>
+
                                 <div className={`grid grid-cols-1 ${isNacional && type === 'nfse' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
                                     <div className="space-y-1.5">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
@@ -1882,19 +1898,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     </div>
                 </div>
 
-                {/* Corpo da Nota / Informações Complementares */}
-                <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                        Corpo da Nota / Informações Complementares
-                    </label>
-                    <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Detalhes adicionais, condições de pagamento, observações fiscais..."
-                        rows={3}
-                        className="w-full px-4 py-3 rounded-2xl border-2 border-transparent bg-gray-50/50 dark:bg-slate-800/30 text-gray-900 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none resize-none"
-                    />
-                </div>
 
                 {/* Controles de Automação */}
                 <div className="pt-6 border-t border-gray-100 dark:border-slate-800">
