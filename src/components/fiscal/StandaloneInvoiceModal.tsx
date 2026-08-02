@@ -841,7 +841,6 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
 
                     const prestCnpj = currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, '');
-                    const prestIm = config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, '');
                     const opSN = Number(config?.op_simp_nac || (config?.simples_nacional ? 3 : (config?.regime_tributario === '1' ? 3 : 1)));
 
                     const tomaDoc = noTomador ? '' : (contact?.tax_id?.replace(/\D/g, '') || '');
