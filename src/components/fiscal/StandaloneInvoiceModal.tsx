@@ -1405,8 +1405,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     ? errData.error
                     : (errData?.error?.message || errData?.message || error.message);
                 setError(rawErrorMsg || 'Erro desconhecido');
-                const detail = errData?.detail || errData || error.message;
-                setErrorDetail(typeof detail === 'object' ? JSON.stringify(detail, null, 2) : String(detail));
+                
+                let detailText = '';
+                if (errData?.detail) {
+                    detailText = typeof errData.detail === 'object' ? JSON.stringify(errData.detail, null, 2) : String(errData.detail);
+                } else if (errData?.raw_sefin) {
+                    detailText = typeof errData.raw_sefin === 'object' ? JSON.stringify(errData.raw_sefin, null, 2) : String(errData.raw_sefin);
+                } else {
+                    detailText = typeof errData === 'object' ? JSON.stringify(errData, null, 2) : String(error.message);
+                }
+                
+                if (errData?.hint) {
+                    detailText += `\n\n💡 Dica: ${errData.hint}`;
+                }
+                
+                setErrorDetail(detailText);
             }
         } finally {
             setLoading(false);
