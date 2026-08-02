@@ -232,6 +232,7 @@ export function FiscalSettings() {
         certificado_id: '',
         certificado_vencimento: '',
         certificado_sujeito: '',
+        certificado_pfx_base64: '',
         certificado_status: '',
         send_email_automatically: false,
         send_whatsapp_automatically: false
