@@ -285,22 +285,32 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleViewXml = async () => {
         setShowPdf(false);
         setShowXml(true);
-        if (data?.xml_assinado) {
-            setXmlContent(formatXml(String(data.xml_assinado)));
+        if (data?.xml_assinado || data?.signedXml) {
+            setXmlContent(formatXml(String(data.xml_assinado || data.signedXml)));
             return;
         }
-        if (!xmlUrl) return;
-        if (!xmlContent) {
-            setLoadingXml(true);
-            try {
-                const res = await fetch(xmlUrl);
-                const text = await res.text();
-                setXmlContent(formatXml(text));
-            } catch (e) {
-                setXmlContent('Erro ao carregar conteúdo do XML.');
-            } finally {
-                setLoadingXml(false);
+        if (xmlUrl) {
+            if (!xmlContent) {
+                setLoadingXml(true);
+                try {
+                    const res = await fetch(xmlUrl);
+                    const text = await res.text();
+                    setXmlContent(formatXml(text));
+                } catch (e) {
+                    setXmlContent('Erro ao carregar conteúdo do XML.');
+                } finally {
+                    setLoadingXml(false);
+                }
             }
+            return;
+        }
+        if (data?.payload_enviado || data?.payload) {
+            setXmlContent(JSON.stringify(data.payload_enviado || data.payload, null, 2));
+            return;
+        }
+        if (data) {
+            setXmlContent(JSON.stringify(data, null, 2));
+            return;
         }
     };
 
@@ -515,13 +525,13 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                                             Visualizar Nota Fiscal (DANFSE)
                                         </Button>
                                     )}
-                                    {(xmlUrl || data?.xml || data?.xml_url || data?.xml_assinado || data?.payload?.xml_assinado || data?.signedXml) && (
+                                    {(xmlUrl || (data && Object.keys(data).length > 0)) && (
                                         <Button 
                                             onClick={handleViewXml} 
                                             className="w-full h-12 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                                         >
                                             <Search size={18} />
-                                            Visualizar XML Assinado
+                                            {data?.xml_assinado || data?.signedXml ? 'Visualizar XML Assinado' : 'Visualizar XML / Payload'}
                                         </Button>
                                     )}
                                 </div>
