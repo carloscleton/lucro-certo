@@ -1904,9 +1904,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 key: privateKeyPem,
                 cert: certificatePem,
                 rejectUnauthorized: false,
-                keepAlive: false,
-                minVersion: 'TLSv1.2',
-                ciphers: 'DEFAULT:@SECLEVEL=1'
+                keepAlive: false
             });
 
             // Construir payload no schema DPS (Declaração de Prestação de Serviço) do ADN
@@ -2412,10 +2410,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 });
 
                 signedXml = sig.getSignedXml();
-                if (signedXml.includes('<Signature>') && !signedXml.includes('<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">')) {
-                    signedXml = signedXml.replace('<Signature>', '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">');
-                }
-                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso (Signature namespace injetado).`);
+                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso.`);
             } catch (signErr: any) {
                 console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
                 throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
