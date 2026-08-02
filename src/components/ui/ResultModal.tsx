@@ -225,7 +225,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             }
 
             const pdfBlob = await PDFService.generateDanfsePDF({
-                nNfse: data?.nNFSe || nDPSComputed || '1',
+                nNfse: nDPSComputed || data?.nNFSe || '1',
                 serie: inf.serie || data?.serie || '1',
                 nDPS: nDPSComputed || '1',
                 chaveAcesso: idDPSFromDetail || '240810220089356600019000001000000000000001',
