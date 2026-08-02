@@ -1904,7 +1904,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 key: privateKeyPem,
                 cert: certificatePem,
                 rejectUnauthorized: false,
-                keepAlive: false
+                keepAlive: false,
+                minVersion: 'TLSv1.2',
+                ciphers: 'DEFAULT:@SECLEVEL=1'
             });
 
             // Construir payload no schema DPS (Declaração de Prestação de Serviço) do ADN
@@ -2294,7 +2296,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
             const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}${cNbsXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
 
             // Informações Complementares (infComp / xInfComp)
             const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || informacoesComplementares || '';
