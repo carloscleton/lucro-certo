@@ -207,7 +207,7 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                 try { parsedDetail = JSON.parse(data.detail); } catch (e) {}
             }
 
-            const inf = data?.payload?.infDPS || data?.infDPS || data?.payload_enviado?.infDPS || parsedDetail?.infDPS || data?.payload || {};
+            const inf = data?.payload_enviado?.infDPS || data?.payload?.infDPS || data?.infDPS || parsedDetail?.infDPS || {};
             const prest = inf.prest || data?.prestador || parsedDetail?.prestador || {};
             const toma = inf.toma || data?.tomador || parsedDetail?.tomador || {};
             const serv = inf.serv || data?.servico || (Array.isArray(data?.servico) ? data.servico[0] : {});
