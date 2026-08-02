@@ -2096,6 +2096,9 @@ export function FiscalSettings() {
                                 }
                             } : {})
                         }
+                    },
+                    infComp: {
+                        xInfComp: "NBS: 101010000"
                     }
                 }
             };
