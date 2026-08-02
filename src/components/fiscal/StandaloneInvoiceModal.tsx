@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, Repeat } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -173,7 +173,119 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     // Reset contact selection when switching companies
     useEffect(() => {
         setContactId('');
+        setRecurringNotice(null);
     }, [currentEntity.id]);
+
+    const [recurringNotice, setRecurringNotice] = useState<string | null>(null);
+
+    // Auto-fill value and details when selecting a customer with recurring billing (Plano, Serviço, ou Personalizado)
+    useEffect(() => {
+        if (!contactId || !currentEntity.id) {
+            setRecurringNotice(null);
+            return;
+        }
+
+        const fetchContactRecurringBilling = async () => {
+            try {
+                let filterCompanyId = currentEntity.id;
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterCompanyId || '');
+                if (currentEntity.cnpj && (!filterCompanyId || !isUUID)) {
+                    const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                    const { data: compData } = await supabase
+                        .from('companies')
+                        .select('id')
+                        .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                        .maybeSingle();
+                    if (compData?.id) {
+                        filterCompanyId = compData.id;
+                    }
+                }
+
+                const { data: subData } = await supabase
+                    .from('loyalty_subscriptions')
+                    .select(`
+                        id,
+                        status,
+                        custom_price,
+                        plan_id,
+                        service_id,
+                        plan:loyalty_plans (
+                            id,
+                            name,
+                            price
+                        ),
+                        service:services (
+                            id,
+                            name,
+                            price,
+                            description,
+                            codigo_servico_municipal,
+                            item_lista_servico,
+                            codigo_tributacao_nacional
+                        )
+                    `)
+                    .eq('contact_id', contactId)
+                    .eq('company_id', filterCompanyId)
+                    .in('status', ['active', 'past_due', 'trialing', 'pending'])
+                    .maybeSingle();
+
+                if (subData) {
+                    let recurringPrice = 0;
+                    let recurringDesc = '';
+                    let recurringTaxCode = '';
+
+                    const planObj = Array.isArray(subData.plan) ? subData.plan[0] : subData.plan;
+                    const serviceObj = Array.isArray(subData.service) ? subData.service[0] : subData.service;
+
+                    if (planObj && planObj.price) {
+                        recurringPrice = Number(planObj.price);
+                        recurringDesc = `Mensalidade do Plano: ${planObj.name}`;
+                    } else if (serviceObj && serviceObj.price) {
+                        recurringPrice = Number(serviceObj.price);
+                        recurringDesc = serviceObj.description || serviceObj.name;
+                        recurringTaxCode = serviceObj.codigo_tributacao_nacional || serviceObj.item_lista_servico || serviceObj.codigo_servico_municipal || '';
+                    } else if (subData.custom_price) {
+                        recurringPrice = Number(subData.custom_price);
+                        recurringDesc = 'Faturamento Recorrente Personalizado';
+                    }
+
+                    if (recurringPrice > 0) {
+                        setItems(prevItems => {
+                            if (!prevItems || prevItems.length === 0) {
+                                return [{
+                                    id: crypto.randomUUID(),
+                                    description: recurringDesc,
+                                    taxCode: recurringTaxCode,
+                                    amount: recurringPrice,
+                                    quantity: 1
+                                }];
+                            }
+                            const firstItem = prevItems[0];
+                            const updatedFirstItem = {
+                                ...firstItem,
+                                amount: recurringPrice,
+                                description: firstItem.description || recurringDesc,
+                                taxCode: firstItem.taxCode || recurringTaxCode
+                            };
+                            return [updatedFirstItem, ...prevItems.slice(1)];
+                        });
+
+                        const formattedPrice = recurringPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        setRecurringNotice(`Faturamento Recorrente Ativado! Valor preenchido automaticamente: ${formattedPrice}`);
+                    } else {
+                        setRecurringNotice(null);
+                    }
+                } else {
+                    setRecurringNotice(null);
+                }
+            } catch (err) {
+                console.warn('⚠️ [RECURRING-LOOKUP] Erro ao buscar assinatura do contato:', err);
+                setRecurringNotice(null);
+            }
+        };
+
+        fetchContactRecurringBilling();
+    }, [contactId, currentEntity.id]);
 
     const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
 
@@ -1454,6 +1566,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     <option key={c.id} value={c.id}>{c.name} {c.tax_id ? `(${c.tax_id})` : ''}</option>
                                 ))}
                             </select>
+                        )}
+
+                        {!noTomador && recurringNotice && (
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/50 text-xs mt-1.5 animate-fadeIn font-bold">
+                                <Award size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                <span>{recurringNotice}</span>
+                            </div>
                         )}
 
                         {!noTomador && contactValidation && !contactValidation.isValid && (
