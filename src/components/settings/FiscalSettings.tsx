@@ -2029,7 +2029,6 @@ export function FiscalSettings() {
                     prest: {
                         CNPJ: effectiveCnpj.replace(/\D/g, ''),
                         ...(effectiveIm.trim() ? { IM: effectiveIm.trim().replace(/\D/g, '') } : {}),
-                        email: (currentCompany as any)?.email || "contato@empresa.com.br",
                         regTrib: {
                             opSimpNac: Number((nationalConfig as any).op_simp_nac || (nationalConfig.simples_nacional ? 2 : 1)),
                             ...(Number((nationalConfig as any).op_simp_nac || 2) === 3 ? { regApTribSN: Number(nationalConfig.reg_ap_trib_sn || 1) } : {})
@@ -4950,7 +4949,19 @@ export function FiscalSettings() {
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ambiente</label>
                                 <select
                                     value={nationalConfig.ambiente}
-                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, ambiente: e.target.value }))}
+                                    onChange={(e) => {
+                                        const newAmb = e.target.value;
+                                        setNationalConfig(prev => ({ ...prev, ambiente: newAmb }));
+                                        if (testJson) {
+                                            try {
+                                                const parsed = JSON.parse(testJson);
+                                                if (parsed && parsed.infDPS) {
+                                                    parsed.infDPS.tpAmb = newAmb === 'producao' ? 1 : 2;
+                                                    setTestJson(JSON.stringify(parsed, null, 2));
+                                                }
+                                            } catch (err) {}
+                                        }
+                                    }}
                                     className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                 >
                                     <option value="homologacao">Produção Restrita (adn.producaorestrita.nfse.gov.br — Testes)</option>
