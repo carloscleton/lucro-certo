@@ -2613,6 +2613,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             ? 'Consulte se o CNPJ/IM do prestador está ativo no Portal Nacional da NFS-e (nfse.gov.br).'
                             : 'Acesse Configurações -> Configurações Fiscais -> Portal Nacional -> Altere o Ambiente para "Produção" e salve.',
                         raw_sefin: errData,
+                        xml_assinado: signedXml || undefined,
                         idDPS: dpsId
                     });
                 }

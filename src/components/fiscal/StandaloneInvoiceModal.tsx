@@ -813,162 +813,260 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const totalAmount = items.reduce((acc, i) => {
                 const clean = (i.amount || '').replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
                 const parsed = parseFloat(clean);
-                const val = isNaN(parsed) ? 0 : parsed;
-                return acc + (val * i.quantity);
-            }, 0);
-
-            if (type === 'nfse') {
+                const val = isNaN(parsed) ? 0 : par            if (type === 'nfse') {
                 const companyCityCode = cityCode || config?.endereco?.codigoCidade || config?.codigo_municipio || '2408102';
                 
-                payload = {
-                    idIntegracao: `AVULSA_${Date.now()}`,
-                    codigoIbge: companyCityCode,
-                    prestador: {
-                        cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
-                        inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
-                        regimeTributario: parseInt(config?.regime_tributario || '1'),
-                        // Define regime especial automático se for Simples (6) ou MEI (5)
-                        regimeEspecialTributacao: config?.regime_tributario === '1' || config?.regime_tributario === '2' ? 6 : 
-                                                 config?.regime_tributario === '4' ? 5 : 
-                                                 parseInt(config?.default_regime_especial || '0')
-                    },
-                    tomador: noTomador ? null : {
-                        cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
-                        razaoSocial: contact?.name || 'NÃO IDENTIFICADO',
-                        email: contact?.email || '',
-                        endereco: {
-                            logradouro: contact?.street || '',
-                            numero: contact?.number || 'S/N',
-                            bairro: contact?.neighborhood || '',
-                            cep: contact?.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: tomadorCityCode, // código IBGE do município do TOMADOR (buscado via ViaCEP)
-                            cidade: contact?.city || '',
-                            descricaoCidade: contact?.city || '',
-                            uf: contact?.state || ''
-                        }
-                    },
-                    noTomador: noTomador,
-                    servico: items.map(i => {
-                        const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
-                        const val = parseFloat(cleanValue);
-                        const numVal = isNaN(val) ? 0 : val;
-                        const totalVal = numVal * i.quantity;
-                        
-                        const formattedUnit = numVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        const formattedTotal = totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        const descSuffix = i.quantity > 1 ? ` (${i.quantity} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
+                if (activeProvider === 'national') {
+                    const firstItem = items[0];
+                    const cleanValue = firstItem?.amount ? firstItem.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.') : '0';
+                    const val = parseFloat(cleanValue);
+                    const numVal = isNaN(val) ? 0 : val;
+                    const totalVal = numVal * (firstItem?.quantity || 1);
 
-                        const itemNotes = notes?.trim() || '';
-                        const fullDescription = itemNotes ? `${i.description}\n${itemNotes}` : i.description;
+                    const itemNotes = notes?.trim() || '';
+                    const fullDescription = itemNotes ? `${firstItem.description}\n${itemNotes}` : firstItem.description;
 
-                        const item: any = {
-                            codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
-                            codigoIbge: companyCityCode,
-                            discriminacao: `${fullDescription}${descSuffix}`,
-                            descricao: `${fullDescription}${descSuffix}`,
-                            valor: {
-                                servico: totalVal,
-                                descontoCondicionado: 0,
-                                descontoIncondicionado: 0
+                    const cleanTaxCode = String(firstItem?.taxCode || '').replace(/\D/g, '').trim();
+                    const cleanNatCode = String(firstItem?.codigoTributacaoNacional || firstItem?.taxationCode || '').replace(/\D/g, '').trim();
+                    const cTribNac6 = (cleanTaxCode.length === 6) ? cleanTaxCode : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
+                    const cNBS9 = cleanNatCode.length === 9 ? cleanNatCode : (cleanTaxCode.length === 9 ? cleanTaxCode : undefined);
+
+                    let finalNotes = notes || '';
+                    if (cNBS9 && !finalNotes.includes(`NBS: ${cNBS9}`)) {
+                        finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cNBS9}` : `NBS: ${cNBS9}`;
+                    }
+
+                    const prestCnpj = currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, '');
+                    const prestIm = config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, '');
+                    const opSN = Number(config?.op_simp_nac || (config?.simples_nacional ? 3 : (config?.regime_tributario === '1' ? 3 : 1)));
+
+                    const tomaDoc = noTomador ? '' : (contact?.tax_id?.replace(/\D/g, '') || '');
+                    const tomaNome = noTomador ? 'NÃO IDENTIFICADO' : (contact?.name || 'NÃO IDENTIFICADO');
+                    const tomaCityCode = tomadorCityCode || companyCityCode;
+                    const tomaCep = contact?.zip_code?.replace(/\D/g, '');
+
+                    const now = new Date();
+                    const fiveMinPast = new Date(Date.now() - 5 * 60 * 1000);
+
+                    payload = {
+                        infDPS: {
+                            tpAmb: config?.ambiente === 'producao' ? 1 : 2,
+                            dhEmi: fiveMinPast.toISOString(),
+                            verAplic: "1.00",
+                            serie: "1",
+                            nDPS: String(Date.now()).substring(4, 12),
+                            dCompet: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+                            tpEmit: 1,
+                            cLocEmi: companyCityCode,
+                            prest: {
+                                CNPJ: prestCnpj || "00893566000190",
+                                ...(prestIm ? { IM: prestIm } : {}),
+                                regTrib: {
+                                    opSimpNac: opSN,
+                                    ...(opSN === 3 ? { regApTribSN: Number(config?.reg_ap_trib_sn || 1) } : {})
+                                }
                             },
-                            quantidade: 1,
-                            itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
-                        };
-
-                        if (i.cnae && !isNacional) {
-                            item.cnae = String(i.cnae).replace(/\D/g, '').substring(0, 7);
+                            ...(!noTomador && tomaDoc ? {
+                                toma: {
+                                    ...(tomaDoc.length === 11 ? { CPF: tomaDoc } : { CNPJ: tomaDoc }),
+                                    xNome: tomaNome,
+                                    ...(contact?.email ? { email: contact.email } : {}),
+                                    end: {
+                                        ...(tomaCityCode || tomaCep ? {
+                                            endNac: {
+                                                ...(tomaCityCode ? { cMun: tomaCityCode } : {}),
+                                                ...(tomaCep ? { CEP: tomaCep } : {})
+                                            }
+                                        } : {}),
+                                        ...(contact?.street ? { xLgr: contact.street } : {}),
+                                        ...(contact?.number ? { nro: contact.number } : {}),
+                                        ...(contact?.complement ? { xCpl: contact.complement } : {}),
+                                        ...(contact?.neighborhood ? { xBairro: contact.neighborhood } : {})
+                                    }
+                                }
+                            } : {}),
+                            serv: {
+                                locPrest: {
+                                    cLocPrestacao: companyCityCode
+                                },
+                                cServ: {
+                                    cTribNac: cTribNac6,
+                                    ...(cNBS9 ? { cNBS: cNBS9 } : {}),
+                                    xDescServ: fullDescription
+                                }
+                            },
+                            valores: {
+                                vServPrest: {
+                                    vServ: totalVal
+                                },
+                                trib: {
+                                    tribMun: {
+                                        tribISSQN: 1,
+                                        tpRetISSQN: 1
+                                    },
+                                    totTrib: {
+                                        pTotTribSN: parseFloat(config?.default_tot_trib_sn || '6.00')
+                                    }
+                                }
+                            },
+                            ...(finalNotes ? {
+                                infComp: {
+                                    xInfComp: finalNotes.replace(/\n/g, '|')
+                                }
+                            } : {})
                         }
-                        
-                        if (isNacional) {
-                            const cleanTaxCode = String(i.taxCode || '').replace(/\D/g, '').trim();
-                            const cleanNatCode = String(i.codigoTributacaoNacional || '').replace(/\D/g, '').trim();
+                    };
+                } else {
+                    payload = {
+                        idIntegracao: `AVULSA_${Date.now()}`,
+                        codigoIbge: companyCityCode,
+                        prestador: {
+                            cpfCnpj: currentCompany.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
+                            inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
+                            regimeTributario: parseInt(config?.regime_tributario || '1'),
+                            regimeEspecialTributacao: config?.regime_tributario === '1' || config?.regime_tributario === '2' ? 6 : 
+                                                     config?.regime_tributario === '4' ? 5 : 
+                                                     parseInt(config?.default_regime_especial || '0')
+                        },
+                        tomador: noTomador ? null : {
+                            cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
+                            razaoSocial: contact?.name || 'NÃO IDENTIFICADO',
+                            email: contact?.email || '',
+                            endereco: {
+                                logradouro: contact?.street || '',
+                                numero: contact?.number || 'S/N',
+                                bairro: contact?.neighborhood || '',
+                                cep: contact?.zip_code?.replace(/\D/g, ''),
+                                codigoCidade: tomadorCityCode,
+                                cidade: contact?.city || '',
+                                descricaoCidade: contact?.city || '',
+                                uf: contact?.state || ''
+                            }
+                        },
+                        noTomador: noTomador,
+                        servico: items.map(i => {
+                            const cleanValue = i.amount.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+                            const val = parseFloat(cleanValue);
+                            const numVal = isNaN(val) ? 0 : val;
+                            const totalVal = numVal * i.quantity;
                             
-                            // cTribNac deve ser 6 dígitos (ex: 010701)
-                            const cTribNac6 = (cleanTaxCode.length === 6) 
-                                ? cleanTaxCode 
-                                : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
+                            const formattedUnit = numVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const formattedTotal = totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const descSuffix = i.quantity > 1 ? ` (${i.quantity} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
+
+                            const itemNotes = notes?.trim() || '';
+                            const fullDescription = itemNotes ? `${i.description}\n${itemNotes}` : i.description;
+
+                            const item: any = {
+                                codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
+                                codigoIbge: companyCityCode,
+                                discriminacao: `${fullDescription}${descSuffix}`,
+                                descricao: `${fullDescription}${descSuffix}`,
+                                valor: {
+                                    servico: totalVal,
+                                    descontoCondicionado: 0,
+                                    descontoIncondicionado: 0
+                                },
+                                quantidade: 1,
+                                itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
+                            };
+
+                            if (i.cnae && !isNacional) {
+                                item.cnae = String(i.cnae).replace(/\D/g, '').substring(0, 7);
+                            }
                             
-                            item.codigoTributacao = cTribNac6;
-                            item.codigo = cTribNac6;
-                            
-                            // Se foi informado código de 9 dígitos, ele é o cNBS
-                            if (cleanNatCode.length === 9) {
-                                item.cNBS = cleanNatCode;
-                                item.codigoTributacaoNacional = cTribNac6;
+                            if (isNacional) {
+                                const cleanTaxCode = String(i.taxCode || '').replace(/\D/g, '').trim();
+                                const cleanNatCode = String(i.codigoTributacaoNacional || '').replace(/\D/g, '').trim();
+                                
+                                const cTribNac6 = (cleanTaxCode.length === 6) 
+                                    ? cleanTaxCode 
+                                    : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
+                                
+                                item.codigoTributacao = cTribNac6;
+                                item.codigo = cTribNac6;
+                                
+                                if (cleanNatCode.length === 9) {
+                                    item.cNBS = cleanNatCode;
+                                    item.codigoTributacaoNacional = cTribNac6;
+                                } else {
+                                    item.codigoTributacaoNacional = cTribNac6;
+                                }
+
+                                if (cTribNac6.length >= 4) {
+                                    item.itemListaServico = cTribNac6.substring(0, 2) + '.' + cTribNac6.substring(2, 4);
+                                } else {
+                                    item.itemListaServico = '01.07';
+                                }
+                                
+                                item.naturezaOperacao = 1;
                             } else {
-                                item.codigoTributacaoNacional = cTribNac6;
-                            }
-
-                            if (cTribNac6.length >= 4) {
-                                item.itemListaServico = cTribNac6.substring(0, 2) + '.' + cTribNac6.substring(2, 4);
-                            } else {
-                                item.itemListaServico = '01.07';
-                            }
-                            
-                            item.naturezaOperacao = 1;
-                        } else {
-                            if (i.taxationCode) {
-                                item.codigoTributacao = String(i.taxationCode).replace(/\s/g, '');
-                            }
-                        }
-                        
-                        if (i.issAliquota || i.issExigibilidade || i.issTipo) {
-                            item.iss = {
-                                aliquota: parseFloat(i.issAliquota || '0'),
-                                exigibilidade: parseInt(i.issExigibilidade || '1'),
-                                tipoTributacao: parseInt(i.issTipo || '7')
-                             };
-                         }
- 
-                        if (i.pisAliquota || i.cofinsAliquota || i.csllAliquota || i.irrfAliquota || i.inssAliquota) {
-                            item.pis = { aliquota: parseFloat(i.pisAliquota || '0') };
-                            item.cofins = { aliquota: parseFloat(i.cofinsAliquota || '0') };
-                            item.csll = { aliquota: parseFloat(i.csllAliquota || '0') };
-                            item.ir = { aliquota: parseFloat(i.irrfAliquota || '0') };
-                            item.inss = { aliquota: parseFloat(i.inssAliquota || '0') };
-                        }
-
-                        // Aplicação automática das configurações de Simples Nacional se disponíveis
-                        const configFiscal = config;
-                        if (configFiscal) {
-                            if (configFiscal.simples_nacional_aliquota) {
-                                if (!item.valor) item.valor = {};
-                                if (!item.valor.aliquota) { 
-                                    item.valor.aliquota = parseFloat(configFiscal.simples_nacional_aliquota);
+                                if (i.taxationCode) {
+                                    item.codigoTributacao = String(i.taxationCode).replace(/\s/g, '');
                                 }
                             }
-                            if (configFiscal.pis_cofins_situacao_tributaria) {
-                                item.pis = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
-                                item.cofins = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
+                            
+                            if (i.issAliquota || i.issExigibilidade || i.issTipo) {
+                                item.iss = {
+                                    aliquota: parseFloat(i.issAliquota || '0'),
+                                    exigibilidade: parseInt(i.issExigibilidade || '1'),
+                                    tipoTributacao: parseInt(i.issTipo || '7')
+                                 };
+                             }
+     
+                            if (i.pisAliquota || i.cofinsAliquota || i.csllAliquota || i.irrfAliquota || i.inssAliquota) {
+                                item.pis = { aliquota: parseFloat(i.pisAliquota || '0') };
+                                item.cofins = { aliquota: parseFloat(i.cofinsAliquota || '0') };
+                                item.csll = { aliquota: parseFloat(i.csllAliquota || '0') };
+                                item.ir = { aliquota: parseFloat(i.irrfAliquota || '0') };
+                                item.inss = { aliquota: parseFloat(i.inssAliquota || '0') };
                             }
+
+                            const configFiscal = config;
+                            if (configFiscal) {
+                                if (configFiscal.simples_nacional_aliquota) {
+                                    if (!item.valor) item.valor = {};
+                                    if (!item.valor.aliquota) { 
+                                        item.valor.aliquota = parseFloat(configFiscal.simples_nacional_aliquota);
+                                    }
+                                }
+                                if (configFiscal.pis_cofins_situacao_tributaria) {
+                                    item.pis = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
+                                    item.cofins = { situacaoTributaria: configFiscal.pis_cofins_situacao_tributaria };
+                                }
+                            }
+
+                            return item;
+                        })
+                    };
+
+                    if (config.default_regime_especial && config.default_regime_especial !== '0') {
+                        payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
+                    }
+
+                    let finalNotes = notes || '';
+                    const firstItemNbs = items[0]?.codigoTributacaoNacional || items[0]?.taxationCode;
+                    if (isNacional && firstItemNbs && firstItemNbs.replace(/\D/g, '').length === 9) {
+                        const cleanNbs = firstItemNbs.replace(/\D/g, '');
+                        if (!finalNotes.includes(`NBS: ${cleanNbs}`)) {
+                            finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cleanNbs}` : `NBS: ${cleanNbs}`;
                         }
+                    }
 
-                        return item;
-                    })
-                };
+                    if (finalNotes) {
+                        payload.informacoesComplementares = finalNotes.replace(/\n/g, '|');
+                    }
 
-                if (config.default_regime_especial && config.default_regime_especial !== '0') {
-                    payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
-                }
-
-                let finalNotes = notes || '';
-                const firstItemNbs = items[0]?.codigoTributacaoNacional || items[0]?.taxationCode;
-                if (isNacional && firstItemNbs && firstItemNbs.replace(/\D/g, '').length === 9) {
-                    const cleanNbs = firstItemNbs.replace(/\D/g, '');
-                    if (!finalNotes.includes(`NBS: ${cleanNbs}`)) {
-                        finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cleanNbs}` : `NBS: ${cleanNbs}`;
+                    if (sendEmail && contact?.email) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: [contact.email]
+                            }
+                        };
                     }
                 }
-
-                if (finalNotes) {
-                    payload.informacoesComplementares = finalNotes.replace(/\n/g, '|');
-                }
-
-                if (sendEmail && contact?.email) {
-                    payload.configuracao = {
-                        email: {
-                            envio: true,
-                            destinatarios: [contact.email]
+            }t.email]
                         }
                     };
                 }
