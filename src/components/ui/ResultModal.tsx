@@ -285,11 +285,19 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
     const handleViewXml = async () => {
         setShowPdf(false);
         setShowXml(true);
-        const targetXml = data?.xml_assinado || data?.signedXml || data?.xml_gerado || data?.xml;
-        if (targetXml && typeof targetXml === 'string') {
-            setXmlContent(targetXml.startsWith('<') || targetXml.includes('<?xml') ? formatXml(targetXml) : targetXml);
+
+        let xmlFound: string | null = null;
+        if (typeof data?.xml_assinado === 'string' && data.xml_assinado.trim()) xmlFound = data.xml_assinado;
+        else if (typeof data?.signedXml === 'string' && data.signedXml.trim()) xmlFound = data.signedXml;
+        else if (typeof data?.xml_gerado === 'string' && data.xml_gerado.trim()) xmlFound = data.xml_gerado;
+        else if (typeof data?.xml === 'string' && (data.xml.includes('<?xml') || data.xml.includes('<DPS'))) xmlFound = data.xml;
+        else if (typeof data?.detail === 'string' && (data.detail.includes('<?xml') || data.detail.includes('<DPS'))) xmlFound = data.detail;
+
+        if (xmlFound) {
+            setXmlContent(formatXml(xmlFound));
             return;
         }
+
         if (xmlUrl) {
             if (!xmlContent) {
                 setLoadingXml(true);
@@ -305,10 +313,12 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
             }
             return;
         }
+
         if (data?.payload_enviado || data?.payload) {
             setXmlContent(JSON.stringify(data.payload_enviado || data.payload, null, 2));
             return;
         }
+
         if (data) {
             setXmlContent(JSON.stringify(data, null, 2));
             return;
