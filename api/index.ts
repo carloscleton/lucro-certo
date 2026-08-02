@@ -2282,7 +2282,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const servLocXml = inf.serv?.locPrest?.cLocPrestacao 
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
-                : '';
+                : `<locPrest><cLocPrestacao>${finalCLocEmi}</cLocPrestacao></locPrest>`;
 
             const cnaeVal = String(inf.serv?.cServ?.CNAE || servItem?.cnae || nat.default_cnae || '').replace(/\D/g, '');
             const cnaeXml = (cnaeVal.length === 7) ? `<CNAE>${cnaeVal}</CNAE>` : '';
@@ -2430,10 +2430,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
             }
 
-            // 4. Montar o payload final com a propriedade dpsXmlGZipB64 (e dpsXmlGzipB64 para garantia de desserialização JSON)
+            const dpsXmlB64 = Buffer.from(signedXml, 'utf-8').toString('base64');
+            // 4. Montar o payload final com a propriedade dpsXmlGZipB64
             const finalRequestPayload = {
                 dpsXmlGZipB64,
-                dpsXmlGzipB64: dpsXmlGZipB64
+                dpsXmlGzipB64: dpsXmlGZipB64,
+                dpsXmlB64
             };
 
             try {
@@ -2449,17 +2451,35 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         }
                     );
                 } catch (dpsErr: any) {
-                    if (dpsErr.response?.status === 404) {
-                        console.warn(`⚠️ [ADN-NACIONAL] /dps retornou 404, tentando endpoint de fallback /nfse...`);
-                        adnResponse = await axios.post(
-                            `${sefinBaseUrl}/nfse`,
-                            finalRequestPayload,
-                            {
-                                httpsAgent,
-                                headers: { 'Content-Type': 'application/json' },
-                                timeout: 30000
+                    const st = dpsErr.response?.status;
+                    if (st === 500 || st === 400 || st === 404) {
+                        console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto (application/xml)...`);
+                        try {
+                            adnResponse = await axios.post(
+                                `${sefinBaseUrl}/dps`,
+                                signedXml,
+                                {
+                                    httpsAgent,
+                                    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+                                    timeout: 30000
+                                }
+                            );
+                        } catch (xmlErr: any) {
+                            if (xmlErr.response?.status === 404 || dpsErr.response?.status === 404) {
+                                console.warn(`⚠️ [ADN-NACIONAL] /dps retornou 404, tentando endpoint de fallback /nfse...`);
+                                adnResponse = await axios.post(
+                                    `${sefinBaseUrl}/nfse`,
+                                    finalRequestPayload,
+                                    {
+                                        httpsAgent,
+                                        headers: { 'Content-Type': 'application/json' },
+                                        timeout: 30000
+                                    }
+                                );
+                            } else {
+                                throw dpsErr;
                             }
-                        );
+                        }
                     } else {
                         throw dpsErr;
                     }
