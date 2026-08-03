@@ -2112,7 +2112,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             trib: {
                                 gIBSCBS: {
                                     CST: '410',
-                                    cClassTrib: '000001'
+                                    cClassTrib: '000001',
+                                    gTribRegular: {
+                                        CSTReg: '410',
+                                        cClassTribReg: '000001',
+                                        pAliqEfetRegIBSMun: 0,
+                                        vTribRegIBSMun: 0,
+                                        pAliqEfetRegCBS: 0,
+                                        vTribRegCBS: 0
+                                    }
                                 }
                             }
                         }
@@ -2180,7 +2188,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 trib: {
                                     gIBSCBS: {
                                         CST: '410',
-                                        cClassTrib: '000001'
+                                        cClassTrib: '000001',
+                                        gTribRegular: {
+                                            CSTReg: '410',
+                                            cClassTribReg: '000001',
+                                            pAliqEfetRegIBSMun: 0,
+                                            vTribRegIBSMun: 0,
+                                            pAliqEfetRegCBS: 0,
+                                            vTribRegCBS: 0
+                                        }
                                     }
                                 }
                             }
@@ -2401,25 +2417,29 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
 
-            const ibscbsXml = isReformaAtiva
-                ? `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>000</CSTReg><cClassTribReg>000001</cClassTribReg><pAliqEfetRegIBSMun>${pIBS.toFixed(2)}</pAliqEfetRegIBSMun><pAliqEfetRegCBS>${pCBS.toFixed(2)}</pAliqEfetRegCBS></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`
-                : `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>410</CST><cClassTrib>000001</cClassTrib></gIBSCBS></trib></valores></IBSCBS>`;
+            const cstVal = isReformaAtiva ? '000' : '410';
+            const cstRegVal = isReformaAtiva ? '000' : '410';
+            const pIbsVal = isReformaAtiva ? pIBS : 0;
+            const pCbsVal = isReformaAtiva ? pCBS : 0;
+            const vIbsVal = (vServ * pIbsVal) / 100;
+            const vCbsVal = (vServ * pCbsVal) / 100;
+
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg><pAliqEfetRegIBSMun>${pIbsVal.toFixed(2)}</pAliqEfetRegIBSMun><vTribRegIBSMun>${vIbsVal.toFixed(2)}</vTribRegIBSMun><pAliqEfetRegCBS>${pCbsVal.toFixed(2)}</pAliqEfetRegCBS><vTribRegCBS>${vCbsVal.toFixed(2)}</vTribRegCBS></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
                     trib: {
-                        gIBSCBS: isReformaAtiva ? {
-                            CST: '000',
+                        gIBSCBS: {
+                            CST: cstVal,
                             cClassTrib: '000001',
                             gTribRegular: {
-                                CSTReg: '000',
+                                CSTReg: cstRegVal,
                                 cClassTribReg: '000001',
-                                pAliqEfetRegIBSMun: pIBS,
-                                pAliqEfetRegCBS: pCBS
+                                pAliqEfetRegIBSMun: pIbsVal,
+                                vTribRegIBSMun: vIbsVal,
+                                pAliqEfetRegCBS: pCbsVal,
+                                vTribRegCBS: vCbsVal
                             }
-                        } : {
-                            CST: '410',
-                            cClassTrib: '000001'
                         }
                     }
                 };
