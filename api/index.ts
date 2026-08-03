@@ -257,18 +257,20 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
 }
 
 // Helper to get the alternative/fallback Evolution config (opposite of current)
-function getAlternativeConfig(currentConfig: { url: string; apiKey: string; isGo: boolean }) {
+function getAlternativeConfig(currentConfig: { url: string; apiKey: string; isGo: boolean; provider?: string }) {
     if (currentConfig.isGo) {
         return {
             url: EVOLUTION_API_URL,
             apiKey: EVOLUTION_API_KEY,
-            isGo: false
+            isGo: false,
+            provider: 'evolution_api'
         };
     } else {
         return {
             url: EVOLUTION_GO_API_URL,
             apiKey: EVOLUTION_GO_API_KEY,
-            isGo: true
+            isGo: true,
+            provider: 'evolution_go'
         };
     }
 }
@@ -2293,7 +2295,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
 
             // Informações Complementares (infComp / xInfComp)
-            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || informacoesComplementares || '';
+            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
             let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
             if (cNbsVal && cNbsVal.length >= 7 && !infCompText.includes(`NBS: ${cNbsVal}`)) {
                 infCompText = infCompText ? `${infCompText}\nNBS: ${cNbsVal}` : `NBS: ${cNbsVal}`;
@@ -2477,6 +2479,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${chaveAcesso} | Número NFS-e: ${nNFSeVal} | DPS: ${nDPS}`);
                 console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
+
+                const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                const host = getNormalizedHost(req);
+                const baseApiUrl = `${protocol}://${host}`;
 
                 const pdfUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${docId}/pdf?companyId=${resolvedId}`;
                 const xmlUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${docId}/xml?companyId=${resolvedId}`;
@@ -4213,7 +4219,29 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     return res.send(Buffer.from(mockXml));
                 } else {
                     const mockPdfBase64 = 'JVBERi0xLjQKMSAwIG9iagogIDw8CiAgICAvVHlwZSAvQ2F0YWxvZwogICAgL1BhZ2VzIDIgMCBSagogID4+CmVuZG9iagoyIDAgb2JqCiAgPDwKICAgIC9UeXBlIC9QYWdlcwogICAgL0tpZHMgWzMgMCBSXQogICAgL0NvdW50IDEKICA+PgplbmRvYmoKMyAwIG9iagogIDw8CiAgICAvVHlwZSAvUGFnZQogICAgL1BhcmVudCAyIDAgUgogICAgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0KICAgIC9SZXNvdXJjZXMgPDwKICAgICAgL0ZvbnQgPDwKICAgICAgICAvRjEgNCAwIFIKICAgICAgPj4KICAgID4+CiAgICAvQ29udGVudHMgNSAwIFIKICA+PgplbmRvYmoKNCAwIG9iagogIDw8CiAgICAvVHlwZSAvRm9udAogICAgL1N1YnR5cGUgL1R5cGUxCiAgICAvQmFzZUZvbnQgL0hlbHZldGljYQogID4+CmVuZG9iago1IDAgb2JqCiAgPDwKICAgIC9MZW5ndGggNDQKICA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcwIDcwMCBUZCAoTkZlLmlvIFNhbmRib3ggLSBOb3RhIFNpbXVsYWRhKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDgwIDAwMDAwIG4gCjAwMDAwMDAxNDMgMDAwMDAgbCAKMDAwMDAwMDMwMiAwMDAwMCBuIAowMDAwMDAwMzg0IDAwMDAwIG4gCnRyYWlsZXIKICA8PAogICAgL1NpemUgNgogICAgL1Jvb3QgMSAwIFIKICA+PgpzdGFydHhyZWYKNDc5CiUlRU9GCg==';
-                    res.setHeader('Content-Type', 'applicati        // ─── PORTAL NACIONAL (ADN gov.br) — Download XML/PDF via Sefin mTLS ───
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `inline; filename="nfeio-${id}.pdf"`);
+                    return res.send(Buffer.from(mockPdfBase64, 'base64'));
+                }
+            }
+
+            console.log(`📄 [NFEIO-DOWNLOAD] Baixando ${isXml ? 'XML' : 'PDF'} para nota NFe.io ID: ${id}`);
+            
+            const response = await axiosNfeioRequest({
+                method: 'GET',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}/${isXml ? 'xml' : 'pdf'}`,
+                headers: {
+                    'Authorization': apiKeyNfe
+                },
+                responseType: 'arraybuffer'
+            });
+
+            res.setHeader('Content-Type', isXml ? 'application/xml' : 'application/pdf');
+            res.setHeader('Content-Disposition', `${isXml ? 'attachment' : 'inline'}; filename="${type}-${id}.${isXml ? 'xml' : 'pdf'}"`);
+            return res.send(Buffer.from(response.data));
+        }
+
+        // ─── PORTAL NACIONAL (ADN gov.br) — Download XML/PDF via Sefin mTLS ───
         const isNationalKey = typeof id === 'string' && (id.startsWith('DPS') || id.length >= 30);
         const isNational = isNationalKey ||
             resolvedType === 'national' ||
@@ -4390,23 +4418,6 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
                     return res.send(Buffer.from(savedXml));
                 }
-                return res.status(adnDlErr.response?.status || 500).json({
-                    error: 'Erro ao buscar documento no Portal Nacional',
-                    detail: adnDlErr.message,
-                    chNFSe
-                });
-            }
-        }                   res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
-                        return res.send(Buffer.from(pdfRespDl.data));
-                    } catch (pdfDlErr: any) {
-                        console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF no servidor...`);
-                        res.setHeader('Content-Type', 'application/pdf');
-                        res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
-                        return res.send(buildDanfsePdfBuffer());
-                    }
-                }
-            } catch (adnDlErr: any) {
-                console.error('\u274C [ADN-DOWNLOAD] Erro ao buscar no Sefin:', adnDlErr.message);
                 return res.status(adnDlErr.response?.status || 500).json({
                     error: 'Erro ao buscar documento no Portal Nacional',
                     detail: adnDlErr.message,
@@ -7285,8 +7296,9 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
     const { token, company_id } = req.query;
 
     try {
-        const targetName = await resolveTargetName(name, token as string, company_id as string);
-        const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
+        const authHeader = req.headers.authorization;
+        const targetName = await resolveTargetName(name, token as string, company_id as string, authHeader);
+        const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string, userToken: authHeader });
         console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
 
         const fetchDetails = async (activeConfig: typeof config) => {
@@ -7848,10 +7860,11 @@ app.get(['/fiscal-module/admin/billing-simulation', '/api/fiscal-module/admin/bi
                     appliedPerNoteFee = 0;
                 }
 
+                let contractedIdx = 0;
                 // 2. Tiered calculation
                 if (isTieredEnabled && tiers.length > 0) {
                     const sortedTiers = [...tiers].sort((a, b) => Number(a.from) - Number(b.from));
-                    const contractedIdx = typeof billingConfig.contracted_tier_index === 'number'
+                    contractedIdx = typeof billingConfig.contracted_tier_index === 'number'
                         ? billingConfig.contracted_tier_index
                         : 0;
 
@@ -8167,6 +8180,7 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
             const adapter = PaymentFactory.getAdapter(platformProvider, platformConfig, isSandbox);
             const chargeResult = await adapter.createCharge({
                 amount: parseFloat(amount),
+                currency: 'BRL',
                 description: description,
                 payment_method: 'pix',
                 external_reference,
