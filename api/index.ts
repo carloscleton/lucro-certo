@@ -2107,7 +2107,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         indDest: 0,
                         finNFSe: 0,
                         indFinal: 0,
-                        cIndOp: '010101'
+                        cIndOp: '010101',
+                        valores: {
+                            trib: {
+                                gIBSCBS: {
+                                    pCBS: 0,
+                                    pIBS: 0
+                                }
+                            }
+                        }
                     };
                 }
             } else {
@@ -2167,7 +2175,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             indDest: 0,
                             finNFSe: 0,
                             indFinal: 0,
-                            cIndOp: '010101'
+                            cIndOp: '010101',
+                            valores: {
+                                trib: {
+                                    gIBSCBS: {
+                                        pCBS: 0,
+                                        pIBS: 0
+                                    }
+                                }
+                            }
                         }
                     }
                 };
@@ -2312,11 +2328,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Informações Complementares (infComp / xInfComp)
             const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
-            let infCompText = '';
-            if (cNbsVal && cNbsVal.length >= 7) {
+            let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
+            
+            const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
+            if (nbsMatch) {
+                infCompText = `NBS: ${nbsMatch[1]}`;
+            } else if (cNbsVal && cNbsVal.length >= 7) {
                 infCompText = `NBS: ${cNbsVal}`;
             } else {
-                infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
+                infCompText = '';
             }
             const infCompXml = infCompText ? `<infComp><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infComp>` : '';
 
@@ -2374,23 +2394,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
             const isReformaAtiva = !!(nat.reforma_tributaria_calculadora_ativa ?? config.reforma_tributaria_calculadora_ativa);
-            const pCBS = Number(nat.reforma_tributaria_cbs_aliquota || config.reforma_tributaria_cbs_aliquota || '0.90');
-            const pIBS = Number(nat.reforma_tributaria_ibs_aliquota || config.reforma_tributaria_ibs_aliquota || '0.10');
+            const pCBS = isReformaAtiva ? Number(nat.reforma_tributaria_cbs_aliquota || config.reforma_tributaria_cbs_aliquota || '0.90') : 0;
+            const pIBS = isReformaAtiva ? Number(nat.reforma_tributaria_ibs_aliquota || config.reforma_tributaria_ibs_aliquota || '0.10') : 0;
             const indDest = inf.IBSCBS?.indDest !== undefined ? inf.IBSCBS.indDest : 0;
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
-            
-            const reformaSubgroupXml = isReformaAtiva 
-                ? `<gIBSCBS><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gIBSCBS>` 
-                : '';
 
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest>${reformaSubgroupXml}</IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gIBSCBS></trib></valores></IBSCBS>`;
 
-            if (isReformaAtiva && adnPayload?.infDPS?.IBSCBS) {
-                (adnPayload.infDPS.IBSCBS as any).gIBSCBS = {
-                    pCBS,
-                    pIBS
+            if (adnPayload?.infDPS?.IBSCBS) {
+                (adnPayload.infDPS.IBSCBS as any).valores = {
+                    trib: {
+                        gIBSCBS: {
+                            pCBS,
+                            pIBS
+                        }
+                    }
                 };
             }
 
