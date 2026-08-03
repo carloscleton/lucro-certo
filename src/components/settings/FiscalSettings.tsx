@@ -5117,15 +5117,26 @@ export function FiscalSettings() {
                                             </div>
                                             
                                             <div>
-                                                <Input
-                                                    label="Alíquota ISSQN Padrão (%)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={nationalConfig.default_iss_aliquota ?? ''}
-                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
-                                                    placeholder="Ex: 2.00"
-                                                    helpText="Alíquota de ISS do município (pAliq: 2% a 5%)"
-                                                />
+                                                {(() => {
+                                                    const isSimples = Number(nationalConfig.op_simp_nac) === 2 || Number(nationalConfig.op_simp_nac) === 3;
+                                                    const isNaoRetido = Number(nationalConfig.tp_ret_issqn) === 1;
+                                                    const isDisabled = isSimples && isNaoRetido;
+                                                    return (
+                                                        <Input
+                                                            label="Alíquota ISSQN Padrão (%)"
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={isDisabled ? '0.00' : (nationalConfig.default_iss_aliquota ?? '')}
+                                                            onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
+                                                            placeholder={isDisabled ? '0.00' : 'Ex: 2.00'}
+                                                            disabled={isDisabled}
+                                                            helpText={isDisabled 
+                                                                ? "Alíquota dispensada (calculada e paga de forma unificada no DAS do Simples Nacional)" 
+                                                                : "Alíquota de ISS do município (pAliq: 2% a 5%)"
+                                                            }
+                                                        />
+                                                    );
+                                                })()}
                                             </div>
 
                                             {!isRegimeNormal && (

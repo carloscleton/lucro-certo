@@ -1958,9 +1958,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 codigoNBS9 = String(servItem.cNBS).replace(/\D/g, '');
             }
 
-            const simplesNacional = nat.simples_nacional !== false
-                ? (nat.reg_esp_trib === 6 ? 2 : 3) // 6=MEI no regEspTrib => MEI
-                : 1; // Não optante
+            const simplesNacional = nat.op_simp_nac !== undefined
+                ? Number(nat.op_simp_nac)
+                : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
 
             // Data/hora de emissão e competência formatadas localmente com offset (ex: 2026-07-31T09:30:00-03:00)
             const formatBrasiliaSefazDate = (date: Date) => {
@@ -2026,7 +2026,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Regra E0625: para Simples Nacional (opSimpNac=3) com ISSQN Não Retido (tpRetISSQN=1),
             // NÃO enviar pAliq. Para outros casos, usa o valor configurado (sem forçar fallback de 2.00).
             const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
-            const simplesNacionalDefault = nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1;
+            const simplesNacionalDefault = nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
             const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
             // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
             const finalPAliq = isSimplesSemRetencao ? 0 : (!isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0);
@@ -2346,7 +2346,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             } else {
                 infCompText = '';
             }
-            const infCompXml = infCompText ? `<infComp><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infComp>` : '';
+            const infoComplXml = infCompText ? `<infoCompl><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infoCompl>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
@@ -2360,9 +2360,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
 
             // pAliq (Alíquota ISSQN / Simples Nacional)
-            // Quando regApTribSN === 1 (Informar alíquota do Simples Nacional), pAliq é OBRIGATÓRIO no XSD (ex: <pAliq>5.00</pAliq>)
+            // Para optantes do Simples Nacional (opSimpNac = 2 ou 3), a alíquota de ISS só é informada se houver retenção (tpRetISSQN = 2).
+            // Se não houver retenção (tpRetISSQN = 1), o Portal Nacional proíbe informar alíquota (regra E0625).
             const pAliqVal = tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 5.00);
-            const pAliqXml = (regApTribSNVal === 1 || pAliqVal > 0) ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
+            const isSimplesNac = opSimpNac === 2 || opSimpNac === 3;
+            const shouldSendPAliq = isSimplesNac ? (tpRetISSQN === 2) : (pAliqVal > 0);
+            const pAliqXml = shouldSendPAliq ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
             // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal)
             let tribFedXml = '';
@@ -2416,7 +2419,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = isReformaAtiva ? `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>` : '';
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2434,7 +2437,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
-            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}${ibscbsXml}</infDPS></DPS>`.trim();
+            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
@@ -5346,7 +5349,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
 
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id as string, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader as string);
+                        triggerWhatsAppNotificationHelper(id as string, pdfUrl as string, (invoiceNumber ? String(invoiceNumber) : '') as string, mappedStatus as string, authHeader as string);
                     }
                 } catch (dbErr: any) {
                     console.warn('⚠️ Falha ao atualizar status local NFe.io:', dbErr.message);
@@ -5428,7 +5431,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
                     
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id as string, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader as string);
+                        triggerWhatsAppNotificationHelper(id as string, pdfUrl as string, (statusData.number ? String(statusData.number) : '') as string, mappedStatus as string, authHeader as string);
                     }
                     
                     return res.json(statusData);
@@ -5502,7 +5505,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 
                 const normalizedStatus = String(currentStatus).toLowerCase();
                 if (['concluido', 'autorizado', 'issued', 'success', 'emitida', 'sucesso'].includes(normalizedStatus)) {
-                    triggerWhatsAppNotificationHelper(id as string, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader as string);
+                    triggerWhatsAppNotificationHelper(id as string, pdfUrl as string, (invoiceNumber ? String(invoiceNumber) : '') as string, 'concluido', authHeader as string);
                 }
             } catch (dbErr) { console.warn('⚠️ Falha ao atualizar status local'); }
         }
