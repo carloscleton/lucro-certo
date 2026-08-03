@@ -2104,6 +2104,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // Garante que o bloco IBSCBS está sempre presente no formato direto ADN
                 if (!adnPayload.infDPS.IBSCBS) {
                     adnPayload.infDPS.IBSCBS = {
+                        indDest: 0,
                         finNFSe: 0,
                         indFinal: 0,
                         cIndOp: '010101'
@@ -2163,6 +2164,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             }
                         },
                         IBSCBS: {
+                            indDest: 0,
                             finNFSe: 0,
                             indFinal: 0,
                             cIndOp: '010101'
@@ -2375,6 +2377,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const pCBS = Number(nat.reforma_tributaria_cbs_aliquota || config.reforma_tributaria_cbs_aliquota || '0.90');
             const pIBS = Number(nat.reforma_tributaria_ibs_aliquota || config.reforma_tributaria_ibs_aliquota || '0.10');
 
+            const indDest = inf.IBSCBS?.indDest !== undefined ? inf.IBSCBS.indDest : 0;
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
@@ -2383,7 +2386,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? `<gIBSCBS><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gIBSCBS>` 
                 : '';
 
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp>${reformaSubgroupXml}</IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><indDest>${indDest}</indDest><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp>${reformaSubgroupXml}</IBSCBS>`;
 
             if (isReformaAtiva && adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).gIBSCBS = {
