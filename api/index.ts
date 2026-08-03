@@ -2246,7 +2246,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const regEspTrib = inf.prest?.regTrib?.regEspTrib !== undefined
                 ? Number(inf.prest.regTrib.regEspTrib)
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
-            const regEspTribXml = (regEspTrib > 0) ? `<regEspTrib>${regEspTrib}</regEspTrib>` : '';
+            const regEspTribXml = `<regEspTrib>${regEspTrib}</regEspTrib>`;
 
             // SefinNacional: <IM> é opcional no XSD (minOccurs=0). Omitir <IM> evita o Erro 500 no SEFIN quando a IM municipal não está associada no cadastro nacional.
             const prestIM = '';
