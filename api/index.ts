@@ -2152,6 +2152,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0
                                 }
                             }
+                        },
+                        IBSCBS: {
+                            finNFSe: 0,
+                            indFinal: 0,
+                            cIndOp: '010101'
                         }
                     }
                 };
@@ -2355,10 +2360,26 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
             // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
+            const isReformaAtiva = !!(nat.reforma_tributaria_calculadora_ativa ?? config.reforma_tributaria_calculadora_ativa);
+            const pCBS = Number(nat.reforma_tributaria_cbs_aliquota || config.reforma_tributaria_cbs_aliquota || '0.90');
+            const pIBS = Number(nat.reforma_tributaria_ibs_aliquota || config.reforma_tributaria_ibs_aliquota || '0.10');
+
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp></IBSCBS>`;
+            
+            const reformaSubgroupXml = isReformaAtiva 
+                ? `<gIBSCBS><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gIBSCBS>` 
+                : '';
+
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp>${reformaSubgroupXml}</IBSCBS>`;
+
+            if (isReformaAtiva && adnPayload?.infDPS?.IBSCBS) {
+                (adnPayload.infDPS.IBSCBS as any).gIBSCBS = {
+                    pCBS,
+                    pIBS
+                };
+            }
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
             dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${ibscbsXml}${infCompXml}</infDPS></DPS>`.trim();
