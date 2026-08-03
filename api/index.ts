@@ -2354,8 +2354,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO'));
             const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
+            // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
+            const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
+            const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
+            const cIndOp = inf.IBSCBS?.cIndOp || '010101';
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp></IBSCBS>`;
+
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
-            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infCompXml}</infDPS></DPS>`.trim();
+            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${ibscbsXml}${infCompXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
