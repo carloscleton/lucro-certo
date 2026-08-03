@@ -5346,7 +5346,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
 
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader as string);
+                        triggerWhatsAppNotificationHelper(id as string, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader as string);
                     }
                 } catch (dbErr: any) {
                     console.warn('⚠️ Falha ao atualizar status local NFe.io:', dbErr.message);
@@ -5428,7 +5428,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
                     
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader as string);
+                        triggerWhatsAppNotificationHelper(id as string, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader as string);
                     }
                     
                     return res.json(statusData);
@@ -5502,7 +5502,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 
                 const normalizedStatus = String(currentStatus).toLowerCase();
                 if (['concluido', 'autorizado', 'issued', 'success', 'emitida', 'sucesso'].includes(normalizedStatus)) {
-                    triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader as string);
+                    triggerWhatsAppNotificationHelper(id as string, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader as string);
                 }
             } catch (dbErr) { console.warn('⚠️ Falha ao atualizar status local'); }
         }
