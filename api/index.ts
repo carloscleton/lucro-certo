@@ -2310,9 +2310,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Informações Complementares (infComp / xInfComp)
             const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
-            let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
-            if (cNbsVal && cNbsVal.length >= 7 && !infCompText.includes(`NBS: ${cNbsVal}`)) {
-                infCompText = infCompText ? `${infCompText}\nNBS: ${cNbsVal}` : `NBS: ${cNbsVal}`;
+            let infCompText = '';
+            if (cNbsVal && cNbsVal.length >= 7) {
+                infCompText = `NBS: ${cNbsVal}`;
+            } else {
+                infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
             }
             const infCompXml = infCompText ? `<infComp><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infComp>` : '';
 
