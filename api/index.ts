@@ -2100,6 +2100,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         delete endToma.CEP;
                     }
                 }
+
+                // Garante que o bloco IBSCBS está sempre presente no formato direto ADN
+                if (!adnPayload.infDPS.IBSCBS) {
+                    adnPayload.infDPS.IBSCBS = {
+                        finNFSe: 0,
+                        indFinal: 0,
+                        cIndOp: '010101'
+                    };
+                }
             } else {
                 // 2. FORMATO PLUGNOTAS (SISTEMA): O payload vem do formulário padrão do lucro-certo
                 console.log(`🏛️ [ADN-NACIONAL] Mapeando payload do padrão PlugNotas para o padrão nacional ADN.`);
