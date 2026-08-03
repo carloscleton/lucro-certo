@@ -5346,7 +5346,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
 
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader!);
+                        triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', mappedStatus, authHeader as string);
                     }
                 } catch (dbErr: any) {
                     console.warn('⚠️ Falha ao atualizar status local NFe.io:', dbErr.message);
@@ -5428,7 +5428,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     });
                     
                     if (mappedStatus === 'concluido') {
-                        triggerWhatsAppNotificationHelper(id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader!);
+                        triggerWhatsAppNotificationHelper(id, pdfUrl, statusData.number ? String(statusData.number) : '', mappedStatus, authHeader as string);
                     }
                     
                     return res.json(statusData);
@@ -5502,7 +5502,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 
                 const normalizedStatus = String(currentStatus).toLowerCase();
                 if (['concluido', 'autorizado', 'issued', 'success', 'emitida', 'sucesso'].includes(normalizedStatus)) {
-                    triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader!);
+                    triggerWhatsAppNotificationHelper(id, pdfUrl, invoiceNumber ? String(invoiceNumber) : '', 'concluido', authHeader as string);
                 }
             } catch (dbErr) { console.warn('⚠️ Falha ao atualizar status local'); }
         }
@@ -6471,7 +6471,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
     }
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        throw new Error('Supabase URL ou Anon Key não configurados no servidor.');
+        throw new Error('Supabase URL ou Anon Key não configurados no servidor. Keys: ' + Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('VITE') || k.includes('PORT')).join(', '));
     }
 
     try {
@@ -7575,7 +7575,7 @@ app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate
     const { token, company_id } = req.query;
 
     try {
-        const targetName = await resolveTargetName(name, token as string, company_id as string);
+        const targetName = await resolveTargetName(name as string, token as string, company_id as string);
         const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
         console.log(`🔌 Logging out instance "${targetName}" (Go: ${config.isGo})...`);
 
