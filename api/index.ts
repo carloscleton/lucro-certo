@@ -2116,9 +2116,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     gTribRegular: {
                                         CSTReg: '410',
                                         cClassTribReg: '000001',
-                                        pAliqEfetRegCBS: 0,
+                                        pAliqEfeRegCBS: 0,
                                         vTribRegCBS: 0,
-                                        pAliqEfetRegIBSMun: 0,
+                                        pAliqEfeRegIBSMun: 0,
                                         vTribRegIBSMun: 0
                                     }
                                 }
@@ -2192,9 +2192,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                         gTribRegular: {
                                             CSTReg: '410',
                                             cClassTribReg: '000001',
-                                            pAliqEfetRegCBS: 0,
+                                            pAliqEfeRegCBS: 0,
                                             vTribRegCBS: 0,
-                                            pAliqEfetRegIBSMun: 0,
+                                            pAliqEfeRegIBSMun: 0,
                                             vTribRegIBSMun: 0
                                         }
                                     }
@@ -2424,7 +2424,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg><pAliqEfetRegCBS>${pCbsVal.toFixed(2)}</pAliqEfetRegCBS><vTribRegCBS>${vCbsVal.toFixed(2)}</vTribRegCBS><pAliqEfetRegIBSMun>${pIbsVal.toFixed(2)}</pAliqEfetRegIBSMun><vTribRegIBSMun>${vIbsVal.toFixed(2)}</vTribRegIBSMun></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg><pAliqEfeRegCBS>${pCbsVal.toFixed(2)}</pAliqEfeRegCBS><vTribRegCBS>${vCbsVal.toFixed(2)}</vTribRegCBS><pAliqEfeRegIBSMun>${pIbsVal.toFixed(2)}</pAliqEfeRegIBSMun><vTribRegIBSMun>${vIbsVal.toFixed(2)}</vTribRegIBSMun></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2435,9 +2435,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             gTribRegular: {
                                 CSTReg: cstRegVal,
                                 cClassTribReg: '000001',
-                                pAliqEfetRegCBS: pCbsVal,
+                                pAliqEfeRegCBS: pCbsVal,
                                 vTribRegCBS: vCbsVal,
-                                pAliqEfetRegIBSMun: pIbsVal,
+                                pAliqEfeRegIBSMun: pIbsVal,
                                 vTribRegIBSMun: vIbsVal
                             }
                         }
