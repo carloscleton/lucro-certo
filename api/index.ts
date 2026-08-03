@@ -2114,6 +2114,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     CST: '000',
                                     cClassTrib: '000001',
                                     gTribRegular: {
+                                        CSTReg: '000',
+                                        cClassTribReg: '000001',
                                         pCBS: 0,
                                         pIBS: 0
                                     }
@@ -2186,6 +2188,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                         CST: '000',
                                         cClassTrib: '000001',
                                         gTribRegular: {
+                                            CSTReg: '000',
+                                            cClassTribReg: '000001',
                                             pCBS: 0,
                                             pIBS: 0
                                         }
@@ -2409,7 +2413,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
 
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib><gTribRegular><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>000</CSTReg><cClassTribReg>000001</cClassTribReg><pCBS>${pCBS.toFixed(2)}</pCBS><pIBS>${pIBS.toFixed(2)}</pIBS></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2418,6 +2422,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             CST: '000',
                             cClassTrib: '000001',
                             gTribRegular: {
+                                CSTReg: '000',
+                                cClassTribReg: '000001',
                                 pCBS,
                                 pIBS
                             }
