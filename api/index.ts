@@ -2380,8 +2380,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const pCSLL = tribFed.pCSLL !== undefined ? Number(tribFed.pCSLL) : (nat.default_csll_aliquota ? Number(nat.default_csll_aliquota) : 0);
             const pIRRF = tribFed.pIRRF !== undefined ? Number(tribFed.pIRRF) : (nat.default_irrf_aliquota ? Number(nat.default_irrf_aliquota) : 0);
 
+            const vServ = Number(inf.valores?.vServPrest?.vServ || 0);
             if (opSimpNac === 1 && (pPIS > 0 || pCOFINS > 0 || pCSLL > 0 || pIRRF > 0 || tribFed.vPIS !== undefined || tribFed.vIRRF !== undefined)) {
-                const vServ = Number(inf.valores?.vServPrest?.vServ || 0);
                 const vPIS = tribFed.vPIS !== undefined ? Number(tribFed.vPIS).toFixed(2) : (vServ * (pPIS / 100)).toFixed(2);
                 const vCOFINS = tribFed.vCOFINS !== undefined ? Number(tribFed.vCOFINS).toFixed(2) : (vServ * (pCOFINS / 100)).toFixed(2);
                 const vCSLL = tribFed.vCSLL !== undefined ? Number(tribFed.vCSLL).toFixed(2) : (vServ * (pCSLL / 100)).toFixed(2);
