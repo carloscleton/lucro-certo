@@ -5198,17 +5198,6 @@ export function FiscalSettings() {
                                                 </>
                                             )}
 
-                                            <div>
-                                                <Input
-                                                    label="Próximo Número da DPS"
-                                                    type="number"
-                                                    value={nationalConfig.proximo_numero_dps ?? ''}
-                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
-                                                    placeholder="Ex: 19"
-                                                    helpText="Sequencial do DPS (será incrementado após cada emissão)"
-                                                />
-                                            </div>
-
                                             <div className="md:col-span-2">
                                                 <Input
                                                     label="Descrição Padrão do Serviço (xDescServ)"

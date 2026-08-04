@@ -28,6 +28,9 @@ export function getInvoiceFilename(invoice: any, format: 'pdf' | 'xml', company?
     // 3. Get name of the client (tomador/destinatario)
     const rawClientName = 
         invoice.quote?.contact?.name || 
+        // Portal Nacional formats
+        p.infDPS?.toma?.xNome ||
+        p.toma?.xNome ||
         // Direct payload (from creation request)
         p.tomador?.razaoSocial || 
         p.tomador?.nome ||

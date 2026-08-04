@@ -299,7 +299,7 @@ ${messageWithPlaceholder}`;
         
         const clientNameQuote = invoice.quote?.contact?.name || '';
         const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
-        const clientNamePayloadNfse = invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
+        const clientNamePayloadNfse = invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
         const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
         const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || 'Cliente Desconhecido').toLowerCase();
         
@@ -406,6 +406,7 @@ ${messageWithPlaceholder}`;
                     const pdfUrl = getPdfUrlFromInvoice(updatedInvoice);
                     const p = updatedInvoice.payload;
                     const clientName = updatedInvoice.quote?.contact?.name ||
+                        p?.infDPS?.toma?.xNome || p?.toma?.xNome ||
                         p?.tomador?.razaoSocial || p?.destinatario?.nome ||
                         p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
 
@@ -662,6 +663,8 @@ ${messageWithPlaceholder}`;
         const pdfUrl = getPdfUrlFromInvoice(invoice);
         const p = invoice.payload;
         const clientName = invoice.quote?.contact?.name || 
+                           p?.infDPS?.toma?.xNome || 
+                           p?.toma?.xNome || 
                            p?.tomador?.razaoSocial || 
                            p?.destinatario?.nome || 
                            p?.borrower?.name ||
@@ -930,6 +933,7 @@ ${messageWithPlaceholder}`;
                     const rawXmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl;
                     const xmlUrl = typeof rawXmlUrl === 'string' ? rawXmlUrl : undefined;
                     const clientName = inv.quote?.contact?.name ||
+                        p?.infDPS?.toma?.xNome || p?.toma?.xNome ||
                         p?.tomador?.razaoSocial || p?.destinatario?.nome ||
                         p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
                     const invoiceNumber = p?.numero || p?.nfseNumero || p?.retorno?.nfseNumero || inv.external_id || '';
@@ -1295,7 +1299,7 @@ ${messageWithPlaceholder}`;
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
-                                                        {invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || 'Avulsa'}
+                                                        {invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || 'Avulsa'}
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">
                                                         Emissão Direta
