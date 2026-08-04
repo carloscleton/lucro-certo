@@ -489,6 +489,179 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             return res.json({ success: true, ...response.data });
         }
 
+        // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
+        if (finalType === 'national') {
+            console.log(`🏛️ [ADN-NACIONAL-CANCEL] Iniciando cancelamento de NFS-e no Portal Nacional | ID: ${id}`);
+            
+            try {
+                const nat = settings?.national_config || {};
+                const pfxBase64 = nat.certificado_pfx_base64;
+                const pfxPassword = nat.certificado_senha || '';
+                const adnAmbiente = nat.ambiente || config.ambiente || 'producao';
+                const tpAmb = adnAmbiente === 'producao' ? 1 : 2;
+                const sefinCancelUrl = adnAmbiente === 'producao'
+                    ? 'https://sefin.nfse.gov.br/SefinNacional'
+                    : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
+
+                if (!pfxBase64) {
+                    return res.status(400).json({ 
+                        error: 'Certificado digital não encontrado. Configure o certificado PFX nas Configurações Fiscais > Portal Nacional.' 
+                    });
+                }
+
+                // Busca a chave de acesso (chNFSe) no banco — pode ser o próprio id ou o access_key da nota
+                let chNFSe = id;
+                let prestadorCnpj = nat.cnpj_prestador || '';
+                
+                if (SUPABASE_URL && authHeader) {
+                    try {
+                        const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                            params: { external_id: `eq.${id}`, select: 'access_key,payload,company_id' },
+                            headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader }
+                        });
+                        if (invData?.[0]) {
+                            chNFSe = invData[0].access_key || id;
+                            // Extrai CNPJ do prestador do payload salvo se não configurado
+                            if (!prestadorCnpj && invData[0].payload?.infDPS?.prest?.CNPJ) {
+                                prestadorCnpj = invData[0].payload.infDPS.prest.CNPJ;
+                            }
+                        }
+                    } catch (dbLookupErr: any) {
+                        console.warn('⚠️ [ADN-NACIONAL-CANCEL] Falha ao buscar chave de acesso no banco:', dbLookupErr.message);
+                    }
+                }
+
+                // Extrai chave/certificado do PFX
+                let privateKeyPem = '';
+                let certPem = '';
+                try {
+                    const pfxBuffer = Buffer.from(pfxBase64, 'base64');
+                    const pfxDer = pfxBuffer.toString('binary');
+                    const pfx = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxDer), false, pfxPassword);
+                    const keyBags = pfx.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                    const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
+                    if (keyBag?.key) privateKeyPem = forge.pki.privateKeyToPem(keyBag.key);
+                    const certBags = pfx.getBags({ bagType: forge.pki.oids.certBag });
+                    const certBag = certBags[forge.pki.oids.certBag]?.[0];
+                    if (certBag?.cert) certPem = forge.pki.certificateToPem(certBag.cert);
+                } catch (pfxErr: any) {
+                    return res.status(500).json({ error: `Falha ao ler certificado digital: ${pfxErr.message}` });
+                }
+
+                if (!privateKeyPem || !certPem) {
+                    return res.status(400).json({ error: 'Não foi possível extrair chave/certificado do PFX para o cancelamento.' });
+                }
+
+                const dhEvento = new Date().toISOString();
+                const cnpjLimpo = (prestadorCnpj || '').replace(/\D/g, '');
+
+                // Monta o XML de cancelamento conforme esquema Nacional NFS-e
+                const cancelXml = `<?xml version="1.0" encoding="UTF-8"?>
+<pedCanNFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+    <infPedCanNFSe Id="pedCan${Date.now()}">
+        <chNFSe>${chNFSe}</chNFSe>
+        <tpAmb>${tpAmb}</tpAmb>
+        <dhPedido>${dhEvento}</dhPedido>
+        <nSolicitante>${cnpjLimpo}</nSolicitante>
+        <verAplic>1.00</verAplic>
+    </infPedCanNFSe>
+</pedCanNFSe>`;
+
+                // Assina o XML com o certificado
+                const sig = new SignedXml({ privateKey: privateKeyPem });
+                sig.addReference({
+                    xpath: '//*[local-name(.)="infPedCanNFSe"]',
+                    transforms: ['http://www.w3.org/2000/09/xmldsig#enveloped-signature', 'http://www.w3.org/2001/10/xml-exc-c14n#'],
+                    digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256'
+                });
+                sig.signingKey = privateKeyPem;
+                sig.canonicalizationAlgorithm = 'http://www.w3.org/2001/10/xml-exc-c14n#';
+                sig.signatureAlgorithm = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
+                // Adiciona o certificado na assinatura
+                const certB64 = certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\r?\n/g, '');
+                (sig as any).keyInfoProvider = {
+                    getKeyInfo: () => `<X509Data><X509Certificate>${certB64}</X509Certificate></X509Data>`
+                };
+                sig.computeSignature(cancelXml);
+                const signedCancelXml = sig.getSignedXml();
+
+                console.log(`🔐 [ADN-NACIONAL-CANCEL] XML de cancelamento assinado. Enviando para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}`);
+
+                const httpsAgentCert = new https.Agent({
+                    pfx: Buffer.from(pfxBase64, 'base64'),
+                    passphrase: pfxPassword,
+                    rejectUnauthorized: false
+                });
+
+                // Tenta DELETE com XML assinado (padrão SEFIN)
+                let cancelResponse: any = null;
+                try {
+                    cancelResponse = await axios.delete(`${sefinCancelUrl}/nfse/${chNFSe}`, {
+                        data: signedCancelXml,
+                        httpsAgent: httpsAgentCert,
+                        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+                        timeout: 30000
+                    });
+                } catch (deleteErr: any) {
+                    // Fallback: POST no endpoint de eventos de cancelamento
+                    console.warn(`⚠️ [ADN-NACIONAL-CANCEL] DELETE falhou (${deleteErr.response?.status}), tentando POST /nfse/${chNFSe}/eventos...`);
+                    try {
+                        cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
+                            httpsAgent: httpsAgentCert,
+                            headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+                            timeout: 30000
+                        });
+                    } catch (postErr: any) {
+                        const errData = postErr.response?.data;
+                        console.error(`❌ [ADN-NACIONAL-CANCEL] Falha no cancelamento:`, errData || postErr.message);
+                        return res.status(postErr.response?.status || 500).json({
+                            error: 'Falha ao cancelar NFS-e no Portal Nacional',
+                            detail: errData,
+                            message: postErr.message
+                        });
+                    }
+                }
+
+                // Atualiza o banco de dados
+                if (SUPABASE_URL) {
+                    try {
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                            status: 'cancelado',
+                            cancellation_reason: justificativa || 'Cancelamento solicitado pelo prestador',
+                            updated_at: new Date().toISOString()
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                                'Authorization': authHeader!,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (dbErr: any) {
+                        console.warn('⚠️ [ADN-NACIONAL-CANCEL] Falha ao atualizar status no banco:', dbErr.message);
+                    }
+                }
+
+                console.log(`✅ [ADN-NACIONAL-CANCEL] Cancelamento concluído. Resposta SEFIN:`, cancelResponse?.data);
+                return res.json({ 
+                    success: true, 
+                    message: 'NFS-e cancelada com sucesso no Portal Nacional',
+                    chNFSe,
+                    retorno: cancelResponse?.data 
+                });
+
+            } catch (nationalCancelErr: any) {
+                const errMsg = nationalCancelErr.response?.data?.erros?.[0]?.Descricao 
+                    || nationalCancelErr.response?.data?.message 
+                    || nationalCancelErr.message 
+                    || 'Erro desconhecido no cancelamento';
+                console.error(`❌ [ADN-NACIONAL-CANCEL] Erro:`, errMsg);
+                return res.status(nationalCancelErr.response?.status || 500).json({
+                    error: `Erro ao cancelar NFS-e no Portal Nacional: ${errMsg}`,
+                    detail: nationalCancelErr.response?.data
+                });
+            }
+        }
+
         const typeLower = type.toLowerCase();
         let lastError = null;
 
