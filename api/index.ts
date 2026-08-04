@@ -552,31 +552,86 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     return res.status(400).json({ error: 'Não foi possível extrair chave/certificado do PFX para o cancelamento.' });
                 }
 
-                const dhEvento = new Date().toISOString();
+                const formatCancelDate = (date: Date) => {
+                    const formatter = new Intl.DateTimeFormat('en-US', {
+                        timeZone: 'America/Sao_Paulo',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+
+                    const parts = formatter.formatToParts(date);
+                    const map: Record<string, string> = {};
+                    for (const part of parts) {
+                        if (part.type !== 'literal') {
+                            map[part.type] = part.value;
+                        }
+                    }
+
+                    let hours = map.hour === '24' ? '00' : (map.hour || '00').padStart(2, '0');
+                    const year = map.year;
+                    const month = (map.month || '01').padStart(2, '0');
+                    const day = (map.day || '01').padStart(2, '0');
+                    const minutes = (map.minute || '00').padStart(2, '0');
+                    const seconds = (map.second || '00').padStart(2, '0');
+
+                    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}-03:00`;
+                };
+
+                const dhEvento = formatCancelDate(new Date());
                 const cnpjLimpo = (prestadorCnpj || '').replace(/\D/g, '');
 
-                // Monta o XML de cancelamento conforme esquema Nacional NFS-e
+                // Garante que a justificativa do cancelamento tenha entre 15 e 255 caracteres (exigência do portal nacional)
+                let justificativaFinal = justificativa || 'Cancelamento solicitado pelo prestador';
+                if (justificativaFinal.trim().length < 15) {
+                    justificativaFinal = (justificativaFinal.trim() + ' - Solicitado pelo prestador').substring(0, 255);
+                }
+                if (justificativaFinal.trim().length < 15) {
+                    justificativaFinal = 'Cancelamento solicitado pelo prestador';
+                }
+
+                // Determina o cMotivo (1: Erro na emissão, 2: Serviço não prestado, 9: Outros)
+                let cMotivo = '2'; // Padrão "Serviço não prestado"
+                const justLower = justificativaFinal.toLowerCase();
+                if (justLower.includes('erro') || justLower.includes('dados incorretos') || justLower.includes('corrigir')) {
+                    cMotivo = '1';
+                } else if (justLower.includes('outro') || justLower.includes('teste')) {
+                    cMotivo = '9';
+                }
+
+                // Monta o XML de cancelamento conforme esquema Nacional NFS-e (pedRegEvento / infPedReg)
                 const cancelXml = `<?xml version="1.0" encoding="UTF-8"?>
-<pedCanNFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
-    <infPedCanNFSe Id="pedCan${Date.now()}">
-        <chNFSe>${chNFSe}</chNFSe>
+<pedRegEvento xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+    <infPedReg Id="PRE${chNFSe}101101001">
         <tpAmb>${tpAmb}</tpAmb>
-        <dhPedido>${dhEvento}</dhPedido>
-        <nSolicitante>${cnpjLimpo}</nSolicitante>
         <verAplic>1.00</verAplic>
-    </infPedCanNFSe>
-</pedCanNFSe>`;
+        <dhEvento>${dhEvento}</dhEvento>
+        <CNPJAutor>${cnpjLimpo}</CNPJAutor>
+        <chNFSe>${chNFSe}</chNFSe>
+        <nPedRegEvento>1</nPedRegEvento>
+        <e101101>
+            <xDesc>Cancelamento de NFS-e</xDesc>
+            <cMotivo>${cMotivo}</cMotivo>
+            <xMotivo>${justificativaFinal}</xMotivo>
+        </e101101>
+    </infPedReg>
+</pedRegEvento>`.trim();
 
                 // Assina o XML com o certificado
                 const sig = new SignedXml({ privateKey: privateKeyPem });
                 sig.addReference({
-                    xpath: '//*[local-name(.)="infPedCanNFSe"]',
+                    xpath: '//*[local-name(.)="infPedReg"]',
                     transforms: ['http://www.w3.org/2000/09/xmldsig#enveloped-signature', 'http://www.w3.org/2001/10/xml-exc-c14n#'],
                     digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256'
                 });
                 sig.signingKey = privateKeyPem;
                 sig.canonicalizationAlgorithm = 'http://www.w3.org/2001/10/xml-exc-c14n#';
                 sig.signatureAlgorithm = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
+                
                 // Adiciona o certificado na assinatura
                 const certB64 = certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\r?\n/g, '');
                 (sig as any).keyInfoProvider = {
@@ -585,7 +640,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 sig.computeSignature(cancelXml);
                 const signedCancelXml = sig.getSignedXml();
 
-                console.log(`🔐 [ADN-NACIONAL-CANCEL] XML de cancelamento assinado. Enviando para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}`);
+                console.log(`🔐 [ADN-NACIONAL-CANCEL] XML de cancelamento assinado. Enviando POST para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}/eventos`);
 
                 const httpsAgentCert = new https.Agent({
                     pfx: Buffer.from(pfxBase64, 'base64'),
@@ -593,41 +648,19 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     rejectUnauthorized: false
                 });
 
-                // Tenta DELETE com XML assinado (padrão SEFIN)
-                let cancelResponse: any = null;
-                try {
-                    cancelResponse = await axios.delete(`${sefinCancelUrl}/nfse/${chNFSe}`, {
-                        data: signedCancelXml,
-                        httpsAgent: httpsAgentCert,
-                        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-                        timeout: 30000
-                    });
-                } catch (deleteErr: any) {
-                    // Fallback: POST no endpoint de eventos de cancelamento
-                    console.warn(`⚠️ [ADN-NACIONAL-CANCEL] DELETE falhou (${deleteErr.response?.status}), tentando POST /nfse/${chNFSe}/eventos...`);
-                    try {
-                        cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
-                            httpsAgent: httpsAgentCert,
-                            headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-                            timeout: 30000
-                        });
-                    } catch (postErr: any) {
-                        const errData = postErr.response?.data;
-                        console.error(`❌ [ADN-NACIONAL-CANCEL] Falha no cancelamento:`, errData || postErr.message);
-                        return res.status(postErr.response?.status || 500).json({
-                            error: 'Falha ao cancelar NFS-e no Portal Nacional',
-                            detail: errData,
-                            message: postErr.message
-                        });
-                    }
-                }
+                // Envia o POST diretamente para o endpoint de eventos da nota (único método suportado para eventos no Sefin Nacional)
+                const cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
+                    httpsAgent: httpsAgentCert,
+                    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+                    timeout: 30000
+                });
 
                 // Atualiza o banco de dados
                 if (SUPABASE_URL) {
                     try {
                         await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
                             status: 'cancelado',
-                            cancellation_reason: justificativa || 'Cancelamento solicitado pelo prestador',
+                            cancellation_reason: justificativaFinal,
                             updated_at: new Date().toISOString()
                         }, {
                             headers: {
