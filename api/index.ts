@@ -2604,7 +2604,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             } else {
                 infCompText = '';
             }
-            const infoComplXml = infCompText ? `<infoCompl><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infoCompl>` : '';
+            // Tag correta no XSD da NFS-e Nacional é <infComp> (filho de infDPS), NÃO dentro de <serv>
+            const infoComplXml = infCompText ? `<infComp><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infComp>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
@@ -2677,7 +2678,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
-            const ibscbsXml = isReformaAtiva ? `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>` : '';
+            // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2695,7 +2697,10 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
-            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
+            // Estrutura correta conforme XSD NFS-e Nacional v1.01:
+            // infDPS > prest > toma > serv > valores > infComp > IBSCBS
+            // NOTA: infoComplXml (infComp) fica FORA de <serv>, entre <valores> e <IBSCBS>
+            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infoComplXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
