@@ -1953,7 +1953,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
         // --- FLUXO PORTAL NACIONAL — Integração Direta ADN gov.br (mTLS) ---
         if (activeProvider === 'national') {
             const nat = settings?.national_config || {};
-            let usedSequenceConfig = false;
 
             // 🔍 Log diagnóstico: verificar se national_config foi recuperado corretamente do DB
             console.log(`🏛️ [ADN-NACIONAL] Iniciando fluxo Portal Nacional | companyId: ${companyId} | resolvedId: ${resolvedId}`);
@@ -2242,6 +2241,45 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // 🔍 Diagnóstico E0625: confirma no log da Vercel quais valores foram computados
             console.log(`🔍 [E0625-DIAG] simples_nacional=${nat.simples_nacional} | reg_esp_trib=${nat.reg_esp_trib} | tp_ret_issqn=${nat.tp_ret_issqn} | simplesNacionalDefault=${simplesNacionalDefault} | tpRetISSQNDefault=${tpRetISSQNDefault} | isSimplesSemRetencao=${isSimplesSemRetencao} | finalPAliq=${finalPAliq} | default_iss_aliquota=${nat.default_iss_aliquota} | default_tot_trib_sn=${nat.default_tot_trib_sn}`);
 
+            // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
+            // O Portal Nacional retorna o nNFSe oficial após autorização, que é usado como número da nota.
+            let nextDpsNumber = 1;
+            
+            if (SUPABASE_URL && authHeader) {
+                try {
+                    const lastInvResp = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        params: {
+                            company_id: `eq.${resolvedId}`,
+                            type: 'in.(national,nfsenac)',
+                            select: 'invoice_number,dps_number',
+                            order: 'created_at.desc',
+                            limit: 1
+                        },
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader
+                        }
+                    });
+                    
+                    const lastInvoices = lastInvResp.data;
+                    if (lastInvoices && lastInvoices.length > 0) {
+                        const lastNum = lastInvoices[0].invoice_number || lastInvoices[0].dps_number;
+                        const lastNumParsed = parseInt(String(lastNum).replace(/\D/g, ''), 10);
+                        if (!isNaN(lastNumParsed) && lastNumParsed > 0) {
+                            nextDpsNumber = lastNumParsed + 1;
+                            console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS calculado do último registro do banco: ${nextDpsNumber}`);
+                        }
+                    } else {
+                        // Banco vazio: assume o padrão iniciando em 1
+                        nextDpsNumber = 1;
+                        console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico. Usando padrão sequencial iniciando em: ${nextDpsNumber}`);
+                    }
+                } catch (dbErr: any) {
+                    console.warn(`⚠️ [ADN-NACIONAL] Falha ao consultar último número sequencial:`, dbErr.message);
+                    nextDpsNumber = 1;
+                }
+            }
+
             if (payload && payload.infDPS) {
                 // 1. FORMATO DIRETO ADN (RAW JSON): O usuário enviou o JSON no formato oficial infDPS
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
@@ -2251,6 +2289,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 adnPayload.infDPS.tpAmb = tpAmb;
                 adnPayload.infDPS.dhEmi = dhEmi;
                 if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
+                
+                // Força o número sequencial da DPS calculado pelo banco para garantir sincronia DPS = NFS-e
+                adnPayload.infDPS.nDPS = String(nextDpsNumber);
 
                 // Garante que o cTribNac tenha 6 dígitos se presente
                 if (adnPayload.infDPS.serv?.cServ?.cTribNac) {
@@ -2333,52 +2374,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             } else {
                 // 2. FORMATO PLUGNOTAS (SISTEMA): O payload vem do formulário padrão do lucro-certo
                 console.log(`🏛️ [ADN-NACIONAL] Mapeando payload do padrão PlugNotas para o padrão nacional ADN.`);
-                
-                // Determina o próximo número sequencial da DPS consultando configurações ou banco.
-                let nextDpsNumber = 1;
-                if (nat.proximo_numero_dps !== undefined && !isNaN(Number(nat.proximo_numero_dps)) && Number(nat.proximo_numero_dps) > 0) {
-                    nextDpsNumber = Number(nat.proximo_numero_dps);
-                    usedSequenceConfig = true;
-                    console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS obtido das configurações fiscais: ${nextDpsNumber}`);
-                } else if (SUPABASE_URL && authHeader) {
-                    try {
-                        const lastInvResp = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                            params: {
-                                company_id: `eq.${resolvedId}`,
-                                type: 'eq.national',
-                                select: 'invoice_number,dps_number',
-                                order: 'invoice_number.desc',
-                                limit: 1
-                            },
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY!,
-                                'Authorization': authHeader
-                            }
-                        });
-                        
-                        const lastInvoices = lastInvResp.data;
-                        if (lastInvoices && lastInvoices.length > 0) {
-                            const lastNum = lastInvoices[0].invoice_number || lastInvoices[0].dps_number;
-                            const lastNumParsed = parseInt(String(lastNum).replace(/\D/g, ''), 10);
-                            if (!isNaN(lastNumParsed) && lastNumParsed > 0) {
-                                nextDpsNumber = lastNumParsed + 1;
-                                console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS calculado do último registro do banco: ${nextDpsNumber}`);
-                            }
-                        } else {
-                            // Banco vazio e sem configuração: fall back para time-based para não conflitar com notas antigas emitidas fora do app
-                            const timeBasedNum = String(Math.floor(Date.now() / 1000)).substring(4);
-                            nextDpsNumber = timeBasedNum && parseInt(timeBasedNum) > 0 ? parseInt(timeBasedNum) : parseInt(String(Date.now()).substring(7));
-                            console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico e sem configuração. Usando fallback time-based: ${nextDpsNumber}`);
-                        }
-                    } catch (dbErr: any) {
-                        console.warn(`⚠️ [ADN-NACIONAL] Falha ao consultar último número sequencial:`, dbErr.message);
-                        const timeBasedNum = String(Math.floor(Date.now() / 1000)).substring(4);
-                        nextDpsNumber = timeBasedNum && parseInt(timeBasedNum) > 0 ? parseInt(timeBasedNum) : parseInt(String(Date.now()).substring(7));
-                    }
-                } else {
-                    const timeBasedNum = String(Math.floor(Date.now() / 1000)).substring(4);
-                    nextDpsNumber = timeBasedNum && parseInt(timeBasedNum) > 0 ? parseInt(timeBasedNum) : parseInt(String(Date.now()).substring(7));
-                }
+
 
                 adnPayload = {
                     infDPS: {
@@ -2877,32 +2873,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         });
                         console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
 
-                        // Incrementa o proximo_numero_dps se foi usado a partir das configurações fiscais da empresa
-                        if (usedSequenceConfig && nat.proximo_numero_dps !== undefined && !isNaN(Number(nat.proximo_numero_dps))) {
-                            try {
-                                const newNextDps = Number(nat.proximo_numero_dps) + 1;
-                                const updatedNat = {
-                                    ...nat,
-                                    proximo_numero_dps: String(newNextDps)
-                                };
-                                await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
-                                    settings: {
-                                        ...(settings || {}),
-                                        national_config: updatedNat
-                                    }
-                                }, {
-                                    headers: {
-                                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
-                                        'Authorization': authHeader!
-                                    }
-                                });
-                                fiscalConfigCache.delete(resolvedId);
-                                if (resolvedId !== companyId) fiscalConfigCache.delete(companyId);
-                                console.log(`✅ [ADN-NACIONAL] Próximo número da DPS incrementado nas configurações para: ${newNextDps}`);
-                            } catch (incErr: any) {
-                                console.warn(`⚠️ [ADN-NACIONAL] Falha ao atualizar proximo_numero_dps:`, incErr.message);
-                            }
-                        }
+
                     } catch (dbErr: any) {
                         console.error('❌ [ADN-NACIONAL] Erro ao salvar nota no banco:', dbErr.message);
                     }

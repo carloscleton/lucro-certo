@@ -855,7 +855,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             tpAmb: config?.ambiente === 'producao' ? 1 : 2,
                             verAplic: "1.00",
                             serie: "1",
-                            nDPS: String(Date.now()).substring(4, 12),
+                            nDPS: '1',
                             dCompet: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
                             tpEmit: 1,
                             cLocEmi: companyCityCode,

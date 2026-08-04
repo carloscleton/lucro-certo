@@ -235,8 +235,7 @@ export function FiscalSettings() {
         certificado_pfx_base64: '',
         certificado_status: '',
         send_email_automatically: false,
-        send_whatsapp_automatically: false,
-        proximo_numero_dps: ''
+        send_whatsapp_automatically: false
     });
 
     useEffect(() => {
@@ -453,8 +452,7 @@ export function FiscalSettings() {
             certificado_pfx_base64: nat.certificado_pfx_base64 || '',
             certificado_status: nat.certificado_status || '',
             send_email_automatically: nat.send_email_automatically || false,
-            send_whatsapp_automatically: nat.send_whatsapp_automatically || false,
-            proximo_numero_dps: nat.proximo_numero_dps || ''
+            send_whatsapp_automatically: nat.send_whatsapp_automatically || false
         });
 
         if (nat.certificado_senha) {
@@ -5025,14 +5023,7 @@ export function FiscalSettings() {
                                 onChange={(e: any) => setNationalConfig(prev => ({ ...prev, inscricao_municipal: e.target.value }))}
                                 placeholder="Inscrição Municipal da Empresa"
                             />
-                            <Input
-                                label="Próximo Número da DPS"
-                                type="number"
-                                value={nationalConfig.proximo_numero_dps ?? ''}
-                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
-                                placeholder="Ex: 19"
-                                helpText="Sequencial do DPS (será incrementado após cada emissão). Deixe vazio para usar o número sequencial do banco ou um número único automático."
-                            />
+
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Opção pelo Simples Nacional (Regime Tributário)</label>
                                 <select
