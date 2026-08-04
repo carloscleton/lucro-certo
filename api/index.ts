@@ -2271,8 +2271,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         }
                     } else {
                         // Banco vazio: assume o padrão iniciando em 1
-                        nextDpsNumber = 1;
-                        console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico. Usando padrão sequencial iniciando em: ${nextDpsNumber}`);
+                        // Fallback especial de migração para o CNPJ do cliente para sincronizar com as notas manuais anteriores
+                        const cleanCnpj = String(nat.cnpj || '').replace(/\D/g, '');
+                        if (cleanCnpj === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') {
+                            nextDpsNumber = 23;
+                            console.log(`🏛️ [ADN-NACIONAL] Banco vazio para CNPJ 00893566000190. Usando fallback de migração iniciando em 23.`);
+                        } else {
+                            nextDpsNumber = 1;
+                            console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico. Usando padrão sequencial iniciando em: ${nextDpsNumber}`);
+                        }
                     }
                 } catch (dbErr: any) {
                     console.warn(`⚠️ [ADN-NACIONAL] Falha ao consultar último número sequencial:`, dbErr.message);
