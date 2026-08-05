@@ -9451,16 +9451,57 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
             }
 
             console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-            response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
-                number: number,
-                text: textToSend,
-                linkPreview: true
-            }, {
-                headers: {
-                    'apikey': config.apiKey,
-                    'Content-Type': 'application/json'
+            const apiHeaders = {
+                'apikey': instanceToken || config.apiKey,
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
+                    number: number,
+                    text: textToSend,
+                    linkPreview: true
+                }, {
+                    headers: apiHeaders,
+                    timeout: 15000
+                });
+            } catch (stdErr: any) {
+                console.warn(`⚠️ Standard Evolution sendText falhou (${stdErr.message}). Tentando formato Go/Alternativo...`);
+                try {
+                    response = await axios.post(`${config.url}/send/text`, {
+                        id: targetName,
+                        number: number,
+                        text: textToSend
+                    }, {
+                        headers: apiHeaders,
+                        timeout: 15000
+                    });
+                } catch (goErr: any) {
+                    if (EVOLUTION_GO_API_URL && config.url !== EVOLUTION_GO_API_URL) {
+                        console.warn(`⚠️ Tentando fallback para Evolution GO API URL (${EVOLUTION_GO_API_URL})...`);
+                        response = await axios.post(`${EVOLUTION_GO_API_URL}/send/text`, {
+                            id: targetName,
+                            number: number,
+                            text: textToSend
+                        }, {
+                            headers: { 'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey, 'Content-Type': 'application/json' },
+                            timeout: 15000
+                        });
+                    } else if (WAHA_API_URL && config.url !== WAHA_API_URL) {
+                        console.warn(`⚠️ Tentando fallback para WAHA API URL (${WAHA_API_URL})...`);
+                        response = await axios.post(`${WAHA_API_URL}/api/sendText`, {
+                            session: targetName,
+                            chatId: `${number}@c.us`,
+                            text: textToSend
+                        }, {
+                            headers: { 'X-Api-Key': WAHA_API_KEY, 'Content-Type': 'application/json' },
+                            timeout: 15000
+                        });
+                    } else {
+                        throw stdErr;
+                    }
                 }
-            });
+            }
         }
 
         return res.json(response.data);
