@@ -39,6 +39,15 @@ async function axiosNfeioRequest(config: any, retries = 2, delay = 1000): Promis
         if (!config.headers) config.headers = {};
         // Desabilitar keep-alive especificamente para evitar ECONNRESET em conexões serverless reusadas
         config.headers['Connection'] = 'close';
+
+        // Requisições DELETE na NFe.io rejeitam Content-Type quando não há corpo de mensagem (HTTP 415)
+        if (config.method && String(config.method).toUpperCase() === 'DELETE' && !config.data) {
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+            delete config.headers['Content-type'];
+            config.headers['Accept'] = 'application/json, text/plain, */*';
+        }
+
         return await axios(config);
     } catch (err: any) {
         const isNetworkError = !err.response || 
@@ -477,8 +486,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
                 headers: {
                     'Authorization': apiKeyNfe,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Accept': 'application/json'
                 }
             });
 
