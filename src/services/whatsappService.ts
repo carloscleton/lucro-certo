@@ -44,8 +44,14 @@ export const whatsappService = {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail?.message || 'Falha ao enviar mensagem via WhatsApp.');
+                let errText = '';
+                try {
+                    const errJson = await response.json();
+                    errText = errJson.detail?.message || errJson.message || errJson.error;
+                } catch (e) {
+                    try { errText = await response.text(); } catch (e2) {}
+                }
+                throw new Error(errText || 'Falha ao enviar mensagem via WhatsApp.');
             }
 
             return await response.json();

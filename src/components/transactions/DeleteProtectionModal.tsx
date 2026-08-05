@@ -319,64 +319,68 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
             // 1. Executa primeiro a ação de exclusão/cancelamento (pode falhar)
             await onConfirm();
 
-            // 2. Dispara notificação silenciosa de auditoria para o administrador somente se a exclusão/cancelamento deu certo
-            const targetPhone = adminPhone || phoneInput;
-            if (hasWaInstance && waInstanceName) {
-                const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
-                    `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
-                    `• *Descrição:* ${transaction.description}\n` +
-                    `• *Valor original:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                    `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
-                    `• *Status anterior:* Recebido (Pago)\n` +
-                    `• *Ação realizada por:* ${user?.email}\n` +
-                    `• *Autorização:* Código verificado via WhatsApp`;
+            // 2. Dispara notificação silenciosa de auditoria para o administrador somente se a exclusão/cancelamento deu certo (sem bloquear o sucesso)
+            try {
+                const targetPhone = adminPhone || phoneInput;
+                if (hasWaInstance && waInstanceName) {
+                    const auditMsg = `⚠️ *[Lucro Certo - Auditoria Financeira]*\n\n` +
+                        `A transação financeira protegida foi *EXCLUÍDA/CANCELADA* com sucesso:\n\n` +
+                        `• *Descrição:* ${transaction.description}\n` +
+                        `• *Valor original:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                        `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
+                        `• *Status anterior:* Recebido (Pago)\n` +
+                        `• *Ação realizada por:* ${user?.email}\n` +
+                        `• *Autorização:* Código verificado via WhatsApp`;
 
-                // 1. Envia para o Administrador da Empresa
-                if (targetPhone) {
-                    try {
-                        let cleanTarget = targetPhone.replace(/\D/g, '');
-                        if (cleanTarget.length === 10 || cleanTarget.length === 11) {
-                            cleanTarget = '55' + cleanTarget;
+                    // 1. Envia para o Administrador da Empresa
+                    if (targetPhone) {
+                        try {
+                            let cleanTarget = targetPhone.replace(/\D/g, '');
+                            if (cleanTarget.length === 10 || cleanTarget.length === 11) {
+                                cleanTarget = '55' + cleanTarget;
+                            }
+                            await whatsappService.sendMessage({
+                                instanceName: waInstanceName,
+                                number: cleanTarget,
+                                text: auditMsg
+                            });
+                        } catch (auditErr) {
+                            console.warn('Erro ao disparar log de auditoria para o gerente:', auditErr);
                         }
-                        await whatsappService.sendMessage({
-                            instanceName: waInstanceName,
-                            number: cleanTarget,
-                            text: auditMsg
-                        });
-                    } catch (auditErr) {
-                        console.warn('Erro ao disparar log de auditoria para o gerente:', auditErr);
+                    }
+
+                    // 2. Envia também para o Dono do Sistema (Carlos Cleton) se diferente
+                    let cleanMaster = masterPhone.replace(/\D/g, '');
+                    if (cleanMaster.length === 10 || cleanMaster.length === 11) {
+                        cleanMaster = '55' + cleanMaster;
+                    }
+                    let cleanTarget = targetPhone.replace(/\D/g, '');
+                    if (cleanTarget.length === 10 || cleanTarget.length === 11) {
+                        cleanTarget = '55' + cleanTarget;
+                    }
+
+                    if (cleanMaster && cleanMaster !== cleanTarget) {
+                        try {
+                            const globalAuditMsg = `⚠️ *[Lucro Certo - Auditoria Global]*\n\n` +
+                                `Uma transação protegida foi excluída na empresa *${currentEntity?.name || 'Desconhecida'}*:\n\n` +
+                                `• *Descrição:* ${transaction.description}\n` +
+                                `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                                `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
+                                `• *Ação realizada por:* ${user?.email}\n` +
+                                `• *Autorização:* Verificada com sucesso via WhatsApp`;
+
+                            await whatsappService.sendMessage({
+                                instanceName: waInstanceName,
+                                number: cleanMaster,
+                                text: globalAuditMsg
+                            });
+                        } catch (globalAuditErr) {
+                            console.warn('Erro ao disparar log de auditoria global para Carlos:', globalAuditErr);
+                        }
                     }
                 }
-
-                // 2. Envia também para o Dono do Sistema (Carlos Cleton) se diferente
-                let cleanMaster = masterPhone.replace(/\D/g, '');
-                if (cleanMaster.length === 10 || cleanMaster.length === 11) {
-                    cleanMaster = '55' + cleanMaster;
-                }
-                let cleanTarget = targetPhone.replace(/\D/g, '');
-                if (cleanTarget.length === 10 || cleanTarget.length === 11) {
-                    cleanTarget = '55' + cleanTarget;
-                }
-
-                if (cleanMaster && cleanMaster !== cleanTarget) {
-                    try {
-                        const globalAuditMsg = `⚠️ *[Lucro Certo - Auditoria Global]*\n\n` +
-                            `Uma transação protegida foi excluída na empresa *${currentEntity?.name || 'Desconhecida'}*:\n\n` +
-                            `• *Descrição:* ${transaction.description}\n` +
-                            `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                            `• *Nota Fiscal:* Nº ${invoiceNumber}\n` +
-                            `• *Ação realizada por:* ${user?.email}\n` +
-                            `• *Autorização:* Verificada com sucesso via WhatsApp`;
-
-                        await whatsappService.sendMessage({
-                            instanceName: waInstanceName,
-                            number: cleanMaster,
-                            text: globalAuditMsg
-                        });
-                    } catch (globalAuditErr) {
-                        console.warn('Erro ao disparar log de auditoria global para Carlos:', globalAuditErr);
-                    }
-                }
+            } catch (waErr) {
+                console.warn('⚠️ Falha não-crítica no envio de notificação WhatsApp:', waErr);
             }
 
             onClose(true);
