@@ -2704,8 +2704,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-            // Determinar a classificação tributária regular (cClassTribReg em gTribRegular):
-            // gTribRegular exige um código de tributação regular válido (000001, 000002 ou 000003)
+            // Determinar a classificação tributária regular (cClassTribReg em gTribRegular se reforma ativa):
             let cClassTribRegVal = '000001';
             if (opSimpNac === 2) {
                 cClassTribRegVal = '000002';
@@ -2713,8 +2712,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 cClassTribRegVal = '000003';
             }
 
+            // Para CST 410 (Não incidência / período anterior a 2027), gTribRegular NÃO é permitido/necessário
+            const gTribRegularXml = isReformaAtiva 
+                ? `<gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg></gTribRegular>`
+                : '';
+
             // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib>${gTribRegularXml}</gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2722,10 +2726,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         gIBSCBS: {
                             CST: cstVal,
                             cClassTrib: cClassTribVal,
-                            gTribRegular: {
-                                CSTReg: cstRegVal,
-                                cClassTribReg: cClassTribRegVal
-                            }
+                            ...(isReformaAtiva ? {
+                                gTribRegular: {
+                                    CSTReg: cstRegVal,
+                                    cClassTribReg: cClassTribRegVal
+                                }
+                            } : {})
                         }
                     }
                 };
