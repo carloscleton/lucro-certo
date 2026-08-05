@@ -457,12 +457,11 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
         const isNacionalCancel = finalType === 'national' || 
                                  finalType === 'nfsenac' || 
-                                 activeProvider === 'national' || 
-                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional || settings?.national_config?.certificado_pfx_base64);
+                                 (activeProvider === 'national' && finalType !== 'nfeio' && finalType !== 'nfse' && finalType !== 'nfe');
 
         // --- ROTEAMENTO NFE.IO ---
         // O cancelamento deve ser feito no provedor onde a nota foi realmente emitida (independente de rotina)
-        if (finalType === 'nfeio' && !isNacionalCancel) {
+        if (finalType === 'nfeio') {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
@@ -477,7 +476,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 method: 'DELETE',
                 url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
                 headers: {
-                    'Authorization': apiKeyNfe
+                    'Authorization': apiKeyNfe,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             });
 
