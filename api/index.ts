@@ -469,11 +469,18 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                         String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
                         String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
 
+        const hasPfxCertificate = !!(
+            settings?.national_config?.certificado_pfx_base64 || 
+            settings?.certificado_pfx_base64 || 
+            settings?.nfeio_config?.certificado_pfx_base64
+        );
+
         const isNacionalCancel = isDpsId || 
                                  finalType === 'national' || 
                                  finalType === 'nfsenac' || 
                                  activeProvider === 'national' || 
-                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional || settings?.national_config?.certificado_pfx_base64);
+                                 hasPfxCertificate || 
+                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
