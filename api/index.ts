@@ -9156,7 +9156,7 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                 }
                 queryUrl += `&select=id,evolution_instance_id&order=created_at.desc&limit=1`;
 
-                const { data: insts } = await axios.get(
+                let { data: insts } = await axios.get(
                     queryUrl,
                     {
                         headers: {
@@ -9165,6 +9165,15 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         }
                     }
                 );
+
+                if ((!insts || insts.length === 0) && companyId) {
+                    const fallbackQuery = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(instanceName)}&select=id,evolution_instance_id&order=created_at.desc&limit=1`;
+                    const fbRes = await axios.get(fallbackQuery, {
+                        headers: { 'apikey': supabaseKey, 'Authorization': dbAuthHeader }
+                    }).catch(() => ({ data: [] }));
+                    insts = fbRes.data;
+                }
+
                 if (insts && insts.length > 0) {
                     instanceToken = insts[0].evolution_instance_id;
                     const dbRowId = insts[0].id;
@@ -9466,39 +9475,76 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                     timeout: 15000
                 });
             } catch (stdErr: any) {
-                console.warn(`⚠️ Standard Evolution sendText falhou (${stdErr.message}). Tentando formato Go/Alternativo...`);
-                try {
-                    response = await axios.post(`${config.url}/send/text`, {
-                        id: targetName,
-                        number: number,
-                        text: textToSend
-                    }, {
-                        headers: apiHeaders,
-                        timeout: 15000
-                    });
-                } catch (goErr: any) {
-                    if (EVOLUTION_GO_API_URL && config.url !== EVOLUTION_GO_API_URL) {
-                        console.warn(`⚠️ Tentando fallback para Evolution GO API URL (${EVOLUTION_GO_API_URL})...`);
-                        response = await axios.post(`${EVOLUTION_GO_API_URL}/send/text`, {
+                console.warn(`⚠️ Standard Evolution sendText falhou para "${targetName}" (${stdErr.message}). Tentando auto-recuperação por outras instâncias conectadas...`);
+                let success = false;
+
+                if (SUPABASE_URL) {
+                    try {
+                        const { data: connectedDbInsts } = await axios.get(
+                            `${SUPABASE_URL}/rest/v1/instances?status=in.(connected,open,working,online,paired)&select=instance_name,evolution_instance_id,provider&limit=3`,
+                            { headers: { 'apikey': supabaseKey, 'Authorization': dbAuthHeader } }
+                        );
+                        if (connectedDbInsts && connectedDbInsts.length > 0) {
+                            for (const altInst of connectedDbInsts) {
+                                if (altInst.instance_name.toLowerCase() === targetName.toLowerCase()) continue;
+                                try {
+                                    console.log(`🔄 [whatsapp/send Fallback] Tentando enviar pela instância conectada "${altInst.instance_name}"...`);
+                                    const altToken = altInst.evolution_instance_id || config.apiKey;
+                                    const altConfig = await getEvolutionConfig({ instanceName: altInst.instance_name, token: altToken });
+                                    const altUrl = altConfig.isGo ? `${altConfig.url}/send/text` : `${altConfig.url}/message/sendText/${encodeURIComponent(altInst.instance_name)}`;
+                                    const altBody = altConfig.isGo ? { id: altInst.instance_name, number, text: textToSend } : { number, text: textToSend, linkPreview: true };
+                                    
+                                    response = await axios.post(altUrl, altBody, {
+                                        headers: { 'apikey': altToken || altConfig.apiKey, 'Content-Type': 'application/json' },
+                                        timeout: 15000
+                                    });
+                                    success = true;
+                                    console.log(`✅ [whatsapp/send Fallback] Mensagem enviada com sucesso via "${altInst.instance_name}"!`);
+                                    break;
+                                } catch (altErr: any) {
+                                    console.warn(`⚠️ Fallback via "${altInst.instance_name}" também falhou:`, altErr.message);
+                                }
+                            }
+                        }
+                    } catch (findErr: any) {
+                        console.warn('⚠️ Falha ao buscar instâncias conectadas para fallback:', findErr.message);
+                    }
+                }
+
+                if (!success) {
+                    try {
+                        response = await axios.post(`${config.url}/send/text`, {
                             id: targetName,
                             number: number,
                             text: textToSend
                         }, {
-                            headers: { 'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey, 'Content-Type': 'application/json' },
+                            headers: apiHeaders,
                             timeout: 15000
                         });
-                    } else if (WAHA_API_URL && config.url !== WAHA_API_URL) {
-                        console.warn(`⚠️ Tentando fallback para WAHA API URL (${WAHA_API_URL})...`);
-                        response = await axios.post(`${WAHA_API_URL}/api/sendText`, {
-                            session: targetName,
-                            chatId: `${number}@c.us`,
-                            text: textToSend
-                        }, {
-                            headers: { 'X-Api-Key': WAHA_API_KEY, 'Content-Type': 'application/json' },
-                            timeout: 15000
-                        });
-                    } else {
-                        throw stdErr;
+                    } catch (goErr: any) {
+                        if (EVOLUTION_GO_API_URL && config.url !== EVOLUTION_GO_API_URL) {
+                            console.warn(`⚠️ Tentando fallback para Evolution GO API URL (${EVOLUTION_GO_API_URL})...`);
+                            response = await axios.post(`${EVOLUTION_GO_API_URL}/send/text`, {
+                                id: targetName,
+                                number: number,
+                                text: textToSend
+                            }, {
+                                headers: { 'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey, 'Content-Type': 'application/json' },
+                                timeout: 15000
+                            });
+                        } else if (WAHA_API_URL && config.url !== WAHA_API_URL) {
+                            console.warn(`⚠️ Tentando fallback para WAHA API URL (${WAHA_API_URL})...`);
+                            response = await axios.post(`${WAHA_API_URL}/api/sendText`, {
+                                session: targetName,
+                                chatId: `${number}@c.us`,
+                                text: textToSend
+                            }, {
+                                headers: { 'X-Api-Key': WAHA_API_KEY, 'Content-Type': 'application/json' },
+                                timeout: 15000
+                            });
+                        } else {
+                            throw stdErr;
+                        }
                     }
                 }
             }
