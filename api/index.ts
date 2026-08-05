@@ -679,12 +679,34 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     keepAlive: false
                 });
 
-                // Envia o POST diretamente para o endpoint de eventos da nota (único método suportado para eventos no Sefin Nacional)
-                const cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
-                    httpsAgent: httpsAgentCert,
-                    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-                    timeout: 30000
-                });
+                // Envia o POST para o endpoint de eventos do Sefin Nacional (com fallback automático de URL)
+                let cancelResponse: any;
+                try {
+                    console.log(`🔐 [ADN-NACIONAL-CANCEL] Enviando POST para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}/eventos`);
+                    cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
+                        httpsAgent: httpsAgentCert,
+                        headers: { 
+                            'Content-Type': 'application/xml',
+                            'Accept': 'application/json, application/xml, text/plain, */*'
+                        },
+                        timeout: 30000
+                    });
+                } catch (primaryPostErr: any) {
+                    const status = primaryPostErr.response?.status;
+                    if (status === 415 || status === 404) {
+                        console.warn(`⚠️ [ADN-NACIONAL-CANCEL] POST na URL com chave retornou HTTP ${status}. Tentando fallback /nfse/eventos...`);
+                        cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/eventos`, signedCancelXml, {
+                            httpsAgent: httpsAgentCert,
+                            headers: { 
+                                'Content-Type': 'application/xml',
+                                'Accept': 'application/json, application/xml, text/plain, */*'
+                            },
+                            timeout: 30000
+                        });
+                    } else {
+                        throw primaryPostErr;
+                    }
+                }
 
                 // Atualiza o banco de dados
                 if (SUPABASE_URL) {
