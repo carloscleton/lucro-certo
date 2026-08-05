@@ -2225,7 +2225,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cLocEmi = String(payload?.infDPS?.cLocEmi || payload?.cLocEmi || nat.codigo_municipio || firstItem?.codigoIbge || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
 
             // Payload DPS conforme especificação ADN NFS-e Nacional
-                        const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
+            // O payload final enviado para o governo
+            let adnPayload: any;
+
+            const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '0').replace(',', '.'));
+            const pTotTribSNValDefault = parseFloat(String(nat.default_tot_trib_sn || '6.00').replace(',', '.'));
+            const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
             const simplesNacionalDefault = nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
             const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
             // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
