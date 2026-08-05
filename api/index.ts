@@ -2684,25 +2684,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
 
             const cstVal = isReformaAtiva ? '000' : '410';
-            const cstRegVal = isReformaAtiva ? '000' : '410';
+            const cstRegVal = '000'; // gTribRegular sempre representa tributação regular (CST 000)
             const pIbsVal = isReformaAtiva ? pIBS : 0;
             const pCbsVal = isReformaAtiva ? pCBS : 0;
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
-            // Determinar a classificação tributária correta para o IBSCBS (cClassTrib):
-            // Fonte: Tabela oficial SVRS/Portal Conformidade Fácil
-            // - CST 410 = "Imunidade e não incidência" -> cClassTrib específico conforme motivo:
-            //   '410031' = "Fornecimento em período anterior ao início de vigência de incidências de CBS e IBS"
-            //              Este é o código correto para prestações de serviço ocorridas ANTES de jan/2027
-            //   '410999' = "Operações não onerosas sem previsão de tributação, não especificadas anteriormente" (fallback genérico)
-            // - CST 000 = "Tributada integralmente" (quando reforma tributária estiver ativa, a partir de 2027):
-            //   opSimpNac 1 = Não Optante (Regime Normal) -> 000001
-            //   opSimpNac 2 = Optante MEI -> 000002
-            //   opSimpNac 3 = Optante ME/EPP (Simples Nacional) -> 000003
-            let cClassTribVal = '410031'; // padrão: período anterior ao início de vigência IBS/CBS
+            // Determinar a classificação tributária correta para a operação (cClassTrib):
+            // - Fornecimento em período anterior a 2027 (CST 410): '410031'
+            // - Reforma ativa a partir de 2027 (CST 000): '000001' (Normal), '000002' (MEI), '000003' (Simples Nacional)
+            let cClassTribVal = '410031';
             if (isReformaAtiva) {
-                // Reforma ativa (CST 000): usar classificação conforme regime
                 if (opSimpNac === 2) {
                     cClassTribVal = '000002';
                 } else if (opSimpNac === 3) {
@@ -2712,8 +2704,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
+            // Determinar a classificação tributária regular (cClassTribReg em gTribRegular):
+            // gTribRegular exige um código de tributação regular válido (000001, 000002 ou 000003)
+            let cClassTribRegVal = '000001';
+            if (opSimpNac === 2) {
+                cClassTribRegVal = '000002';
+            } else if (opSimpNac === 3) {
+                cClassTribRegVal = '000003';
+            }
+
             // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribVal}</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
@@ -2723,7 +2724,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             cClassTrib: cClassTribVal,
                             gTribRegular: {
                                 CSTReg: cstRegVal,
-                                cClassTribReg: cClassTribVal
+                                cClassTribReg: cClassTribRegVal
                             }
                         }
                     }
