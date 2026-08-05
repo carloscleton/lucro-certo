@@ -579,6 +579,13 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     return res.status(400).json({ error: 'Não foi possível extrair chave/certificado do PFX para o cancelamento.' });
                 }
 
+                const httpsAgentCert = new https.Agent({
+                    key: privateKeyPem,
+                    cert: certPem,
+                    rejectUnauthorized: false,
+                    keepAlive: false
+                });
+
                 let cleanChNFSe = String(chNFSe || '').trim().replace(/^DPS/i, '').replace(/\D/g, '');
 
                 // Se chNFSe não possui 50 dígitos (ex: é ID do DPS com 46 dígitos), consulta o SEFIN para obter a chave oficial
