@@ -23,6 +23,17 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
     let friendlyHint: string | null = null;
     let errorCode: string | null = null;
 
+    // Se já veio uma mensagem específica e clara do Portal Nacional ou do backend, preserva sem sobrescrever com dica genérica
+    if (friendlyMessage && (
+        friendlyMessage.includes('Portal Nacional') || 
+        friendlyMessage.includes('SEFIN') || 
+        friendlyMessage.includes('[E') ||
+        friendlyMessage.includes('chave') ||
+        friendlyMessage.includes('DPS')
+    )) {
+        return { friendlyTitle, friendlyMessage, friendlyHint: null, errorCode: null };
+    }
+
     // Detecta mensagens genéricas do Axios/Express
     const isGenericMsg = 
         !friendlyMessage ||
@@ -30,7 +41,6 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
         friendlyMessage === 'Erro interno no servidor proxy' || 
         friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)' ||
         friendlyMessage.includes('Request failed with status code') ||
-        friendlyMessage.includes('status code 400') ||
         friendlyMessage.includes('status code 500');
 
     if (data) {
