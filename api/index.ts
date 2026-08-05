@@ -2586,17 +2586,28 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cTribMunVal = String(inf.serv?.cServ?.cTribMun || '').replace(/\D/g, '');
             const cTribMunXml = (cTribMunVal.length === 7 && cTribMunVal !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
 
-            const cNbsVal = String(inf.serv?.cServ?.cNBS || servItem?.cNBS || servItem?.codigoTributacaoNacional || servItem?.taxationCode || '').replace(/\D/g, '');
+            // Informações Complementares (infComp / xInfComp) e resolução do código NBS
+            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
+            let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
+            const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
+
+            let cNbsVal = String(inf.serv?.cServ?.cNBS || servItem?.cNBS || servItem?.codigoTributacaoNacional || servItem?.taxationCode || '').replace(/\D/g, '');
+            if (!cNbsVal && nbsMatch) {
+                cNbsVal = nbsMatch[1].replace(/\D/g, '');
+            }
+            if (!cNbsVal && (nat.default_nbs || config.default_nbs)) {
+                cNbsVal = String(nat.default_nbs || config.default_nbs).replace(/\D/g, '');
+            }
+            if (cNbsVal && inf.serv?.cServ) {
+                inf.serv.cServ.cNBS = cNbsVal;
+            }
+
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
             const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
+            // Conforme XSD NFS-e Nacional v1.01: <cServ> contém cTribNac > cTribMun > cNBS > CNAE > xDescServ
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cNbsXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
 
-            // Informações Complementares (infComp / xInfComp)
-            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
-            let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
-            
-            const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
             if (nbsMatch) {
                 infCompText = `NBS: ${nbsMatch[1]}`;
             } else if (cNbsVal && cNbsVal.length >= 7) {
