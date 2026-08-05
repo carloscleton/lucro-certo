@@ -2605,8 +2605,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
             const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
-            // Conforme XSD NFS-e Nacional v1.01: <cServ> contém cTribNac > cTribMun > cNBS > CNAE > xDescServ
-            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cNbsXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ></cServ>` : '';
+            // Conforme XSD NFS-e Nacional v1.01: a sequência exata em <cServ> é <cTribNac>, <cTribMun>, <CNAE>, <xDescServ>, <cNBS>
+            const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ>${cNbsXml}</cServ>` : '';
 
             if (nbsMatch) {
                 infCompText = `NBS: ${nbsMatch[1]}`;
