@@ -143,6 +143,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
 
     let instanceToken = '';
     let dbProvider: string | null = identifier.provider || null;
+
     // 🔍 1. Buscar o token da instância, company_id e provider (se name ou token fornecidos)
     if (SUPABASE_URL && supabaseKey && (nameToMatch || tokenToMatch)) {
         try {
@@ -150,18 +151,30 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
             if (tokenToMatch) {
                 query += `evolution_instance_id=eq.${encodeURIComponent(identifier.token!)}`;
             } else {
-                query += `instance_name=eq.${encodeURIComponent(identifier.instanceName!)}`;
+                query += `instance_name=ilike.${encodeURIComponent(identifier.instanceName!)}`;
                 if (companyId) {
                     query += `&company_id=eq.${encodeURIComponent(companyId)}`;
                 }
             }
             query += `&select=evolution_instance_id,company_id,provider&order=created_at.desc&limit=1`;
-            const response = await axios.get(query, {
+            let response = await axios.get(query, {
                 headers: {
                     'apikey': supabaseKey,
                     'Authorization': authHeader
                 }
             });
+
+            if ((!response.data || response.data.length === 0) && companyId && nameToMatch) {
+                const fbQuery = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(identifier.instanceName!)}&select=evolution_instance_id,company_id,provider&order=created_at.desc&limit=1`;
+                const fbRes = await axios.get(fbQuery, {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': authHeader
+                    }
+                }).catch(() => ({ data: [] }));
+                response = fbRes;
+            }
+
             if (response.data && response.data.length > 0) {
                 instanceToken = response.data[0].evolution_instance_id;
                 dbProvider = response.data[0].provider;
@@ -7844,7 +7857,7 @@ app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
 
 
 
-app.get('/instances/:name/details', authenticate, async (req, res) => {
+app.get(['/instances/:name/details', '/api/instances/:name/details'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7890,7 +7903,7 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                 const allInstances = response.data?.data || [];
                 const inst = allInstances.find((i: any) =>
                     (token && (i.id === token || i.token === token)) ||
-                    (i.name.toLowerCase() === targetName.toLowerCase())
+                    ((i.name || i.instanceName || '').toLowerCase().trim() === targetName.toLowerCase().trim())
                 );
                 if (!inst) throw new Error('Instance not found on Evolution GO');
                 const cleanJid = inst.jid ? `${inst.jid.split('@')[0].split(':')[0]}@s.whatsapp.net` : null;
@@ -7909,10 +7922,11 @@ app.get('/instances/:name/details', authenticate, async (req, res) => {
                 const response = await axios.get(`${activeConfig.url}/instance/fetchInstances`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
-                const allInstances = Array.isArray(response.data) ? response.data : [];
-                const match = allInstances.find((i: any) =>
-                    (token && (i.token === token || i.id === token)) ||
-                    ((i.name || i.instanceName || '').toLowerCase() === targetName.toLowerCase())
+                const rawInstances = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+                const stdInstances = rawInstances.map((item: any) => item.instance || item);
+                const match = stdInstances.find((i: any) =>
+                    (token && (i.token === token || i.id === token || i.apikey === token)) ||
+                    ((i.name || i.instanceName || '').toLowerCase().trim() === targetName.toLowerCase().trim())
                 );
                 if (!match) throw new Error('Instance not found');
                 return match;
