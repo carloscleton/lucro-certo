@@ -151,13 +151,17 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
                     let { data: waData } = await supabase
                         .from('instances')
-                        .select('instance_name, status')
+                        .select('instance_name, status, company_id')
                         .order('created_at', { ascending: false });
 
                     if (waData && waData.length > 0) {
                         const connectedStatuses = ['connected', 'open', 'working', 'online', 'paired'];
                         // Prioriza instâncias conectadas da própria empresa
-                        const companyInst = waData.find(i => connectedStatuses.includes((i.status || '').toLowerCase()));
+                        const companyInst = waData.find(i => 
+                            (activeCompanyId ? i.company_id === activeCompanyId : true) && 
+                            connectedStatuses.includes((i.status || '').toLowerCase())
+                        ) || waData.find(i => connectedStatuses.includes((i.status || '').toLowerCase()));
+
                         const chosen = companyInst || waData.find(i => i.instance_name === 'SLIN') || waData[0];
                         setHasWaInstance(true);
                         setWaInstanceName(chosen.instance_name);
