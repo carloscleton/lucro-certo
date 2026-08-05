@@ -201,6 +201,7 @@ export function Invoices() {
     });
     const [cancelModal, setCancelModal] = useState<{isOpen: boolean, invoice: any | null}>({ isOpen: false, invoice: null });
     const [cancelReason, setCancelReason] = useState('');
+    const [cancelMotive, setCancelMotive] = useState<string>('2');
     const [isProtectedModalOpen, setIsProtectedModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, invoiceId: string | null}>({
@@ -461,7 +462,8 @@ ${messageWithPlaceholder}`;
                 cancelModal.invoice.type,
                 currentEntity.id,
                 cancelReason,
-                token
+                token,
+                cancelMotive
             );
 
             setResultModal({
@@ -472,6 +474,7 @@ ${messageWithPlaceholder}`;
             });
             setCancelModal({ isOpen: false, invoice: null });
             setCancelReason('');
+            setCancelMotive('2');
             refresh();
         } catch (error: any) {
             console.error('Error cancelling invoice:', error);
@@ -1764,51 +1767,103 @@ ${messageWithPlaceholder}`;
                 </Modal>
             )}
 
-            {/* Modal de Cancelamento */}
+            {/* Modal de Cancelamento de NFS-e (Portal Nacional) */}
             {cancelModal.isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl">
-                                <AlertTriangle size={32} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cancelar Nota Fiscal</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Esta ação não pode ser desfeita.</p>
-                            </div>
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2rem] p-6 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 dark:border-slate-800">
+                            <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wide">
+                                CANCELAMENTO DE NFS-E
+                            </h3>
+                            <button 
+                                onClick={() => {
+                                    setCancelModal({ isOpen: false, invoice: null });
+                                    setCancelReason('');
+                                    setCancelMotive('2');
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                            >
+                                ✕
+                            </button>
                         </div>
 
                         <div className="space-y-4">
+                            {/* Chave de acesso */}
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Justificativa (Mínimo 15 caracteres)</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                                    Chave de acesso
+                                </label>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={
+                                        cancelModal.invoice?.access_key || 
+                                        cancelModal.invoice?.external_id || 
+                                        cancelModal.invoice?.payload?.chaveAcesso || 
+                                        cancelModal.invoice?.id || 
+                                        ''
+                                    }
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 font-mono text-xs text-gray-700 dark:text-gray-300 outline-none select-all"
+                                />
+                            </div>
+
+                            {/* Motivo do cancelamento */}
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    Motivo do cancelamento <span className="text-rose-500">*</span>
+                                </label>
+                                <select
+                                    value={cancelMotive}
+                                    onChange={(e) => setCancelMotive(e.target.value)}
+                                    className="w-full p-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white font-medium focus:border-emerald-500 outline-none transition-all"
+                                >
+                                    <option value="1">Erro na emissão</option>
+                                    <option value="2">Serviço não prestado</option>
+                                    <option value="9">Outros</option>
+                                </select>
+                            </div>
+
+                            {/* Justificativa */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                        Justificativa <span className="text-rose-500">*</span>
+                                    </label>
+                                    <span className={`text-[10px] font-mono ${cancelReason.length < 15 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                        {cancelReason.length}/255 min 15 carac.
+                                    </span>
+                                </div>
                                 <textarea
                                     value={cancelReason}
                                     onChange={(e) => setCancelReason(e.target.value)}
-                                    placeholder="Ex: Nota emitida com valor incorreto ou serviço cancelado pelo cliente..."
-                                    className="w-full h-32 p-4 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 text-sm focus:border-blue-500 outline-none transition-all resize-none"
+                                    placeholder="Informe o motivo detalhado do cancelamento..."
+                                    maxLength={255}
+                                    className="w-full h-28 p-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white focus:border-emerald-500 outline-none transition-all resize-none"
                                     required
                                 />
                             </div>
 
+                            {/* Botoes de Acao */}
                             <div className="flex gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        setCancelModal({ isOpen: false, invoice: null });
-                                        setCancelReason('');
-                                    }}
-                                    className="flex-1 h-12 rounded-xl font-bold text-gray-500"
-                                >
-                                    Voltar
-                                </Button>
                                 <Button
                                     variant="primary"
                                     onClick={handleCancelInvoice}
                                     disabled={cancelReason.length < 15 || isCancelling}
                                     isLoading={isCancelling}
-                                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20 rounded-xl font-bold"
+                                    className="flex-1 h-12 bg-indigo-900 hover:bg-indigo-950 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2"
                                 >
-                                    Confirmar Cancelamento
+                                    ✓ Cancelar NFS-e
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setCancelModal({ isOpen: false, invoice: null });
+                                        setCancelReason('');
+                                        setCancelMotive('2');
+                                    }}
+                                    className="h-12 px-6 bg-slate-500 hover:bg-slate-600 text-white font-bold rounded-xl"
+                                >
+                                    ✕ Fechar
                                 </Button>
                             </div>
                         </div>

@@ -415,7 +415,7 @@ app.get(['/fiscal-module/health', '/api/fiscal-module/health'], (req, res) => {
 });
 
 app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticate, async (req, res) => {
-    let { id, type, companyId, justificativa } = req.body;
+    let { id, type, companyId, justificativa, cMotivo: reqCMotivo } = req.body;
     const authHeader = req.headers.authorization;
 
     try {
@@ -621,12 +621,14 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 }
 
                 // Determina o cMotivo (1: Erro na emissão, 2: Serviço não prestado, 9: Outros)
-                let cMotivo = '2'; // Padrão "Serviço não prestado"
-                const justLower = justificativaFinal.toLowerCase();
-                if (justLower.includes('erro') || justLower.includes('dados incorretos') || justLower.includes('corrigir')) {
-                    cMotivo = '1';
-                } else if (justLower.includes('outro') || justLower.includes('teste')) {
-                    cMotivo = '9';
+                let cMotivo = reqCMotivo || req.body.motivo || '2';
+                if (!reqCMotivo && !req.body.motivo) {
+                    const justLower = justificativaFinal.toLowerCase();
+                    if (justLower.includes('erro') || justLower.includes('dados incorretos') || justLower.includes('corrigir')) {
+                        cMotivo = '1';
+                    } else if (justLower.includes('outro') || justLower.includes('teste')) {
+                        cMotivo = '9';
+                    }
                 }
 
                 // Monta o XML de cancelamento conforme esquema Nacional NFS-e (pedRegEvento / infPedReg)

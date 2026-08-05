@@ -130,12 +130,13 @@ export const fiscalService = {
         return response.data;
     },
 
-    async cancelarNota(id: string, type: 'nfse' | 'nfe', companyId: string, justificativa: string, token: string) {
+    async cancelarNota(id: string, type: 'nfse' | 'nfe', companyId: string, justificativa: string, token: string, cMotivo?: string) {
         const response = await axios.post(getFiscalUrl('cancelar'), {
             id,
             type,
             companyId,
-            justificativa
+            justificativa,
+            cMotivo
         }, {
             headers: {
                 'Authorization': `Bearer ${token}`
