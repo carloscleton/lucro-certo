@@ -343,7 +343,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // Health Check
-app.get('/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date(),
@@ -7288,7 +7288,7 @@ app.post('/instances', authenticate, async (req, res) => {
 
 
 // Endpoint para buscar todas as instâncias da EvoGo e seus IDs reais
-app.get('/instances/evogo-sync', authenticate, async (req, res) => {
+app.get(['/instances/evogo-sync', '/api/instances/evogo-sync'], authenticate, async (req, res) => {
     const { company_id } = req.query;
     try {
         const config = await getEvolutionConfig({ companyId: company_id as string });

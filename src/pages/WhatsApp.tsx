@@ -201,7 +201,12 @@ export function WhatsApp() {
     const checkProxyStatus = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/health`);
-            setProxyOnline(response.ok);
+            if (response.ok) {
+                setProxyOnline(true);
+                return;
+            }
+            const response2 = await fetch(`${API_BASE_URL}/fiscal-module/health`);
+            setProxyOnline(response2.ok);
         } catch (err) {
             setProxyOnline(false);
         }
@@ -230,7 +235,9 @@ export function WhatsApp() {
 
             // Sync status and details with Evolution for ALL instances
             if (data && data.length > 0) {
-                const checkProxy = await fetch(`${API_BASE_URL}/health`).then(r => r.ok).catch(() => false);
+                const checkProxy = await fetch(`${API_BASE_URL}/health`).then(r => r.ok).catch(async () => {
+                    return await fetch(`${API_BASE_URL}/fiscal-module/health`).then(r => r.ok).catch(() => false);
+                });
                 if (checkProxy && isMounted.current) {
                     data.forEach((inst: Instance) => syncInstanceWithEvolution(inst));
                 }
@@ -259,7 +266,10 @@ export function WhatsApp() {
             const syncRes = await fetch(`${API_BASE_URL}/instances/evogo-sync?${companyParam}`, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
-            if (!syncRes.ok) throw new Error('Falha na sincronização');
+            if (!syncRes.ok) {
+                console.warn('⚠️ evogo-sync endpoint retornou status não-OK');
+                return;
+            }
             const syncData = await syncRes.json();
             const evoGoInstances: { id: string; name: string; token: string }[] = syncData.instances || [];
 
