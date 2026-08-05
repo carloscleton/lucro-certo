@@ -464,56 +464,16 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : (activeProvider === 'national' ? 'national' : 'nfse'));
         type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
 
-        const isNacionalCancel = finalType === 'national' || 
+        // Identificar se a nota é do Portal Nacional (ID DPS...) ou se o Portal Nacional está configurado/ativo
+        const isDpsId = String(id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
+
+        const isNacionalCancel = isDpsId || 
+                                 finalType === 'national' || 
                                  finalType === 'nfsenac' || 
-                                 (activeProvider === 'national' && finalType !== 'nfeio' && finalType !== 'nfse' && finalType !== 'nfe');
-
-        // --- ROTEAMENTO NFE.IO ---
-        // O cancelamento deve ser feito no provedor onde a nota foi realmente emitida (independente de rotina)
-        if (finalType === 'nfeio') {
-            const nfeioConfig = settings?.nfeio_config;
-            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
-                return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
-            }
-
-            const apiKeyNfe = nfeioConfig.apiKey.trim();
-            const companyIdNfe = nfeioConfig.companyId.trim();
-
-            console.log(`🚫 [NFEIO-CANCELAR] Cancelando nota NFe.io ID: ${id}`);
-            
-            const response = await axiosNfeioRequest({
-                method: 'DELETE',
-                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
-                headers: {
-                    'Authorization': apiKeyNfe,
-                    'Accept': 'application/json'
-                }
-            });
-
-            // Atualizar status no Supabase
-            if (SUPABASE_URL) {
-                try {
-                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                        status: 'cancelado',
-                        cancellation_reason: justificativa,
-                        updated_at: new Date().toISOString()
-                    }, {
-                        params: {
-                            or: `(id.eq.${dbInvoiceRecord?.id || id},external_id.eq.${id})`
-                        },
-                        headers: {
-                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
-                            'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                } catch (dbErr: any) {
-                    console.warn('⚠️ Falha ao atualizar status de cancelamento NFe.io no banco:', dbErr.message);
-                }
-            }
-
-            return res.json({ success: true, ...response.data });
-        }
+                                 activeProvider === 'national' || 
+                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional || settings?.national_config?.certificado_pfx_base64);
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
@@ -521,9 +481,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             
             try {
                 const nat = settings?.national_config || {};
-                const pfxBase64 = nat.certificado_pfx_base64;
-                const pfxPassword = nat.certificado_senha || '';
-                const adnAmbiente = nat.ambiente || config.ambiente || 'producao';
+                const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64 || settings?.nfeio_config?.certificado_pfx_base64;
+                const pfxPassword = nat.certificado_senha || settings?.certificado_senha || settings?.nfeio_config?.certificado_senha || '';
+                const adnAmbiente = nat.ambiente || settings?.ambiente || config.ambiente || 'producao';
                 const tpAmb = adnAmbiente === 'producao' ? 1 : 2;
                 const sefinCancelUrl = adnAmbiente === 'producao'
                     ? 'https://sefin.nfse.gov.br/SefinNacional'
@@ -756,6 +716,53 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     detail: nationalCancelErr.response?.data
                 });
             }
+        }
+
+        // --- ROTEAMENTO NFE.IO ---
+        // O cancelamento deve ser feito no provedor onde a nota foi realmente emitida (independente de rotina)
+        if (finalType === 'nfeio') {
+            const nfeioConfig = settings?.nfeio_config;
+            if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
+            }
+
+            const apiKeyNfe = nfeioConfig.apiKey.trim();
+            const companyIdNfe = nfeioConfig.companyId.trim();
+
+            console.log(`🚫 [NFEIO-CANCELAR] Cancelando nota NFe.io ID: ${id}`);
+            
+            const response = await axiosNfeioRequest({
+                method: 'DELETE',
+                url: `https://api.nfe.io/v1/companies/${companyIdNfe}/serviceinvoices/${id}`,
+                headers: {
+                    'Authorization': apiKeyNfe,
+                    'Accept': 'application/json'
+                }
+            });
+
+            // Atualizar status no Supabase
+            if (SUPABASE_URL) {
+                try {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                        status: 'cancelado',
+                        cancellation_reason: justificativa,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        params: {
+                            or: `(id.eq.${dbInvoiceRecord?.id || id},external_id.eq.${id})`
+                        },
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (dbErr: any) {
+                    console.warn('⚠️ Falha ao atualizar status de cancelamento NFe.io no banco:', dbErr.message);
+                }
+            }
+
+            return res.json({ success: true, ...response.data });
         }
 
         const typeLower = type.toLowerCase();
