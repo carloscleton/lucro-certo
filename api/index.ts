@@ -2604,8 +2604,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             } else {
                 infCompText = '';
             }
-            // Tag correta no XSD da NFS-e Nacional é <infComp> (filho de infDPS), NÃO dentro de <serv>
-            const infoComplXml = infCompText ? `<infComp><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infComp>` : '';
+            // Conforme XSD NFS-e Nacional v1.01: <infoCompl> é filho de <serv>, não de <infDPS>
+            // Não existe <infComp> no nível de infDPS - a tag correta dentro de serv é <infoCompl>
+            const infoComplXml = infCompText ? `<infoCompl><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infoCompl>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
@@ -2678,18 +2679,40 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
+            // Determinar a classificação tributária correta para o IBSCBS (cClassTrib):
+            // Fonte: Tabela oficial SVRS/Portal Conformidade Fácil
+            // - CST 410 = "Imunidade e não incidência" -> cClassTrib específico conforme motivo:
+            //   '410031' = "Fornecimento em período anterior ao início de vigência de incidências de CBS e IBS"
+            //              Este é o código correto para prestações de serviço ocorridas ANTES de jan/2027
+            //   '410999' = "Operações não onerosas sem previsão de tributação, não especificadas anteriormente" (fallback genérico)
+            // - CST 000 = "Tributada integralmente" (quando reforma tributária estiver ativa, a partir de 2027):
+            //   opSimpNac 1 = Não Optante (Regime Normal) -> 000001
+            //   opSimpNac 2 = Optante MEI -> 000002
+            //   opSimpNac 3 = Optante ME/EPP (Simples Nacional) -> 000003
+            let cClassTribVal = '410031'; // padrão: período anterior ao início de vigência IBS/CBS
+            if (isReformaAtiva) {
+                // Reforma ativa (CST 000): usar classificação conforme regime
+                if (opSimpNac === 2) {
+                    cClassTribVal = '000002';
+                } else if (opSimpNac === 3) {
+                    cClassTribVal = '000003';
+                } else {
+                    cClassTribVal = '000001';
+                }
+            }
+
             // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>000001</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>000001</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib><gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribVal}</cClassTribReg></gTribRegular></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).valores = {
                     trib: {
                         gIBSCBS: {
                             CST: cstVal,
-                            cClassTrib: '000001',
+                            cClassTrib: cClassTribVal,
                             gTribRegular: {
                                 CSTReg: cstRegVal,
-                                cClassTribReg: '000001'
+                                cClassTribReg: cClassTribVal
                             }
                         }
                     }
@@ -2698,9 +2721,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // Montar XML da DPS conforme o leiaute nacional do contribuinte
             // Estrutura correta conforme XSD NFS-e Nacional v1.01:
-            // infDPS > prest > toma > serv > valores > infComp > IBSCBS
-            // NOTA: infoComplXml (infComp) fica FORA de <serv>, entre <valores> e <IBSCBS>
-            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}</serv>${valoresXml}${infoComplXml}${ibscbsXml}</infDPS></DPS>`.trim();
+            // infDPS > prest > toma > serv(locPrest + cServ + infoCompl) > valores > IBSCBS
+            // NOTA: <infoCompl> é filho de <serv> (entre cServ e </serv>), não existe infComp em infDPS
+            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
             console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
 
