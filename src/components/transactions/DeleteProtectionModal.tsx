@@ -146,42 +146,21 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         }
                     }
 
-                    // 3. Busca a melhor instância de WhatsApp ativa (suportando connected, open, WORKING, etc)
+                    // 3. Busca a melhor instância de WhatsApp ativa (dando prioridade a instâncias conectadas)
                     const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
-                    const validStatuses = ['connected', 'open', 'WORKING', 'connecting'];
 
                     let { data: waData } = await supabase
                         .from('instances')
                         .select('instance_name, status')
-                        .in('status', validStatuses)
-                        .eq('company_id', activeCompanyId)
-                        .order('created_at', { ascending: false })
-                        .limit(1);
-
-                    if (!waData || waData.length === 0) {
-                        // Fallback 1: Busca qualquer instância ativa no sistema
-                        const { data: anyWa } = await supabase
-                            .from('instances')
-                            .select('instance_name, status')
-                            .in('status', validStatuses)
-                            .order('created_at', { ascending: false })
-                            .limit(1);
-                        waData = anyWa;
-                    }
-
-                    if (!waData || waData.length === 0) {
-                        // Fallback 2: Busca a última instância cadastrada sem filtro de status
-                        const { data: lastWa } = await supabase
-                            .from('instances')
-                            .select('instance_name, status')
-                            .order('created_at', { ascending: false })
-                            .limit(1);
-                        waData = lastWa;
-                    }
+                        .order('created_at', { ascending: false });
 
                     if (waData && waData.length > 0) {
+                        const connectedStatuses = ['connected', 'open', 'working', 'online', 'paired'];
+                        // Prioriza instâncias conectadas da própria empresa
+                        const companyInst = waData.find(i => connectedStatuses.includes((i.status || '').toLowerCase()));
+                        const chosen = companyInst || waData.find(i => i.instance_name === 'SLIN') || waData[0];
                         setHasWaInstance(true);
-                        setWaInstanceName(waData[0].instance_name);
+                        setWaInstanceName(chosen.instance_name);
                     } else {
                         setHasWaInstance(false);
                     }
