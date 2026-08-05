@@ -146,34 +146,44 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         }
                     }
 
-                    // 3. Busca uma instância conectada de WhatsApp para a empresa correspondente
+                    // 3. Busca a melhor instância de WhatsApp ativa (suportando connected, open, WORKING, etc)
                     const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
-                    if (activeCompanyId) {
-                        const { data: waData } = await supabase
+                    const validStatuses = ['connected', 'open', 'WORKING', 'connecting'];
+
+                    let { data: waData } = await supabase
+                        .from('instances')
+                        .select('instance_name, status')
+                        .in('status', validStatuses)
+                        .eq('company_id', activeCompanyId)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (!waData || waData.length === 0) {
+                        // Fallback 1: Busca qualquer instância ativa no sistema
+                        const { data: anyWa } = await supabase
                             .from('instances')
-                            .select('instance_name')
-                            .eq('status', 'connected')
-                            .eq('company_id', activeCompanyId)
+                            .select('instance_name, status')
+                            .in('status', validStatuses)
+                            .order('created_at', { ascending: false })
                             .limit(1);
+                        waData = anyWa;
+                    }
 
-                        if (waData && waData.length > 0) {
-                            setHasWaInstance(true);
-                            setWaInstanceName(waData[0].instance_name);
-                        } else {
-                            // Fallback: Busca qualquer instância de WhatsApp conectada no sistema
-                            const { data: anyWa } = await supabase
-                                .from('instances')
-                                .select('instance_name')
-                                .eq('status', 'connected')
-                                .limit(1);
+                    if (!waData || waData.length === 0) {
+                        // Fallback 2: Busca a última instância cadastrada sem filtro de status
+                        const { data: lastWa } = await supabase
+                            .from('instances')
+                            .select('instance_name, status')
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+                        waData = lastWa;
+                    }
 
-                            if (anyWa && anyWa.length > 0) {
-                                setHasWaInstance(true);
-                                setWaInstanceName(anyWa[0].instance_name);
-                            } else {
-                                setHasWaInstance(false);
-                            }
-                        }
+                    if (waData && waData.length > 0) {
+                        setHasWaInstance(true);
+                        setWaInstanceName(waData[0].instance_name);
+                    } else {
+                        setHasWaInstance(false);
                     }
                 } catch (err) {
                     console.error('Erro ao buscar dados do administrador ou WhatsApp:', err);
@@ -208,7 +218,6 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setActualCode(code);
 
-        // Chave de backup ativa para testes em homologação
         console.log(`[SEGURANÇA] Código Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
 
         try {
@@ -294,14 +303,13 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                     setStatusMessage(`Código de liberação enviado para o WhatsApp do Administrador/Dono da Empresa. Peça a ele a senha de 6 números para autorizar.`);
                 }
             } else {
-                // Modo Homologação se o WhatsApp ou telefone estiver indisponível
-                setSentSuccessfully(true);
-                setStatusMessage('Nenhuma instância ativa do WhatsApp conectada. Utilize o código de contingência para homologação.');
+                setSentSuccessfully(false);
+                setStatusMessage('Nenhuma instância de WhatsApp conectada no sistema. Verifique suas conexões de WhatsApp nas configurações.');
             }
         } catch (error: any) {
             console.error('Falha ao enviar WhatsApp:', error);
-            setSentSuccessfully(true); // Permite digitar o código mesmo com falha no WhatsApp (para redundância)
-            setStatusMessage(`Falha temporária no disparo do WhatsApp. Use o código de autorização: ${code}`);
+            setSentSuccessfully(false);
+            setStatusMessage('Erro no disparo do WhatsApp. Verifique se sua instância de WhatsApp está conectada e clique em Solicitar Novamente.');
         } finally {
             setLoadingSend(false);
         }
