@@ -489,8 +489,10 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64 || settings?.nfeio_config?.certificado_pfx_base64;
                 const pfxPassword = nat.certificado_senha || settings?.certificado_senha || settings?.nfeio_config?.certificado_senha || '';
                 const adnAmbiente = nat.ambiente || settings?.ambiente || config.ambiente || 'producao';
-                const tpAmb = adnAmbiente === 'producao' ? 1 : 2;
-                const sefinCancelUrl = adnAmbiente === 'producao'
+                let tpAmb = dbInvoiceRecord?.payload?.tpAmb || 
+                            dbInvoiceRecord?.payload?.infDPS?.tpAmb || 
+                            (adnAmbiente === 'producao' ? 1 : 2);
+                const sefinCancelUrl = tpAmb === 1
                     ? 'https://sefin.nfse.gov.br/SefinNacional'
                     : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
@@ -651,6 +653,9 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 const dhEvento = formatCancelDate(new Date());
                 const cnpjLimpo = (prestadorCnpj || '').replace(/\D/g, '');
+                const docAutorTag = cnpjLimpo.length === 11 
+                    ? `<CPFAutor>${cnpjLimpo}</CPFAutor>` 
+                    : `<CNPJAutor>${cnpjLimpo}</CNPJAutor>`;
 
                 // Garante que a justificativa do cancelamento tenha entre 15 e 255 caracteres (exigência do portal nacional)
                 let justificativaFinal = justificativa || 'Cancelamento solicitado pelo prestador';
@@ -679,7 +684,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         <tpAmb>${tpAmb}</tpAmb>
         <verAplic>1.00</verAplic>
         <dhEvento>${dhEvento}</dhEvento>
-        <CNPJAutor>${cnpjLimpo}</CNPJAutor>
+        ${docAutorTag}
         <chNFSe>${cleanChNFSe}</chNFSe>
         <nPedRegEvento>1</nPedRegEvento>
         <e101101>
@@ -720,7 +725,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     pedidoRegistroEventoXmlGZipB64: gzipB64
                 };
 
-                console.log(`🔐 [ADN-NACIONAL-CANCEL] Enviando JSON GZipB64 para SEFIN: ${sefinCancelUrl}/nfse/${cleanChNFSe}/eventos`);
+                console.log(`🔐 [ADN-NACIONAL-CANCEL] Enviando JSON GZipB64 para SEFIN (${sefinCancelUrl}): /nfse/${cleanChNFSe}/eventos`);
 
                 const cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${cleanChNFSe}/eventos`, sefinPayload, {
                     httpsAgent: httpsAgentCert,
@@ -763,30 +768,37 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 });
 
             } catch (nationalCancelErr: any) {
-                let errData = nationalCancelErr.response?.data;
-                if (typeof errData === 'string') {
-                    try { errData = JSON.parse(errData); } catch (e) {}
+                let rawBody = nationalCancelErr.response?.data;
+                if (Buffer.isBuffer(rawBody)) {
+                    try { rawBody = zlib.gunzipSync(rawBody).toString('utf-8'); } catch (e) { rawBody = rawBody.toString('utf-8'); }
                 }
-                console.error(`❌ [ADN-NACIONAL-CANCEL] Erro (${nationalCancelErr.response?.status}):`, JSON.stringify(errData || nationalCancelErr.message));
+                if (typeof rawBody === 'string') {
+                    try { rawBody = JSON.parse(rawBody); } catch (e) {}
+                }
+                console.error(`❌ [ADN-NACIONAL-CANCEL] Erro (${nationalCancelErr.response?.status}):`, JSON.stringify(rawBody || nationalCancelErr.message));
 
                 let errMsg = '';
-                if (errData && typeof errData === 'object') {
-                    if (Array.isArray(errData.erros) && errData.erros.length > 0) {
-                        errMsg = errData.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
-                    } else if (errData.mensagem || errData.message || errData.error) {
-                        errMsg = errData.mensagem || errData.message || (typeof errData.error === 'string' ? errData.error : errData.error?.message);
+                if (rawBody && typeof rawBody === 'object') {
+                    if (Array.isArray(rawBody.erros) && rawBody.erros.length > 0) {
+                        errMsg = rawBody.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                    } else if (rawBody.mensagem || rawBody.message || rawBody.error) {
+                        errMsg = rawBody.mensagem || rawBody.message || (typeof rawBody.error === 'string' ? rawBody.error : rawBody.error?.message);
                     }
                 }
 
-                if (!errMsg && typeof errData === 'string') {
-                    errMsg = errData;
+                if (!errMsg && typeof rawBody === 'string') {
+                    errMsg = rawBody;
                 }
 
                 if (!errMsg) {
-                    errMsg = nationalCancelErr.message || 'Erro desconhecido no cancelamento';
+                    errMsg = nationalCancelErr.message || 'Rejeição do Portal Nacional (400 Bad Request)';
                 }
 
                 return res.status(nationalCancelErr.response?.status || 500).json({
+                    error: `Erro no Portal Nacional (SEFIN): ${errMsg}`,
+                    detail: rawBody || nationalCancelErr.response?.data
+                });
+            }500).json({
                     error: `Erro no Portal Nacional (SEFIN): ${errMsg}`,
                     detail: errData
                 });
