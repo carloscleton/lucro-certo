@@ -464,6 +464,10 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : (activeProvider === 'national' ? 'national' : 'nfse'));
         type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
 
+        const isDpsId = String(id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
+
         const hasNationalCert = !!(
             settings?.national_config?.certificado_pfx_base64 || 
             settings?.certificado_pfx_base64 || 
