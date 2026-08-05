@@ -422,19 +422,28 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         
         // --- RESOLVER DADOS E TIPO DA NOTA NO BANCO DE DADOS ---
         let resolvedType = type;
-        if (id) {
+        let dbInvoiceRecord: any = null;
+
+        if (id && SUPABASE_URL) {
             try {
-                const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
+                // Suporta busca por UUID (id), external_id (DPS/Nota) ou access_key
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: { ...queryParam, select: 'external_id,type' },
-                    headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader! }
+                    params: { 
+                        or: `(id.eq.${id},external_id.eq.${id},access_key.eq.${id})`,
+                        select: 'id,external_id,access_key,type,payload,company_id' 
+                    },
+                    headers: { 
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!, 
+                        'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`
+                    }
                 });
                 if (invData?.[0]) {
-                    if (invData[0].external_id) {
-                        id = invData[0].external_id;
+                    dbInvoiceRecord = invData[0];
+                    if (dbInvoiceRecord.external_id) {
+                        id = dbInvoiceRecord.external_id;
                     }
-                    if (invData[0].type) {
-                        resolvedType = invData[0].type;
+                    if (dbInvoiceRecord.type) {
+                        resolvedType = dbInvoiceRecord.type;
                     }
                 }
             } catch (dbErr: any) {
@@ -443,12 +452,17 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         }
 
         // Se mesmo assim não temos o tipo, decide com base no activeProvider da empresa
-        const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : 'nfse');
+        const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : (activeProvider === 'national' ? 'national' : 'nfse'));
         type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
+
+        const isNacionalCancel = finalType === 'national' || 
+                                 finalType === 'nfsenac' || 
+                                 activeProvider === 'national' || 
+                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional || settings?.national_config?.certificado_pfx_base64);
 
         // --- ROTEAMENTO NFE.IO ---
         // O cancelamento deve ser feito no provedor onde a nota foi realmente emitida (independente de rotina)
-        if (finalType === 'nfeio') {
+        if (finalType === 'nfeio' && !isNacionalCancel) {
             const nfeioConfig = settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
                 return res.status(400).json({ error: 'Configuração da NFe.io incompleta para cancelamento.' });
@@ -470,14 +484,17 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             // Atualizar status no Supabase
             if (SUPABASE_URL) {
                 try {
-                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                         status: 'cancelado',
                         cancellation_reason: justificativa,
                         updated_at: new Date().toISOString()
                     }, {
+                        params: {
+                            or: `(id.eq.${dbInvoiceRecord?.id || id},external_id.eq.${id})`
+                        },
                         headers: {
-                            'apikey': SUPABASE_ANON_KEY!,
-                            'Authorization': authHeader!,
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
                             'Content-Type': 'application/json'
                         }
                     });
@@ -490,7 +507,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         }
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
-        if (finalType === 'national') {
+        if (isNacionalCancel) {
             console.log(`🏛️ [ADN-NACIONAL-CANCEL] Iniciando cancelamento de NFS-e no Portal Nacional | ID: ${id}`);
             
             try {
@@ -510,18 +527,32 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 }
 
                 // Busca a chave de acesso (chNFSe) no banco — pode ser o próprio id ou o access_key da nota
-                let chNFSe = id;
-                let prestadorCnpj = nat.cnpj_prestador || '';
+                let chNFSe = dbInvoiceRecord?.access_key || dbInvoiceRecord?.external_id || id;
+                let prestadorCnpj = nat.cnpj_prestador || config.cnpj || '';
                 
-                if (SUPABASE_URL && authHeader) {
+                if (dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ) {
+                    prestadorCnpj = dbInvoiceRecord.payload.infDPS.prest.CNPJ;
+                }
+                if (dbInvoiceRecord?.payload?.chaveAcesso) {
+                    chNFSe = dbInvoiceRecord.payload.chaveAcesso;
+                } else if (dbInvoiceRecord?.payload?.infDPS?.Id) {
+                    chNFSe = dbInvoiceRecord.payload.infDPS.Id;
+                }
+                
+                if (SUPABASE_URL && (!chNFSe || !prestadorCnpj)) {
                     try {
                         const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                            params: { external_id: `eq.${id}`, select: 'access_key,payload,company_id' },
-                            headers: { 'apikey': SUPABASE_ANON_KEY!, 'Authorization': authHeader }
+                            params: { 
+                                or: `(id.eq.${id},external_id.eq.${id},access_key.eq.${id})`,
+                                select: 'access_key,external_id,payload,company_id' 
+                            },
+                            headers: { 
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!, 
+                                'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`
+                            }
                         });
                         if (invData?.[0]) {
-                            chNFSe = invData[0].access_key || id;
-                            // Extrai CNPJ do prestador do payload salvo se não configurado
+                            chNFSe = invData[0].access_key || invData[0].external_id || id;
                             if (!prestadorCnpj && invData[0].payload?.infDPS?.prest?.CNPJ) {
                                 prestadorCnpj = invData[0].payload.infDPS.prest.CNPJ;
                             }
@@ -659,14 +690,18 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 // Atualiza o banco de dados
                 if (SUPABASE_URL) {
                     try {
-                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?external_id=eq.${id}`, {
+                        const targetId = dbInvoiceRecord?.id || id;
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                             status: 'cancelado',
                             cancellation_reason: justificativaFinal,
                             updated_at: new Date().toISOString()
                         }, {
+                            params: {
+                                or: `(id.eq.${targetId},external_id.eq.${id},access_key.eq.${chNFSe})`
+                            },
                             headers: {
                                 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
-                                'Authorization': authHeader!,
+                                'Authorization': authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`,
                                 'Content-Type': 'application/json'
                             }
                         });
