@@ -589,25 +589,34 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 let cleanChNFSe = String(chNFSe || '').trim().replace(/^DPS/i, '').replace(/\D/g, '');
 
                 // Se chNFSe não possui 50 dígitos (ex: é ID do DPS com 46 dígitos), consulta o SEFIN para obter a chave oficial
-                if (cleanChNFSe.length !== 50 && String(chNFSe).startsWith('DPS')) {
-                    console.log(`🔎 [ADN-NACIONAL-CANCEL] Identificado ID de DPS (${chNFSe}). Consultando SEFIN para obter Chave de Acesso...`);
-                    try {
-                        const dpsResponse = await axios.get(`${sefinCancelUrl}/dps/${chNFSe}`, {
-                            httpsAgent: httpsAgentCert,
-                            headers: { 'Accept': 'application/json' },
-                            timeout: 15000
-                        });
-                        const fetchedChave = dpsResponse?.data?.chaveAcesso || 
-                                             dpsResponse?.data?.chNFSe || 
-                                             dpsResponse?.data?.nfse?.chaveAcesso;
-                        if (fetchedChave) {
-                            console.log(`✅ [ADN-NACIONAL-CANCEL] Chave de Acesso obtida via DPS: ${fetchedChave}`);
-                            chNFSe = fetchedChave;
-                            cleanChNFSe = fetchedChave.replace(/\D/g, '');
+                if (cleanChNFSe.length !== 50) {
+                    const rawId = String(chNFSe || '').trim();
+                    if (rawId.startsWith('DPS') || rawId.length === 46) {
+                        console.log(`🔎 [ADN-NACIONAL-CANCEL] Identificado ID de DPS (${chNFSe}). Consultando SEFIN para obter Chave de Acesso...`);
+                        try {
+                            const dpsResponse = await axios.get(`${sefinCancelUrl}/dps/${rawId}`, {
+                                httpsAgent: httpsAgentCert,
+                                headers: { 'Accept': 'application/json' },
+                                timeout: 15000
+                            });
+                            const fetchedChave = dpsResponse?.data?.chaveAcesso || 
+                                                 dpsResponse?.data?.chNFSe || 
+                                                 dpsResponse?.data?.nfse?.chaveAcesso;
+                            if (fetchedChave) {
+                                console.log(`✅ [ADN-NACIONAL-CANCEL] Chave de Acesso obtida via DPS: ${fetchedChave}`);
+                                chNFSe = fetchedChave;
+                                cleanChNFSe = fetchedChave.replace(/\D/g, '');
+                            }
+                        } catch (dpsLookupErr: any) {
+                            console.warn(`⚠️ [ADN-NACIONAL-CANCEL] Não foi possível consultar chave pelo DPS:`, dpsLookupErr.message);
                         }
-                    } catch (dpsLookupErr: any) {
-                        console.warn(`⚠️ [ADN-NACIONAL-CANCEL] Não foi possível consultar chave pelo DPS:`, dpsLookupErr.message);
                     }
+                }
+
+                if (cleanChNFSe.length !== 50) {
+                    return res.status(400).json({
+                        error: `Erro no Portal Nacional (SEFIN): A Nota Fiscal selecionada não possui uma Chave de Acesso válida de 50 dígitos (valor atual: '${chNFSe}'). Verifique se a nota foi autorizada com sucesso na Receita Federal.`
+                    });
                 }
 
                 const formatCancelDate = (date: Date) => {
@@ -754,18 +763,23 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 });
 
             } catch (nationalCancelErr: any) {
-                const errData = nationalCancelErr.response?.data;
+                let errData = nationalCancelErr.response?.data;
+                if (typeof errData === 'string') {
+                    try { errData = JSON.parse(errData); } catch (e) {}
+                }
                 console.error(`❌ [ADN-NACIONAL-CANCEL] Erro (${nationalCancelErr.response?.status}):`, JSON.stringify(errData || nationalCancelErr.message));
 
                 let errMsg = '';
-                if (errData) {
+                if (errData && typeof errData === 'object') {
                     if (Array.isArray(errData.erros) && errData.erros.length > 0) {
-                        errMsg = errData.erros.map((e: any) => `[${e.Codigo || 'ERRO'}] ${e.Descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
-                    } else if (typeof errData === 'string') {
-                        errMsg = errData;
-                    } else if (errData.message || errData.mensagem || errData.error) {
-                        errMsg = errData.message || errData.mensagem || errData.error;
+                        errMsg = errData.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                    } else if (errData.mensagem || errData.message || errData.error) {
+                        errMsg = errData.mensagem || errData.message || (typeof errData.error === 'string' ? errData.error : errData.error?.message);
                     }
+                }
+
+                if (!errMsg && typeof errData === 'string') {
+                    errMsg = errData;
                 }
 
                 if (!errMsg) {
