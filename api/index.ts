@@ -569,12 +569,29 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     const pfxBuffer = Buffer.from(pfxBase64, 'base64');
                     const pfxDer = pfxBuffer.toString('binary');
                     const pfx = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxDer), false, pfxPassword);
+
+                    // Extrair chave privada
                     const keyBags = pfx.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-                    const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
-                    if (keyBag?.key) privateKeyPem = forge.pki.privateKeyToPem(keyBag.key);
+                    const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag];
+                    if (keyBag && keyBag.length > 0) {
+                        const privateKey = keyBag[0].key;
+                        privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+                    } else {
+                        const plainKeyBags = pfx.getBags({ bagType: forge.pki.oids.keyBag });
+                        const plainKeyBag = plainKeyBags[forge.pki.oids.keyBag];
+                        if (plainKeyBag && plainKeyBag.length > 0) {
+                            const privateKey = plainKeyBag[0].key;
+                            privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+                        }
+                    }
+
+                    // Extrair certificados
                     const certBags = pfx.getBags({ bagType: forge.pki.oids.certBag });
-                    const certBag = certBags[forge.pki.oids.certBag]?.[0];
-                    if (certBag?.cert) certPem = forge.pki.certificateToPem(certBag.cert);
+                    const certBag = certBags[forge.pki.oids.certBag];
+                    if (certBag && certBag.length > 0) {
+                        const certs = certBag.map(b => forge.pki.certificateToPem(b.cert));
+                        certPem = certs.join('\n');
+                    }
                 } catch (pfxErr: any) {
                     return res.status(500).json({ error: `Falha ao ler certificado digital: ${pfxErr.message}` });
                 }
@@ -675,9 +692,10 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 console.log(`🔐 [ADN-NACIONAL-CANCEL] XML de cancelamento assinado. Enviando POST para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}/eventos`);
 
                 const httpsAgentCert = new https.Agent({
-                    pfx: Buffer.from(pfxBase64, 'base64'),
-                    passphrase: pfxPassword,
-                    rejectUnauthorized: false
+                    key: privateKeyPem,
+                    cert: certPem,
+                    rejectUnauthorized: false,
+                    keepAlive: false
                 });
 
                 // Envia o POST diretamente para o endpoint de eventos da nota (único método suportado para eventos no Sefin Nacional)
