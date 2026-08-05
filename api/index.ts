@@ -670,7 +670,17 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 sig.computeSignature(cancelXml);
                 const signedCancelXml = sig.getSignedXml();
 
-                console.log(`🔐 [ADN-NACIONAL-CANCEL] XML de cancelamento assinado. Enviando POST para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}/eventos`);
+                // Conforme especificação técnica oficial do Portal Nacional (SEFIN):
+                // O XML assinado do evento (pedRegEvento) DEVE ser compactado via GZIP, 
+                // convertido em Base64 e encapsulado no objeto JSON { pedidoRegistroEventoXmlGZipB64: "..." }
+                // com Content-Type: application/json
+                const gzipBuffer = zlib.gzipSync(Buffer.from(signedCancelXml, 'utf-8'));
+                const gzipB64 = gzipBuffer.toString('base64');
+                const sefinPayload = {
+                    pedidoRegistroEventoXmlGZipB64: gzipB64
+                };
+
+                const cleanChNFSe = String(chNFSe || '').trim().replace(/^DPS/i, '');
 
                 const httpsAgentCert = new https.Agent({
                     key: privateKeyPem,
@@ -679,34 +689,16 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     keepAlive: false
                 });
 
-                // Envia o POST para o endpoint de eventos do Sefin Nacional (com fallback automático de URL)
-                let cancelResponse: any;
-                try {
-                    console.log(`🔐 [ADN-NACIONAL-CANCEL] Enviando POST para SEFIN: ${sefinCancelUrl}/nfse/${chNFSe}/eventos`);
-                    cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${chNFSe}/eventos`, signedCancelXml, {
-                        httpsAgent: httpsAgentCert,
-                        headers: { 
-                            'Content-Type': 'application/xml',
-                            'Accept': 'application/json, application/xml, text/plain, */*'
-                        },
-                        timeout: 30000
-                    });
-                } catch (primaryPostErr: any) {
-                    const status = primaryPostErr.response?.status;
-                    if (status === 415 || status === 404) {
-                        console.warn(`⚠️ [ADN-NACIONAL-CANCEL] POST na URL com chave retornou HTTP ${status}. Tentando fallback /nfse/eventos...`);
-                        cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/eventos`, signedCancelXml, {
-                            httpsAgent: httpsAgentCert,
-                            headers: { 
-                                'Content-Type': 'application/xml',
-                                'Accept': 'application/json, application/xml, text/plain, */*'
-                            },
-                            timeout: 30000
-                        });
-                    } else {
-                        throw primaryPostErr;
-                    }
-                }
+                console.log(`🔐 [ADN-NACIONAL-CANCEL] Enviando JSON GZipB64 para SEFIN: ${sefinCancelUrl}/nfse/${cleanChNFSe}/eventos`);
+
+                const cancelResponse = await axios.post(`${sefinCancelUrl}/nfse/${cleanChNFSe}/eventos`, sefinPayload, {
+                    httpsAgent: httpsAgentCert,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    timeout: 30000
+                });
 
                 // Atualiza o banco de dados
                 if (SUPABASE_URL) {
