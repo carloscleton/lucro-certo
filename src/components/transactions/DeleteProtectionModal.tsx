@@ -248,11 +248,14 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                       `Caso aprove esta operação, passe o código abaixo para o funcionário:\n` +
                       `👉 Código de Liberação: *${code}*`;
 
+                const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
+
                 // 1. Envia para o Administrador da Empresa
                 await whatsappService.sendMessage({
                     instanceName: waInstanceName,
                     number: cleanPhone,
-                    text: message
+                    text: message,
+                    companyId: activeCompanyId
                 });
 
                 // 2. Envia também para o Dono do Sistema (Carlos Cleton) se for diferente
@@ -276,7 +279,8 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         await whatsappService.sendMessage({
                             instanceName: waInstanceName,
                             number: cleanMasterPhone,
-                            text: masterMessage
+                            text: masterMessage,
+                            companyId: activeCompanyId
                         });
                     } catch (masterErr) {
                         console.warn('Erro ao disparar cópia de segurança para Carlos Cleton:', masterErr);

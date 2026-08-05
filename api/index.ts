@@ -5151,8 +5151,8 @@ async function resolveTargetName(requestedName: string, token?: string, passedCo
             try {
                 instances = await fetchInstancesList(fallbackConfig);
             } catch (fallbackErr: any) {
-                console.error(`❌ resolveTargetName: fetchInstances failed on both APIs.`);
-                throw fallbackErr;
+                console.warn(`⚠️ resolveTargetName: fetchInstances failed on both APIs (${fallbackErr.message}). Using requestedName directly.`);
+                return requestedName;
             }
         }
 
