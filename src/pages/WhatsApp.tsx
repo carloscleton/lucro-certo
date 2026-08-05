@@ -272,7 +272,7 @@ export function WhatsApp() {
         }
     };
 
-    // Sincronizar IDs reais da EvoGo com o Supabase
+    // Sincronizar IDs reais da EvoGo com o Supabase (silencioso)
     const syncEvoGoIds = async () => {
         if (!isEvoGo) return;
         setIsSyncingEvoGo(true);
@@ -280,12 +280,11 @@ export function WhatsApp() {
             const companyParam = currentEntity.type === 'company' ? `company_id=${currentEntity.id}` : '';
             const syncRes = await fetch(`${API_BASE_URL}/instances/evogo-sync?${companyParam}`, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
-            if (!syncRes.ok) {
-                console.warn('⚠️ evogo-sync endpoint retornou status não-OK');
-                return;
-            }
-            const syncData = await syncRes.json();
+            }).catch(() => null);
+
+            if (!syncRes || !syncRes.ok) return;
+
+            const syncData = await syncRes.json().catch(() => ({}));
             const evoGoInstances: { id: string; name: string; token: string }[] = syncData.instances || [];
 
             if (evoGoInstances.length === 0) return;
