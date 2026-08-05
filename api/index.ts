@@ -464,23 +464,20 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : (activeProvider === 'national' ? 'national' : 'nfse'));
         type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
 
-        // Identificar se a nota é do Portal Nacional (ID DPS...) ou se o Portal Nacional está configurado/ativo
+        // Identificar se a nota é do Portal Nacional (ID DPS...) ou se o Portal Nacional é o provedor ativo
         const isDpsId = String(id || '').startsWith('DPS') || 
                         String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
                         String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
 
-        const hasPfxCertificate = !!(
-            settings?.national_config?.certificado_pfx_base64 || 
-            settings?.certificado_pfx_base64 || 
-            settings?.nfeio_config?.certificado_pfx_base64
-        );
-
+        // ISOLAMENTO DE PROVEDORES (AGENTS.md):
+        // 1. Notas NFe.io (type === 'nfeio') vão estritamente para NFe.io.
+        // 2. Notas TecnoSpeed (type === 'nfse' ou 'nfe') sem DPS e sem provedor nacional ativo vão para TecnoSpeed.
+        // 3. Notas do Portal Nacional (isDpsId, type === 'national'/'nfsenac', ou activeProvider === 'national') vão para SefinNacional.
         const isNacionalCancel = isDpsId || 
                                  finalType === 'national' || 
                                  finalType === 'nfsenac' || 
-                                 activeProvider === 'national' || 
-                                 hasPfxCertificate || 
-                                 !!(config.nfse_nacional || config.nfse?.config?.nfseNacional);
+                                 (activeProvider === 'national' && finalType !== 'nfeio' && finalType !== 'nfse') || 
+                                 (!!settings?.national_config?.certificado_pfx_base64 && finalType !== 'nfeio' && finalType !== 'nfse');
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
