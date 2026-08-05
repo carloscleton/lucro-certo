@@ -2681,7 +2681,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indDest = inf.IBSCBS?.indDest !== undefined ? inf.IBSCBS.indDest : 0;
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
-            const cIndOp = inf.IBSCBS?.cIndOp || '010101';
+            // cIndOp: Indicador da Operação no Anexo VII da NFS-e Nacional. '100101' é o código para prestação de serviço onerosa no país.
+            const userIndOp = inf.IBSCBS?.cIndOp;
+            const cIndOp = (userIndOp && userIndOp !== '010101') ? userIndOp : '100101';
 
             // CST e cClassTrib para IBS/CBS no SefinNacional:
             // Para prestação de serviços (01.07.01 / NBS), o código de classificação tributária padrão é '000001' com CST '000'
@@ -2714,6 +2716,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib>${gTribRegularXml}</gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
+                (adnPayload.infDPS.IBSCBS as any).cIndOp = cIndOp;
                 (adnPayload.infDPS.IBSCBS as any).valores = {
                     trib: {
                         gIBSCBS: {
