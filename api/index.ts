@@ -8001,7 +8001,40 @@ app.get(['/instances/:name/details', '/api/instances/:name/details'], authentica
 
         throw new Error('Instance not found');
     } catch (error: any) {
-        console.warn('⚠️ Detalhes não encontrados na Evolution:', error.message);
+        console.warn('⚠️ Detalhes não encontrados na Evolution API:', error.message);
+
+        // Fallback: Se a instância existe no Supabase, responde com os dados do banco para não bloquear o teste ou o modal
+        if (SUPABASE_URL && name) {
+            try {
+                const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+                const authHeader = req.headers.authorization;
+                const dbAuthHeader = SUPABASE_SERVICE_ROLE_KEY 
+                    ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` 
+                    : (authHeader || `Bearer ${supabaseKey}`);
+
+                const { data: dbInsts } = await axios.get(
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}&select=instance_name,status,evolution_instance_id,whatsapp_name&order=created_at.desc&limit=1`,
+                    { headers: { 'apikey': supabaseKey, 'Authorization': dbAuthHeader } }
+                );
+
+                if (dbInsts && dbInsts.length > 0) {
+                    const dbInst = dbInsts[0];
+                    const isConn = (dbInst.status === 'connected' || dbInst.status === 'open' || dbInst.status === 'WORKING');
+                    console.log(`✅ [details Fallback DB] Instância "${name}" encontrada no Supabase com status "${dbInst.status}".`);
+                    return res.json({
+                        instanceName: dbInst.instance_name || name,
+                        name: dbInst.instance_name || name,
+                        profileName: dbInst.whatsapp_name || dbInst.instance_name || name,
+                        token: dbInst.evolution_instance_id || token,
+                        status: isConn ? 'connected' : (dbInst.status || 'disconnected'),
+                        connectionStatus: isConn ? 'open' : 'close'
+                    });
+                }
+            } catch (dbErr: any) {
+                console.warn('⚠️ Fallback DB em details falhou:', dbErr.message);
+            }
+        }
+
         res.status(404).json({ status: 'disconnected', error: 'Instance not found' });
     }
 });
