@@ -2225,28 +2225,22 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cLocEmi = String(payload?.infDPS?.cLocEmi || payload?.cLocEmi || nat.codigo_municipio || firstItem?.codigoIbge || '2408102').replace(/\D/g, '').padEnd(7, '0').substring(0, 7);
 
             // Payload DPS conforme especificação ADN NFS-e Nacional
-            // O payload final enviado para o governo
-            let adnPayload: any;
-
-            const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '0').replace(',', '.'));
-            const pTotTribSNValDefault = parseFloat(String(nat.default_tot_trib_sn || '6.00').replace(',', '.'));
-            // Regra E0625: para Simples Nacional (opSimpNac=3) com ISSQN Não Retido (tpRetISSQN=1),
-            // NÃO enviar pAliq. Para outros casos, usa o valor configurado (sem forçar fallback de 2.00).
-            const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
+                        const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
             const simplesNacionalDefault = nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
             const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
             // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
             const finalPAliq = isSimplesSemRetencao ? 0 : (!isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0);
             const finalPTotTribSN = !isNaN(pTotTribSNValDefault) ? pTotTribSNValDefault : 6.00;
-            // 🔍 Diagnóstico E0625: confirma no log da Vercel quais valores foram computados
-            console.log(`🔍 [E0625-DIAG] simples_nacional=${nat.simples_nacional} | reg_esp_trib=${nat.reg_esp_trib} | tp_ret_issqn=${nat.tp_ret_issqn} | simplesNacionalDefault=${simplesNacionalDefault} | tpRetISSQNDefault=${tpRetISSQNDefault} | isSimplesSemRetencao=${isSimplesSemRetencao} | finalPAliq=${finalPAliq} | default_iss_aliquota=${nat.default_iss_aliquota} | default_tot_trib_sn=${nat.default_tot_trib_sn}`);
 
             // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
             // O Portal Nacional retorna o nNFSe oficial após autorização, que é usado como número da nota.
-            let nextDpsNumber = 1;
-            
-            if (SUPABASE_URL && authHeader) {
+            const cleanCnpjFallback = String(nat.cnpj || certSubjectCnpj || payload?.infDPS?.prest?.CNPJ || '').replace(/\D/g, '');
+            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 23 : 1;
+            let nextDpsNumber = defaultMigrationDpsNumber;
+
+            if (SUPABASE_URL) {
                 try {
+                    const dbAuth = (process.env.SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY}`));
                     const lastInvResp = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                         params: {
                             company_id: `eq.${resolvedId}`,
@@ -2256,8 +2250,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             limit: 1
                         },
                         headers: {
-                            'apikey': SUPABASE_ANON_KEY!,
-                            'Authorization': authHeader
+                            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': dbAuth
                         }
                     });
                     
@@ -2270,20 +2264,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS calculado do último registro do banco: ${nextDpsNumber}`);
                         }
                     } else {
-                        // Banco vazio: assume o padrão iniciando em 1
-                        // Fallback especial de migração para o CNPJ do cliente para sincronizar com as notas manuais anteriores
-                        const cleanCnpj = String(nat.cnpj || '').replace(/\D/g, '');
-                        if (cleanCnpj === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') {
-                            nextDpsNumber = 23;
-                            console.log(`🏛️ [ADN-NACIONAL] Banco vazio para CNPJ 00893566000190. Usando fallback de migração iniciando em 23.`);
-                        } else {
-                            nextDpsNumber = 1;
-                            console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico. Usando padrão sequencial iniciando em: ${nextDpsNumber}`);
-                        }
+                        console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico para empresa ${resolvedId}. Usando número inicial: ${nextDpsNumber}`);
                     }
                 } catch (dbErr: any) {
                     console.warn(`⚠️ [ADN-NACIONAL] Falha ao consultar último número sequencial:`, dbErr.message);
-                    nextDpsNumber = 1;
+                }
+            }
+
+            // Se o usuário especificou um nDPS no payload superior ao próximo número calculated, respeita o número do usuário
+            if (payload?.infDPS?.nDPS) {
+                const userDpsNum = parseInt(String(payload.infDPS.nDPS).replace(/\D/g, ''), 10);
+                if (!isNaN(userDpsNum) && userDpsNum > nextDpsNumber) {
+                    nextDpsNumber = userDpsNum;
+                    console.log(`🏛️ [ADN-NACIONAL] Respeitando nDPS ${nextDpsNumber} fornecido explicitamente no payload.`);
                 }
             }
 
@@ -2295,6 +2288,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // Força incondicionalmente a sincronização entre a URL de destino (SEFIN) e tpAmb (1=Produção, 2=Homologação)
                 adnPayload.infDPS.tpAmb = tpAmb;
                 adnPayload.infDPS.dhEmi = dhEmi;
+                if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
+                
                 if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
                 
                 // Força o número sequencial da DPS calculado pelo banco para garantir sincronia DPS = NFS-e
