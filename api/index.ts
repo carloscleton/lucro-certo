@@ -2683,26 +2683,19 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
             const cIndOp = inf.IBSCBS?.cIndOp || '010101';
 
-            const cstVal = isReformaAtiva ? '000' : '410';
-            const cstRegVal = '000'; // gTribRegular sempre representa tributação regular (CST 000)
+            // CST e cClassTrib para IBS/CBS no SefinNacional:
+            // Para prestação de serviços (01.07.01 / NBS), o código de classificação tributária padrão é '000001' com CST '000'
+            const userCst = inf.IBSCBS?.valores?.trib?.gIBSCBS?.CST;
+            const userClassTrib = inf.IBSCBS?.valores?.trib?.gIBSCBS?.cClassTrib;
+            
+            const cstVal = (userCst && userCst !== '410') ? userCst : '000';
+            const cClassTribVal = (userClassTrib && userClassTrib !== '410031') ? userClassTrib : '000001';
+
+            const cstRegVal = '000';
             const pIbsVal = isReformaAtiva ? pIBS : 0;
             const pCbsVal = isReformaAtiva ? pCBS : 0;
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
-
-            // Determinar a classificação tributária correta para a operação (cClassTrib):
-            // - Fornecimento em período anterior a 2027 (CST 410): '410031'
-            // - Reforma ativa a partir de 2027 (CST 000): '000001' (Normal), '000002' (MEI), '000003' (Simples Nacional)
-            let cClassTribVal = '410031';
-            if (isReformaAtiva) {
-                if (opSimpNac === 2) {
-                    cClassTribVal = '000002';
-                } else if (opSimpNac === 3) {
-                    cClassTribVal = '000003';
-                } else {
-                    cClassTribVal = '000001';
-                }
-            }
 
             // Determinar a classificação tributária regular (cClassTribReg em gTribRegular se reforma ativa):
             let cClassTribRegVal = '000001';
