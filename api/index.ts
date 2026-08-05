@@ -9486,16 +9486,34 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                 }
 
                 console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-                response = await axios.post(`${config.url}/send/text`, {
-                    id: targetName,
-                    number: number,
-                    text: textToSend
-                }, {
-                    headers: {
-                        'apikey': instanceToken || config.apiKey,
-                        'Content-Type': 'application/json'
+                try {
+                    response = await axios.post(`${config.url}/send/text`, {
+                        id: targetName,
+                        number: number,
+                        text: textToSend
+                    }, {
+                        headers: {
+                            'apikey': instanceToken || config.apiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 15000
+                    });
+                } catch (goErr: any) {
+                    console.warn(`⚠️ Evolution GO send/text falhou para "${targetName}" (${goErr.message}). Tentando envio via Evolution API padrão...`);
+                    try {
+                        response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+                            number: number,
+                            text: textToSend,
+                            linkPreview: true
+                        }, {
+                            headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+                            timeout: 15000
+                        });
+                    } catch (stdFbErr: any) {
+                        console.warn(`⚠️ Fallback via Evolution API padrão também falhou (${stdFbErr.message}). Re-lançando erro original.`);
+                        throw goErr;
                     }
-                });
+                }
             }
         } else {
             let textToSend = text || '';

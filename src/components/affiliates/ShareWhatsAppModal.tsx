@@ -56,10 +56,17 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                 } else {
                     query = query.eq('user_id', user?.id).is('company_id', null);
                 }
-                const { data } = await withRetry(() => query);
+                let { data } = await withRetry(() => query);
+                
+                if (!data || data.length === 0) {
+                    const { data: allInsts } = await withRetry(() => supabase.from('instances').select('*'));
+                    data = allInsts || [];
+                }
                 
                 // Find first connected instance that is active
-                const connected = data?.find((inst: any) => inst.status === 'connected' && inst.is_active !== false);
+                const connected = data?.find((inst: any) => 
+                    (inst.status === 'connected' || inst.status === 'open' || inst.status === 'WORKING') && inst.is_active !== false
+                );
                 setActiveInstance(connected || null);
             } catch (err) {
                 console.error('Error checking instances:', err);
@@ -103,7 +110,7 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                     instanceName: activeInstance.instance_name,
                     number: cleanPhone,
                     text: messageText,
-                    companyId: currentEntity.type === 'company' ? currentEntity.id : undefined,
+                    companyId: activeInstance.company_id || (currentEntity.type === 'company' ? currentEntity.id : undefined),
                     token: activeInstance.evolution_instance_id
                 });
                 notify('success', 'Indicação enviada com sucesso!', 'Sucesso');
