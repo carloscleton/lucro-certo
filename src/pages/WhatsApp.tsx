@@ -620,7 +620,8 @@ export function WhatsApp() {
         try {
             notify('info', 'Testando conexão com a Evolution API...', 'Aguarde');
             
-            let isConnected = instance.status === 'connected' || instance.status === 'open' || instance.status === 'WORKING';
+            const currentStatus = (instance.status as string || '').toLowerCase();
+            let isConnected = currentStatus === 'connected' || currentStatus === 'open' || currentStatus === 'working';
             
             try {
                 const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/details?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
