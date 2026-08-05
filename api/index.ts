@@ -495,18 +495,23 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     });
                 }
 
-                // Busca a chave de acesso (chNFSe) no banco — pode ser o próprio id ou o access_key da nota
-                let chNFSe = dbInvoiceRecord?.access_key || dbInvoiceRecord?.external_id || id;
-                let prestadorCnpj = nat.cnpj_prestador || config.cnpj || '';
-                
-                if (dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ) {
-                    prestadorCnpj = dbInvoiceRecord.payload.infDPS.prest.CNPJ;
-                }
-                if (dbInvoiceRecord?.payload?.chaveAcesso) {
-                    chNFSe = dbInvoiceRecord.payload.chaveAcesso;
-                } else if (dbInvoiceRecord?.payload?.infDPS?.Id) {
-                    chNFSe = dbInvoiceRecord.payload.infDPS.Id;
-                }
+                // Busca a chave de acesso (chNFSe) no banco — suportando todas as estruturas de payload do SefinNacional
+                let chNFSe = dbInvoiceRecord?.payload?.chaveAcesso ||
+                             dbInvoiceRecord?.payload?.chNFSe ||
+                             dbInvoiceRecord?.payload?.retorno?.chaveAcesso ||
+                             dbInvoiceRecord?.payload?.retorno?.chNFSe ||
+                             dbInvoiceRecord?.payload?.idDPS ||
+                             dbInvoiceRecord?.payload?.retorno?.idDPS ||
+                             dbInvoiceRecord?.payload?.infDPS?.Id ||
+                             dbInvoiceRecord?.access_key || 
+                             dbInvoiceRecord?.external_id || 
+                             id;
+
+                let prestadorCnpj = dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ || 
+                                    dbInvoiceRecord?.payload?.prestador?.cnpj || 
+                                    nat.cnpj_prestador || 
+                                    config.cnpj || 
+                                    '';
                 
                 if (SUPABASE_URL && (!chNFSe || !prestadorCnpj)) {
                     try {
