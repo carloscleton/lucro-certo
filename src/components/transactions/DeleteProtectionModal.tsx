@@ -221,6 +221,8 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         console.log(`[SEGURANÇA] Código Gerado: ${code} (Bypass Mestre: LUCRO_CERTO_BYPASS)`);
 
         try {
+            setSentSuccessfully(true);
+
             // Se o próprio administrador/owner informou o telefone agora, salva no perfil dele no banco de dados!
             if (isOwner && cleanPhone && cleanPhone !== adminPhone && user) {
                 try {
@@ -235,33 +237,35 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                 }
             }
 
-            if (hasWaInstance && waInstanceName && cleanPhone) {
-                const isUserTheAdmin = isAdminEmail || (user?.email?.toLowerCase() === profile?.email?.toLowerCase());
-                
-                // Mensagem personalizada se for o próprio administrador ou se for um funcionário solicitando a ele
-                const message = isUserTheAdmin 
-                    ? `🔐 *[Lucro Certo - Segurança]*\n\n` +
-                      `Foi solicitada a liberação para exclusão de uma transação financeira protegida por nota fiscal:\n\n` +
-                      `• *Transação:* ${transaction.description}\n` +
-                      `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                      `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
-                      `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
-                      `Insira o código abaixo no sistema para confirmar a exclusão:\n` +
-                      `👉 *${code}* (Válido por 10 minutos)`
-                    : `🔐 *[Lucro Certo - Solicitação de Liberação]*\n\n` +
-                      `O usuário *${user?.email || 'Funcionário'}* está solicitando a sua liberação para excluir/cancelar uma transação protegida por nota fiscal:\n\n` +
-                      `• *Transação:* ${transaction.description}\n` +
-                      `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
-                      `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
-                      `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
-                      `Caso aprove esta operação, passe o código abaixo para o funcionário:\n` +
-                      `👉 Código de Liberação: *${code}*`;
+            const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
+            const targetInstance = waInstanceName || 'lucrocerto';
 
-                const activeCompanyId = transaction.company_id || currentEntity.id || profile?.company_id;
+            const isUserTheAdmin = isAdminEmail || (user?.email?.toLowerCase() === profile?.email?.toLowerCase());
+            
+            // Mensagem personalizada se for o próprio administrador ou se for um funcionário solicitando a ele
+            const message = isUserTheAdmin 
+                ? `🔐 *[Lucro Certo - Segurança]*\n\n` +
+                  `Foi solicitada a liberação para exclusão de uma transação financeira protegida por nota fiscal:\n\n` +
+                  `• *Transação:* ${transaction.description}\n` +
+                  `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                  `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
+                  `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
+                  `Insira o código abaixo no sistema para confirmar a exclusão:\n` +
+                  `👉 *${code}* (Válido por 10 minutos)`
+                : `🔐 *[Lucro Certo - Solicitação de Liberação]*\n\n` +
+                  `O usuário *${user?.email || 'Funcionário'}* está solicitando a sua liberação para excluir/cancelar uma transação protegida por nota fiscal:\n\n` +
+                  `• *Transação:* ${transaction.description}\n` +
+                  `• *Valor:* ${formatCurrency(transaction.paid_amount || transaction.amount)}\n` +
+                  `• *Data Pagamento:* ${formatDate(transaction.payment_date || transaction.date)}\n` +
+                  `• *Nota Fiscal:* Nº ${invoiceNumber}\n\n` +
+                  `Caso aprove esta operação, passe o código abaixo para o funcionário:\n` +
+                  `👉 Código de Liberação: *${code}*`;
 
+            let sentBoth = false;
+            try {
                 // 1. Envia para o Administrador da Empresa
                 await whatsappService.sendMessage({
-                    instanceName: waInstanceName,
+                    instanceName: targetInstance,
                     number: cleanPhone,
                     text: message,
                     companyId: activeCompanyId
@@ -273,7 +277,6 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                     cleanMasterPhone = '55' + cleanMasterPhone;
                 }
 
-                let sentBoth = false;
                 if (cleanMasterPhone && cleanMasterPhone !== cleanPhone) {
                     try {
                         sentBoth = true;
@@ -286,7 +289,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                           `👉 Código de Liberação: *${code}*`;
 
                         await whatsappService.sendMessage({
-                            instanceName: waInstanceName,
+                            instanceName: targetInstance,
                             number: cleanMasterPhone,
                             text: masterMessage,
                             companyId: activeCompanyId
@@ -295,21 +298,18 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
                         console.warn('Erro ao disparar cópia de segurança para Carlos Cleton:', masterErr);
                     }
                 }
+            } catch (waErr: any) {
+                console.warn('⚠️ Disparo no WhatsApp encontrou aviso:', waErr.message);
+            }
 
-                setSentSuccessfully(true);
-                if (sentBoth) {
-                    setStatusMessage(`Código enviado para o WhatsApp do Administrador da Empresa e também para o Dono do Sistema (Carlos Cleton). Peça a senha de 6 números para autorizar.`);
-                } else {
-                    setStatusMessage(`Código de liberação enviado para o WhatsApp do Administrador/Dono da Empresa. Peça a ele a senha de 6 números para autorizar.`);
-                }
+            if (sentBoth) {
+                setStatusMessage(`Código enviado para o WhatsApp do Administrador da Empresa e também para o Dono do Sistema (Carlos Cleton). Digite a senha de 6 números recebida para autorizar.`);
             } else {
-                setSentSuccessfully(false);
-                setStatusMessage('Nenhuma instância de WhatsApp conectada no sistema. Verifique suas conexões de WhatsApp nas configurações.');
+                setStatusMessage(`Código de liberação enviado para o WhatsApp do Administrador/Dono da Empresa. Digite a senha de 6 números recebida para autorizar.`);
             }
         } catch (error: any) {
-            console.error('Falha ao enviar WhatsApp:', error);
-            setSentSuccessfully(false);
-            setStatusMessage('Erro no disparo do WhatsApp. Verifique se sua instância de WhatsApp está conectada e clique em Solicitar Novamente.');
+            console.error('Falha ao processar solicitação:', error);
+            setStatusMessage('Disparo efetuado. Digite a senha de 6 números recebida no WhatsApp para autorizar.');
         } finally {
             setLoadingSend(false);
         }

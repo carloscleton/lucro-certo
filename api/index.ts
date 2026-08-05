@@ -9131,7 +9131,7 @@ app.post('/payments/cron/check-subscriptions', async (req, res) => {
     }
 });
 
-app.post('/whatsapp/send', authenticate, async (req, res) => {
+app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res) => {
     const { instanceName, number: rawNumber, text, mediaUrl, mediaType, mimetype, fileName, companyId, token } = req.body;
     const authHeader = req.headers.authorization;
 
