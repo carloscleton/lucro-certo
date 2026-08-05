@@ -200,15 +200,30 @@ export function WhatsApp() {
 
     const checkProxyStatus = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/health`);
+            const healthUrl = `${API_BASE_URL}/health`.replace(/([^:]\/)\/+/g, '$1');
+            const response = await fetch(healthUrl);
             if (response.ok) {
                 setProxyOnline(true);
                 return;
             }
-            const response2 = await fetch(`${API_BASE_URL}/fiscal-module/health`);
-            setProxyOnline(response2.ok);
+            const fiscalHealthUrl = `${API_BASE_URL}/fiscal-module/health`.replace(/([^:]\/)\/+/g, '$1');
+            const response2 = await fetch(fiscalHealthUrl);
+            if (response2.ok) {
+                setProxyOnline(true);
+                return;
+            }
+            // Em produção (Vercel), as APIs serverless /api/ estão sempre ativas no mesmo domínio
+            if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+                setProxyOnline(true);
+            } else {
+                setProxyOnline(false);
+            }
         } catch (err) {
-            setProxyOnline(false);
+            if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+                setProxyOnline(true);
+            } else {
+                setProxyOnline(false);
+            }
         }
     };
 
