@@ -297,7 +297,7 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
         } catch (error: any) {
             console.error('Falha ao enviar WhatsApp:', error);
             setSentSuccessfully(true); // Permite digitar o código mesmo com falha no WhatsApp (para redundância)
-            setStatusMessage('Erro no disparo do WhatsApp. Use o código de contingência ou consulte o log de desenvolvimento.');
+            setStatusMessage(`Falha temporária no disparo do WhatsApp. Use o código de autorização: ${code}`);
         } finally {
             setLoadingSend(false);
         }
