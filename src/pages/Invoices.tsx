@@ -430,6 +430,8 @@ ${messageWithPlaceholder}`;
         }
     };
 
+    const [pendingCancelInvoice, setPendingCancelInvoice] = useState<any | null>(null);
+
     const executeCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
         setIsCancelling(true);
@@ -449,10 +451,11 @@ ${messageWithPlaceholder}`;
             setResultModal({
                 isOpen: true,
                 title: 'Cancelamento Solicitado',
-                message: 'A solicitação de cancelamento foi enviada com sucesso.',
+                message: 'A solicitação de cancelamento foi enviada com sucesso no Portal Nacional.',
                 type: 'success'
             });
             setCancelModal({ isOpen: false, invoice: null });
+            setPendingCancelInvoice(null);
             setCancelReason('');
             setCancelMotive('2');
             refresh();
@@ -464,7 +467,6 @@ ${messageWithPlaceholder}`;
                 message: parseFiscalError(error),
                 type: 'error'
             });
-            throw error;
         } finally {
             setIsCancelling(false);
         }
@@ -472,16 +474,6 @@ ${messageWithPlaceholder}`;
 
     const handleCancelInvoice = async () => {
         if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
-
-        const isAuthorized = ['concluido', 'autorizado'].includes(cancelModal.invoice.status?.toLowerCase());
-
-        // Se a nota estiver concluída/autorizada, exige validação do administrador via DeleteProtectionModal
-        if (isAuthorized) {
-            setCancelModal(prev => ({ ...prev, isOpen: false }));
-            setIsProtectedModalOpen(true);
-            return;
-        }
-
         await executeCancelInvoice();
     };
 
@@ -1477,8 +1469,8 @@ ${messageWithPlaceholder}`;
                                                     <Tooltip content="Cancelar na Prefeitura">
                                                         <button
                                                             onClick={() => {
-                                                                setCancelModal({ isOpen: true, invoice });
-                                                                setCancelReason('');
+                                                                setPendingCancelInvoice(invoice);
+                                                                setIsProtectedModalOpen(true);
                                                             }}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
                                                         >
@@ -1851,20 +1843,26 @@ ${messageWithPlaceholder}`;
                 </div>
             )}
 
-            {cancelModal.invoice && isProtectedModalOpen && (
+            {pendingCancelInvoice && isProtectedModalOpen && (
                 <DeleteProtectionModal
                     isOpen={isProtectedModalOpen}
                     onClose={(isSuccess) => {
                         setIsProtectedModalOpen(false);
-                        if (!isSuccess) {
-                            setCancelModal(prev => ({ ...prev, isOpen: true }));
+                        if (isSuccess && pendingCancelInvoice) {
+                            setCancelModal({ isOpen: true, invoice: pendingCancelInvoice });
+                            setCancelReason('');
+                            setCancelMotive('2');
+                        } else {
+                            setPendingCancelInvoice(null);
                         }
                     }}
-                    onConfirm={executeCancelInvoice}
+                    onConfirm={async () => {
+                        // Validação PIN concluída com sucesso! O modal de justificativa será aberto a seguir.
+                    }}
                     transaction={(() => {
-                        const inv = cancelModal.invoice;
-                        const p = inv.payload;
-                        const val = inv.amount ||
+                        const inv = pendingCancelInvoice;
+                        const p = inv?.payload;
+                        const val = inv?.amount ||
                                     p?.servicesAmount || 
                                     p?.retorno?.servicesAmount || 
                                     p?.retorno?.valorTotal || 
@@ -1878,16 +1876,16 @@ ${messageWithPlaceholder}`;
                                     p?.vServ ||
                                     0;
                         return {
-                            description: `Cancelamento de Nota Fiscal ${inv.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
+                            description: `Cancelamento de Nota Fiscal ${inv?.external_id ? `(${inv.external_id.slice(-6)})` : ''}`,
                             amount: val,
-                            company_id: inv.company_id,
-                            date: inv.created_at?.split('T')[0]
+                            company_id: inv?.company_id,
+                            date: inv?.created_at?.split('T')[0]
                         };
                     })()}
                     invoiceNumber={(() => {
-                        const inv = cancelModal.invoice;
-                        const p = inv.payload;
-                        return inv.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
+                        const inv = pendingCancelInvoice;
+                        const p = inv?.payload;
+                        return inv?.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero || 'Emitida';
                     })()}
                 />
             )}
