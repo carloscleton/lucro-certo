@@ -5766,7 +5766,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         // significa que é um ID de integração temporário (como UUID_lote) ou um ID da NFe.io.
         // Só fazemos o bypass se for PlugNotas (TecnoSpeed).
         const isObjectId = /^[0-9a-fA-F]{24}$/.test((id as string) || '');
-        if (!isObjectId && targetProvider === 'tecnospeed') {
+        const isNationalId = String(id).startsWith('DPS') || provider === 'national' || settings?.fiscal_provider === 'national';
+        if (!isObjectId && targetProvider === 'tecnospeed' && !isNationalId) {
             console.log(`⚠️ [FISCAL-STATUS-BYPASS] ID informado (${id}) é um ID de integração. Retornando status processando.`);
             return res.json({
                 status: 'processando',
@@ -5926,7 +5927,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                             
                             try {
                                 console.log(`🌐 [ADN-STATUS-SEFIN] Consultando SEFIN por DPS ID: ${dpsIdFormatted}...`);
-                                const dpsRes = await axios.get(`${sefinUrl}/nfse/dps/${dpsIdFormatted}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
+                                const dpsRes = await axios.get(`${sefinUrl}/dps/${dpsIdFormatted}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
                                 if (dpsRes.data) sefinHit = dpsRes.data;
                             } catch (e: any) {
                                 console.warn(`⚠️ [ADN-STATUS-SEFIN] Consulta por DPS ID ${dpsIdFormatted} falhou:`, e.message);
