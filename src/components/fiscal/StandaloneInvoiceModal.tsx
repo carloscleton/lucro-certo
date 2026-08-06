@@ -708,6 +708,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('🚀 [handleSubmit] Iniciando submissão da Nota Fiscal Avulsa...', { contactId, items, activeProvider, type });
         setError('');
         setErrorDetail('');
         setRawGovResponse(null);
@@ -716,12 +717,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
         if (!token) {
+            console.warn('⚠️ [handleSubmit] Sessão expirada.');
             setError('Sessão expirada. Faça login novamente.');
             setLoading(false);
             return;
         }
 
         if (!contactId || items.some(i => !i.description || !i.amount || !i.taxCode)) {
+            console.warn('⚠️ [handleSubmit] Campos obrigatórios ausentes:', { contactId, items });
             setError('Preencha todos os campos obrigatórios de todos os itens.');
             return;
         }
@@ -729,20 +732,24 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         const contact = contacts.find(c => c.id === contactId);
         if (!noTomador) {
             if (!contact) {
+                console.warn('⚠️ [handleSubmit] Tomador não encontrado.');
                 setError('Selecione um cliente válido ou marque "Não identificar tomador".');
                 return;
             }
             if (!contact.tax_id) {
+                console.warn('⚠️ [handleSubmit] Tomador sem CPF/CNPJ.');
                 setError('O cliente selecionado não possui CPF/CNPJ cadastrado.');
                 return;
             }
             if (!contact.zip_code || !contact.street || !contact.neighborhood || !contact.city || !contact.state) {
+                console.warn('⚠️ [handleSubmit] Endereço do tomador incompleto:', contact);
                 setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, bairro, cidade, estado são obrigatórios para emissão).');
                 return;
             }
         }
 
         if (!currentCompany) {
+            console.warn('⚠️ [handleSubmit] Empresa não encontrada.');
             setError('Empresa não encontrada.');
             return;
         }
@@ -750,22 +757,24 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         if (activeProvider === 'nfeio') {
             const nfeioConfig = currentCompany?.settings?.nfeio_config;
             if (!nfeioConfig || !nfeioConfig.apiKey || !nfeioConfig.companyId) {
+                console.warn('⚠️ [handleSubmit] Configurações NFe.io ausentes.');
                 setError('Configurações da NFe.io não encontradas ou incompletas.');
                 return;
             }
         } else if (activeProvider === 'national') {
             const natConfig = currentCompany?.settings?.national_config;
             if (!natConfig?.certificado_pfx_base64) {
+                console.warn('⚠️ [handleSubmit] Certificado digital PFX ausente nas configurações fiscais.');
                 setError('Para usar o Portal Nacional, faça o upload do certificado digital PFX/A1 na aba "Portal Nacional" das Configurações Fiscais antes de emitir.');
                 return;
             }
         } else {
             if (!currentCompany.tecnospeed_config) {
+                console.warn('⚠️ [handleSubmit] Configurações TecnoSpeed ausentes.');
                 setError('Configurações fiscais da empresa (TecnoSpeed) não encontradas.');
                 return;
             }
         }
-
 
         if (activeProvider === 'nfeio' && type === 'nfe') {
             setError('O emissor NFe.io está configurado apenas para NFS-e (Serviço). Para emitir NF-e (Produto), use a TecnoSpeed.');
@@ -776,6 +785,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
         if (type === 'nfse' && isNacional) {
             if (items.length > 1) {
+                console.warn('⚠️ [handleSubmit] Mais de 1 item no Padrão Nacional.');
                 setError('O padrão NFS-e Nacional permite apenas 1 item de serviço por nota fiscal. Remova os outros itens para prosseguir.');
                 return;
             }
@@ -785,6 +795,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 return !clean || (clean.length !== 6 && clean.length !== 9);
             });
             if (invalidItem) {
+                console.warn('⚠️ [handleSubmit] Código de tributação inválido:', invalidItem);
                 setError(`O item "${invalidItem.description}" deve ter um código de tributação de 6 dígitos (cTribNac) ou 9 dígitos (NBS) para o Padrão Nacional.`);
                 return;
             }
