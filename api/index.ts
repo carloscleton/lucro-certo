@@ -3147,6 +3147,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             'Content-Type': 'application/json'
                         };
 
+                        if (!preInsertedId) {
+                            try {
+                                const checkPre = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                                    params: {
+                                        company_id: `eq.${resolvedId}`,
+                                        status: `eq.processando`,
+                                        dps_number: `eq.${nDPS || currentDpsSeq}`,
+                                        select: 'id'
+                                    },
+                                    headers: dbHeaders
+                                });
+                                if (checkPre.data?.[0]?.id) {
+                                    preInsertedId = checkPre.data[0].id;
+                                }
+                            } catch (e) {}
+                        }
+
                         if (preInsertedId) {
                             await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${preInsertedId}`, invoiceRecordData, {
                                 headers: dbHeaders

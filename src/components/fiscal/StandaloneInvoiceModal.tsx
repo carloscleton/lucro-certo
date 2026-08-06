@@ -1188,39 +1188,71 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         const finalIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realCompanyId || '');
                         
                         if (finalIsUUID) {
-                            // Verificar se já existe no banco (salvo pelo backend)
-                            const { data: existingInv } = await supabase
-                                .from('fiscal_invoices')
-                                .select('id')
-                                .eq('external_id', externalId)
-                                .maybeSingle();
+                            const returnedNum = String(result.nNFSe || result.invoice_number || result.nDPS || result.dps_number || '').trim();
+                            const returnedKey = String(result.chaveAcesso || result.access_key || externalId || '').trim();
+
+                            let existingInv: any = null;
+
+                            if (returnedKey) {
+                                const { data: byKey } = await supabase
+                                    .from('fiscal_invoices')
+                                    .select('id')
+                                    .or(`external_id.eq.${returnedKey},access_key.eq.${returnedKey}`)
+                                    .maybeSingle();
+                                if (byKey?.id) existingInv = byKey;
+                            }
+
+                            if (!existingInv && returnedNum) {
+                                const { data: byNum } = await supabase
+                                    .from('fiscal_invoices')
+                                    .select('id')
+                                    .eq('company_id', realCompanyId)
+                                    .eq('status', 'processando')
+                                    .or(`dps_number.eq.${returnedNum},invoice_number.eq.${returnedNum}`)
+                                    .maybeSingle();
+                                if (byNum?.id) existingInv = byNum;
+                            }
+
+                            if (!existingInv) {
+                                const { data: lastProcessing } = await supabase
+                                    .from('fiscal_invoices')
+                                    .select('id')
+                                    .eq('company_id', realCompanyId)
+                                    .eq('status', 'processando')
+                                    .order('created_at', { ascending: false })
+                                    .limit(1)
+                                    .maybeSingle();
+                                if (lastProcessing?.id) existingInv = lastProcessing;
+                            }
+
+                            const completePayloadToSave = {
+                                company_id: realCompanyId,
+                                external_id: returnedKey || externalId,
+                                access_key: returnedKey || externalId,
+                                invoice_number: returnedNum || result.nNFSe || result.dps_number || '1',
+                                dps_number: result.nDPS || result.dps_number || returnedNum || '1',
+                                dps_serie: '1',
+                                type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
+                                status: 'concluido',
+                                pdf_url: result.pdf_url || result.pdf || null,
+                                xml_url: result.xml_url || result.xml || null,
+                                payload: {
+                                    ...payload,
+                                    retorno: finalPayloadToSave,
+                                    send_whatsapp: sendWhatsApp
+                                }
+                            };
 
                             if (existingInv?.id) {
-                                console.log(`💾 [DB-SAVE] Nota ${externalId} já existe. Atualizando status...`);
+                                console.log(`💾 [DB-SAVE] Atualizando nota pré-gravada ${existingInv.id} para CONCLUÍDO...`);
                                 const { error: dbError } = await supabase
                                     .from('fiscal_invoices')
-                                    .update({
-                                        status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                        payload: {
-                                            ...finalPayloadToSave,
-                                            send_whatsapp: sendWhatsApp
-                                        }
-                                    })
+                                    .update(completePayloadToSave)
                                     .eq('id', existingInv.id);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
                             } else {
-                                console.log(`💾 [DB-SAVE] Inserindo nova nota ${externalId}...`);
-                                const { error: dbError } = await supabase.from('fiscal_invoices').insert({
-                                    company_id: realCompanyId,
-                                    external_id: externalId,
-                                    type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
-                                    status: finalPayloadToSave.status || finalPayloadToSave.situacao || 'processando',
-                                    payload: {
-                                        ...payload,
-                                        retorno: finalPayloadToSave,
-                                        send_whatsapp: sendWhatsApp
-                                    }
-                                });
+                                console.log(`💾 [DB-SAVE] Inserindo nova nota ${returnedKey}...`);
+                                const { error: dbError } = await supabase.from('fiscal_invoices').insert(completePayloadToSave);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
                             }
                         } else {
