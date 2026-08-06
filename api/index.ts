@@ -2461,8 +2461,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
                 adnPayload = { ...payload };
 
-                // Preserva o número sequencial de DPS fornecido no payload, ou usa o calculado pelo banco se omitido
-                if (!adnPayload.infDPS.nDPS) {
+                // Preserva o número sequencial de DPS fornecido no payload se for válido, ou usa o calculado pelo banco se for 1 ou omitido
+                if (!adnPayload.infDPS.nDPS || adnPayload.infDPS.nDPS === '1' || parseInt(String(adnPayload.infDPS.nDPS).replace(/\D/g, ''), 10) < nextDpsNumber) {
                     adnPayload.infDPS.nDPS = String(nextDpsNumber);
                 }
 
@@ -2915,6 +2915,43 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             let retryCount = 0;
             const maxDpsRetries = 20;
 
+            let preInsertedId: string | null = null;
+            if (SUPABASE_URL) {
+                try {
+                    const dbAuth = SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`);
+                    const preRecord = {
+                        company_id: resolvedId,
+                        quote_id: quoteId || null,
+                        external_id: `DPS_${cleanCnpjFallback}_${nextDpsNumber}_${Date.now()}`,
+                        type: 'national',
+                        status: 'processando',
+                        dps_number: String(nextDpsNumber),
+                        dps_serie: '1',
+                        payload: {
+                            ...adnPayload,
+                            nDPS: String(nextDpsNumber)
+                        },
+                        created_at: new Date().toISOString()
+                    };
+
+                    const preRes = await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, preRecord, {
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': dbAuth,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
+                        }
+                    });
+
+                    if (preRes.data?.[0]?.id) {
+                        preInsertedId = preRes.data[0].id;
+                        console.log(`💾 [ADN-NACIONAL] Pré-gravação realizada no banco (ID interno: ${preInsertedId}, DPS #${nextDpsNumber})`);
+                    }
+                } catch (preErr: any) {
+                    console.warn(`⚠️ [ADN-NACIONAL] Não foi possível pré-gravar a nota no banco:`, preErr.message);
+                }
+            }
+
             while (retryCount < maxDpsRetries) {
                 retryCount++;
                 const currentNumStr = String(currentDpsSeq);
@@ -3104,15 +3141,38 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         };
 
                         const dbAuth = SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`);
-                        await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, invoiceRecordData, {
-                            headers: {
-                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
-                                'Authorization': dbAuth,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=minimal'
-                            }
-                        });
-                        console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
+                        const dbHeaders = {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'Authorization': dbAuth,
+                            'Content-Type': 'application/json'
+                        };
+
+                        if (preInsertedId) {
+                            await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${preInsertedId}`, invoiceRecordData, {
+                                headers: dbHeaders
+                            });
+                            console.log(`💾 [ADN-NACIONAL] Nota pré-gravada atualizada com sucesso para CONCLUÍDO (ID: ${preInsertedId}, Chave: ${docId}).`);
+                        } else {
+                            await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, invoiceRecordData, {
+                                headers: {
+                                    ...dbHeaders,
+                                    'Prefer': 'return=minimal'
+                                }
+                            });
+                            console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
+                        }
+
+                        // Registrar evento em fiscal_invoice_events
+                        try {
+                            await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoice_events`, {
+                                invoice_id: preInsertedId || String(docId),
+                                company_id: resolvedId,
+                                event_type: 'AUTORIZADA',
+                                status: 'concluido',
+                                details: { chaveAcesso, nNFSe: nNFSeVal, nDPS },
+                                created_at: new Date().toISOString()
+                            }, { headers: dbHeaders });
+                        } catch (evErr) {}
 
                         try {
                             const nextDpsToSave = Number(nDPS || currentDpsSeq) + 1;
@@ -3170,6 +3230,22 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const errStatus = adnErr.response?.status;
                 console.error(`❌ [ADN-NACIONAL] Erro na emissão (HTTP ${errStatus}):`, JSON.stringify(errData, null, 2));
                 console.error(`❌ [ADN-NACIONAL] Detalhes do erro:`, adnErr.message, adnErr.code || '');
+
+                if (preInsertedId && SUPABASE_URL) {
+                    try {
+                        const dbAuth = SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`);
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${preInsertedId}`, {
+                            status: 'erro',
+                            error_message: String(adnErr.message || 'Erro no Portal Nacional')
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                                'Authorization': dbAuth,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (dbErr) {}
+                }
 
                 // Tratamento detalhado da resposta de erro do servidor
                 let detailedMessage = '';
