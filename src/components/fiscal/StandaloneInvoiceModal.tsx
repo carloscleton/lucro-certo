@@ -723,9 +723,18 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             return;
         }
 
-        if (!contactId || items.some(i => !i.description || !i.amount || !i.taxCode)) {
+        // Auto-sincronizar taxCode caso apenas codigoTributacaoNacional ou taxationCode esteja preenchido
+        items.forEach(i => {
+            if (!i.taxCode && (i.codigoTributacaoNacional || i.taxationCode)) {
+                i.taxCode = i.codigoTributacaoNacional || i.taxationCode || '';
+            }
+        });
+
+        const hasTaxCode = (i: any) => !!(i.taxCode || i.codigoTributacaoNacional || i.taxationCode);
+
+        if (!contactId || items.some(i => !i.description || !i.amount || !hasTaxCode(i))) {
             console.warn('⚠️ [handleSubmit] Campos obrigatórios ausentes:', { contactId, items });
-            setError('Preencha todos os campos obrigatórios de todos os itens.');
+            setError('Preencha todos os campos obrigatórios de todos os itens (Descrição, Valor e Código de Tributação).');
             return;
         }
 
