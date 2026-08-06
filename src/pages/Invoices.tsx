@@ -1360,23 +1360,25 @@ ${messageWithPlaceholder}`;
                                                     if (num) {
                                                         return (
                                                             <>
-                                                                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                                                                <span className="font-extrabold text-gray-900 dark:text-gray-100 text-base">
                                                                     Nº {num}
                                                                 </span>
                                                                 {chaveAcesso && (
-                                                                    <span className="text-[9px] text-emerald-600 font-mono mt-0.5 break-all leading-tight">
-                                                                        {chaveAcesso}
-                                                                    </span>
+                                                                    <div className="mt-1">
+                                                                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-semibold break-all leading-relaxed bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/60 inline-block max-w-full select-all">
+                                                                            Chave: {chaveAcesso}
+                                                                        </span>
+                                                                    </div>
                                                                 )}
                                                                 {(dpsNumero || dpsSerie) && (
-                                                                    <span className="text-[10px] text-gray-500 font-medium mt-1">
+                                                                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1.5 flex items-center gap-1">
                                                                         {dpsNumero ? `DPS: ${dpsNumero}` : ''}
                                                                         {dpsNumero && dpsSerie ? ' - ' : ''}
                                                                         {dpsSerie ? `Série: ${dpsSerie}` : ''}
                                                                     </span>
                                                                 )}
-                                                                {idIntegracao && (
-                                                                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 font-mono break-all">
+                                                                {idIntegracao && idIntegracao !== chaveAcesso && (
+                                                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all mt-1">
                                                                         ID: {idIntegracao}
                                                                     </span>
                                                                 )}
@@ -1386,16 +1388,18 @@ ${messageWithPlaceholder}`;
                                                     
                                                     return (
                                                         <div className="flex flex-col">
-                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm break-all leading-tight">
+                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-base break-all leading-tight">
                                                                 {idIntegracao}
                                                             </span>
                                                             {chaveAcesso && (
-                                                                <span className="text-[9px] text-emerald-600 font-mono mt-1 break-all leading-tight">
-                                                                    Chave: {chaveAcesso}
-                                                                </span>
+                                                                <div className="mt-1">
+                                                                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-semibold break-all leading-relaxed bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/60 inline-block max-w-full select-all">
+                                                                        Chave: {chaveAcesso}
+                                                                    </span>
+                                                                </div>
                                                             )}
                                                             {(dpsNumero || dpsSerie) && (
-                                                                <span className="text-[10px] text-gray-500 font-medium mt-1">
+                                                                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1.5">
                                                                     {dpsNumero ? `DPS: ${dpsNumero}` : ''}
                                                                     {dpsNumero && dpsSerie ? ' - ' : ''}
                                                                     {dpsSerie ? `Série: ${dpsSerie}` : ''}
