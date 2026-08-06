@@ -2411,7 +2411,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             if (SUPABASE_URL) {
                 try {
-                    const dbAuth = (process.env.SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY}`));
+                    const dbAuth = SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`);
                     const lastInvResp = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                         params: {
                             company_id: `eq.${resolvedId}`,
@@ -2421,7 +2421,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             limit: 1
                         },
                         headers: {
-                            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
                             'Authorization': dbAuth
                         }
                     });
@@ -2440,6 +2440,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 } catch (dbErr: any) {
                     console.warn(`⚠️ [ADN-NACIONAL] Falha ao consultar último número sequencial:`, dbErr.message);
                 }
+            }
+
+            if (nat.proximo_numero_dps && Number(nat.proximo_numero_dps) > nextDpsNumber) {
+                nextDpsNumber = Number(nat.proximo_numero_dps);
+                console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS obtido das configurações da empresa: ${nextDpsNumber}`);
             }
 
             // Se o usuário especificou um nDPS no payload superior ao próximo número calculated, respeita o número do usuário
@@ -2977,7 +2982,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 try {
                     try {
                         adnResponse = await axios.post(
-                            `${sefinBaseUrl}/dps`,
+                            `${sefinBaseUrl}/nfse`,
                             finalRequestPayload,
                             {
                                 httpsAgent,
@@ -3003,7 +3008,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto...`);
                             try {
                                 adnResponse = await axios.post(
-                                    `${sefinBaseUrl}/dps`,
+                                    `${sefinBaseUrl}/nfse`,
                                     signedXml,
                                     {
                                         httpsAgent,
@@ -3099,18 +3104,36 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             created_at: new Date().toISOString()
                         };
 
+                        const dbAuth = SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`);
                         await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, invoiceRecordData, {
                             headers: {
                                 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
-                                'Authorization': authHeader!,
+                                'Authorization': dbAuth,
                                 'Content-Type': 'application/json',
                                 'Prefer': 'return=minimal'
                             }
                         });
                         console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
 
-
-                    } catch (dbErr: any) {
+                        try {
+                            const nextDpsToSave = Number(nDPS || currentDpsSeq) + 1;
+                            nat.proximo_numero_dps = nextDpsToSave;
+                            await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                                settings: {
+                                    ...settings,
+                                    national_config: nat
+                                }
+                            }, {
+                                headers: {
+                                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                                    'Authorization': dbAuth,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            console.log(`💾 [ADN-NACIONAL] Próximo número DPS atualizado nas configurações da empresa para: ${nextDpsToSave}`);
+                        } catch (settingUpdateErr: any) {
+                            console.warn(`⚠️ [ADN-NACIONAL] Não foi possível atualizar proximo_numero_dps nas configurações:`, settingUpdateErr.message);
+                        }
                         console.error('❌ [ADN-NACIONAL] Erro ao salvar nota no banco:', dbErr.message);
                     }
                 }
@@ -5678,8 +5701,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                     select: 'type,payload,status,invoice_number,access_key,pdf_url,xml_url,error_message'
                 },
                 headers: {
-                    'apikey': SUPABASE_ANON_KEY!,
-                    'Authorization': authHeader!
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
+                    'Authorization': SUPABASE_SERVICE_ROLE_KEY ? `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` : (authHeader || `Bearer ${SUPABASE_ANON_KEY!}`)
                 }
             });
             if (invData?.[0]) {

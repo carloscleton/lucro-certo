@@ -1134,7 +1134,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         };
                     }
                 }
-                // console.log('📤 [FRONTEND] Payload NFSe:', JSON.stringify(payload, null, 2));
+                console.log('📤 [FRONTEND] Enviando requisição para emissão de nota ao backend...', { provider: activeProvider, type, payload });
                 const result = await fiscalService.emitirNFSe(
                     currentEntity.id!,
                     payload,
