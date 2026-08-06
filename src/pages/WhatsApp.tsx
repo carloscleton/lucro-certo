@@ -560,20 +560,40 @@ export function WhatsApp() {
 
         try {
             console.log(`🔌 Desconectando instância ${instance.instance_name} (ID Técnico: ${instance.evolution_instance_id})...`);
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/logout?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
+            let logoutWarning = false;
+            try {
+                const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/logout?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`
+                    }
+                });
 
-            if (!response.ok) {
-                const data = await response.json().catch(() => ({}));
-                console.warn('⚠️ Falha ao desconectar na Evolution:', data);
-                if (!silent) throw new Error(data.error || 'Falha ao desconectar');
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    console.warn('⚠️ Falha ao desconectar no servidor de WhatsApp:', data);
+                    logoutWarning = true;
+                }
+            } catch (netErr) {
+                console.warn('⚠️ Erro de rede ao tentar desconectar no servidor de WhatsApp:', netErr);
+                logoutWarning = true;
             }
 
-            if (!silent) notify('success', 'Instância desconectada com sucesso!', 'Sucesso');
+            // Atualizar Supabase para 'disconnected' independentemente de erro no servidor externo
+            const { error: dbErr } = await supabase
+                .from('instances')
+                .update({ status: 'disconnected' })
+                .eq('id', instance.id);
+
+            if (dbErr) console.error('Erro ao atualizar status no Supabase:', dbErr);
+
+            if (!silent) {
+                if (logoutWarning) {
+                    notify('warning', 'Instância desconectada no sistema local. (O servidor externo estava offline ou indisponível)', 'Desconectado com Aviso');
+                } else {
+                    notify('success', 'Instância desconectada com sucesso!', 'Sucesso');
+                }
+            }
             fetchInstances();
         } catch (error: any) {
             console.error('Erro ao desconectar:', error);
@@ -586,20 +606,27 @@ export function WhatsApp() {
         if (!confirm(`Tem certeza que deseja excluir a instância "${instance.instance_name}"?`)) return;
 
         try {
-            // 1. Tentar deletar na Evolution via Proxy usando o nome amigável + token
-            const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
+            // 1. Tentar deletar no servidor externo via Proxy (sem travar se falhar)
+            let externalWarning = false;
+            try {
+                const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`
+                    }
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Falha ao excluir a instância na Evolution API.');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.warn('⚠️ Não foi possível deletar no servidor externo de WhatsApp:', errorData);
+                    externalWarning = true;
+                }
+            } catch (netErr) {
+                console.warn('⚠️ Erro de rede ao tentar deletar no servidor WhatsApp:', netErr);
+                externalWarning = true;
             }
 
-            // 2. Deletar no Supabase
+            // 2. Deletar no Supabase (sempre executado para remover a instância do painel do usuário)
             const { error } = await supabase
                 .from('instances')
                 .delete()
@@ -607,8 +634,12 @@ export function WhatsApp() {
 
             if (error) throw error;
 
-            setInstances(instances.filter(i => i.id !== instance.id));
-            notify('success', 'Instância removida com sucesso.', 'Instância Deletada');
+            setInstances(prev => prev.filter(i => i.id !== instance.id));
+            if (externalWarning) {
+                notify('warning', 'Instância removida do sistema. (Aviso: O servidor externo de WhatsApp não respondeu ou estava indisponível)', 'Instância Removida');
+            } else {
+                notify('success', 'Instância removida com sucesso.', 'Instância Deletada');
+            }
         } catch (error: any) {
             console.error('Erro ao deletar:', error);
             notify('error', error.message || 'Erro ao deletar instância.', 'Erro de Exclusão');

@@ -8175,17 +8175,21 @@ app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate
             await executeLogout(config);
         } catch (primaryErr) {
             console.warn(`⚠️ Primary logout failed. Trying fallback config...`);
-            const fallbackConfig = getAlternativeConfig(config);
-            await executeLogout(fallbackConfig);
+            try {
+                const fallbackConfig = getAlternativeConfig(config);
+                await executeLogout(fallbackConfig);
+            } catch (fbErr: any) {
+                console.warn(`⚠️ Fallback logout também falhou (${fbErr?.message}). Prosseguindo com logout local.`);
+            }
         }
 
         res.json({ success: true, message: 'Instância desconectada com sucesso' });
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        const status = error.response?.status || 500;
-        console.error(`❌ Erro técnico ao deslogar "${name}":`, JSON.stringify(errorDetail, null, 2));
-        res.status(status).json({
-            error: 'Erro ao deslogar na Evolution API',
+        console.warn(`⚠️ Aviso técnico ao deslogar "${name}":`, JSON.stringify(errorDetail, null, 2));
+        res.json({
+            success: true,
+            warning: 'Logout local efetuado (servidor externo retornou erro ou estava inacessível)',
             detail: errorDetail
         });
     }
@@ -8253,17 +8257,12 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
         res.json(response.data);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        const status = error.response?.status;
-        console.warn(`❌ Erro ao deletar "${name}" na Evolution:`, JSON.stringify(errorDetail, null, 2));
+        console.warn(`⚠️ Erro ao deletar "${name}" na API externa:`, JSON.stringify(errorDetail, null, 2));
 
-        // Se a instância já não existir (404) ou se for um erro de não encontrado, prossegue.
-        if (status === 404 || errorDetail?.message?.toLowerCase().includes('not found') || errorDetail?.error?.toLowerCase().includes('not found')) {
-            return res.json({ success: true, warning: 'Instância não encontrada na Evolution, mas removida localmente.' });
-        }
-
-        res.status(status || 500).json({
-            success: false,
-            error: 'Erro ao deletar na Evolution API',
+        // Permite a exclusão local no Supabase sem barrar o usuário
+        res.json({
+            success: true,
+            warning: 'Instância removida localmente (servidor de WhatsApp externo não respondeu ou já não continha a instância).',
             detail: errorDetail
         });
     }

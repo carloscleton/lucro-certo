@@ -145,6 +145,18 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
         }
     };
 
+    const handleWebSend = () => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const formattedPhone = cleanPhone ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : '';
+        const encodedText = encodeURIComponent(messageText);
+        const url = formattedPhone 
+            ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`
+            : `https://api.whatsapp.com/send?text=${encodedText}`;
+        
+        window.open(url, '_blank');
+        onClose();
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Compartilhar pelo WhatsApp" icon={MessageSquare}>
             <form onSubmit={handleSend} className="space-y-4 pt-2">
@@ -162,7 +174,7 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                             Instância ativa conectada: "{activeInstance.instance_name}"
                         </div>
                         <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                            A indicação será disparada automaticamente em segundo plano por sua conta conectada.
+                            Você pode enviar automaticamente por esta conta ou escolher o WhatsApp Web abaixo.
                         </p>
                     </div>
                 ) : (
@@ -202,14 +214,13 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                 {/* Telefone opcional / obrigatorio */}
                 <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                        Telefone do Destinatário {activeInstance ? <span className="text-rose-500 font-bold">*</span> : <span className="text-gray-400 font-normal">(Opcional)</span>}
+                        Telefone do Destinatário {activeInstance ? <span className="text-gray-400 font-normal">(Obrigatório apenas para envio automático)</span> : <span className="text-gray-400 font-normal">(Opcional)</span>}
                     </label>
                     <input
                         type="text"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        required={!!activeInstance}
-                        placeholder={activeInstance ? "Ex: (84) 99999-9999 (Obrigatório para envio automático)" : "Ex: (84) 99999-9999 (Opcional)"}
+                        placeholder="Ex: (84) 99999-9999 (Opcional se usar WhatsApp Web)"
                         className="w-full bg-gray-50 dark:bg-slate-850 border border-gray-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
@@ -236,10 +247,24 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                 </div>
 
                 {/* Ações */}
-                <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
                     <Button type="button" variant="outline" onClick={onClose} disabled={sending}>
                         Cancelar
                     </Button>
+                    
+                    {activeInstance && (
+                        <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={handleWebSend}
+                            disabled={sending}
+                            className="font-bold flex items-center gap-1.5 border-emerald-500 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                        >
+                            <Send size={14} />
+                            Enviar via WhatsApp Web
+                        </Button>
+                    )}
+
                     <Button 
                         type="submit" 
                         disabled={sending || checkingInstances}
