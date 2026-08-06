@@ -1537,15 +1537,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         </div>
 
                         {/* Alerta de orientações quando for Erro 500 ou Instabilidade no Governo */}
-                        {(String(error || '').includes('500') || String(errorDetail || '').includes('500') || String(JSON.stringify(rawGovResponse || {})).includes('500') || String(error || '').includes('server error')) && (
+                        {(String(error || '').includes('500') || String(errorDetail || '').includes('500') || String(JSON.stringify(rawGovResponse || {})).includes('500') || String(error || '').toLowerCase().includes('server error')) && (
                             <div className="bg-amber-100/90 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-300/80 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 text-xs space-y-2 font-sans shadow-sm">
                                 <p className="font-bold flex items-center gap-2 text-amber-900 dark:text-amber-100 text-xs uppercase tracking-wider">
-                                    💡 Orientação para resolver este erro (Portal Nacional / Receita Federal):
+                                    💡 Orientação Técnica (Portal Nacional / SEFIN Receita Federal):
                                 </p>
                                 <ul className="list-disc list-inside space-y-1.5 text-xs text-amber-950 dark:text-amber-200 leading-relaxed font-medium">
-                                    <li><strong>Se você está em ambiente de Homologação (Produção Restrita):</strong> O ambiente de testes da Receita Federal (`producaorestrita.nfse.gov.br`) rejeita CNPJs reais com erro 500 ("A server error has occurred") ou passa por instabilidades frequentes do Governo.</li>
-                                    <li><strong>Como corrigir:</strong> Acesse <em>Configurações → Configurações Fiscais → Portal Nacional</em>, altere o campo <strong>Ambiente</strong> de <em>"Produção Restrita"</em> para <strong>"Produção"</strong> e salve.</li>
-                                    <li><strong>Habilitação do CNPJ:</strong> Verifique no portal oficial <a href="https://nfse.gov.br" target="_blank" rel="noreferrer" className="underline font-bold text-blue-700 dark:text-blue-400">nfse.gov.br</a> se o seu CNPJ já está habilitado como prestador de serviços.</li>
+                                    <li><strong>Oscilação no Servidor do Governo:</strong> O erro 500 ("A server error has occurred") é retornado diretamente pelo webservice da Receita Federal/SEFIN. Se sua empresa já está configurada no ambiente de <strong>Produção</strong>, isto indica uma indisponibilidade temporária nos servidores do Governo. Recomenda-se tentar emitir novamente em alguns instantes.</li>
+                                    <li><strong>Se estiver em Produção Restrita (Testes):</strong> O ambiente de homologação (`producaorestrita.nfse.gov.br`) rejeita CNPJs reais com erro 500. Certifique-se de que o ambiente está definido como <em>Produção</em> em <em>Configurações → Configurações Fiscais → Portal Nacional</em>.</li>
+                                    <li><strong>Cadastro no Portal Nacional:</strong> Acesse o portal oficial <a href="https://nfse.gov.br" target="_blank" rel="noreferrer" className="underline font-bold text-blue-700 dark:text-blue-400">nfse.gov.br</a> e verifique se a empresa possui o credenciamento de emissão ativado no sistema nacional.</li>
                                 </ul>
                             </div>
                         )}

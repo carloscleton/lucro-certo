@@ -462,16 +462,14 @@ export function WhatsApp() {
                 body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(async () => {
-                    const text = await response.text();
-                    return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
-                });
-                const detail = errorData.detail ? `: ${errorData.detail}` : '';
-                throw new Error((errorData.error || 'Erro no servidor proxy') + detail);
-            }
+            const rawText = await response.text();
+            let data: any = {};
+            try { data = JSON.parse(rawText); } catch { data = { error: 'Resposta inválida do servidor', detail: rawText.substring(0, 100) }; }
 
-            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const detail = data.detail ? `: ${typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail}` : '';
+                throw new Error((data.error || data.message || 'Erro no servidor proxy') + detail);
+            }
             // Para EvoGo: a API pode ignorar o token enviado e gerar o seu próprio.
             // Sempre priorizar o ID retornado pela API.
             // Para EvoAPI: usa o token retornado, com fallback para o instanceId local.
@@ -821,13 +819,13 @@ export function WhatsApp() {
                 })
             });
 
+            const rawText = await response.text();
+            let errorData: any = {};
+            try { errorData = JSON.parse(rawText); } catch { errorData = { error: 'Resposta inválida do servidor', detail: rawText.substring(0, 100) }; }
+
             if (!response.ok) {
-                const errorData = await response.json().catch(async () => {
-                    const text = await response.text();
-                    return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
-                });
-                const detail = errorData.detail ? `: ${errorData.detail}` : '';
-                throw new Error((errorData.error || 'Erro ao sincronizar com Evolution') + detail);
+                const detail = errorData.detail ? `: ${typeof errorData.detail === 'object' ? JSON.stringify(errorData.detail) : errorData.detail}` : '';
+                throw new Error((errorData.error || errorData.message || 'Erro ao sincronizar com Evolution') + detail);
             }
 
             // 3. Atualizar no Supabase
@@ -871,21 +869,29 @@ export function WhatsApp() {
             // Buscar QR Code via Proxy usando o nome amigável
             const response = await fetch(`${API_BASE_URL}/instances/${encodeURIComponent(instance.instance_name)}/connect?token=${instance.evolution_instance_id}&company_id=${currentEntity.type === 'company' ? currentEntity.id : ''}`);
 
-            const data = await response.json().catch(async () => {
-                // Se falhar o parse do JSON, pode ser um HTML (404/500 do servidor)
-                const text = await response.text();
-                return { error: 'Resposta inválida do servidor', detail: text.substring(0, 100) };
-            });
-
-            if (!response.ok) {
-                throw new Error(data.error || data.message || 'Falha ao obter QR Code');
+            const rawText = await response.text();
+            let data: any = {};
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                data = { error: 'Resposta inválida do servidor de QR Code', detail: rawText.substring(0, 100) };
             }
 
-            // A Evolution retorna base64 ou link dependendo da config
-            if (data.base64) {
-                setQrCode(data.base64);
-            } else if (data.qrcode) {
-                setQrCode(data.qrcode.base64);
+            if (!response.ok) {
+                const detailMsg = data.detail ? ` (${typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail})` : '';
+                throw new Error((data.error || data.message || 'Falha ao obter QR Code') + detailMsg);
+            }
+
+            // A Evolution/WAHA retorna base64 ou link dependendo da config
+            let qrBase64 = data.base64 || data.qrcode?.base64 || data.code || (typeof data.qrcode === 'string' ? data.qrcode : null);
+            if (qrBase64 && typeof qrBase64 === 'string') {
+                if (!qrBase64.startsWith('data:image') && !qrBase64.startsWith('http')) {
+                    qrBase64 = `data:image/png;base64,${qrBase64}`;
+                }
+                setQrCode(qrBase64);
+            } else {
+                console.warn('⚠️ Resposta de QR Code sem imagem base64:', data);
+                notify('warning', data.error || data.detail || 'QR Code não retornado pela API. Tente recarregar ou verificar o servidor.', 'Aviso de Conexão');
             }
         } catch (error: any) {
             console.error('Erro ao conectar:', error);
