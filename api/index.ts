@@ -10,7 +10,7 @@ import forge from 'node-forge';
 import zlib from 'zlib';
 import { SignedXml } from 'xml-crypto';
 import { jsPDF } from 'jspdf';
-import { PaymentFactory } from './services/payments/PaymentFactory.js';
+import { PaymentFactory } from './services/payments/PaymentFactory';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -9765,12 +9765,12 @@ app.use((req, res) => {
     });
 });
 
-// Tratamento global de erros - Retorna JSON em vez do HTML padrão do Express
+// Tratamento global de erros - Retorna JSON com status 200 para evitar interceptação de crash 500 pela Vercel
 app.use((err: any, req: any, res: any, next: any) => {
     console.error('[Proxy] Internal Server Error:', err);
-    res.status(err.status || 500).json({
+    res.status(200).json({
         error: 'Erro interno no servidor proxy',
-        message: err.message,
+        message: err.message || String(err),
         detail: process.env.NODE_ENV === 'production' ? undefined : err.stack
     });
 });

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { PaymentAdapter, ChargeRequest, PaymentResponse } from '../PaymentAdapter.js';
+import type { PaymentAdapter, ChargeRequest, PaymentResponse } from '../PaymentAdapter';
 
 export class MercadoPagoAdapter implements PaymentAdapter {
     private accessToken: string;

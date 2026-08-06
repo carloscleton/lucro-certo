@@ -1,7 +1,7 @@
-import type { PaymentAdapter } from './PaymentAdapter.js';
-import { MercadoPagoAdapter } from './adapters/MercadoPagoAdapter.js';
-import { AsaasAdapter } from './adapters/AsaasAdapter.js';
-import { StripeAdapter } from './adapters/StripeAdapter.js';
+import type { PaymentAdapter } from './PaymentAdapter';
+import { MercadoPagoAdapter } from './adapters/MercadoPagoAdapter';
+import { AsaasAdapter } from './adapters/AsaasAdapter';
+import { StripeAdapter } from './adapters/StripeAdapter';
 
 export class PaymentFactory {
     private static adapters: Record<string, any> = {
