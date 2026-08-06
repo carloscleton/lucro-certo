@@ -825,7 +825,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             return;
         }
 
-        const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (currentCompany.tecnospeed_config.nfse_nacional || currentCompany.tecnospeed_config.nfse?.config?.nfseNacional || false));
+        const tecnoConfig = currentCompany?.tecnospeed_config || {};
+        const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (tecnoConfig.nfse_nacional || tecnoConfig.nfse?.config?.nfseNacional || false));
 
         if (type === 'nfse' && isNacional) {
             if (items.length > 1) {
@@ -1015,8 +1016,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             const itemNotes = notes?.trim() || '';
                             const fullDescription = itemNotes ? `${i.description}\n${itemNotes}` : i.description;
 
+                            const safeTaxCode = String(i.taxCode || i.codigoTributacaoNacional || i.taxationCode || '010701');
                             const item: any = {
-                                codigo: isNacional ? (i.taxCode?.replace(/\D/g, '').substring(0, 6)) : i.taxCode,
+                                codigo: isNacional ? (safeTaxCode.replace(/\D/g, '').substring(0, 6) || '010701') : safeTaxCode,
                                 codigoIbge: companyCityCode,
                                 discriminacao: `${fullDescription}${descSuffix}`,
                                 descricao: `${fullDescription}${descSuffix}`,
@@ -1026,7 +1028,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     descontoIncondicionado: 0
                                 },
                                 quantidade: 1,
-                                itemListaServico: i.taxCode.includes('.') ? i.taxCode : '01.01'
+                                itemListaServico: safeTaxCode.includes('.') ? safeTaxCode : '01.01'
                             };
 
                             if (i.cnae && !isNacional) {
