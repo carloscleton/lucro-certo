@@ -7292,7 +7292,7 @@ app.post(['/instances', '/api/instances'], authenticate, async (req, res) => {
         const errorDetail = error.response?.data || error.message;
         const providerName = provider === 'waha' ? 'WAHA API' : 'Evolution API';
         console.error(`❌ Erro na ${providerName}:`, errorDetail);
-        res.status(500).json({
+        res.json({
             error: `Erro ao criar instância na ${providerName}`,
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7646,7 +7646,7 @@ app.post(['/instances/:name/webhook', '/api/instances/:name/webhook'], authentic
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao configurar webhook:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({
+        res.json({
             error: 'Erro ao configurar webhook na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7697,7 +7697,7 @@ app.get(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-se
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao buscar configurações avançadas de "${name}":`, errorDetail);
-        res.status(500).json({
+        res.json({
             error: 'Erro ao buscar configurações avançadas na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7757,7 +7757,7 @@ app.post(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-s
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao atualizar configurações avançadas de "${name}":`, errorDetail);
-        res.status(500).json({
+        res.json({
             error: 'Erro ao atualizar configurações avançadas na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7805,7 +7805,7 @@ app.post(['/instances/:name/rename', '/api/instances/:name/rename'], authenticat
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao renomear instância "${name}":`, JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({
+        res.json({
             error: 'Erro ao renomear instância na Evolution API',
             detail: errorDetail
         });

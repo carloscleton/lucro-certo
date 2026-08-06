@@ -466,7 +466,7 @@ export function WhatsApp() {
             let data: any = {};
             try { data = JSON.parse(rawText); } catch { data = { error: 'Resposta inválida do servidor', detail: rawText.substring(0, 100) }; }
 
-            if (!response.ok) {
+            if (!response.ok || data.error) {
                 const detail = data.detail ? `: ${typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail}` : '';
                 throw new Error((data.error || data.message || 'Erro no servidor proxy') + detail);
             }
