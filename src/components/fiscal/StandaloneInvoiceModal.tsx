@@ -741,9 +741,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 setError('O cliente selecionado não possui CPF/CNPJ cadastrado.');
                 return;
             }
-            if (!contact.zip_code || !contact.street || !contact.neighborhood || !contact.city || !contact.state) {
-                console.warn('⚠️ [handleSubmit] Endereço do tomador incompleto:', contact);
-                setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, bairro, cidade, estado são obrigatórios para emissão).');
+            if (activeProvider !== 'national' && (!contact.zip_code || !contact.street || !contact.city || !contact.state)) {
+                console.warn('⚠️ [handleSubmit] Endereço do tomador incompleto para provedor municipal:', contact);
+                setError('O cliente selecionado possui dados de endereço incompletos (CEP, logradouro, cidade, estado são obrigatórios).');
                 return;
             }
         }
@@ -2167,6 +2167,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             </div>
                         )}
                     </div>
+                    {error && (
+                        <div className="w-full md:w-auto text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-800/50 flex items-center gap-2 max-w-md animate-in fade-in duration-200">
+                            <AlertCircle size={16} className="shrink-0 text-rose-600 dark:text-rose-400" />
+                            <span className="truncate">{error}</span>
+                        </div>
+                    )}
                     <div className="flex gap-3 w-full md:w-auto">
                         <Button 
                             type="button" 
