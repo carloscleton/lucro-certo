@@ -5031,7 +5031,7 @@ export function FiscalSettings() {
                                 value={(nationalConfig as any).proximo_numero_dps || ''}
                                 onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
                                 placeholder="Ex: 30 (Alinhado com a NFS-e)"
-                                helpText="Número da próxima DPS a ser enviada ao SEFIN Nacional."
+                                helpText="💡 Dica: Para manter a numeração da DPS exatamente IGUAL ao número da Nota Fiscal (NFS-e), informe aqui o número desejado para a próxima emissão (ex: se a última nota foi a 29, informe 30)."
                             />
 
                             <div>
