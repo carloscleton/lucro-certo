@@ -121,11 +121,17 @@ app.use((req, res, next) => {
 // Roteamento robusto: todas as rotas fiscais suportam prefixo /api ou direto.
 
 // Evolution API Config
+const MASTER_EVOLUTION_KEY = '7c4678985d13dfd7a89d4e56e7503563';
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '') || 'https://evo.idealzap.com.br';
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim() || '429643C4BE41416C8A4D6208D69A3B56';
+const EVOLUTION_API_KEY = (process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_API_KEY.includes('7c467898')) 
+    ? process.env.EVOLUTION_API_KEY.trim() 
+    : MASTER_EVOLUTION_KEY;
 
-const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL || 'https://evo.idealzap.com.br';
-const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY || '429643C4BE41416C8A4D6208D69A3B56';
+const MASTER_EVOLUTION_GO_KEY = 'fe079bb46dea5a9a0d08df7f2c9ff9ff';
+const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || 'https://evogo.idealzap.com.br';
+const EVOLUTION_GO_API_KEY = (process.env.EVOLUTION_GO_API_KEY && process.env.EVOLUTION_GO_API_KEY.includes('fe079bb')) 
+    ? process.env.EVOLUTION_GO_API_KEY.trim() 
+    : MASTER_EVOLUTION_GO_KEY;
 
 // WAHA API Config
 const WAHA_API_URL = process.env.WAHA_API_URL?.trim().replace(/\/+$/, '') || 'http://localhost:3000';
