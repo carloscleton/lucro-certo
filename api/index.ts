@@ -604,34 +604,46 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 let cleanChNFSe = String(chNFSe || '').trim().replace(/^DPS/i, '').replace(/\D/g, '');
 
-                // Se chNFSe não possui 50 dígitos (ex: é ID do DPS com 46 dígitos), consulta o SEFIN para obter a chave oficial
-                if (cleanChNFSe.length !== 50) {
-                    const rawId = String(chNFSe || '').trim();
-                    if (rawId.startsWith('DPS') || rawId.length === 46) {
-                        console.log(`🔎 [ADN-NACIONAL-CANCEL] Identificado ID de DPS (${chNFSe}). Consultando SEFIN para obter Chave de Acesso...`);
+                // Se chNFSe não possui 50 ou 44 dígitos (ex: é ID do DPS temporário DPS_...), consulta o SEFIN para obter a chave oficial
+                if (cleanChNFSe.length !== 50 && cleanChNFSe.length !== 44) {
+                    const natConfig = settings?.national_config || {};
+                    const cleanCnpj = (natConfig.cnpj || '').replace(/\D/g, '');
+                    const cLocEmi = natConfig.codigo_municipio || '2408102';
+                    const serieVal = dbInvoiceRecord?.dps_serie || '1';
+
+                    let rawSeqNum = dbInvoiceRecord?.dps_number || dbInvoiceRecord?.invoice_number || '';
+                    if (!rawSeqNum || isNaN(Number(rawSeqNum))) {
+                        const match = String(id).match(/_(\d+)_/);
+                        if (match) rawSeqNum = match[1];
+                    }
+                    const cleanDpsSeq = parseInt(String(rawSeqNum || '0').replace(/\D/g, ''), 10);
+
+                    if (cleanCnpj && !isNaN(cleanDpsSeq) && cleanDpsSeq > 0) {
+                        const paddedDpsNum = String(cleanDpsSeq).padStart(15, '0');
+                        const dpsIdFormatted = `DPS${cLocEmi}2${cleanCnpj}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
+                        console.log(`🔎 [ADN-NACIONAL-CANCEL] Identificado ID de DPS (${id}). Consultando SEFIN por DPS ID: ${dpsIdFormatted}...`);
+
                         try {
-                            const dpsResponse = await axios.get(`${sefinCancelUrl}/dps/${rawId}`, {
+                            const dpsResponse = await axios.get(`${sefinCancelUrl}/dps/${dpsIdFormatted}`, {
                                 httpsAgent: httpsAgentCert,
                                 headers: { 'Accept': 'application/json' },
                                 timeout: 15000
                             });
-                            const fetchedChave = dpsResponse?.data?.chaveAcesso || 
-                                                 dpsResponse?.data?.chNFSe || 
-                                                 dpsResponse?.data?.nfse?.chaveAcesso;
+                            const fetchedChave = dpsResponse?.data?.chaveAcesso || dpsResponse?.data?.chNFSe;
                             if (fetchedChave) {
                                 console.log(`✅ [ADN-NACIONAL-CANCEL] Chave de Acesso obtida via DPS: ${fetchedChave}`);
                                 chNFSe = fetchedChave;
                                 cleanChNFSe = fetchedChave.replace(/\D/g, '');
                             }
                         } catch (dpsLookupErr: any) {
-                            console.warn(`⚠️ [ADN-NACIONAL-CANCEL] Não foi possível consultar chave pelo DPS:`, dpsLookupErr.message);
+                            console.warn(`⚠️ [ADN-NACIONAL-CANCEL] Consulta por DPS ID falhou:`, dpsLookupErr.message);
                         }
                     }
                 }
 
-                if (cleanChNFSe.length !== 50) {
+                if (cleanChNFSe.length !== 50 && cleanChNFSe.length !== 44) {
                     return res.status(400).json({
-                        error: `Erro no Portal Nacional (SEFIN): A Nota Fiscal selecionada não possui uma Chave de Acesso válida de 50 dígitos (valor atual: '${chNFSe}'). Verifique se a nota foi autorizada com sucesso na Receita Federal.`
+                        error: `Erro no Portal Nacional (SEFIN): A Nota Fiscal selecionada não possui uma Chave de Acesso válida (valor atual: '${chNFSe}'). Verifique se a nota foi autorizada com sucesso na Receita Federal.`
                     });
                 }
 
@@ -4993,7 +5005,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const invPayload = dbInvoiceRecord?.payload || {};
                 const inf = invPayload.infDPS || invPayload.payload?.infDPS || invPayload.retorno?.infDPS || {};
                 const prest = inf.prest || invPayload.prestador || {};
-                const toma = inf.toma || invPayload.tomador || {};
+                const toma = inf.toma || invPayload.tomador || invPayload.destinatario || invPayload.borrower || {};
                 const serv = inf.serv || invPayload.servico || (Array.isArray(invPayload.servico) ? invPayload.servico[0] : {});
                 const val = inf.valores || invPayload.valores || {};
 
@@ -5009,8 +5021,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         im: prest.IM || prest.im || nat.inscricao_municipal || 'Isento'
                     },
                     tomador: {
-                        doc: toma.CNPJ || toma.CPF || toma.doc || '',
-                        nome: toma.xNome || toma.nome || 'TOMADOR DE SERVIÇO',
+                        doc: toma.CNPJ || toma.CPF || toma.cnpj || toma.cpf || toma.doc || toma.federalTaxNumber || '',
+                        nome: toma.xNome || toma.nome || toma.razaoSocial || toma.name || 'TOMADOR DE SERVIÇO',
                         email: toma.email || ''
                     },
                     servico: {
@@ -5066,19 +5078,28 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const cBag = cBags[forge.pki.oids.certBag];
                 if (cBag?.length > 0) certPemDl = cBag.map((b: any) => forge.pki.certificateToPem(b.cert)).join('\n');
 
-                const httpsAgentDl = new https.Agent({ key: privKeyPemDl, cert: certPemDl, rejectUnauthorized: true, keepAlive: false });
+                const httpsAgentDl = new https.Agent({ key: privKeyPemDl, cert: certPemDl, rejectUnauthorized: false, keepAlive: false });
 
                 if (isXml) {
                     try {
                         const xmlRespDl = await axios.get(`${sefinBaseUrlDl}/nfse/${chNFSe}`, {
                             httpsAgent: httpsAgentDl,
-                            headers: { 'Accept': 'application/xml, text/xml, */*' },
-                            timeout: 15000,
-                            responseType: 'arraybuffer'
+                            headers: { 'Accept': 'application/json, application/xml, text/xml, */*' },
+                            timeout: 15000
                         });
-                        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-                        res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
-                        return res.send(Buffer.from(xmlRespDl.data));
+
+                        let xmlContent = '';
+                        if (xmlRespDl.data?.nfseXmlGZipB64) {
+                            xmlContent = zlib.gunzipSync(Buffer.from(xmlRespDl.data.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                        } else if (typeof xmlRespDl.data === 'string' && xmlRespDl.data.trim().startsWith('<')) {
+                            xmlContent = xmlRespDl.data;
+                        }
+
+                        if (xmlContent) {
+                            res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                            res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                            return res.send(Buffer.from(xmlContent, 'utf-8'));
+                        }
                     } catch (xmlSefinErr: any) {
                         if (savedXml) {
                             console.log(`📝 [ADN-DOWNLOAD] Sefin XML indisponivel. Servindo xml_assinado salvo no banco...`);
@@ -5100,7 +5121,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                         return res.send(Buffer.from(pdfRespDl.data));
                     } catch (pdfDlErr: any) {
-                        console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF no servidor...`);
+                        console.warn(`⚠️ [ADN-DOWNLOAD] PDF direto indisponivel no Sefin. Gerando DANFSE PDF oficial no servidor...`);
                         res.setHeader('Content-Type', 'application/pdf');
                         res.setHeader('Content-Disposition', `inline; filename="danfse-${chNFSe}.pdf"`);
                         return res.send(buildDanfsePdfBuffer());

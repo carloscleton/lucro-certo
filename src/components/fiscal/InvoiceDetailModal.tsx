@@ -32,6 +32,11 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
+    const [activeTab, setActiveTab] = useState<'pdf' | 'xml' | 'details'>('pdf');
+    const [xmlText, setXmlText] = useState<string>('');
+    const [loadingXml, setLoadingXml] = useState(false);
+    const [copiedXml, setCopiedXml] = useState(false);
+
     const [sendModal, setSendModal] = useState<{
         isOpen: boolean;
         type: 'whatsapp' | 'email';
@@ -61,6 +66,28 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         };
         fetchWA();
     }, [invoice?.company_id, isOpen]);
+
+    // Buscar XML real descompactado quando a aba XML for selecionada
+    useEffect(() => {
+        if (activeTab === 'xml' && !xmlText && invoice?.external_id) {
+            setLoadingXml(true);
+            const fetchXml = async () => {
+                try {
+                    const token = (await supabase.auth.getSession()).data.session?.access_token;
+                    if (!token) return;
+                    const blob = await fiscalService.downloadXML(invoice.external_id, invoice.type, invoice.company_id, token);
+                    const text = await blob.text();
+                    setXmlText(text);
+                } catch (err: any) {
+                    console.error('Erro ao buscar XML:', err);
+                    setXmlText('<!-- Não foi possível carregar o conteúdo do XML -->');
+                } finally {
+                    setLoadingXml(false);
+                }
+            };
+            fetchXml();
+        }
+    }, [activeTab, invoice?.external_id]);
 
     // Buscar linha do tempo de eventos
     const fetchEvents = async () => {
@@ -588,35 +615,157 @@ ${messageWithPlaceholder}`;
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 w-full max-w-4xl h-[90vh] max-h-[800px] flex flex-col animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
-                <div className="flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/30 p-6 border-b border-gray-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <Receipt size={22} />
+                <div className="flex flex-col border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+                    <div className="flex justify-between items-center p-6 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                                <Receipt size={22} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                                    Nota Fiscal {invoice.invoice_number ? `Nº ${invoice.invoice_number}` : 'Avulsa'}
+                                    <span className="text-xs font-black uppercase text-gray-400">({invoice.type})</span>
+                                </h3>
+                                <p className="text-xs text-gray-400 font-semibold truncate max-w-sm">ID: {invoice.external_id}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
-                                Nota Fiscal {invoice.invoice_number ? `Nº ${invoice.invoice_number}` : 'Avulsa'}
-                                <span className="text-xs font-black uppercase text-gray-400">({invoice.type})</span>
-                            </h3>
-                            <p className="text-xs text-gray-400 font-semibold truncate max-w-sm">ID PlugNotas: {invoice.external_id}</p>
+                        
+                        <div className="flex items-center gap-2">
+                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider ${statusStyle.bg}`}>
+                                {statusStyle.icon}
+                                {statusStyle.label}
+                            </div>
+                            <button 
+                                onClick={onClose}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider ${statusStyle.bg}`}>
-                            {statusStyle.icon}
-                            {statusStyle.label}
-                        </div>
-                        <button 
-                            onClick={onClose}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white"
+
+                    {/* Navegação por Abas (PDF, XML, Detalhes) */}
+                    <div className="flex items-center gap-2 px-6 pb-3">
+                        <button
+                            onClick={() => setActiveTab('pdf')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                activeTab === 'pdf'
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            }`}
                         >
-                            <X size={20} />
+                            <FileText size={15} />
+                            📄 Documento DANFSe (PDF)
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('xml')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                activeTab === 'xml'
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <FileCode size={15} />
+                            💻 Arquivo XML Fiscal
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('details')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                activeTab === 'details'
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <Receipt size={15} />
+                            📊 Detalhes & Auditoria
                         </button>
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Main Tab Area */}
+                {activeTab === 'pdf' && (
+                    <div className="flex-1 flex flex-col p-4 bg-slate-900/5 dark:bg-slate-950/40 overflow-hidden">
+                        <div className="flex items-center justify-between pb-3 px-2">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                <FileText size={16} className="text-blue-500" />
+                                Visualizando Documento Auxiliar DANFSe
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadFile('pdf')}
+                                    className="text-xs py-1.5"
+                                >
+                                    <FileText size={14} className="mr-1" />
+                                    Baixar PDF
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(pdfUrl, '_blank')}
+                                    className="text-xs py-1.5"
+                                >
+                                    <Printer size={14} className="mr-1" />
+                                    Abrir em Nova Aba
+                                </Button>
+                            </div>
+                        </div>
+                        <iframe
+                            src={pdfUrl}
+                            className="w-full flex-1 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white min-h-[500px]"
+                            title="Visualizador de PDF DANFSe"
+                        />
+                    </div>
+                )}
+
+                {activeTab === 'xml' && (
+                    <div className="flex-1 flex flex-col p-4 bg-slate-950 text-slate-100 font-mono text-xs overflow-hidden">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <span className="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <FileCode size={16} />
+                                Conteúdo XML Autorizado da NFS-e
+                            </span>
+                            <div className="flex items-center gap-2 font-sans">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(xmlText);
+                                        setCopiedXml(true);
+                                        setTimeout(() => setCopiedXml(false), 2000);
+                                    }}
+                                    className="text-xs py-1.5"
+                                >
+                                    {copiedXml ? 'Copiado! ✓' : 'Copiar XML'}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadFile('xml')}
+                                    className="text-xs py-1.5"
+                                >
+                                    Baixar XML
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-auto p-4 bg-slate-900/60 rounded-2xl border border-slate-800/80 mt-3 scrollbar-thin">
+                            {loadingXml ? (
+                                <div className="flex items-center justify-center h-full text-slate-400 gap-2">
+                                    <RefreshCw size={18} className="animate-spin text-blue-400" />
+                                    Carregando XML oficial...
+                                </div>
+                            ) : (
+                                <pre className="whitespace-pre-wrap break-all leading-relaxed text-emerald-300/90 selection:bg-blue-500 selection:text-white">
+                                    {xmlText || 'Carregando arquivo XML...'}
+                                </pre>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'details' && (
+                /* Content Details */
                 <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-slate-800">
                     
                     {/* Left: General Info & Summary */}
@@ -957,6 +1106,7 @@ ${messageWithPlaceholder}`;
                     </div>
 
                 </div>
+                )}
 
             </div>
 
