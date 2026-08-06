@@ -7077,7 +7077,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 }
 
 // Endpoints
-app.post('/instances', authenticate, async (req, res) => {
+app.post(['/instances', '/api/instances'], authenticate, async (req, res) => {
     const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id, advancedSettings, provider } = req.body;
 
     if (!name) {
@@ -7376,7 +7376,7 @@ app.get(['/instances/evogo-sync', '/api/instances/evogo-sync'], authenticate, as
 });
 
 
-app.get('/instances/:name/connect', authenticate, async (req, res) => {
+app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7530,7 +7530,7 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
     }
 });
 
-app.post('/instances/:name/webhook', authenticate, async (req, res) => {
+app.post(['/instances/:name/webhook', '/api/instances/:name/webhook'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { url, events, enabled, base64, token, company_id, transport } = req.body;
 
@@ -7654,7 +7654,7 @@ app.post('/instances/:name/webhook', authenticate, async (req, res) => {
 });
 
 // GET advanced-settings for Evolution GO
-app.get('/instances/:name/advanced-settings', authenticate, async (req, res) => {
+app.get(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-settings'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7705,7 +7705,7 @@ app.get('/instances/:name/advanced-settings', authenticate, async (req, res) => 
 });
 
 // POST (updates) advanced-settings for Evolution GO
-app.post('/instances/:name/advanced-settings', authenticate, async (req, res) => {
+app.post(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-settings'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
     const { alwaysOnline, rejectCall, msgRejectCall, readMessages, ignoreGroups, ignoreStatus } = req.body;
@@ -7764,7 +7764,7 @@ app.post('/instances/:name/advanced-settings', authenticate, async (req, res) =>
     }
 });
 
-app.post('/instances/:name/rename', authenticate, async (req, res) => {
+app.post(['/instances/:name/rename', '/api/instances/:name/rename'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { newName } = req.body;
     const { token, company_id } = req.query;
@@ -7812,7 +7812,7 @@ app.post('/instances/:name/rename', authenticate, async (req, res) => {
     }
 });
 
-app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
+app.post(['/instances/:name/profile-name', '/api/instances/:name/profile-name'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { profileName } = req.body;
     const { token, company_id } = req.query;
@@ -8200,7 +8200,7 @@ app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate
     }
 });
 
-app.delete('/instances/:name', authenticate, async (req, res) => {
+app.delete(['/instances/:name', '/api/instances/:name'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
