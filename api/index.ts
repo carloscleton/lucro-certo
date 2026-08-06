@@ -3085,7 +3085,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             external_id: String(docId),
                             type: 'national',
                             status: 'concluido',
-                            amount: vServ,
                             invoice_number: nNFSeVal || nDPS,
                             access_key: chaveAcesso || null,
                             dps_number: nDPS,
