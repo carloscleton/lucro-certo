@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
@@ -209,6 +209,64 @@ export function Invoices() {
     const [activeInstances, setActiveInstances] = useState<any[]>([]);
     const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
     const [goInstancesList, setGoInstancesList] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!invoices || invoices.length === 0) return;
+        
+        const processingInvoices = invoices.filter(inv => String(inv.status).toLowerCase() === 'processando');
+        if (processingInvoices.length === 0) return;
+
+        const autoSyncProcessing = async () => {
+            let updatedCount = 0;
+            for (const inv of processingInvoices) {
+                try {
+                    const dpsNum = inv.dps_number || inv.invoice_number;
+                    if (dpsNum && inv.company_id) {
+                        const { data: matched } = await supabase
+                            .from('fiscal_invoices')
+                            .select('*')
+                            .eq('company_id', inv.company_id)
+                            .eq('status', 'concluido')
+                            .or(`dps_number.eq.${dpsNum},invoice_number.eq.${dpsNum}`)
+                            .limit(1);
+
+                        if (matched?.[0]) {
+                            console.log(`✅ [AUTO-SYNC] Atualizando nota temporária ${inv.id} com dados concluídos da DPS #${dpsNum}...`);
+                            await supabase
+                                .from('fiscal_invoices')
+                                .update({
+                                    status: 'concluido',
+                                    invoice_number: matched[0].invoice_number,
+                                    access_key: matched[0].access_key,
+                                    external_id: matched[0].access_key || matched[0].external_id,
+                                    pdf_url: matched[0].pdf_url,
+                                    xml_url: matched[0].xml_url,
+                                    payload: matched[0].payload
+                                })
+                                .eq('id', inv.id);
+                            updatedCount++;
+                            continue;
+                        }
+                    }
+
+                    const createdAtTime = new Date(inv.created_at || Date.now()).getTime();
+                    if (inv.external_id?.startsWith('DPS_') && (Date.now() - createdAtTime > 3600000)) {
+                        console.log(`🧹 [AUTO-SYNC] Removendo pré-registro temporário antigo: ${inv.id}`);
+                        await supabase.from('fiscal_invoices').delete().eq('id', inv.id);
+                        updatedCount++;
+                    }
+                } catch (err: any) {
+                    console.warn(`⚠️ [AUTO-SYNC] Erro na sincronização automática da nota ${inv.id}:`, err.message);
+                }
+            }
+
+            if (updatedCount > 0) {
+                refresh();
+            }
+        };
+
+        autoSyncProcessing();
+    }, [invoices?.length]);
 
     const handleAiRewrite = async () => {
         if (!sendModal.message) return;

@@ -5830,15 +5830,54 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             });
         }
 
-        // Bypass para notas do Portal Nacional (ADN gov.br / Direct National)
+        // Bypass e Auto-sincronização para notas do Portal Nacional (ADN gov.br / Direct National)
         if (activeProvider === 'national' || type === 'nfsenac' || String(id).startsWith('DPS')) {
-            console.log(`🌐 [FISCAL-STATUS] Nota do Portal Nacional detectada (${id}). Retornando dados salvos do banco.`);
+            console.log(`🌐 [FISCAL-STATUS] Nota do Portal Nacional detectada (${id}). Verificando status...`);
+            
+            // Se a nota está em 'processando', tenta localizar se existe outro registro concluído correspondente no banco
+            if (dbRecord?.company_id && (dbRecord.status === 'processando' || !dbRecord.status)) {
+                try {
+                    const dpsNumToMatch = dbRecord.dps_number || dbRecord.invoice_number;
+                    if (dpsNumToMatch) {
+                        const { data: matchedConcluido } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
+                            params: {
+                                company_id: `eq.${dbRecord.company_id}`,
+                                status: `eq.concluido`,
+                                or: `(dps_number.eq.${dpsNumToMatch},invoice_number.eq.${dpsNumToMatch})`,
+                                select: '*',
+                                limit: 1
+                            },
+                            headers: dbWriteHeaders
+                        });
+
+                        if (matchedConcluido?.[0]) {
+                            const matched = matchedConcluido[0];
+                            console.log(`✅ [FISCAL-STATUS] Registro concluído localizado no banco (ID: ${matched.id}). Atualizando nota em processando ${dbRecord.id}...`);
+                            
+                            await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${dbRecord.id}`, {
+                                status: 'concluido',
+                                invoice_number: matched.invoice_number,
+                                access_key: matched.access_key,
+                                external_id: matched.access_key || matched.external_id,
+                                pdf_url: matched.pdf_url,
+                                xml_url: matched.xml_url,
+                                payload: matched.payload
+                            }, { headers: dbWriteHeaders });
+
+                            dbRecord = { ...dbRecord, ...matched, status: 'concluido' };
+                        }
+                    }
+                } catch (syncErr: any) {
+                    console.warn(`⚠️ [FISCAL-STATUS] Erro ao sincronizar localmente:`, syncErr.message);
+                }
+            }
+
             const statusVal = dbRecord?.status || 'concluido';
             return res.json({
                 id,
                 status: statusVal,
                 flowStatus: statusVal,
-                number: dbRecord?.invoice_number || null,
+                number: dbRecord?.invoice_number || dbRecord?.dps_number || null,
                 verificationCode: dbRecord?.access_key || id,
                 pdf: dbRecord?.pdf_url || null,
                 xml: dbRecord?.xml_url || null,
