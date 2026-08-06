@@ -217,8 +217,6 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 const settings = response.data[0].settings || {};
                 if (settings.whatsapp_provider) {
                     defaultProvider = settings.whatsapp_provider;
-                } else if (settings.whatsapp_provider_evo_go_enabled !== false) {
-                    defaultProvider = 'evolution_go';
                 }
             }
         } catch (err: any) {
@@ -7546,8 +7544,27 @@ app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authentica
                 const fallbackConfig = getAlternativeConfig(config);
                 resultData = await executeConnect(fallbackConfig);
             } catch (fbErr: any) {
-                console.warn(`⚠️ Fallback connect também falhou: ${fbErr.message}`);
-                throw primaryErr;
+                console.warn(`⚠️ Fallback connect também falhou: ${fbErr.message}. Tentando auto-criação da instância no servidor...`);
+                // Auto-regeneração: se a instância não existe na Evolution, cria automaticamente e obtém o QR Code
+                try {
+                    const createRes = await axios.post(`${config.url}/instance/create`, {
+                        instanceName: targetName,
+                        name: targetName,
+                        qrcode: true,
+                        integration: 'WHATSAPP-BAILEYS'
+                    }, {
+                        headers: { 'apikey': config.apiKey }
+                    });
+                    const qrObj = createRes.data?.qrcode || {};
+                    resultData = {
+                        code: qrObj.code || createRes.data?.code || '',
+                        base64: qrObj.base64 || createRes.data?.base64 || ''
+                    };
+                    console.log(`✨ Instância "${targetName}" auto-criada na conexão com sucesso!`);
+                } catch (autoCreateErr: any) {
+                    console.warn('⚠️ Auto-criação na conexão falhou:', autoCreateErr.message);
+                    throw primaryErr;
+                }
             }
         }
 
