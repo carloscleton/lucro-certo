@@ -780,11 +780,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 return;
             }
             const invalidItem = items.find(i => {
-                const code = i.codigoTributacaoNacional || i.taxationCode || i.taxCode;
-                return !code || code.replace(/\D/g, '').length !== 9;
+                const code = i.codigoTributacaoNacional || i.taxationCode || i.taxCode || '';
+                const clean = code.replace(/\D/g, '');
+                return !clean || (clean.length !== 6 && clean.length !== 9);
             });
             if (invalidItem) {
-                setError(`O item "${invalidItem.description}" deve ter um código de tributação de exatamente 9 dígitos para o Padrão Nacional.`);
+                setError(`O item "${invalidItem.description}" deve ter um código de tributação de 6 dígitos (cTribNac) ou 9 dígitos (NBS) para o Padrão Nacional.`);
                 return;
             }
         }
