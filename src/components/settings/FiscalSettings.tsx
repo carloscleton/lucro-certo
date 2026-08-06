@@ -235,7 +235,8 @@ export function FiscalSettings() {
         certificado_pfx_base64: '',
         certificado_status: '',
         send_email_automatically: false,
-        send_whatsapp_automatically: false
+        send_whatsapp_automatically: false,
+        proximo_numero_dps: ''
     });
 
     useEffect(() => {
@@ -452,7 +453,8 @@ export function FiscalSettings() {
             certificado_pfx_base64: nat.certificado_pfx_base64 || '',
             certificado_status: nat.certificado_status || '',
             send_email_automatically: nat.send_email_automatically || false,
-            send_whatsapp_automatically: nat.send_whatsapp_automatically || false
+            send_whatsapp_automatically: nat.send_whatsapp_automatically || false,
+            proximo_numero_dps: nat.proximo_numero_dps || ''
         });
 
         if (nat.certificado_senha) {
@@ -5022,6 +5024,14 @@ export function FiscalSettings() {
                                 value={nationalConfig.inscricao_municipal || ''}
                                 onChange={(e: any) => setNationalConfig(prev => ({ ...prev, inscricao_municipal: e.target.value }))}
                                 placeholder="Inscrição Municipal da Empresa"
+                            />
+                            <Input
+                                label="Próximo Número da DPS (Sequencial)"
+                                type="number"
+                                value={(nationalConfig as any).proximo_numero_dps || ''}
+                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
+                                placeholder="Ex: 30 (Alinhado com a NFS-e)"
+                                helpText="Número da próxima DPS a ser enviada ao SEFIN Nacional."
                             />
 
                             <div>
