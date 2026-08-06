@@ -2456,6 +2456,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.log(`🏛️ [ADN-NACIONAL] Utilizando formato direto ADN (infDPS) fornecido pelo usuário.`);
                 adnPayload = { ...payload };
 
+                // Preserva o número sequencial de DPS fornecido no payload, ou usa o calculado pelo banco se omitido
+                if (!adnPayload.infDPS.nDPS) {
+                    adnPayload.infDPS.nDPS = String(nextDpsNumber);
+                }
+
                 // Força incondicionalmente a sincronização entre a URL de destino (SEFIN) e tpAmb (1=Produção, 2=Homologação)
                 adnPayload.infDPS.tpAmb = tpAmb;
                 adnPayload.infDPS.dhEmi = dhEmi;
@@ -2463,8 +2468,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 
                 if (!adnPayload.infDPS.dCompet) adnPayload.infDPS.dCompet = dCompet;
                 
-                // Força o número sequencial da DPS calculado pelo banco para garantir sincronia DPS = NFS-e
-                adnPayload.infDPS.nDPS = String(nextDpsNumber);
+
 
                 // Garante que o cTribNac tenha 6 dígitos se presente
                 if (adnPayload.infDPS.serv?.cServ?.cTribNac) {
