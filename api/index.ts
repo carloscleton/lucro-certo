@@ -7298,6 +7298,33 @@ app.post(['/instances', '/api/instances'], authenticate, async (req, res) => {
         const errorDetail = error.response?.data || error.message;
         const providerName = provider === 'waha' ? 'WAHA API' : 'Evolution API';
         console.error(`❌ Erro na ${providerName}:`, errorDetail);
+
+        // Se o erro for de duplicidade (nome já em uso na Evolution API), recupera a instância existente!
+        if (error.response?.status === 403 || String(errorDetail).includes('already in use') || (typeof errorDetail === 'object' && JSON.stringify(errorDetail).includes('already in use'))) {
+            console.log(`⚠️ Instância "${name}" já existe na ${providerName}. Buscando dados da instância existente...`);
+            try {
+                const listRes = await axios.get(`${config.url}/instance/fetchInstances`, {
+                    headers: { 'apikey': config.apiKey }
+                });
+                const existing = (listRes.data || []).find((i: any) => (i.name || i.instance?.instanceName || '').toLowerCase() === String(name).toLowerCase());
+                if (existing) {
+                    const instToken = existing.token || existing.id || name;
+                    return res.status(200).json({
+                        instance: {
+                            instanceName: existing.name || name,
+                            token: instToken,
+                            status: 'created'
+                        },
+                        hash: {
+                            apikey: instToken
+                        }
+                    });
+                }
+            } catch (recoveryErr: any) {
+                console.warn('⚠️ Erro ao recuperar instância existente:', recoveryErr.message);
+            }
+        }
+
         res.json({
             error: `Erro ao criar instância na ${providerName}`,
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
