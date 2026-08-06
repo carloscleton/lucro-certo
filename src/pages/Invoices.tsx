@@ -211,62 +211,59 @@ export function Invoices() {
     const [goInstancesList, setGoInstancesList] = useState<string[]>([]);
 
     useEffect(() => {
-        if (!invoices || invoices.length === 0) return;
+        if (!invoices || invoices.length === 0 || !currentEntity?.id) return;
         
         const processingInvoices = invoices.filter(inv => String(inv.status).toLowerCase() === 'processando');
         if (processingInvoices.length === 0) return;
 
-        const autoSyncProcessing = async () => {
-            let updatedCount = 0;
-            for (const inv of processingInvoices) {
-                try {
-                    const dpsNum = inv.dps_number || inv.invoice_number;
-                    if (dpsNum && inv.company_id) {
-                        const { data: matched } = await supabase
-                            .from('fiscal_invoices')
-                            .select('*')
-                            .eq('company_id', inv.company_id)
-                            .eq('status', 'concluido')
-                            .or(`dps_number.eq.${dpsNum},invoice_number.eq.${dpsNum}`)
-                            .limit(1);
+        console.log(`🔄 [INVOICES-AUTO-POLL] ${processingInvoices.length} notas em processamento. Iniciando verificação automática em segundo plano...`);
 
-                        if (matched?.[0]) {
-                            console.log(`✅ [AUTO-SYNC] Atualizando nota temporária ${inv.id} com dados concluídos da DPS #${dpsNum}...`);
-                            await supabase
-                                .from('fiscal_invoices')
-                                .update({
-                                    status: 'concluido',
-                                    invoice_number: matched[0].invoice_number,
-                                    access_key: matched[0].access_key,
-                                    external_id: matched[0].access_key || matched[0].external_id,
-                                    pdf_url: matched[0].pdf_url,
-                                    xml_url: matched[0].xml_url,
-                                    payload: matched[0].payload
-                                })
-                                .eq('id', inv.id);
+        const checkAndSyncProcessing = async () => {
+            try {
+                const token = (await supabase.auth.getSession()).data.session?.access_token;
+                if (!token) return;
+
+                let updatedCount = 0;
+                for (const inv of processingInvoices) {
+                    if (!inv.external_id || !currentEntity.id) continue;
+                    
+                    try {
+                        // 1. Tentar consultar no backend (que verifica no SEFIN via mTLS)
+                        const res = await fiscalService.checkStatus(inv.external_id, currentEntity.id, token);
+                        const resStatus = String(res?.status || res?.flowStatus || '').toLowerCase();
+                        if (['issued', 'concluido', 'autorizado', 'success', 'emitida'].includes(resStatus)) {
+                            console.log(`✅ [AUTO-POLL] Nota ${inv.id} autorizada com sucesso! Atualizando dashboard...`);
                             updatedCount++;
                             continue;
                         }
-                    }
 
-                    const createdAtTime = new Date(inv.created_at || Date.now()).getTime();
-                    if (inv.external_id?.startsWith('DPS_') && (Date.now() - createdAtTime > 3600000)) {
-                        console.log(`🧹 [AUTO-SYNC] Removendo pré-registro temporário antigo: ${inv.id}`);
-                        await supabase.from('fiscal_invoices').delete().eq('id', inv.id);
-                        updatedCount++;
+                        // 2. Se for um pré-registro antigo (mais de 1h), limpar
+                        const createdAtTime = new Date(inv.created_at || Date.now()).getTime();
+                        if (inv.external_id?.startsWith('DPS_') && (Date.now() - createdAtTime > 3600000)) {
+                            await supabase.from('fiscal_invoices').delete().eq('id', inv.id);
+                            updatedCount++;
+                        }
+                    } catch (invErr: any) {
+                        console.warn(`⚠️ [AUTO-POLL] Erro ao checar status da nota ${inv.id}:`, invErr.message);
                     }
-                } catch (err: any) {
-                    console.warn(`⚠️ [AUTO-SYNC] Erro na sincronização automática da nota ${inv.id}:`, err.message);
                 }
-            }
 
-            if (updatedCount > 0) {
-                refresh();
+                if (updatedCount > 0) {
+                    refresh();
+                }
+            } catch (err: any) {
+                console.warn(`⚠️ [AUTO-POLL] Falha no ciclo de verificação:`, err.message);
             }
         };
 
-        autoSyncProcessing();
-    }, [invoices?.length]);
+        // Roda uma vez imediatamente
+        checkAndSyncProcessing();
+
+        // Roda periodicamente a cada 5 segundos enquanto houver notas em processamento
+        const intervalId = setInterval(checkAndSyncProcessing, 5000);
+
+        return () => clearInterval(intervalId);
+    }, [invoices?.length, currentEntity?.id]);
 
     const handleAiRewrite = async () => {
         if (!sendModal.message) return;
