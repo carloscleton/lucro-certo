@@ -143,7 +143,7 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
     const { currentEntity, availableEntities, switchEntity } = useEntity();
     const { contacts, addContact, updateContact } = useContacts();
-    const { companies } = useCompanies();
+    const { companies, updateCompany } = useCompanies();
     const { services } = useServices();
     const { products } = useProducts();
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -1254,6 +1254,28 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 console.log(`💾 [DB-SAVE] Inserindo nova nota ${returnedKey}...`);
                                 const { error: dbError } = await supabase.from('fiscal_invoices').insert(completePayloadToSave);
                                 if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                            }
+
+                            if (isNacional && currentCompany?.id) {
+                                try {
+                                    const numNf = parseInt(String(returnedNum || result.nNFSe || result.dps_number || '0'), 10);
+                                    const numDps = parseInt(String(result.nDPS || result.dps_number || returnedNum || '0'), 10);
+                                    const maxNum = Math.max(isNaN(numNf) ? 0 : numNf, isNaN(numDps) ? 0 : numDps);
+                                    if (maxNum > 0) {
+                                        const nextDpsToSave = String(maxNum + 1);
+                                        console.log(`💾 [FRONTEND] Atualizando proximo_numero_dps para: ${nextDpsToSave}...`);
+                                        const existingNat = currentCompany.settings?.national_config || {};
+                                        await updateCompany(currentCompany.id, {
+                                            settings: {
+                                                ...(currentCompany.settings || {}),
+                                                national_config: {
+                                                    ...existingNat,
+                                                    proximo_numero_dps: nextDpsToSave
+                                                }
+                                            }
+                                        });
+                                    }
+                                } catch (natErr) {}
                             }
                         } else {
                             console.error(`❌ [DB-SAVE] Abortando gravação: ID da empresa não é um UUID válido (${realCompanyId})`);

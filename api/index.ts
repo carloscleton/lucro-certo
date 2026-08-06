@@ -3192,7 +3192,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         } catch (evErr) {}
 
                         try {
-                            const nextDpsToSave = Number(nDPS || currentDpsSeq) + 1;
+                            const maxIssued = Math.max(Number(nNFSeVal || 0), Number(nDPS || 0), Number(currentDpsSeq || 0));
+                            const nextDpsToSave = maxIssued + 1;
                             nat.proximo_numero_dps = nextDpsToSave;
                             await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
                                 settings: {
@@ -3210,6 +3211,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         } catch (settingUpdateErr: any) {
                             console.warn(`⚠️ [ADN-NACIONAL] Não foi possível atualizar proximo_numero_dps nas configurações:`, settingUpdateErr.message);
                         }
+                    } catch (dbErr: any) {
                         console.error('❌ [ADN-NACIONAL] Erro ao salvar nota no banco:', dbErr.message);
                     }
                 }
@@ -5791,7 +5793,7 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
             const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                 params: {
                     external_id: `eq.${id}`,
-                    select: 'type,payload,status,invoice_number,access_key,pdf_url,xml_url,error_message'
+                    select: '*'
                 },
                 headers: {
                     'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
@@ -5972,6 +5974,22 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
 
                             await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${dbRecord.id}`, updateData, { headers: dbWriteHeaders });
                             dbRecord = { ...dbRecord, ...updateData };
+
+                            // Atualizar proximo_numero_dps na empresa se necessário
+                            try {
+                                const maxVal = Math.max(Number(nNFSeVal || 0), Number(nDPS || 0));
+                                if (maxVal > 0) {
+                                    const nextDps = maxVal + 1;
+                                    const currentConfiguredDps = Number(nat.proximo_numero_dps || 0);
+                                    if (nextDps > currentConfiguredDps) {
+                                        nat.proximo_numero_dps = nextDps;
+                                        await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
+                                            settings: { ...settings, national_config: nat }
+                                        }, { headers: dbWriteHeaders });
+                                        console.log(`💾 [ADN-STATUS-SEFIN] proximo_numero_dps atualizado nas configurações para: ${nextDps}`);
+                                    }
+                                }
+                            } catch (settingErr: any) {}
                         }
                     } catch (sefinQueryErr: any) {
                         console.warn(`⚠️ [ADN-STATUS-SEFIN] Erro ao consultar SEFIN diretamente:`, sefinQueryErr.message);
