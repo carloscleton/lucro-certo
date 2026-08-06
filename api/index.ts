@@ -5901,7 +5901,12 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                         });
 
                         const cleanCnpj = String(nat.cnpj || '').replace(/\D/g, '');
-                        const dpsNumToQuery = dbRecord.dps_number || dbRecord.invoice_number || String(id).replace(/\D/g, '');
+                        let rawSeqNum = dbRecord.dps_number || dbRecord.invoice_number || dbRecord.payload?.infDPS?.nDPS || '';
+                        if (!rawSeqNum || isNaN(Number(rawSeqNum))) {
+                            const match = String(id).match(/_(\d+)_/);
+                            if (match) rawSeqNum = match[1];
+                        }
+                        const cleanDpsSeq = parseInt(String(rawSeqNum || '0').replace(/\D/g, ''), 10);
                         let sefinHit: any = null;
 
                         // 1. Tentar consultar por Chave de Acesso se for de 44 dígitos
@@ -5912,23 +5917,33 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                             } catch (e) {}
                         }
 
-                        // 2. Tentar consultar por ID de DPS formatado (ex: DPS2408102...)
-                        if (!sefinHit && cleanCnpj && dpsNumToQuery) {
+                        // 2. Tentar consultar por ID de DPS formatado (ex: DPS240810220089356600019000001000000000000030)
+                        if (!sefinHit && cleanCnpj && !isNaN(cleanDpsSeq) && cleanDpsSeq > 0) {
                             const cLocEmi = (nat as any).codigo_municipio || '2408102';
                             const serieVal = dbRecord.dps_serie || '1';
-                            const paddedDpsNum = String(dpsNumToQuery).padStart(15, '0');
+                            const paddedDpsNum = String(cleanDpsSeq).padStart(15, '0');
                             const dpsIdFormatted = `DPS${cLocEmi}2${cleanCnpj}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
                             
                             try {
+                                console.log(`🌐 [ADN-STATUS-SEFIN] Consultando SEFIN por DPS ID: ${dpsIdFormatted}...`);
                                 const dpsRes = await axios.get(`${sefinUrl}/nfse/dps/${dpsIdFormatted}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
                                 if (dpsRes.data) sefinHit = dpsRes.data;
+                            } catch (e: any) {
+                                console.warn(`⚠️ [ADN-STATUS-SEFIN] Consulta por DPS ID ${dpsIdFormatted} falhou:`, e.message);
+                            }
+                        }
+
+                        if (sefinHit && sefinHit.chaveAcesso && !sefinHit.nNFSe) {
+                            try {
+                                const fullRes = await axios.get(`${sefinUrl}/nfse/${sefinHit.chaveAcesso}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
+                                if (fullRes.data) sefinHit = { ...sefinHit, ...fullRes.data };
                             } catch (e) {}
                         }
 
                         if (sefinHit) {
                             const chaveAcesso = sefinHit.chNFSe || sefinHit.chaveAcesso;
-                            const nNFSeVal = sefinHit.nNFSe || sefinHit.numeroNfse || dpsNumToQuery;
-                            const nDPS = sefinHit.nDPS || dpsNumToQuery;
+                            const nNFSeVal = sefinHit.nNFSe || sefinHit.numeroNfse || String(cleanDpsSeq);
+                            const nDPS = sefinHit.nDPS || String(cleanDpsSeq);
 
                             console.log(`✅ [ADN-STATUS-SEFIN] Nota autorizada no SEFIN! Chave: ${chaveAcesso} | NFS-e: ${nNFSeVal}`);
 
