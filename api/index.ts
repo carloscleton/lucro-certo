@@ -814,10 +814,6 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     error: `Erro no Portal Nacional (SEFIN): ${errMsg}`,
                     detail: rawBody || nationalCancelErr.response?.data
                 });
-            }500).json({
-                    error: `Erro no Portal Nacional (SEFIN): ${errMsg}`,
-                    detail: errData
-                });
             }
         }
 
