@@ -10,7 +10,7 @@ import forge from 'node-forge';
 import zlib from 'zlib';
 import { SignedXml } from 'xml-crypto';
 import { jsPDF } from 'jspdf';
-import { PaymentFactory } from './services/payments/PaymentFactory';
+import { PaymentFactory } from './_services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
