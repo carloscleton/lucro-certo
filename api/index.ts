@@ -214,8 +214,6 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 const settings = response.data[0].settings || {};
                 if (settings.whatsapp_provider) {
                     defaultProvider = settings.whatsapp_provider;
-                } else if (settings.whatsapp_provider_evo_go_enabled !== false) {
-                    defaultProvider = 'evolution_go';
                 }
             }
         } catch (err: any) {
@@ -7375,7 +7373,7 @@ app.get(['/instances/evogo-sync', '/api/instances/evogo-sync'], authenticate, as
 });
 
 
-app.get('/instances/:name/connect', authenticate, async (req, res) => {
+app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7508,18 +7506,42 @@ app.get('/instances/:name/connect', authenticate, async (req, res) => {
             resultData = await executeConnect(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary connect failed (${primaryErr.message}). Trying fallback config...`);
-            const fallbackConfig = getAlternativeConfig(config);
-            resultData = await executeConnect(fallbackConfig);
+            try {
+                const fallbackConfig = getAlternativeConfig(config);
+                resultData = await executeConnect(fallbackConfig);
+            } catch (fbErr: any) {
+                console.warn(`⚠️ Fallback connect também falhou: ${fbErr.message}. Tentando auto-criação da instância no servidor...`);
+                // Auto-regeneração: se a instância não existe na Evolution, cria automaticamente e obtém o QR Code
+                try {
+                    const createRes = await axios.post(`${config.url}/instance/create`, {
+                        instanceName: targetName,
+                        name: targetName,
+                        qrcode: true,
+                        integration: 'WHATSAPP-BAILEYS'
+                    }, {
+                        headers: { 'apikey': config.apiKey }
+                    });
+                    const qrObj = createRes.data?.qrcode || {};
+                    resultData = {
+                        code: qrObj.code || createRes.data?.code || '',
+                        base64: qrObj.base64 || createRes.data?.base64 || ''
+                    };
+                    console.log(`✨ Instância "${targetName}" auto-criada na conexão com sucesso!`);
+                } catch (autoCreateErr: any) {
+                    console.warn('⚠️ Auto-criação na conexão falhou:', autoCreateErr.message);
+                    throw primaryErr;
+                }
+            }
         }
 
         console.log('✅ QR Code received');
         res.json(resultData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.error('❌ Erro ao obter QR Code:', errorDetail);
-        res.status(500).json({
-            error: 'Erro ao buscar QR Code na Evolution API',
-            detail: errorDetail
+        console.warn('⚠️ Não foi possível obter QR Code no servidor de WhatsApp:', errorDetail);
+        res.json({
+            error: 'Servidor de WhatsApp indisponível ou instância não encontrada na API externa.',
+            detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
 });
