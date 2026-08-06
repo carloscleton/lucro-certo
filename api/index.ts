@@ -121,17 +121,11 @@ app.use((req, res, next) => {
 // Roteamento robusto: todas as rotas fiscais suportam prefixo /api ou direto.
 
 // Evolution API Config
-const MASTER_EVOLUTION_KEY = '7c4678985d13dfd7a89d4e56e7503563';
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '') || 'https://evo.idealzap.com.br';
-const EVOLUTION_API_KEY = (process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_API_KEY.includes('7c467898')) 
-    ? process.env.EVOLUTION_API_KEY.trim() 
-    : MASTER_EVOLUTION_KEY;
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, '');
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY?.trim();
 
-const MASTER_EVOLUTION_GO_KEY = 'fe079bb46dea5a9a0d08df7f2c9ff9ff';
-const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || 'https://evogo.idealzap.com.br';
-const EVOLUTION_GO_API_KEY = (process.env.EVOLUTION_GO_API_KEY && process.env.EVOLUTION_GO_API_KEY.includes('fe079bb')) 
-    ? process.env.EVOLUTION_GO_API_KEY.trim() 
-    : MASTER_EVOLUTION_GO_KEY;
+const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL;
+const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
 
 // WAHA API Config
 const WAHA_API_URL = process.env.WAHA_API_URL?.trim().replace(/\/+$/, '') || 'http://localhost:3000';
@@ -217,6 +211,8 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 const settings = response.data[0].settings || {};
                 if (settings.whatsapp_provider) {
                     defaultProvider = settings.whatsapp_provider;
+                } else if (settings.whatsapp_provider_evo_go_enabled !== false) {
+                    defaultProvider = 'evolution_go';
                 }
             }
         } catch (err: any) {
@@ -344,8 +340,8 @@ async function sendWhatsAppTextMessage(instanceName: string, phone: string, text
 }
 
 // Supabase Config for Fiscal Proxy
-const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '') || 'https://oncddbarrtxalsmzravk.supabase.co';
-const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim() || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uY2RkYmFycnR4YWxzbXpyYXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjM3OTksImV4cCI6MjA4NTE5OTc5OX0.tjjFH4dX1AVI8ZdS7H61Oj2UDe6k2WPQJ8V5gkgPiE0';
+const SUPABASE_URL = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)?.trim().replace(/\/+$/, '');
+const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 const RESEND_API_KEY = process.env.RESEND_API_KEY?.trim();
 
@@ -7081,7 +7077,7 @@ async function getCompanyFiscalConfig(authHeader: string | null, companyId: stri
 }
 
 // Endpoints
-app.post(['/instances', '/api/instances'], authenticate, async (req, res) => {
+app.post('/instances', authenticate, async (req, res) => {
     const { name, token: customToken, webhook_url, webhook_events, enabled, base64, company_id, advancedSettings, provider } = req.body;
 
     if (!name) {
@@ -7296,34 +7292,7 @@ app.post(['/instances', '/api/instances'], authenticate, async (req, res) => {
         const errorDetail = error.response?.data || error.message;
         const providerName = provider === 'waha' ? 'WAHA API' : 'Evolution API';
         console.error(`❌ Erro na ${providerName}:`, errorDetail);
-
-        // Se o erro for de duplicidade (nome já em uso na Evolution API), recupera a instância existente!
-        if (error.response?.status === 403 || String(errorDetail).includes('already in use') || (typeof errorDetail === 'object' && JSON.stringify(errorDetail).includes('already in use'))) {
-            console.log(`⚠️ Instância "${name}" já existe na ${providerName}. Buscando dados da instância existente...`);
-            try {
-                const listRes = await axios.get(`${config.url}/instance/fetchInstances`, {
-                    headers: { 'apikey': config.apiKey }
-                });
-                const existing = (listRes.data || []).find((i: any) => (i.name || i.instance?.instanceName || '').toLowerCase() === String(name).toLowerCase());
-                if (existing) {
-                    const instToken = existing.token || existing.id || name;
-                    return res.status(200).json({
-                        instance: {
-                            instanceName: existing.name || name,
-                            token: instToken,
-                            status: 'created'
-                        },
-                        hash: {
-                            apikey: instToken
-                        }
-                    });
-                }
-            } catch (recoveryErr: any) {
-                console.warn('⚠️ Erro ao recuperar instância existente:', recoveryErr.message);
-            }
-        }
-
-        res.json({
+        res.status(500).json({
             error: `Erro ao criar instância na ${providerName}`,
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7407,7 +7376,7 @@ app.get(['/instances/evogo-sync', '/api/instances/evogo-sync'], authenticate, as
 });
 
 
-app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authenticate, async (req, res) => {
+app.get('/instances/:name/connect', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7540,47 +7509,23 @@ app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authentica
             resultData = await executeConnect(config);
         } catch (primaryErr: any) {
             console.warn(`⚠️ Primary connect failed (${primaryErr.message}). Trying fallback config...`);
-            try {
-                const fallbackConfig = getAlternativeConfig(config);
-                resultData = await executeConnect(fallbackConfig);
-            } catch (fbErr: any) {
-                console.warn(`⚠️ Fallback connect também falhou: ${fbErr.message}. Tentando auto-criação da instância no servidor...`);
-                // Auto-regeneração: se a instância não existe na Evolution, cria automaticamente e obtém o QR Code
-                try {
-                    const createRes = await axios.post(`${config.url}/instance/create`, {
-                        instanceName: targetName,
-                        name: targetName,
-                        qrcode: true,
-                        integration: 'WHATSAPP-BAILEYS'
-                    }, {
-                        headers: { 'apikey': config.apiKey }
-                    });
-                    const qrObj = createRes.data?.qrcode || {};
-                    resultData = {
-                        code: qrObj.code || createRes.data?.code || '',
-                        base64: qrObj.base64 || createRes.data?.base64 || ''
-                    };
-                    console.log(`✨ Instância "${targetName}" auto-criada na conexão com sucesso!`);
-                } catch (autoCreateErr: any) {
-                    console.warn('⚠️ Auto-criação na conexão falhou:', autoCreateErr.message);
-                    throw primaryErr;
-                }
-            }
+            const fallbackConfig = getAlternativeConfig(config);
+            resultData = await executeConnect(fallbackConfig);
         }
 
         console.log('✅ QR Code received');
         res.json(resultData);
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
-        console.warn('⚠️ Não foi possível obter QR Code no servidor de WhatsApp:', errorDetail);
-        res.json({
-            error: 'Servidor de WhatsApp indisponível ou instância não encontrada na API externa.',
+        console.error('❌ Erro ao obter QR Code:', errorDetail);
+        res.status(500).json({
+            error: 'Erro ao buscar QR Code na Evolution API',
             detail: errorDetail
         });
     }
 });
 
-app.post(['/instances/:name/webhook', '/api/instances/:name/webhook'], authenticate, async (req, res) => {
+app.post('/instances/:name/webhook', authenticate, async (req, res) => {
     const { name } = req.params;
     const { url, events, enabled, base64, token, company_id, transport } = req.body;
 
@@ -7696,7 +7641,7 @@ app.post(['/instances/:name/webhook', '/api/instances/:name/webhook'], authentic
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao configurar webhook:', JSON.stringify(errorDetail, null, 2));
-        res.json({
+        res.status(500).json({
             error: 'Erro ao configurar webhook na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7704,7 +7649,7 @@ app.post(['/instances/:name/webhook', '/api/instances/:name/webhook'], authentic
 });
 
 // GET advanced-settings for Evolution GO
-app.get(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-settings'], authenticate, async (req, res) => {
+app.get('/instances/:name/advanced-settings', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
@@ -7747,7 +7692,7 @@ app.get(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-se
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao buscar configurações avançadas de "${name}":`, errorDetail);
-        res.json({
+        res.status(500).json({
             error: 'Erro ao buscar configurações avançadas na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
@@ -7755,7 +7700,7 @@ app.get(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-se
 });
 
 // POST (updates) advanced-settings for Evolution GO
-app.post(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-settings'], authenticate, async (req, res) => {
+app.post('/instances/:name/advanced-settings', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
     const { alwaysOnline, rejectCall, msgRejectCall, readMessages, ignoreGroups, ignoreStatus } = req.body;
@@ -7807,14 +7752,14 @@ app.post(['/instances/:name/advanced-settings', '/api/instances/:name/advanced-s
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao atualizar configurações avançadas de "${name}":`, errorDetail);
-        res.json({
+        res.status(500).json({
             error: 'Erro ao atualizar configurações avançadas na Evolution API',
             detail: typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail
         });
     }
 });
 
-app.post(['/instances/:name/rename', '/api/instances/:name/rename'], authenticate, async (req, res) => {
+app.post('/instances/:name/rename', authenticate, async (req, res) => {
     const { name } = req.params;
     const { newName } = req.body;
     const { token, company_id } = req.query;
@@ -7855,14 +7800,14 @@ app.post(['/instances/:name/rename', '/api/instances/:name/rename'], authenticat
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error(`❌ Erro ao renomear instância "${name}":`, JSON.stringify(errorDetail, null, 2));
-        res.json({
+        res.status(500).json({
             error: 'Erro ao renomear instância na Evolution API',
             detail: errorDetail
         });
     }
 });
 
-app.post(['/instances/:name/profile-name', '/api/instances/:name/profile-name'], authenticate, async (req, res) => {
+app.post('/instances/:name/profile-name', authenticate, async (req, res) => {
     const { name } = req.params;
     const { profileName } = req.body;
     const { token, company_id } = req.query;
@@ -8250,7 +8195,7 @@ app.all(['/instances/:name/logout', '/api/instances/:name/logout'], authenticate
     }
 });
 
-app.delete(['/instances/:name', '/api/instances/:name'], authenticate, async (req, res) => {
+app.delete('/instances/:name', authenticate, async (req, res) => {
     const { name } = req.params;
     const { token, company_id } = req.query;
 
