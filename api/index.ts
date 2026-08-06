@@ -2914,7 +2914,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 retryCount++;
                 const currentNumStr = String(currentDpsSeq);
                 const paddedDpsNum = currentNumStr.padStart(15, '0');
-                const currentDpsId = `DPS${finalCLocEmi}${prestCnpjClean}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
+                const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
                 
                 inf.nDPS = currentNumStr;
                 if (adnPayload?.infDPS) adnPayload.infDPS.nDPS = currentNumStr;
