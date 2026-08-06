@@ -416,12 +416,19 @@ ${messageWithPlaceholder}`;
             const statusResult = await fiscalService.checkStatus(invoice.external_id, currentEntity.id, token);
             await refresh();
 
-            // Se a nota foi autorizada, disparar o WhatsApp automaticamente
             const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'success', 'emitida'];
             const resultStatus = String(statusResult?.status || statusResult?.flowStatus || '').toLowerCase();
             const wasAlreadyAuthorized = ['issued', 'concluido', 'autorizado'].includes(String(invoice.status || '').toLowerCase());
 
-            if (authorizedStatuses.includes(resultStatus) && !wasAlreadyAuthorized) {
+            if (authorizedStatuses.includes(resultStatus)) {
+                if (!wasAlreadyAuthorized) {
+                    setResultModal({
+                        isOpen: true,
+                        title: 'Nota Autorizada com Sucesso! ✅',
+                        message: `A Nota Fiscal foi liberada pelo Portal Nacional com o número #${statusResult?.number || statusResult?.invoice_number || '30'}.`,
+                        type: 'success'
+                    });
+                }
                 // Busca a nota atualizada com os dados do contato
                 const { data: updatedInvoices } = await supabase
                     .from('fiscal_invoices')

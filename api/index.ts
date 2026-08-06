@@ -5867,8 +5867,99 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                             dbRecord = { ...dbRecord, ...matched, status: 'concluido' };
                         }
                     }
-                } catch (syncErr: any) {
-                    console.warn(`⚠️ [FISCAL-STATUS] Erro ao sincronizar localmente:`, syncErr.message);
+            // Se a nota continua em 'processando', consultar o SEFIN Nacional diretamente via mTLS
+            if (dbRecord && (dbRecord.status === 'processando' || !dbRecord.status)) {
+                const nat = settings?.national_config || {};
+                const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64;
+                const certPassword = nat.certificado_senha || settings?.certificado_senha || '';
+                const adnAmb = nat.ambiente || 'homologacao';
+                const sefinUrl = adnAmb === 'producao' 
+                    ? 'https://sefin.nfse.gov.br/SefinNacional' 
+                    : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
+
+                if (pfxBase64 && certPassword) {
+                    try {
+                        const pfxBuffer = Buffer.from(pfxBase64, 'base64');
+                        const p12Asn1 = forge.asn1.fromDer(pfxBuffer.toString('binary'));
+                        const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, certPassword);
+
+                        let certificatePem = '';
+                        let privateKeyPem = '';
+
+                        for (const bag of p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || []) {
+                            if (bag.cert) certificatePem += forge.pki.certificateToPem(bag.cert);
+                        }
+                        for (const bag of p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] || []) {
+                            if (bag.key) privateKeyPem += forge.pki.privateKeyToPem(bag.key);
+                        }
+
+                        const httpsAgent = new https.Agent({
+                            cert: certificatePem,
+                            key: privateKeyPem,
+                            passphrase: certPassword,
+                            rejectUnauthorized: false
+                        });
+
+                        const cleanCnpj = String(nat.cnpj || '').replace(/\D/g, '');
+                        const dpsNumToQuery = dbRecord.dps_number || dbRecord.invoice_number || String(id).replace(/\D/g, '');
+                        let sefinHit: any = null;
+
+                        // 1. Tentar consultar por Chave de Acesso se for de 44 dígitos
+                        if (/^\d{44}$/.test(String(id))) {
+                            try {
+                                const sefinRes = await axios.get(`${sefinUrl}/nfse/${id}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
+                                if (sefinRes.data) sefinHit = sefinRes.data;
+                            } catch (e) {}
+                        }
+
+                        // 2. Tentar consultar por ID de DPS formatado (ex: DPS2408102...)
+                        if (!sefinHit && cleanCnpj && dpsNumToQuery) {
+                            const cLocEmi = (nat as any).codigo_municipio || '2408102';
+                            const serieVal = dbRecord.dps_serie || '1';
+                            const paddedDpsNum = String(dpsNumToQuery).padStart(15, '0');
+                            const dpsIdFormatted = `DPS${cLocEmi}2${cleanCnpj}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
+                            
+                            try {
+                                const dpsRes = await axios.get(`${sefinUrl}/nfse/dps/${dpsIdFormatted}`, { httpsAgent, headers: { 'Accept': 'application/json' } });
+                                if (dpsRes.data) sefinHit = dpsRes.data;
+                            } catch (e) {}
+                        }
+
+                        if (sefinHit) {
+                            const chaveAcesso = sefinHit.chNFSe || sefinHit.chaveAcesso;
+                            const nNFSeVal = sefinHit.nNFSe || sefinHit.numeroNfse || dpsNumToQuery;
+                            const nDPS = sefinHit.nDPS || dpsNumToQuery;
+
+                            console.log(`✅ [ADN-STATUS-SEFIN] Nota autorizada no SEFIN! Chave: ${chaveAcesso} | NFS-e: ${nNFSeVal}`);
+
+                            const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                            const host = getNormalizedHost(req);
+                            const baseApiUrl = `${protocol}://${host}`;
+                            const pdfUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${chaveAcesso || id}/pdf?companyId=${resolvedId}`;
+                            const xmlUrlProxy = `${baseApiUrl}/api/fiscal-module/national/${chaveAcesso || id}/xml?companyId=${resolvedId}`;
+
+                            const updateData = {
+                                status: 'concluido',
+                                external_id: chaveAcesso || id,
+                                access_key: chaveAcesso || null,
+                                invoice_number: nNFSeVal,
+                                dps_number: nDPS,
+                                pdf_url: pdfUrlProxy,
+                                xml_url: xmlUrlProxy,
+                                payload: {
+                                    ...(dbRecord.payload || {}),
+                                    retorno: sefinHit,
+                                    chaveAcesso,
+                                    nNFSe: nNFSeVal
+                                }
+                            };
+
+                            await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${dbRecord.id}`, updateData, { headers: dbWriteHeaders });
+                            dbRecord = { ...dbRecord, ...updateData };
+                        }
+                    } catch (sefinQueryErr: any) {
+                        console.warn(`⚠️ [ADN-STATUS-SEFIN] Erro ao consultar SEFIN diretamente:`, sefinQueryErr.message);
+                    }
                 }
             }
 
