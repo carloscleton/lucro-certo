@@ -2406,7 +2406,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
             // O Portal Nacional retorna o nNFSe oficial após autorização, que é usado como número da nota.
             const cleanCnpjFallback = String(nat.cnpj || certSubjectCnpj || payload?.infDPS?.prest?.CNPJ || '').replace(/\D/g, '');
-            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 23 : 1;
+            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 24 : 1;
             let nextDpsNumber = defaultMigrationDpsNumber;
 
             if (SUPABASE_URL) {
@@ -2903,137 +2903,154 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 };
             }
 
-            // Montar XML da DPS conforme o leiaute nacional do contribuinte
-            // Estrutura correta conforme XSD NFS-e Nacional v1.01:
-            // infDPS > prest > toma > serv(locPrest + cServ + infoCompl) > valores > IBSCBS
-            // NOTA: <infoCompl> é filho de <serv> (entre cServ e </serv>), não existe infComp em infDPS
-            dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${dpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${parseInt(numDpsInt)}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
+            let adnResponse: any = null;
+            let currentDpsSeq = parseInt(String(numDpsInt || nextDpsNumber || 24), 10);
+            if (isNaN(currentDpsSeq) || currentDpsSeq < 1) currentDpsSeq = 24;
 
-            console.log(`📝 [ADN-NACIONAL] Gerando XML da DPS para assinatura:\n${dpsXml}`);
+            let retryCount = 0;
+            const maxDpsRetries = 20;
 
-            signedXml = '';
-            try {
-                const targetCert = leafCertificatePem || certificatePem;
-                const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
-                    ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
-                    : targetCert;
-                const certClean = leafCertPem
-                    .replace(/-----BEGIN CERTIFICATE-----/g, '')
-                    .replace(/-----END CERTIFICATE-----/g, '')
-                    .replace(/\s+/g, '');
-
-                // 2. Assinar XML utilizando xml-crypto com mTLS e publicCert nativo em formato PEM
-                const sig = new SignedXml({
-                    privateKey: privateKeyPem,
-                    publicCert: leafCertPem,
-                    signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-                    canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
-                    idAttribute: 'Id'
-                });
+            while (retryCount < maxDpsRetries) {
+                retryCount++;
+                const currentNumStr = String(currentDpsSeq);
+                const paddedDpsNum = currentNumStr.padStart(15, '0');
+                const currentDpsId = `DPS${finalCLocEmi}${prestCnpjClean}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
                 
-                sig.addReference({
-                    xpath: "//*[local-name()='infDPS']",
-                    transforms: [
-                        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-                        'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
-                    ],
-                    digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
-                    uri: `#${dpsId}`
-                });
+                inf.nDPS = currentNumStr;
+                if (adnPayload?.infDPS) adnPayload.infDPS.nDPS = currentNumStr;
 
-                sig.computeSignature(dpsXml, {
-                    prefix: '',
-                    location: {
-                        reference: "//*[local-name()='infDPS']",
-                        action: 'after',
-                    },
-                });
+                // Montar XML da DPS conforme o leiaute nacional do contribuinte
+                dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${currentDpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${currentDpsSeq}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
-                signedXml = sig.getSignedXml();
-                console.log(`✅ [ADN-NACIONAL] Assinatura do XML concluída com sucesso.`);
-            } catch (signErr: any) {
-                console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
-                throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
-            }
+                console.log(`📝 [ADN-NACIONAL] (Tentativa ${retryCount}/${maxDpsRetries}) Gerando XML da DPS #${currentDpsSeq} [${currentDpsId}]...`);
 
-            // 3. Compactar em Gzip e converter para Base64
-            let dpsXmlGZipB64 = '';
-            try {
-                const gzipBuffer = zlib.gzipSync(Buffer.from(signedXml, 'utf-8'));
-                dpsXmlGZipB64 = gzipBuffer.toString('base64');
-                console.log(`📦 [ADN-NACIONAL] Compactação Gzip e codificação Base64 concluídas. Tamanho final: ${dpsXmlGZipB64.length} caracteres`);
-            } catch (gzipErr: any) {
-                console.error('❌ [ADN-NACIONAL-GZIP] Erro ao compactar XML em Gzip:', gzipErr.message);
-                throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
-            }
-
-            // 4. Montar o payload final rigorosamente conforme a especificação do Sefin Nacional
-            const finalRequestPayload = {
-                dpsXmlGZipB64
-            };
-
-            try {
-                let adnResponse;
+                signedXml = '';
                 try {
-                    adnResponse = await axios.post(
-                        `${sefinBaseUrl}/dps`,
-                        finalRequestPayload,
-                        {
-                            httpsAgent,
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            timeout: 30000
+                    const targetCert = leafCertificatePem || certificatePem;
+                    const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
+                        ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
+                        : targetCert;
+
+                    const sig = new SignedXml({
+                        privateKey: privateKeyPem,
+                        publicCert: leafCertPem,
+                        signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                        canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                        idAttribute: 'Id'
+                    });
+                    
+                    sig.addReference({
+                        xpath: "//*[local-name()='infDPS']",
+                        transforms: [
+                            'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+                            'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                        ],
+                        digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
+                        uri: `#${currentDpsId}`
+                    });
+
+                    sig.computeSignature(dpsXml, {
+                        prefix: '',
+                        location: {
+                            reference: "//*[local-name()='infDPS']",
+                            action: 'after',
+                        },
+                    });
+
+                    signedXml = sig.getSignedXml();
+                } catch (signErr: any) {
+                    console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
+                    throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
+                }
+
+                let dpsXmlGZipB64 = '';
+                try {
+                    const gzipBuffer = zlib.gzipSync(Buffer.from(signedXml, 'utf-8'));
+                    dpsXmlGZipB64 = gzipBuffer.toString('base64');
+                } catch (gzipErr: any) {
+                    console.error('❌ [ADN-NACIONAL-GZIP] Erro ao compactar XML em Gzip:', gzipErr.message);
+                    throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
+                }
+
+                const finalRequestPayload = { dpsXmlGZipB64 };
+
+                try {
+                    try {
+                        adnResponse = await axios.post(
+                            `${sefinBaseUrl}/dps`,
+                            finalRequestPayload,
+                            {
+                                httpsAgent,
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                timeout: 30000
+                            }
+                        );
+                    } catch (dpsErr: any) {
+                        const st = dpsErr.response?.status;
+                        const errBody = dpsErr.response?.data || {};
+                        const errBodyStr = JSON.stringify(errBody);
+
+                        if ((errBodyStr.includes('E0014') || errBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
+                            console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe no SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                            currentDpsSeq++;
+                            continue;
                         }
-                    );
-                } catch (dpsErr: any) {
-                    const st = dpsErr.response?.status;
-                    if (st === 500 || st === 400 || st === 404) {
-                        console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto (application/xml)...`);
-                        try {
-                            adnResponse = await axios.post(
-                                `${sefinBaseUrl}/dps`,
-                                signedXml,
-                                {
-                                    httpsAgent,
-                                    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-                                    timeout: 30000
-                                }
-                            );
-                        } catch (xmlErr: any) {
-                            if (xmlErr.response?.status === 404 || dpsErr.response?.status === 404) {
-                                console.warn(`⚠️ [ADN-NACIONAL] /dps retornou 404, tentando endpoint de fallback /nfse...`);
+
+                        if (st === 500 || st === 400 || st === 404) {
+                            console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto...`);
+                            try {
                                 adnResponse = await axios.post(
-                                    `${sefinBaseUrl}/nfse`,
-                                    finalRequestPayload,
+                                    `${sefinBaseUrl}/dps`,
+                                    signedXml,
                                     {
                                         httpsAgent,
-                                        headers: { 'Content-Type': 'application/json' },
+                                        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
                                         timeout: 30000
                                     }
                                 );
-                            } else {
+                            } catch (xmlErr: any) {
+                                const xmlErrBodyStr = JSON.stringify(xmlErr.response?.data || {});
+                                if ((xmlErrBodyStr.includes('E0014') || xmlErrBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
+                                    console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe na SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                                    currentDpsSeq++;
+                                    continue;
+                                }
                                 throw dpsErr;
                             }
+                        } else {
+                            throw dpsErr;
                         }
-                    } else {
-                        throw dpsErr;
                     }
-                }
 
-                const adnData = adnResponse.data;
+                    const adnData = adnResponse.data;
 
-                // Previne gravação de nota rejeitada: Trata erros retornados no corpo da resposta (mesmo com HTTP 200/2xx)
-                if (adnData?.erros && Array.isArray(adnData.erros) && adnData.erros.length > 0) {
-                    console.error(`❌ [ADN-NACIONAL] Erros de validação detectados no retorno da SEFIN:`, JSON.stringify(adnData.erros, null, 2));
-                    const error = new Error('Erro retornado pelo Portal Nacional (ADN gov.br)');
-                    (error as any).response = {
-                        status: 400,
-                        data: adnData
-                    };
-                    throw error;
+                    if (adnData?.erros && Array.isArray(adnData.erros) && adnData.erros.length > 0) {
+                        const isE0014InResponse = adnData.erros.some((e: any) => e.Codigo === 'E0014' || String(e.Descricao || '').includes('já existe em uma NFS-e'));
+                        if (isE0014InResponse && retryCount < maxDpsRetries) {
+                            console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] SEFIN retornou E0014 no corpo para DPS #${currentDpsSeq}. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                            currentDpsSeq++;
+                            continue;
+                        }
+                        console.error(`❌ [ADN-NACIONAL] Erros de validação detectados no retorno da SEFIN:`, JSON.stringify(adnData.erros, null, 2));
+                        const error = new Error('Erro retornado pelo Portal Nacional (ADN gov.br)');
+                        (error as any).response = { status: 400, data: adnData };
+                        throw error;
+                    }
+
+                    break; // Sucesso na emissão da nota!
+                } catch (loopErr: any) {
+                    const loopErrStr = JSON.stringify(loopErr.response?.data || loopErr.message || '');
+                    if ((loopErrStr.includes('E0014') || loopErrStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
+                        console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                        currentDpsSeq++;
+                        continue;
+                    }
+                    throw loopErr;
                 }
+            }
 
                 const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || dpsId;
                 const nNFSeVal = adnData?.nNFSe || adnData?.numeroNfse || adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
