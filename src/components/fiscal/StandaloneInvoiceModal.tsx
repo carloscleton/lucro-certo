@@ -804,12 +804,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             }
         } else if (activeProvider === 'national') {
             const natConfig = currentCompany?.settings?.national_config;
-            if (!natConfig?.certificado_pfx_base64) {
-                console.warn('⚠️ [handleSubmit] Certificado digital PFX ausente nas configurações fiscais.');
+            const hasCert = !!(
+                natConfig?.certificado_pfx_base64 || 
+                natConfig?.certificado_status === 'valido' || 
+                natConfig?.certificado_id || 
+                natConfig?.cnpj ||
+                natConfig?.has_certificate
+            );
+            if (!hasCert) {
+                console.warn('⚠️ [handleSubmit] Configurações ou certificado do Portal Nacional ausentes:', natConfig);
                 setError('Para usar o Portal Nacional, faça o upload do certificado digital PFX/A1 na aba "Portal Nacional" das Configurações Fiscais antes de emitir.');
                 setLoading(false);
                 return;
             }
+            console.log('✅ [handleSubmit] Certificado do Portal Nacional verificado:', { cnpj: natConfig?.cnpj, status: natConfig?.certificado_status || 'ok' });
         } else {
             if (!currentCompany.tecnospeed_config) {
                 console.warn('⚠️ [handleSubmit] Configurações TecnoSpeed ausentes.');
