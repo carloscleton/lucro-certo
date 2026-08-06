@@ -877,7 +877,7 @@ export function WhatsApp() {
                 data = { error: 'Resposta inválida do servidor de QR Code', detail: rawText.substring(0, 100) };
             }
 
-            if (!response.ok) {
+            if (!response.ok || data.error) {
                 const detailMsg = data.detail ? ` (${typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail})` : '';
                 throw new Error((data.error || data.message || 'Falha ao obter QR Code') + detailMsg);
             }
