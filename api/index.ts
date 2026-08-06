@@ -9493,25 +9493,40 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         text: textToSend
                     }, {
                         headers: {
-                            'apikey': instanceToken || config.apiKey,
+                            'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey,
                             'Content-Type': 'application/json'
                         },
                         timeout: 15000
                     });
                 } catch (goErr: any) {
-                    console.warn(`⚠️ Evolution GO send/text falhou para "${targetName}" (${goErr.message}). Tentando envio via Evolution API padrão...`);
+                    console.warn(`⚠️ Evolution GO send/text falhou para "${targetName}" (${goErr.message}). Tentando com instanceToken ou Evolution API padrão...`);
                     try {
-                        response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
-                            number: number,
-                            text: textToSend,
-                            linkPreview: true
-                        }, {
-                            headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-                            timeout: 15000
-                        });
-                    } catch (stdFbErr: any) {
-                        console.warn(`⚠️ Fallback via Evolution API padrão também falhou (${stdFbErr.message}). Re-lançando erro original.`);
-                        throw goErr;
+                        if (instanceToken && instanceToken !== EVOLUTION_GO_API_KEY) {
+                            response = await axios.post(`${config.url}/send/text`, {
+                                id: targetName,
+                                number: number,
+                                text: textToSend
+                            }, {
+                                headers: { 'apikey': instanceToken, 'Content-Type': 'application/json' },
+                                timeout: 15000
+                            });
+                        } else {
+                            throw goErr;
+                        }
+                    } catch (goTokErr: any) {
+                        try {
+                            response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
+                                number: number,
+                                text: textToSend,
+                                linkPreview: true
+                            }, {
+                                headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+                                timeout: 15000
+                            });
+                        } catch (stdFbErr: any) {
+                            console.warn(`⚠️ Fallback via Evolution API padrão também falhou (${stdFbErr.message}). Re-lançando erro original.`);
+                            throw goErr;
+                        }
                     }
                 }
             }
@@ -9619,7 +9634,24 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         console.error('❌ Erro ao enviar WhatsApp:', JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: 'Erro ao enviar mensagem via Evolution API', detail: errorDetail });
+        
+        let customMessage = 'Erro ao enviar mensagem via Evolution API';
+        if (typeof errorDetail === 'object' && errorDetail !== null) {
+            const respMsg = errorDetail.response?.message;
+            if (Array.isArray(respMsg) && respMsg.length > 0) {
+                customMessage = respMsg[0];
+            } else if (typeof respMsg === 'string') {
+                customMessage = respMsg;
+            } else if (errorDetail.message) {
+                customMessage = Array.isArray(errorDetail.message) ? errorDetail.message[0] : errorDetail.message;
+            } else if (errorDetail.error && typeof errorDetail.error === 'string') {
+                customMessage = errorDetail.error;
+            }
+        } else if (typeof errorDetail === 'string') {
+            customMessage = errorDetail;
+        }
+
+        res.status(500).json({ error: customMessage, message: customMessage, detail: errorDetail });
     }
 });
 

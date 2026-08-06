@@ -47,7 +47,13 @@ export const whatsappService = {
                 let errText = '';
                 try {
                     const errJson = await response.json();
-                    errText = errJson.detail?.message || errJson.message || errJson.error;
+                    const respMsg = errJson.detail?.response?.message;
+                    errText = 
+                        (Array.isArray(respMsg) ? respMsg[0] : respMsg) ||
+                        (errJson.detail?.message) ||
+                        (typeof errJson.detail === 'string' ? errJson.detail : null) ||
+                        errJson.message ||
+                        (typeof errJson.error === 'string' ? errJson.error : null);
                 } catch (e) {
                     try { errText = await response.text(); } catch (e2) {}
                 }

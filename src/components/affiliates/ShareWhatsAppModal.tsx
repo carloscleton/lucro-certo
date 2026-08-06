@@ -117,7 +117,18 @@ export function ShareWhatsAppModal({ isOpen, onClose, referralLink }: ShareWhats
                 onClose();
             } catch (error: any) {
                 console.error('Failed to send auto message:', error);
-                notify('error', `Falha ao enviar mensagem: ${error.message || 'Erro na API'}`, 'Erro de Envio');
+                const errorMsg = error.message || 'Erro na API';
+                notify('warning', `Envio automático via "${activeInstance.instance_name}" falhou (${errorMsg}). Abrindo no WhatsApp Web...`, 'Redirecionando');
+                
+                // Fallback automático para WhatsApp Web se o envio automático falhar
+                const formattedPhone = cleanPhone ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : '';
+                const encodedText = encodeURIComponent(messageText);
+                const url = formattedPhone 
+                    ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`
+                    : `https://api.whatsapp.com/send?text=${encodedText}`;
+                
+                window.open(url, '_blank');
+                onClose();
             } finally {
                 setSending(false);
             }
