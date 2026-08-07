@@ -1147,7 +1147,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
                 let finalPayloadToSave = result.data || result;
 
-                if (externalId) {
+                if (externalId && activeProvider !== 'national' && !isNacional) {
                     try {
                         // Tentar buscar o payload completo imediatamente para gravar no banco
                         console.log(`🔄 [DB-SAVE] Buscando dados completos da nota ${externalId}...`);
@@ -1159,7 +1159,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     } catch (statusErr) {
                         console.warn('⚠️ [DB-SAVE] Não foi possível buscar o status completo imediatamente. Usando retorno da emissão.', statusErr);
                     }
+                }
 
+                if (externalId) {
                     try {
                         console.log(`💾 [DB-SAVE] Iniciando gravação da nota ${externalId}...`);
                         
