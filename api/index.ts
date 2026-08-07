@@ -5051,9 +5051,17 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // 6. SERVIÇO PRESTADO
     drawHeaderBox(margin, y, pageWidth, 4.5, 'SERVIÇO PRESTADO');
     y += 4.5;
-    drawBox(margin, y, pageWidth, 28, [255, 255, 255], [0, 0, 0]);
 
     const serv = data.servico || {};
+    const xTribNacVal = serv.xTribNac || 'Suporte técnico em informática, inclusive instalação, configuração e manutenção de programas de computação e bancos de dados.';
+    const splitXTribNac = doc.splitTextToSize(xTribNacVal, pageWidth - 4);
+
+    const fullDesc = serv.descricao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA';
+    const splitDesc = doc.splitTextToSize(fullDesc, pageWidth - 4);
+
+    const servBoxHeight = Math.max(28, 12 + (splitXTribNac.length * 3.5) + (splitDesc.length * 3.5) + 4);
+    drawBox(margin, y, pageWidth, servBoxHeight, [255, 255, 255], [0, 0, 0]);
+
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text('Código de Tributação Nacional/Municipal', margin + 2, y + 3.2);
     doc.text('Código da NBS', margin + 95, y + 3.2);
@@ -5064,15 +5072,19 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text(serv.cNbs || '1.1501.30.00', margin + 95, y + 6.5);
     doc.text('Natal / RN / -', margin + 145, y + 6.5);
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
-    doc.text('Descrição do Serviço', margin + 2, y + 10.5);
+    // Linha do xTribNac (Descrição da tributação nacional do serviço)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.2); doc.setTextColor(30, 30, 30);
+    doc.text(splitXTribNac, margin + 2, y + 10.5);
+
+    let descStartY = y + 10.5 + (splitXTribNac.length * 3.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('Descrição do Serviço', margin + 2, descStartY);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    const fullDesc = serv.descricao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA\nteste 1\nteste 2\nteste 3\nteste 4';
-    const splitDesc = doc.splitTextToSize(fullDesc, pageWidth - 4);
-    doc.text(splitDesc, margin + 2, y + 14);
+    doc.text(splitDesc, margin + 2, descStartY + 3.5);
 
-    y += 28;
+    y += servBoxHeight;
 
     // 7. TRIBUTAÇÃO MUNICIPAL (ISSQN)
     drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO MUNICIPAL (ISSQN)');
@@ -5470,6 +5482,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlDCompet = getXmlVal('dCompet');
                 const xmlChave = getXmlVal('chNFSe');
                 const xmlCTribNac = getXmlVal('cTribNac');
+                const xmlXTribNac = getXmlVal('xTribNac');
                 const xmlDesc = getXmlVal('xDescServ');
                 const xmlNbs = getXmlVal('cNBS');
                 const xmlVServ = getXmlVal('vServ');
@@ -5506,6 +5519,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     },
                     servico: {
                         cTribNac: xmlCTribNac || serv?.cServ?.cTribNac || serv?.cTribNac || serv?.codigo || '01.07.01',
+                        xTribNac: xmlXTribNac || invPayload.xTribNac || 'Suporte técnico em informática, inclusive instalação, configuração e manutenção de programas de computação e bancos de dados.',
                         cNbs: xmlNbs || serv?.cServ?.cNBS || serv?.cNBS || '1.1501.30.00',
                         descricao: xmlDesc || serv?.cServ?.xDescServ || serv?.xDescServ || serv?.descricao || serv?.discriminacao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA',
                         valor: amountVal
