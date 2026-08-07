@@ -2419,7 +2419,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
             // O Portal Nacional retorna o nNFSe oficial após autorização, que é usado como número da nota.
             const cleanCnpjFallback = String(nat.cnpj || certSubjectCnpj || payload?.infDPS?.prest?.CNPJ || '').replace(/\D/g, '');
-            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 24 : 1;
+            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 39 : 1;
             let nextDpsNumber = defaultMigrationDpsNumber;
 
             if (SUPABASE_URL) {
@@ -2428,10 +2428,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     const lastInvResp = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                         params: {
                             company_id: `eq.${resolvedId}`,
-                            type: 'in.(national,nfsenac)',
                             select: 'invoice_number,dps_number',
                             order: 'created_at.desc',
-                            limit: 1
+                            limit: 5
                         },
                         headers: {
                             'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!,
@@ -2441,12 +2440,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     
                     const lastInvoices = lastInvResp.data;
                     if (lastInvoices && lastInvoices.length > 0) {
-                        const lastNum = lastInvoices[0].invoice_number || lastInvoices[0].dps_number;
-                        const lastNumParsed = parseInt(String(lastNum).replace(/\D/g, ''), 10);
-                        if (!isNaN(lastNumParsed) && lastNumParsed > 0) {
-                            nextDpsNumber = lastNumParsed + 1;
-                            console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS calculado do último registro do banco: ${nextDpsNumber}`);
+                        for (const invItem of lastInvoices) {
+                            const lastNum = invItem.invoice_number || invItem.dps_number;
+                            const lastNumParsed = parseInt(String(lastNum || '').replace(/\D/g, ''), 10);
+                            if (!isNaN(lastNumParsed) && lastNumParsed >= nextDpsNumber) {
+                                nextDpsNumber = lastNumParsed + 1;
+                            }
                         }
+                        console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS calculado dos registros do banco: ${nextDpsNumber}`);
                     } else {
                         console.log(`🏛️ [ADN-NACIONAL] Banco sem histórico para empresa ${resolvedId}. Usando número inicial: ${nextDpsNumber}`);
                     }
@@ -2457,11 +2458,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             if (nat.proximo_numero_dps && Number(nat.proximo_numero_dps) > 0) {
                 const configDps = Number(nat.proximo_numero_dps);
-                if (configDps > nextDpsNumber) {
+                if (configDps >= nextDpsNumber) {
                     nextDpsNumber = configDps;
                     console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS obtido das configurações da empresa: ${nextDpsNumber}`);
                 } else {
-                    console.log(`🏛️ [ADN-NACIONAL] Número DPS das configurações (${configDps}) é menor ou igual ao banco. Usando próximo sequencial seguro: ${nextDpsNumber}`);
+                    console.log(`🏛️ [ADN-NACIONAL] Número DPS das configurações (${configDps}) é menor que o sequencial seguro (${nextDpsNumber}). Usando ${nextDpsNumber}.`);
                 }
             }
 
