@@ -10,6 +10,7 @@ import forge from 'node-forge';
 import zlib from 'zlib';
 import { SignedXml } from 'xml-crypto';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { PaymentFactory } from './_services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -4652,6 +4653,28 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
     }
 });
 
+function formatDanfseDate(str: string): string {
+    if (!str) return '';
+    if (str.includes('/')) return str.split('T')[0].split(' ')[0];
+    const clean = str.split('T')[0];
+    const parts = clean.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return str;
+}
+
+function formatDanfseDateTime(str: string): string {
+    if (!str) return '';
+    if (str.includes('/') && str.includes(' ')) return str;
+    try {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+    } catch (e) {}
+    return str;
+}
+
 async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const margin = 10;
@@ -4750,11 +4773,11 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     drawBox(margin + colW1, y, colW1, 9);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(80); doc.text('COMPETÊNCIA DA NFS-e', margin + colW1 + 2, y + 3);
-    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(data.dhEmi ? data.dhEmi.substring(0, 10) : '06/08/2026', margin + colW1 + 2, y + 7);
+    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(formatDanfseDate(data.dCompet || data.dhEmi || '2026-08-07'), margin + colW1 + 2, y + 7);
 
     drawBox(margin + (colW1 * 2), y, colW1 + 0.1, 9);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(80); doc.text('DATA E HORA DA EMISSÃO DA NFS-e', margin + (colW1 * 2) + 2, y + 3);
-    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(data.dhEmi || '06/08/2026 22:41:46', margin + (colW1 * 2) + 2, y + 7);
+    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(formatDanfseDateTime(data.dhEmi || new Date().toISOString()), margin + (colW1 * 2) + 2, y + 7);
 
     y += 9;
 
@@ -4769,7 +4792,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     drawBox(margin + (colW1 * 2), y, colW1 + 0.1, 9);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(80); doc.text('DATA E HORA DA EMISSÃO DA DPS', margin + (colW1 * 2) + 2, y + 3);
-    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(data.dhEmi || '06/08/2026 22:26:45', margin + (colW1 * 2) + 2, y + 7);
+    doc.setFontSize(7.5); doc.setTextColor(0); doc.text(formatDanfseDateTime(data.dhEmiDps || data.dhEmi || new Date().toISOString()), margin + (colW1 * 2) + 2, y + 7);
 
     y += 9;
 
@@ -5243,6 +5266,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlDps = getXmlVal('nDPS');
                 const xmlSerie = getXmlVal('serie');
                 const xmlDhEmi = getXmlVal('dhEmi');
+                const xmlDCompet = getXmlVal('dCompet');
                 const xmlChave = getXmlVal('chNFSe');
                 const xmlCTribNac = getXmlVal('cTribNac');
                 const xmlDesc = getXmlVal('xDescServ');
@@ -5262,7 +5286,9 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     serie: xmlSerie || dbInvoiceRecord?.dps_serie || inf.serie || '1',
                     nDPS: xmlDps || dbInvoiceRecord?.dps_number || inf.nDPS || '35',
                     chaveAcesso: xmlChave || chNFSe,
+                    dCompet: xmlDCompet || inf.dCompet || xmlDhEmi || dbInvoiceRecord?.created_at,
                     dhEmi: xmlDhEmi || dbInvoiceRecord?.created_at || inf.dhEmi || new Date().toISOString(),
+                    dhEmiDps: inf.dhEmi || xmlDhEmi || dbInvoiceRecord?.created_at,
                     prestador: {
                         cnpj: getXmlVal('CNPJ') || prest.CNPJ || prest.cnpj || nat.cnpj || '00.893.566/0001-90',
                         nome: getXmlVal('xNome') || prest.xNome || prest.nome || nat.razao_social || 'CARLOSCLETON CARVALHO FERNANDES ME',
