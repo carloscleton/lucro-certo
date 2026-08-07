@@ -2419,7 +2419,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
             // O Portal Nacional retorna o nNFSe oficial após autorização, que é usado como número da nota.
             const cleanCnpjFallback = String(nat.cnpj || certSubjectCnpj || payload?.infDPS?.prest?.CNPJ || '').replace(/\D/g, '');
-            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 24 : 1;
+            const defaultMigrationDpsNumber = (cleanCnpjFallback === '00893566000190' || resolvedId === '84d1586e-5d0c-456f-aa12-aefc5a9364a7') ? 39 : 1;
             let nextDpsNumber = defaultMigrationDpsNumber;
 
             if (SUPABASE_URL) {
