@@ -3110,33 +3110,67 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-                // Descompacta o XML retornado pela SEFIN se presente no nfseXmlGZipB64
+                let chaveAcesso = adnData?.chaveAcesso || adnData?.chNFSe || adnData?.cChaveAcesso || '';
+                if (!chaveAcesso && adnData?.idDps && String(adnData.idDps).length >= 50) {
+                    chaveAcesso = String(adnData.idDps).replace(/\D/g, '');
+                }
+
                 let officialXmlString = '';
                 let officialNfseNum = adnData?.nNFSe || adnData?.numeroNfse || null;
                 let officialDpsNum = adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
 
+                // Se a chave de 50 dígitos está disponível mas o XML em GZip não veio na resposta imediata, busca o XML oficial na SEFIN via GET
+                if (chaveAcesso && chaveAcesso.length === 50 && !adnData?.nfseXmlGZipB64) {
+                    try {
+                        console.log(`🔄 [ADN-NACIONAL] Buscando XML oficial na SEFIN para chave ${chaveAcesso}...`);
+                        const sefinXmlResp = await axios.get(`${sefinBaseUrl}/nfse/${chaveAcesso}`, {
+                            httpsAgent,
+                            headers: { 'Accept': 'application/json, application/xml, text/xml, */*' },
+                            timeout: 10000
+                        });
+                        if (sefinXmlResp.data?.nfseXmlGZipB64) {
+                            adnData.nfseXmlGZipB64 = sefinXmlResp.data.nfseXmlGZipB64;
+                        } else if (typeof sefinXmlResp.data === 'string' && sefinXmlResp.data.includes('<NFSe')) {
+                            officialXmlString = sefinXmlResp.data;
+                        }
+                    } catch (fetchXmlErr: any) {
+                        console.warn(`⚠️ [ADN-NACIONAL] Não foi possível obter o XML via GET na SEFIN:`, fetchXmlErr.message);
+                    }
+                }
+
+                // Descompacta o XML retornado pela SEFIN se presente no nfseXmlGZipB64
                 if (adnData?.nfseXmlGZipB64) {
                     try {
                         officialXmlString = zlib.gunzipSync(Buffer.from(adnData.nfseXmlGZipB64, 'base64')).toString('utf-8');
                         console.log(`✅ [ADN-NACIONAL] XML Oficial descompactado do retorno da SEFIN (${officialXmlString.length} bytes).`);
-                        
-                        const matchNfse = officialXmlString.match(/<nNFSe>([^<]+)<\/nNFSe>/i);
-                        if (matchNfse?.[1]) officialNfseNum = matchNfse[1].trim();
-
-                        const matchDps = officialXmlString.match(/<nDPS>([^<]+)<\/nDPS>/i);
-                        if (matchDps?.[1]) officialDpsNum = matchDps[1].trim();
                     } catch (gzErr: any) {
                         console.warn(`⚠️ [ADN-NACIONAL] Falha ao descompactar nfseXmlGZipB64:`, gzErr.message);
                     }
                 }
 
-                const chaveAcesso = adnData?.chaveAcesso || adnData?.chNFSe || adnData?.cChaveAcesso || dpsId;
-                const nNFSeVal = officialNfseNum || adnData?.nNFSe || adnPayload?.infDPS?.nDPS || null;
-                const nDPS = officialDpsNum || adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
-                const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
-                const docId = chaveAcesso || dpsId;
+                if (officialXmlString) {
+                    const matchNfse = officialXmlString.match(/<nNFSe>([^<]+)<\/nNFSe>/i);
+                    if (matchNfse?.[1]) officialNfseNum = matchNfse[1].trim();
 
-                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${chaveAcesso} | Número NFS-e Oficial: ${nNFSeVal} | DPS: ${nDPS}`);
+                    const matchDps = officialXmlString.match(/<nDPS>([^<]+)<\/nDPS>/i);
+                    if (matchDps?.[1]) officialDpsNum = matchDps[1].trim();
+
+                    const matchChave = officialXmlString.match(/<infNFSe\s+Id="NFS(\d{50})"/i) || officialXmlString.match(/<chNFSe>([^<]+)<\/chNFSe>/i);
+                    if (matchChave?.[1]) chaveAcesso = matchChave[1].trim();
+                }
+
+                let keyExtractedNum = '';
+                if (chaveAcesso && chaveAcesso.length === 50) {
+                    keyExtractedNum = String(parseInt(chaveAcesso.substring(26, 41), 10) || '');
+                }
+
+                const finalChave = chaveAcesso || dpsId;
+                const nNFSeVal = officialNfseNum || keyExtractedNum || adnData?.nNFSe || String(currentDpsSeq);
+                const nDPS = officialDpsNum || keyExtractedNum || String(currentDpsSeq);
+                const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
+                const docId = finalChave;
+
+                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${finalChave} | Número NFS-e Oficial: ${nNFSeVal} | DPS: ${nDPS}`);
                 console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
 
                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
@@ -3158,7 +3192,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             type: 'national',
                             status: 'concluido',
                             invoice_number: nNFSeVal || nDPS,
-                            access_key: chaveAcesso || null,
+                            access_key: finalChave || null,
                             dps_number: nDPS,
                             dps_serie: sDPS,
                             pdf_url: pdfUrlProxy,
@@ -3167,7 +3201,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 ...adnPayload,
                                 xml_assinado: officialXmlString || signedXml,
                                 retorno: adnData,
-                                chaveAcesso,
+                                chaveAcesso: finalChave,
                                 nNFSe: nNFSeVal,
                                 nDPS,
                                 serie: sDPS
@@ -3203,7 +3237,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?id=eq.${preInsertedId}`, invoiceRecordData, {
                                 headers: dbHeaders
                             });
-                            console.log(`💾 [ADN-NACIONAL] Nota pré-gravada atualizada com sucesso para CONCLUÍDO (ID: ${preInsertedId}, Chave: ${docId}).`);
+                            console.log(`💾 [ADN-NACIONAL] Nota pré-gravada atualizada com sucesso para CONCLUÍDO (ID: ${preInsertedId}, Chave: ${docId}, NFS-e #${nNFSeVal}).`);
                         } else {
                             await axios.post(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, invoiceRecordData, {
                                 headers: {
@@ -3211,7 +3245,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     'Prefer': 'return=minimal'
                                 }
                             });
-                            console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}).`);
+                            console.log(`💾 [ADN-NACIONAL] Nota fiscal gravada com sucesso no banco de dados (ID: ${docId}, NFS-e #${nNFSeVal}).`);
                         }
 
                         // Registrar evento em fiscal_invoice_events
@@ -3221,13 +3255,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 company_id: resolvedId,
                                 event_type: 'AUTORIZADA',
                                 status: 'concluido',
-                                details: { chaveAcesso, nNFSe: nNFSeVal, nDPS },
+                                details: { chaveAcesso: finalChave, nNFSe: nNFSeVal, nDPS },
                                 created_at: new Date().toISOString()
                             }, { headers: dbHeaders });
                         } catch (evErr) {}
 
                         try {
-                            const maxIssued = Math.max(Number(nNFSeVal || 0), Number(nDPS || 0), Number(currentDpsSeq || 0));
+                            const maxIssued = Math.max(
+                                Number(nNFSeVal || 0), 
+                                Number(nDPS || 0), 
+                                Number(currentDpsSeq || 0),
+                                Number(keyExtractedNum || 0)
+                            );
                             const nextDpsToSave = maxIssued + 1;
                             nat.proximo_numero_dps = nextDpsToSave;
                             await axios.patch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${resolvedId}`, {
