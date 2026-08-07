@@ -434,7 +434,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
     const authHeader = req.headers.authorization;
 
     try {
-        const { config, settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
+        const { config, realCompanyId: resolvedId, settings } = await getCompanyFiscalConfig(authHeader!, companyId as string, true);
         const activeProvider = settings?.fiscal_provider || 'tecnospeed';
         const apiKey = config.tecnospeed_api_key?.trim().toLowerCase();
         const isSandbox = config.ambiente === 'homologacao';
@@ -486,7 +486,8 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const hasNationalCert = !!(
             settings?.national_config?.certificado_pfx_base64 || 
             settings?.certificado_pfx_base64 || 
-            settings?.nfeio_config?.certificado_pfx_base64
+            settings?.nfeio_config?.certificado_pfx_base64 ||
+            config?.certificado_pfx_base64
         );
 
         const isNacionalCancel = isDpsId || 
@@ -497,12 +498,24 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
-            console.log(`🏛️ [ADN-NACIONAL-CANCEL] Iniciando cancelamento de NFS-e no Portal Nacional | ID: ${id}`);
+            console.log(`🏛️ [ADN-NACIONAL-CANCEL] Iniciando cancelamento de NFS-e no Portal Nacional | ID: ${id} | Empresa: ${resolvedId}`);
             
             try {
                 const nat = settings?.national_config || {};
-                const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64 || settings?.nfeio_config?.certificado_pfx_base64;
-                const pfxPassword = nat.certificado_senha || settings?.certificado_senha || settings?.nfeio_config?.certificado_senha || '';
+                const pfxBase64 = String(
+                    nat.certificado_pfx_base64 || 
+                    settings?.certificado_pfx_base64 || 
+                    settings?.nfeio_config?.certificado_pfx_base64 ||
+                    config?.certificado_pfx_base64 ||
+                    ''
+                ).trim();
+                const pfxPassword = String(
+                    nat.certificado_senha || 
+                    settings?.certificado_senha || 
+                    settings?.nfeio_config?.certificado_senha ||
+                    config?.certificado_senha ||
+                    ''
+                ).trim();
                 const adnAmbiente = nat.ambiente || 'homologacao';
                 let tpAmb = (adnAmbiente === 'producao') ? 1 : 2;
                 const sefinCancelUrl = tpAmb === 1
