@@ -3127,12 +3127,20 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     chaveAcesso = String(adnData.idDps).replace(/\D/g, '');
                 }
 
+                // Formato da chave SEFIN Nacional (50 dígitos):
+                // cMun(7) + AAMM(4) + CNPJ(14) = posições 0-6, 7-10, 11-24
+                // cLocPrestacao(7) = posições 11-17 (sobrepõe com CNPJ em algumas fontes)
+                // nNFSe(15 dígitos) começa na posição 22 (0-indexed), termina na 36
+                // Exemplo nota 51: substring(22,37) = "000000000000051" → 51 ✓
                 // Validar se a chave retornada pelo SEFIN corresponde ao DPS autorizado
                 if (chaveAcesso && chaveAcesso.length === 50) {
-                    const keyDpsNum = parseInt(chaveAcesso.substring(26, 41), 10);
+                    const keyDpsNum = parseInt(chaveAcesso.substring(22, 37), 10);
+                    console.log(`🔑 [ADN-NACIONAL] Validando chaveAcesso: extração nNFSe="${chaveAcesso.substring(22, 37)}" (parseInt=${keyDpsNum}) vs authorizedDpsSeq=${authorizedDpsSeq}`);
                     if (!isNaN(keyDpsNum) && keyDpsNum !== authorizedDpsSeq) {
                         console.warn(`⚠️ [ADN-NACIONAL] DIVERGÊNCIA DETECTADA: chaveAcesso retornada pelo SEFIN tem DPS #${keyDpsNum} mas o DPS efetivamente autorizado foi #${authorizedDpsSeq}. Ignorando chave inconsistente.`);
                         chaveAcesso = ''; // Forçar busca pelo número correto
+                    } else {
+                        console.log(`✅ [ADN-NACIONAL] chaveAcesso validada com sucesso para DPS #${keyDpsNum}.`);
                     }
                 }
 
@@ -3205,18 +3213,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 let keyExtractedNum = '';
                 if (chaveAcesso && chaveAcesso.length === 50) {
-                    keyExtractedNum = String(parseInt(chaveAcesso.substring(26, 41), 10) || '');
+                    // posição 22-36 (0-indexed) = 15 dígitos do nNFSe
+                    keyExtractedNum = String(parseInt(chaveAcesso.substring(22, 37), 10) || '');
                 }
 
                 // Fonte de verdade final: usar o currentDpsSeq (número autorizado nesta iteração) como fallback absoluto
                 // O nNFSe no SEFIN Nacional é igual ao nDPS para emissão do contribuinte
-                const finalChave = chaveAcesso || dpsId;
+                // Recalcular o DPS ID usando o número EFETIVAMENTE autorizado (não o número inicial antes dos retries E0014)
+                const authorizedPaddedNum = String(authorizedDpsSeq).padStart(15, '0');
+                const authorizedDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0').substring(0, 5)}${authorizedPaddedNum}`;
+                const finalChave = chaveAcesso || authorizedDpsId;
                 const nNFSeVal = officialNfseNum || keyExtractedNum || String(authorizedDpsSeq);
                 const nDPS = officialDpsNum || keyExtractedNum || String(authorizedDpsSeq);
                 const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
                 const docId = finalChave;
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e autorizada! DPS seq=${authorizedDpsSeq} | nNFSe=${nNFSeVal} | nDPS=${nDPS} | Chave=${finalChave}`);
+
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${finalChave} | Número NFS-e Oficial: ${nNFSeVal} | DPS: ${nDPS}`);
                 console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
@@ -5402,7 +5415,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const val = inf.valores || invPayload.valores || {};
                 const amountVal = Number(xmlVServ || val.vServPrest?.vServ || val.vServ || dbInvoiceRecord?.amount || invPayload.amount || 0.09);
 
-                const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(26, 41), 10) || '') : '';
+                // posição 22-36 (0-indexed) = 15 dígitos do nNFSe na chave de 50 dígitos do SEFIN Nacional
+                const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(22, 37), 10) || '') : '';
                 const finalNfseNum = xmlNfse || dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || chaveNfseNum || '1';
 
                 return await generateServerDanfseBuffer({
