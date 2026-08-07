@@ -574,9 +574,12 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     }
                 }
 
-                // Extrai chave/certificado do PFX
+                // Extrai chave/certificado do PFX (garantindo o Certificado FOLHA em 1º lugar no bundle mTLS)
                 let privateKeyPem = '';
                 let certPem = '';
+                let leafCertificatePem = '';
+                let certSubjectCnpj = '';
+
                 try {
                     const pfxBuffer = Buffer.from(pfxBase64, 'base64');
                     const pfxDer = pfxBuffer.toString('binary');
@@ -602,7 +605,44 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     const certBag = certBags[forge.pki.oids.certBag];
                     if (certBag && certBag.length > 0) {
                         const certs = certBag.map(b => forge.pki.certificateToPem(b.cert));
-                        certPem = certs.join('\n');
+
+                        if (privateKeyPem) {
+                            try {
+                                const privKeyObj = forge.pki.privateKeyFromPem(privateKeyPem);
+                                const privPublicPem = forge.pki.publicKeyToPem(forge.pki.setRsaPublicKey((privKeyObj as any).n, (privKeyObj as any).e));
+
+                                for (const b of certBag) {
+                                    try {
+                                        const cKeyPem = forge.pki.publicKeyToPem(b.cert.publicKey);
+                                        if (cKeyPem === privPublicPem) {
+                                            leafCertificatePem = forge.pki.certificateToPem(b.cert);
+                                            console.log(`🎯 [ADN-NACIONAL-CANCEL] Certificado FOLHA correspondente à chave privada encontrado!`);
+                                            break;
+                                        }
+                                    } catch (e) {}
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (!leafCertificatePem) {
+                            leafCertificatePem = certs[0];
+                        }
+
+                        const otherCerts = certs.filter(c => c.trim() !== leafCertificatePem.trim());
+                        certPem = [leafCertificatePem, ...otherCerts].join('\n');
+
+                        try {
+                            const leafCertObj = forge.pki.certificateFromPem(leafCertificatePem);
+                            for (const attr of leafCertObj.subject.attributes) {
+                                if (attr.value) {
+                                    const matches = String(attr.value).replace(/\D/g, '').match(/\d{14}/);
+                                    if (matches && matches[0] !== '00000000000000') {
+                                        certSubjectCnpj = matches[0];
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (e) {}
                     }
                 } catch (pfxErr: any) {
                     return res.status(500).json({ error: `Falha ao ler certificado digital: ${pfxErr.message}` });
@@ -610,6 +650,10 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 if (!privateKeyPem || !certPem) {
                     return res.status(400).json({ error: 'Não foi possível extrair chave/certificado do PFX para o cancelamento.' });
+                }
+
+                if (!prestadorCnpj && certSubjectCnpj) {
+                    prestadorCnpj = certSubjectCnpj;
                 }
 
                 const httpsAgentCert = new https.Agent({
