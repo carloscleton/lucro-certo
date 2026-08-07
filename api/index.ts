@@ -3110,44 +3110,88 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
+                // ==================================================================================
+                // FONTE DE VERDADE: currentDpsSeq é o número DPS que FOI EFETIVAMENTE enviado
+                // e aceito pelo SEFIN nesta iteração do loop. Nunca confiar no adnData?.nNFSe
+                // pois o SEFIN pode retornar dados de uma emissão anterior ou em cache.
+                // ==================================================================================
+                const authorizedDpsSeq = currentDpsSeq; // Número DPS aceito pelo SEFIN nesta iteração
+
+                // Reconstruir a chave de acesso a partir dos campos conhecidos e do número autorizado
+                // Formato: cLocEmi(7) + tpInsc(1) + CNPJ/CPF(14) + serie(5) + nDPS(15) + dígito(8)
+                // A chave de 50 dígitos do SEFIN: cMunIBGE(7) + AAMM(4) + CNPJ(14) + cLocPrest(7) + serie(5) + nDPS(15) - totalizando parcialmente
+                // Estratégia: priorizar o chaveAcesso do adnData SE o número extraído (dígitos 27-41) bater com authorizedDpsSeq
+                
                 let chaveAcesso = adnData?.chaveAcesso || adnData?.chNFSe || adnData?.cChaveAcesso || '';
                 if (!chaveAcesso && adnData?.idDps && String(adnData.idDps).length >= 50) {
                     chaveAcesso = String(adnData.idDps).replace(/\D/g, '');
                 }
 
-                let officialXmlString = '';
-                let officialNfseNum = adnData?.nNFSe || adnData?.numeroNfse || null;
-                let officialDpsNum = adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
+                // Validar se a chave retornada pelo SEFIN corresponde ao DPS autorizado
+                if (chaveAcesso && chaveAcesso.length === 50) {
+                    const keyDpsNum = parseInt(chaveAcesso.substring(26, 41), 10);
+                    if (!isNaN(keyDpsNum) && keyDpsNum !== authorizedDpsSeq) {
+                        console.warn(`⚠️ [ADN-NACIONAL] DIVERGÊNCIA DETECTADA: chaveAcesso retornada pelo SEFIN tem DPS #${keyDpsNum} mas o DPS efetivamente autorizado foi #${authorizedDpsSeq}. Ignorando chave inconsistente.`);
+                        chaveAcesso = ''; // Forçar busca pelo número correto
+                    }
+                }
 
-                // Se a chave de 50 dígitos está disponível mas o XML em GZip não veio na resposta imediata, busca o XML oficial na SEFIN via GET
-                if (chaveAcesso && chaveAcesso.length === 50 && !adnData?.nfseXmlGZipB64) {
+                let officialXmlString = '';
+                let officialNfseNum: string | null = null;
+                let officialDpsNum: string | null = null;
+
+                // Buscar o XML oficial da NFS-e pela chave correta (baseada no authorizedDpsSeq)
+                // Estratégia 1: Descompactar nfseXmlGZipB64 do retorno direto (se consistente)
+                if (adnData?.nfseXmlGZipB64) {
                     try {
-                        console.log(`🔄 [ADN-NACIONAL] Buscando XML oficial na SEFIN para chave ${chaveAcesso}...`);
+                        const candidateXml = zlib.gunzipSync(Buffer.from(adnData.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                        // Verificar se o XML descompactado corresponde ao DPS autorizado
+                        const xmlDpsMatch = candidateXml.match(/<nDPS>([^<]+)<\/nDPS>/i);
+                        const xmlDpsNum = xmlDpsMatch ? parseInt(xmlDpsMatch[1].trim(), 10) : null;
+                        if (xmlDpsNum !== null && xmlDpsNum === authorizedDpsSeq) {
+                            officialXmlString = candidateXml;
+                            console.log(`✅ [ADN-NACIONAL] XML do nfseXmlGZipB64 confirmado para DPS #${authorizedDpsSeq}.`);
+                        } else {
+                            console.warn(`⚠️ [ADN-NACIONAL] XML do nfseXmlGZipB64 é para DPS #${xmlDpsNum}, mas o autorizado foi #${authorizedDpsSeq}. Ignorando.`);
+                        }
+                    } catch (gzErr: any) {
+                        console.warn(`⚠️ [ADN-NACIONAL] Falha ao descompactar nfseXmlGZipB64:`, gzErr.message);
+                    }
+                }
+
+                // Estratégia 2: Buscar o XML diretamente na SEFIN pela chave (se disponível e consistente)
+                if (!officialXmlString && chaveAcesso && chaveAcesso.length === 50) {
+                    try {
+                        console.log(`🔄 [ADN-NACIONAL] Buscando XML oficial na SEFIN para chave ${chaveAcesso} (DPS #${authorizedDpsSeq})...`);
                         const sefinXmlResp = await axios.get(`${sefinBaseUrl}/nfse/${chaveAcesso}`, {
                             httpsAgent,
                             headers: { 'Accept': 'application/json, application/xml, text/xml, */*' },
-                            timeout: 10000
+                            timeout: 15000
                         });
                         if (sefinXmlResp.data?.nfseXmlGZipB64) {
-                            adnData.nfseXmlGZipB64 = sefinXmlResp.data.nfseXmlGZipB64;
+                            const candidateXml = zlib.gunzipSync(Buffer.from(sefinXmlResp.data.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                            const xmlDpsMatch2 = candidateXml.match(/<nDPS>([^<]+)<\/nDPS>/i);
+                            const xmlDpsNum2 = xmlDpsMatch2 ? parseInt(xmlDpsMatch2[1].trim(), 10) : null;
+                            if (xmlDpsNum2 === authorizedDpsSeq) {
+                                officialXmlString = candidateXml;
+                                console.log(`✅ [ADN-NACIONAL] XML obtido via GET SEFIN e confirmado para DPS #${authorizedDpsSeq}.`);
+                            } else {
+                                console.warn(`⚠️ [ADN-NACIONAL] XML via GET SEFIN é para DPS #${xmlDpsNum2}, mas o autorizado foi #${authorizedDpsSeq}. Ignorando.`);
+                            }
                         } else if (typeof sefinXmlResp.data === 'string' && sefinXmlResp.data.includes('<NFSe')) {
-                            officialXmlString = sefinXmlResp.data;
+                            const xmlDpsMatch3 = sefinXmlResp.data.match(/<nDPS>([^<]+)<\/nDPS>/i);
+                            const xmlDpsNum3 = xmlDpsMatch3 ? parseInt(xmlDpsMatch3[1].trim(), 10) : null;
+                            if (xmlDpsNum3 === authorizedDpsSeq) {
+                                officialXmlString = sefinXmlResp.data;
+                                console.log(`✅ [ADN-NACIONAL] XML direto via GET SEFIN confirmado para DPS #${authorizedDpsSeq}.`);
+                            }
                         }
                     } catch (fetchXmlErr: any) {
                         console.warn(`⚠️ [ADN-NACIONAL] Não foi possível obter o XML via GET na SEFIN:`, fetchXmlErr.message);
                     }
                 }
 
-                // Descompacta o XML retornado pela SEFIN se presente no nfseXmlGZipB64
-                if (adnData?.nfseXmlGZipB64) {
-                    try {
-                        officialXmlString = zlib.gunzipSync(Buffer.from(adnData.nfseXmlGZipB64, 'base64')).toString('utf-8');
-                        console.log(`✅ [ADN-NACIONAL] XML Oficial descompactado do retorno da SEFIN (${officialXmlString.length} bytes).`);
-                    } catch (gzErr: any) {
-                        console.warn(`⚠️ [ADN-NACIONAL] Falha ao descompactar nfseXmlGZipB64:`, gzErr.message);
-                    }
-                }
-
+                // Extrair nNFSe e nDPS do XML confirmado
                 if (officialXmlString) {
                     const matchNfse = officialXmlString.match(/<nNFSe>([^<]+)<\/nNFSe>/i);
                     if (matchNfse?.[1]) officialNfseNum = matchNfse[1].trim();
@@ -3164,11 +3208,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     keyExtractedNum = String(parseInt(chaveAcesso.substring(26, 41), 10) || '');
                 }
 
+                // Fonte de verdade final: usar o currentDpsSeq (número autorizado nesta iteração) como fallback absoluto
+                // O nNFSe no SEFIN Nacional é igual ao nDPS para emissão do contribuinte
                 const finalChave = chaveAcesso || dpsId;
-                const nNFSeVal = officialNfseNum || keyExtractedNum || adnData?.nNFSe || String(currentDpsSeq);
-                const nDPS = officialDpsNum || keyExtractedNum || String(currentDpsSeq);
+                const nNFSeVal = officialNfseNum || keyExtractedNum || String(authorizedDpsSeq);
+                const nDPS = officialDpsNum || keyExtractedNum || String(authorizedDpsSeq);
                 const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
                 const docId = finalChave;
+
+                console.log(`✅ [ADN-NACIONAL] NFS-e autorizada! DPS seq=${authorizedDpsSeq} | nNFSe=${nNFSeVal} | nDPS=${nDPS} | Chave=${finalChave}`);
 
                 console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${finalChave} | Número NFS-e Oficial: ${nNFSeVal} | DPS: ${nDPS}`);
                 console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
@@ -3293,8 +3341,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 return res.json({
                     id: docId,
                     external_id: docId,
-                    chaveAcesso,
-                    access_key: chaveAcesso,
+                    chaveAcesso: finalChave,
+                    access_key: finalChave,
                     invoice_number: nNFSeVal || nDPS,
                     nNFSe: nNFSeVal,
                     nDPS,
@@ -3303,12 +3351,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     flowStatus: 'concluido',
                     pdf_url: pdfUrlProxy,
                     xml_url: xmlUrlProxy,
-                    documents: [{ id: docId, status: 'AUTORIZADO', chaveAcesso }],
+                    documents: [{ id: docId, status: 'AUTORIZADO', chaveAcesso: finalChave }],
                     payload: {
                         ...adnPayload,
                         xml_assinado: officialXmlString || signedXml,
                         retorno: adnData,
-                        chaveAcesso,
+                        chaveAcesso: finalChave,
                         nNFSe: nNFSeVal,
                         nDPS,
                         serie: sDPS
