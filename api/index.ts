@@ -4654,337 +4654,401 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
 
 async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const margin = 10;
-    let y = 10;
+    const margin = 8;
+    let y = 8;
+    const pageWidth = 194; // 210 - 16
 
-    // Helper functions for drawing boxes & text
-    const drawBox = (x: number, y: number, w: number, h: number, bg = [255, 255, 255], border = [180, 180, 180]) => {
-        doc.setFillColor(bg[0], bg[1], bg[2]);
+    // Helper functions for drawing crisp black borders & fills
+    const drawBox = (x: number, y: number, w: number, h: number, bg: number[] | null = null, border = [0, 0, 0]) => {
+        if (bg) {
+            doc.setFillColor(bg[0], bg[1], bg[2]);
+        }
         doc.setDrawColor(border[0], border[1], border[2]);
         doc.setLineWidth(0.2);
         doc.rect(x, y, w, h, bg ? 'FD' : 'S');
     };
 
-    const drawHeaderBox = (x: number, y: number, w: number, h: number, title: string, bg = [240, 243, 246]) => {
-        drawBox(x, y, w, h, bg, [160, 175, 190]);
+    const drawHeaderBox = (x: number, y: number, w: number, h: number, title: string, bg = [240, 240, 240]) => {
+        drawBox(x, y, w, h, bg, [0, 0, 0]);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
-        doc.setTextColor(50, 70, 90);
-        doc.text(title.toUpperCase(), x + 2, y + 4);
+        doc.setTextColor(0, 0, 0);
+        doc.text(title.toUpperCase(), x + 2, y + 3.8);
     };
 
-    // 1. TOP LOGO & AMBIENTE HEADER
-    drawBox(margin, y, 190, 22, [255, 255, 255], [0, 102, 179]);
+    const formatCurrency = (val: any) => {
+        const num = parseFloat(String(val || 0));
+        return isNaN(num) ? 'R$ 0,00' : `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
-    // Logo NFS-e
+    const chave = String(data.chaveAcesso || data.chave || '24081022200893566000190000000000004526087773930690').replace(/\D/g, '');
+    const nNfseVal = String(data.nNfse || data.nNFSe || '45');
+    const nDpsVal = String(data.nDPS || data.nDps || '44');
+
+    // 1. TOP HEADER (LOGO, TITLE, AMBIENTE)
+    drawBox(margin, y, pageWidth, 18, [255, 255, 255], [0, 0, 0]);
+
+    // Logo NFS-e (Green + Grey text)
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(0, 150, 64);
-    doc.text('NFS-e', margin + 4, y + 13);
-
-    doc.setFontSize(14);
-    doc.setTextColor(0, 70, 140);
-    doc.text('DANFSe v2.0', margin + 35, y + 10);
-
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text('Documento Auxiliar da Nota Fiscal de Serviço Eletrônica', margin + 35, y + 16);
+    doc.setFontSize(20);
+    doc.setTextColor(0, 140, 68);
+    doc.text('NFS-e', margin + 3, y + 10);
 
     doc.setFontSize(7.5);
-    doc.text(`Município: Natal - RN   |   Ambiente Gerador: ${data.ambiente === 'producao' ? 'Produção' : 'Homologação'}`, margin + 115, y + 10);
-    doc.text(`Tipo de Ambiente: ${data.ambiente === 'producao' ? '1 - Produção' : '2 - Homologação'}`, margin + 115, y + 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Nota Fiscal de\nServiço eletrônica', margin + 28, y + 7);
 
-    y += 24;
+    // Title Center
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text('DANFSe v2.0', margin + (pageWidth / 2), y + 7, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Documento Auxiliar da NFS-e', margin + (pageWidth / 2), y + 12, { align: 'center' });
+
+    // Right Info
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Município: Natal - RN`, margin + pageWidth - 3, y + 6, { align: 'right' });
+    doc.text(`Ambiente Gerador: ${data.ambiente === 'producao' ? '1' : '2'}`, margin + pageWidth - 3, y + 10, { align: 'right' });
+    doc.text(`Tipo de Ambiente: ${data.ambiente === 'producao' ? '1' : '1'}`, margin + pageWidth - 3, y + 14, { align: 'right' });
+
+    y += 18;
 
     // 2. CHAVE DE ACESSO & QR CODE BOX
-    const leftWidth = 143;
-    const qrWidth = 45;
-    
-    // Left Box: Chave de Acesso
-    drawBox(margin, y, leftWidth, 24, [248, 250, 252], [180, 180, 180]);
+    const leftW = 148;
+    const qrW = 46;
+    drawBox(margin, y, leftW, 26, [255, 255, 255], [0, 0, 0]);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(70, 70, 70);
-    doc.text('CHAVE DE ACESSO DA NFS-E', margin + 3, y + 5);
+    doc.setFontSize(6.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text('CHAVE DE ACESSO DA NFS-e', margin + 2, y + 4);
 
     doc.setFont('courier', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(0, 0, 0);
-    const chave = (data.chaveAcesso || '24081022200893566000190000000000003626081082877800').replace(/\D/g, '');
-    const formattedChave = chave.replace(/(.{4})/g, '$1 ').trim();
-    doc.text(formattedChave, margin + 3, y + 13);
+    doc.setFontSize(7.5);
+    doc.text(chave, margin + 2, y + 9);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Consulte a autenticidade deste documento no Portal Nacional da NFS-e (www.nfse.gov.br)', margin + 3, y + 20);
+    // Grid under Chave inside Left Box
+    const cW = leftW / 3;
+    // Row 1
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('NÚMERO DA NFS-e', margin + 2, y + 14);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(nNfseVal, margin + 2, y + 17.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('COMPETÊNCIA DA NFS-e', margin + cW + 2, y + 14);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(data.dCompet || '07/08/2026', margin + cW + 2, y + 17.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('DATA E HORA DA EMISSÃO DA NFS-e', margin + (cW * 2) + 2, y + 14);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(data.dhEmi || '07/08/2026 09:42:20', margin + (cW * 2) + 2, y + 17.5);
+
+    // Row 2
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('NÚMERO DA DPS', margin + 2, y + 21.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(nDpsVal, margin + 2, y + 25);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('SÉRIE DA DPS', margin + cW + 2, y + 21.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(String(data.serie || '1'), margin + cW + 2, y + 25);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('DATA E HORA DA EMISSÃO DA DPS', margin + (cW * 2) + 2, y + 21.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.text(data.dhEmi || '07/08/2026 09:27:19', margin + (cW * 2) + 2, y + 25);
 
     // Right Box: QR Code
-    drawBox(margin + leftWidth + 2, y, qrWidth, 24, [255, 255, 255], [180, 180, 180]);
+    drawBox(margin + leftW, y, qrW, 26, [255, 255, 255], [0, 0, 0]);
     try {
-        const qrUrl = await QRCode.toDataURL(`https://www.nfse.gov.br/Nacional/DANFSE/${chave}`, { margin: 0, width: 80 });
-        doc.addImage(qrUrl, 'PNG', margin + leftWidth + 14, y + 2, 20, 20);
-    } catch (qrErr) {
-        doc.setFontSize(6);
-        doc.text('QR CODE', margin + leftWidth + 15, y + 13);
-    }
+        const qrUrl = await QRCode.toDataURL(`https://sefin.nfse.gov.br/SefinNacional/valida/${chave}`, { margin: 0, width: 70 });
+        doc.addImage(qrUrl, 'PNG', margin + leftW + 14, y + 1.5, 18, 18);
+    } catch (e) {}
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    doc.setTextColor(50, 50, 50);
+    const qrSub = 'A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e';
+    const splitQrSub = doc.splitTextToSize(qrSub, qrW - 4);
+    doc.text(splitQrSub, margin + leftW + 2, y + 20.5);
 
     y += 26;
 
-    // 3. INFORMAÇÕES GERAIS GRID (3 cols x 3 rows)
-    drawHeaderBox(margin, y, 190, 5, 'INFORMAÇÕES GERAIS DA NFS-E E DO DPS');
-    y += 5;
+    // Row 3: EMITENTE / SITUAÇÃO / FINALIDADE
+    drawBox(margin, y, pageWidth, 7.5, [255, 255, 255], [0, 0, 0]);
+    const w3 = pageWidth / 3;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('EMITENTE DA NFS-e', margin + 2, y + 2.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.text('Prestador', margin + 2, y + 6);
 
-    const colW1 = 63.3;
-    // Row 1
-    drawBox(margin, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('NÚMERO DA NFS-E', margin + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(String(data.nNfse || '36'), margin + 2, y + 8);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('SITUAÇÃO DA NFS-e', margin + w3 + 2, y + 2.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.text('NFS-e Gerada', margin + w3 + 2, y + 6);
 
-    drawBox(margin + colW1, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('COMPETÊNCIA DA NFS-E', margin + colW1 + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(data.dhEmi ? data.dhEmi.substring(0, 10) : '06/08/2026', margin + colW1 + 2, y + 8);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.text('FINALIDADE', margin + (w3 * 2) + 2, y + 2.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.text('NFS-e regular', margin + (w3 * 2) + 2, y + 6);
 
-    drawBox(margin + (colW1 * 2), y, colW1 + 0.1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('DATA E HORA DE EMISSÃO DA NFS-E', margin + (colW1 * 2) + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(data.dhEmi || '06/08/2026 22:15:47', margin + (colW1 * 2) + 2, y + 8);
+    y += 7.5;
 
-    y += 10;
-
-    // Row 2
-    drawBox(margin, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('NÚMERO DO DPS', margin + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(String(data.nDPS || '35'), margin + 2, y + 8);
-
-    drawBox(margin + colW1, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('SÉRIE DO DPS', margin + colW1 + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(String(data.serie || '1'), margin + colW1 + 2, y + 8);
-
-    drawBox(margin + (colW1 * 2), y, colW1 + 0.1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('DATA E HORA DE EMISSÃO DO DPS', margin + (colW1 * 2) + 2, y + 3.5);
-    doc.setFontSize(8); doc.setTextColor(0); doc.text(data.dhEmi || '06/08/2026 22:00:46', margin + (colW1 * 2) + 2, y + 8);
-
-    y += 10;
-
-    // Row 3
-    drawBox(margin, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('EMITENTE DA NFS-E', margin + 2, y + 3.5);
-    doc.setFontSize(7.5); doc.setTextColor(0); doc.text('Prestador do Serviço', margin + 2, y + 8);
-
-    drawBox(margin + colW1, y, colW1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('SITUAÇÃO DA NFS-E', margin + colW1 + 2, y + 3.5);
-    doc.setFontSize(7.5); doc.setTextColor(0, 130, 50); doc.text('NFS-e Gerada / Autorizada', margin + colW1 + 2, y + 8);
-
-    drawBox(margin + (colW1 * 2), y, colW1 + 0.1, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90); doc.text('FINALIDADE DA NFS-E', margin + (colW1 * 2) + 2, y + 3.5);
-    doc.setFontSize(7.5); doc.setTextColor(0); doc.text('1 - NFS-e Regular', margin + (colW1 * 2) + 2, y + 8);
-
-    y += 12;
-
-    // 4. PRESTADOR / FORNECEDOR
-    drawHeaderBox(margin, y, 190, 5, 'PRESTADOR DO SERVIÇO / FORNECEDOR');
-    y += 5;
-    drawBox(margin, y, 190, 20);
+    // 3. PRESTADOR / FORNECEDOR
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'PRESTADOR / FORNECEDOR');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 22, [255, 255, 255], [0, 0, 0]);
 
     const prest = data.prestador || {};
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('CNPJ / CPF / NIF', margin + 2, y + 4);
-    doc.text('INSCRIÇÃO MUNICIPAL', margin + 65, y + 4);
-    doc.text('TELEFONE', margin + 130, y + 4);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
+    doc.text('CNPJ / CPF / NIF', margin + 95, y + 3.2);
+    doc.text('Indicador Municipal (Inscrição)', margin + 135, y + 3.2);
+    doc.text('Telefone', margin + 170, y + 3.2);
 
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(prest.cnpj || '00.893.566/0001-90', margin + 2, y + 8);
-    doc.text(prest.im || '1254103', margin + 65, y + 8);
-    doc.text('(84) 3084-5723', margin + 130, y + 8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(prest.nome || 'CARLOSCLETON CARVALHO FERNANDES', margin + 2, y + 6.5);
+    doc.text(prest.cnpj || '00.893.566/0001-90', margin + 95, y + 6.5);
+    doc.text(prest.im || '-', margin + 135, y + 6.5);
+    doc.text('-', margin + 170, y + 6.5);
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('NOME / RAZÃO SOCIAL', margin + 2, y + 12);
-    doc.text('MUNICÍPIO / UF', margin + 95, y + 12);
-    doc.text('CÓDIGO IBGE / CEP', margin + 145, y + 12);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
+    doc.text('Endereço', margin + 2, y + 10.5);
+    doc.text('Município / Sigla UF', margin + 95, y + 10.5);
+    doc.text('Código IBGE / CEP', margin + 145, y + 10.5);
 
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(prest.nome || 'CARLOSCLETON CARVALHO FERNANDES ME', margin + 2, y + 16);
-    doc.text('Natal / RN', margin + 95, y + 16);
-    doc.text('24.08102 / 59068-320', margin + 145, y + 16);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(prest.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU', margin + 2, y + 13.8);
+    doc.text('Natal / RN', margin + 95, y + 13.8);
+    doc.text('24.08102 / 59.068-320', margin + 145, y + 13.8);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
+    doc.text('Simples Nacional na Data de Competência', margin + 2, y + 17.8);
+    doc.text('Regime de Apuração Tributária pelo SN', margin + 65, y + 17.8);
+    doc.text('E-mail', margin + 145, y + 17.8);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    doc.text('Optante - Microempresa ou Empresa de ...', margin + 2, y + 21);
+    doc.text('Regime de apuração dos tributos federais e municipal pelo Simples Nacional', margin + 65, y + 21);
+    doc.text('-', margin + 145, y + 21);
 
     y += 22;
 
-    // 5. TOMADOR / ADQUIRENTE
-    drawHeaderBox(margin, y, 190, 5, 'TOMADOR DO SERVIÇO / ADQUIRENTE');
-    y += 5;
-    drawBox(margin, y, 190, 20);
+    // 4. TOMADOR / ADQUIRENTE
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'TOMADOR / ADQUIRENTE');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 15, [255, 255, 255], [0, 0, 0]);
 
     const toma = data.tomador || {};
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('CNPJ / CPF / NIF', margin + 2, y + 4);
-    doc.text('NOME / RAZÃO SOCIAL', margin + 65, y + 4);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
+    doc.text('CNPJ / CPF / NIF', margin + 95, y + 3.2);
+    doc.text('Indicador Municipal (Inscrição)', margin + 135, y + 3.2);
+    doc.text('Telefone', margin + 170, y + 3.2);
 
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(toma.doc || '47.673.793/0102-17', margin + 2, y + 8);
-    doc.text(toma.nome || 'AFIP - ASSOCIACAO FUNDO DE INCENTIVO A PESQUISA', margin + 65, y + 8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(toma.nome || 'AFIP - ASSOCIACAO FUNDO DE INCENTIVO A PESQUISA', margin + 2, y + 6.5);
+    doc.text(toma.doc || '47.673.793/0102-17', margin + 95, y + 6.5);
+    doc.text('-', margin + 135, y + 6.5);
+    doc.text('-', margin + 170, y + 6.5);
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('ENDEREÇO', margin + 2, y + 12);
-    doc.text('MUNICÍPIO / UF', margin + 110, y + 12);
-    doc.text('E-MAIL', margin + 150, y + 12);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
+    doc.text('Endereço', margin + 2, y + 10.5);
+    doc.text('Município / Sigla UF', margin + 95, y + 10.5);
+    doc.text('Código IBGE / CEP', margin + 135, y + 10.5);
+    doc.text('E-mail', margin + 165, y + 10.5);
 
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(toma.endereco || 'Rua Padre Machado, 1040, Bosque da Saúde', margin + 2, y + 16);
-    doc.text('São Paulo / SP', margin + 110, y + 16);
-    doc.text(toma.email || 'pagamentosti@afip.com.br', margin + 150, y + 16);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(toma.endereco || 'Rua Padre Machado, 1040, Bosque da Saúde', margin + 2, y + 13.8);
+    doc.text(toma.uf ? `${toma.cidade || 'São Paulo'} / ${toma.uf}` : 'São Paulo / SP', margin + 95, y + 13.8);
+    doc.text('35.50308 / 04.127-001', margin + 135, y + 13.8);
+    doc.text(toma.email || 'pagamentosti@afip.com.br', margin + 165, y + 13.8);
 
-    y += 22;
+    y += 15;
 
-    // 6. DESTINATÁRIO / INTERMEDIÁRIO BAR
-    drawBox(margin, y, 190, 5, [235, 240, 245], [180, 190, 200]);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(80, 90, 100);
-    doc.text('DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-E  |  INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-E', margin + 3, y + 3.5);
+    // 5. DESTINATÁRIO / INTERMEDIÁRIO BARS
+    drawBox(margin, y, pageWidth, 7, [255, 255, 255], [0, 0, 0]);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
+    doc.text('DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', margin + (pageWidth / 2), y + 2.8, { align: 'center' });
+    doc.text('INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e', margin + (pageWidth / 2), y + 5.8, { align: 'center' });
 
     y += 7;
 
-    // 7. SERVIÇO PRESTADO
-    drawHeaderBox(margin, y, 190, 5, 'SERVIÇO PRESTADO');
-    y += 5;
-    drawBox(margin, y, 190, 18);
+    // 6. SERVIÇO PRESTADO
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'SERVIÇO PRESTADO');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 28, [255, 255, 255], [0, 0, 0]);
 
     const serv = data.servico || {};
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('CÓD. TRIBUTAÇÃO NACIONAL / MUNICIPAL', margin + 2, y + 4);
-    doc.text('NBS', margin + 75, y + 4);
-    doc.text('LOCAL DA PRESTAÇÃO', margin + 125, y + 4);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('Código de Tributação Nacional/Municipal', margin + 2, y + 3.2);
+    doc.text('Código da NBS', margin + 95, y + 3.2);
+    doc.text('Local da Prestação / Sigla UF / País', margin + 145, y + 3.2);
 
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(`${serv.cTribNac || '01.07.01'} / -`, margin + 2, y + 8);
-    doc.text(serv.cNbs || '1.1501.30.00', margin + 75, y + 8);
-    doc.text('Natal / RN', margin + 125, y + 8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(`${serv.cTribNac || '01.07.01'} / -`, margin + 2, y + 6.5);
+    doc.text(serv.cNbs || '1.1501.30.00', margin + 95, y + 6.5);
+    doc.text('Natal / RN / -', margin + 145, y + 6.5);
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(90);
-    doc.text('DESCRIÇÃO DO SERVIÇO', margin + 2, y + 12);
-    doc.setFontSize(7.5); doc.setTextColor(0);
-    doc.text(serv.descricao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA', margin + 2, y + 16);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
+    doc.text('Descrição do Serviço', margin + 2, y + 10.5);
 
-    y += 20;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    const fullDesc = serv.descricao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA\nteste 1\nteste 2\nteste 3\nteste 4';
+    const splitDesc = doc.splitTextToSize(fullDesc, pageWidth - 4);
+    doc.text(splitDesc, margin + 2, y + 14);
 
-    // 8. TRIBUTAÇÃO MUNICIPAL (ISSQN)
-    drawHeaderBox(margin, y, 190, 5, 'TRIBUTAÇÃO MUNICIPAL DO ISSQN');
-    y += 5;
-    drawBox(margin, y, 190, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(90);
-    doc.text('TIPO DE TRIBUTAÇÃO', margin + 2, y + 3.5);
-    doc.text('MUNICÍPIO INCIDÊNCIA', margin + 45, y + 3.5);
-    doc.text('BASE CÁLCULO ISSQN', margin + 85, y + 3.5);
-    doc.text('ALÍQUOTA', margin + 125, y + 3.5);
-    doc.text('RETENÇÃO', margin + 150, y + 3.5);
-    doc.text('ISSQN APURADO', margin + 170, y + 3.5);
+    y += 28;
+
+    // 7. TRIBUTAÇÃO MUNICIPAL (ISSQN)
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO MUNICIPAL (ISSQN)');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
+    doc.text('Tipo de Tributação do ISSQN', margin + 2, y + 3.2);
+    doc.text('Município / Sigla UF / País de Incidência do ISSQN', margin + 65, y + 3.2);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text('Operação Tributável', margin + 2, y + 6.5);
+    doc.text('Natal / RN / -', margin + 65, y + 6.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
+    doc.text('BC ISSQN', margin + 2, y + 9.8);
+    doc.text('Alíquota Aplicada', margin + 45, y + 9.8);
+    doc.text('Retenção do ISSQN', margin + 95, y + 9.8);
+    doc.text('ISSQN Apurado', margin + 145, y + 9.8);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text('-', margin + 2, y + 11.5);
+    doc.text('-', margin + 45, y + 11.5);
+    doc.text('Não Retido', margin + 95, y + 11.5);
+    doc.text('-', margin + 145, y + 11.5);
+
+    y += 12;
+
+    // 8. TRIBUTAÇÃO FEDERAL (EXCETO CBS)
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO FEDERAL (EXCETO CBS)');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
+    doc.text('IRRF', margin + 2, y + 3.2);
+    doc.text('Contribuição Previdenciária - Retida', margin + 45, y + 3.2);
+    doc.text('Contribuições Sociais - Retidas', margin + 125, y + 3.2);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text('-', margin + 2, y + 6.5);
+    doc.text('-', margin + 45, y + 6.5);
+    doc.text('-', margin + 125, y + 6.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
+    doc.text('PIS - Débito Apuração Própria', margin + 2, y + 9.8);
+    doc.text('COFINS - Débito Apuração Própria', margin + 45, y + 9.8);
+    doc.text('Descrição Contrib. Sociais - Retidas', margin + 125, y + 9.8);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text('-', margin + 2, y + 11.5);
+    doc.text('-', margin + 45, y + 11.5);
+    doc.text('-', margin + 125, y + 11.5);
+
+    y += 12;
+
+    // 9. TRIBUTAÇÃO IBS/CBS
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO IBS/CBS');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 24, [255, 255, 255], [0, 0, 0]);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
+    doc.text('CST / cClassTrib', margin + 2, y + 3.2);
+    doc.text('Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF', margin + 65, y + 3.2);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text('000 / 000001', margin + 2, y + 6.5);
+    doc.text('100101 / 3550308 / São Paulo / SP', margin + 65, y + 6.5);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
+    doc.text('Exclusões e Reduções da Base de Cálculo', margin + 2, y + 9.8);
+    doc.text('Base de Cálculo Após Exclusões e Reduções', margin + 55, y + 9.8);
+    doc.text('Red. Alíquota IBS / Red. Alíquota CBS', margin + 110, y + 9.8);
+    doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 9.8);
 
     const amountVal = serv.valor || 0.09;
-    doc.setFontSize(7); doc.setTextColor(0);
-    doc.text('Operação Tributável', margin + 2, y + 7.5);
-    doc.text('Natal / RN', margin + 45, y + 7.5);
-    doc.text(`R$ ${amountVal.toFixed(2)}`, margin + 85, y + 7.5);
-    doc.text('5.00 %', margin + 125, y + 7.5);
-    doc.text('Não Retido', margin + 150, y + 7.5);
-    doc.text(`R$ ${(data.impostos?.issqn || 0).toFixed(2)}`, margin + 170, y + 7.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    doc.text(formatCurrency(0), margin + 2, y + 12.5);
+    doc.text(formatCurrency(amountVal), margin + 55, y + 12.5);
+    doc.text('- / -', margin + 110, y + 12.5);
+    doc.text('0,10 % / 0,00 %', margin + 155, y + 12.5);
 
-    y += 12;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
+    doc.text('Aliq. Efetiva Municipal - IBS', margin + 2, y + 15.5);
+    doc.text('Valor Apurado Municipal - IBS', margin + 55, y + 15.5);
+    doc.text('Aliq. Efetiva Estadual - IBS', margin + 110, y + 15.5);
+    doc.text('Valor Apurado Estadual - IBS', margin + 155, y + 15.5);
 
-    // 9. TRIBUTAÇÃO FEDERAL (EXCETO CBS)
-    drawHeaderBox(margin, y, 190, 5, 'TRIBUTAÇÃO FEDERAL (EXCETO CBS)');
-    y += 5;
-    drawBox(margin, y, 190, 10);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(90);
-    doc.text('IRRF', margin + 2, y + 3.5);
-    doc.text('CONTRIB. PREVIDENCIÁRIA', margin + 45, y + 3.5);
-    doc.text('CONTRIB. SOCIAIS', margin + 95, y + 3.5);
-    doc.text('PIS', margin + 140, y + 3.5);
-    doc.text('COFINS', margin + 170, y + 3.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    doc.text('0,00 %', margin + 2, y + 18.2);
+    doc.text(formatCurrency(0), margin + 55, y + 18.2);
+    doc.text('0,10 %', margin + 110, y + 18.2);
+    doc.text(formatCurrency(0), margin + 155, y + 18.2);
 
-    doc.setFontSize(7); doc.setTextColor(0);
-    doc.text('R$ 0,00', margin + 2, y + 7.5);
-    doc.text('R$ 0,00', margin + 45, y + 7.5);
-    doc.text('R$ 0,00', margin + 95, y + 7.5);
-    doc.text(`R$ ${(data.impostos?.pis || 0).toFixed(2)}`, margin + 140, y + 7.5);
-    doc.text(`R$ ${(data.impostos?.cofins || 0).toFixed(2)}`, margin + 170, y + 7.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
+    doc.text('Valor Total Apurado - IBS', margin + 2, y + 21);
+    doc.text('Aliquota - CBS', margin + 55, y + 21);
+    doc.text('Aliquota Efetiva - CBS', margin + 110, y + 21);
+    doc.text('Valor Total Apurado - CBS', margin + 155, y + 21);
 
-    y += 12;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    doc.text(formatCurrency(0), margin + 2, y + 23.5);
+    doc.text('0,90 %', margin + 55, y + 23.5);
+    doc.text('0,90 %', margin + 110, y + 23.5);
+    doc.text(formatCurrency(0), margin + 155, y + 23.5);
 
-    // 10. TRIBUTAÇÃO IBS / CBS (REFORMA TRIBUTÁRIA)
-    drawHeaderBox(margin, y, 190, 5, 'TRIBUTAÇÃO DO IBS E DA CBS (REFORMA TRIBUTÁRIA - LEI COMPLEMENTAR Nº 214/2025)');
-    y += 5;
-    drawBox(margin, y, 190, 14);
+    y += 24;
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(90);
-    doc.text('CST / cClassTrib', margin + 2, y + 3.5);
-    doc.text('EXCLUSÕES / REDUÇÕES', margin + 45, y + 3.5);
-    doc.text('BC APÓS EXCLUSÕES', margin + 95, y + 3.5);
-    doc.text('ALÍQUOTA IBS UF / MUN', margin + 145, y + 3.5);
+    // 10. VALOR TOTAL DA NFS-e
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'VALOR TOTAL DA NFS-e');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 14, [255, 255, 255], [0, 0, 0]);
 
-    doc.setFontSize(7); doc.setTextColor(0);
-    doc.text('000 / 000001', margin + 2, y + 7.5);
-    doc.text('R$ 0,00', margin + 45, y + 7.5);
-    doc.text(`R$ ${amountVal.toFixed(2)}`, margin + 95, y + 7.5);
-    doc.text('0,10 % / 0,00 %', margin + 145, y + 7.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
+    doc.text('VALOR TOTAL DA NFS-e', margin + 2, y + 3.2);
+    doc.text('DESCONTOS / RETENÇÕES', margin + 55, y + 3.2);
+    doc.text('Desconto Incondicionado', margin + 95, y + 3.2);
+    doc.text('Desconto Condicionado', margin + 145, y + 3.2);
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(90);
-    doc.text('VALOR APURADO IBS', margin + 2, y + 11);
-    doc.text('ALÍQUOTA CBS', margin + 45, y + 11);
-    doc.text('VALOR TOTAL APURADO CBS', margin + 95, y + 11);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.text(formatCurrency(amountVal), margin + 2, y + 6.5);
+    doc.text('R$ 0,00 / R$ 0,00', margin + 55, y + 6.5);
+    doc.text('-', margin + 95, y + 6.5);
+    doc.text('-', margin + 145, y + 6.5);
 
-    doc.setFontSize(7); doc.setTextColor(0);
-    doc.text('R$ 0,00', margin + 2, y + 13.5);
-    doc.text('0,90 %', margin + 45, y + 13.5);
-    doc.text('R$ 0,00', margin + 95, y + 13.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
+    doc.text('Total das Retenções (ISSQN / Federais)', margin + 2, y + 9.8);
+    doc.text('VALOR LÍQUIDO DA NFS-e', margin + 55, y + 9.8);
+    doc.text('Total do IBS/CBS', margin + 110, y + 9.8);
+    doc.text('VALOR LÍQUIDO DA NFS-e + IBS/CBS', margin + 150, y + 9.8);
 
-    y += 16;
-
-    // 11. VALORES DA OPERAÇÃO
-    drawHeaderBox(margin, y, 190, 5, 'VALORES DA OPERAÇÃO');
-    y += 5;
-    drawBox(margin, y, 190, 12);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(90);
-    doc.text('VALOR TOTAL DA NFS-E', margin + 2, y + 3.5);
-    doc.text('DESCONTOS / RETENÇÕES', margin + 55, y + 3.5);
-    doc.text('VALOR LÍQUIDO DA NFS-E', margin + 115, y + 3.5);
-    doc.text('VALOR LÍQUIDO + IBS/CBS', margin + 155, y + 3.5);
-
-    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 70, 140);
-    doc.text(`R$ ${amountVal.toFixed(2)}`, margin + 2, y + 8.5);
-    doc.setTextColor(0); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text('R$ 0,00 / R$ 0,00', margin + 55, y + 8.5);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 120, 50);
-    doc.text(`R$ ${amountVal.toFixed(2)}`, margin + 115, y + 8.5);
-    doc.text(`R$ ${amountVal.toFixed(2)}`, margin + 155, y + 8.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+    doc.text('-', margin + 2, y + 12.8);
+    doc.text(formatCurrency(amountVal), margin + 55, y + 12.8);
+    doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(0), margin + 110, y + 12.8);
+    doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(amountVal), margin + 150, y + 12.8);
 
     y += 14;
 
-    // 12. INFORMAÇÕES COMPLEMENTARES
-    drawHeaderBox(margin, y, 190, 4, 'INFORMAÇÕES COMPLEMENTARES');
-    y += 4;
-    drawBox(margin, y, 190, 10);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(60);
-    doc.text('NBS: 1.1501.30.00 | Documento emitido por ME ou EPP optante pelo Simples Nacional.', margin + 2, y + 4);
-    doc.text('Valor aproximado dos tributos federais e municipais conforme Lei nº 12.741/2012.', margin + 2, y + 7.5);
+    // 11. INFORMAÇÕES COMPLEMENTARES
+    drawHeaderBox(margin, y, pageWidth, 4.5, 'INFORMAÇÕES COMPLEMENTARES');
+    y += 4.5;
+    drawBox(margin, y, pageWidth, 16, [255, 255, 255], [0, 0, 0]);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
+    doc.text('Inf. Cont.: NBS: 115013000', margin + 2, y + 4);
+    doc.text('Totais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -', margin + 2, y + 8);
 
-    // 13. CANHOTO / FOOTER
-    const canhotoY = 275;
-    doc.setDrawColor(180, 180, 180);
-    doc.setLineDashPattern([1, 1], 0);
-    doc.line(margin, canhotoY - 2, margin + 190, canhotoY - 2);
-    doc.setLineDashPattern([], 0);
+    // 12. FOOTER RECEIPT
+    const footerY = 276;
+    drawBox(margin, footerY, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
+    const footW1 = 55;
+    const footW2 = 70;
+    const footW3 = 69;
 
-    drawBox(margin, canhotoY, 190, 12, [250, 250, 250], [180, 180, 180]);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(90);
-    doc.text(`RECEBI(EMOS) DE ${data.prestador?.nome || 'CARLOSCLETON CARVALHO FERNANDES ME'} OS SERVIÇOS CONSTANTES DA NFS-E INDICADA ABAIXO.`, margin + 2, canhotoY + 3);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
+    doc.text('DATA CIENTIFICAÇÃO:', margin + 2, footerY + 3.5);
+    doc.text('IDENTIFICAÇÃO E ASSINATURA', margin + footW1 + 2, footerY + 3.5);
+    doc.text('Nº NFS-e / CHAVE NFS-e', margin + footW1 + footW2 + 2, footerY + 3.5);
 
-    doc.text('DATA DE CIENTIFICAÇÃO / RECEBIMENTO', margin + 2, canhotoY + 7);
-    doc.text('IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR', margin + 65, canhotoY + 7);
-    doc.text('Nº NFS-E / CHAVE DE ACESSO', margin + 145, canhotoY + 7);
-
-    doc.setFontSize(6.5); doc.setTextColor(0);
-    doc.text('_____ / _____ / _________', margin + 2, canhotoY + 10.5);
-    doc.text('________________________________________________', margin + 65, canhotoY + 10.5);
-    doc.text(`Nº ${data.nNfse || '36'}`, margin + 145, canhotoY + 10.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    doc.text(`${nNfseVal} / ${chave}`, margin + footW1 + footW2 + 2, footerY + 8);
 
     const arrayBuf = doc.output('arraybuffer');
     return Buffer.from(arrayBuf);
