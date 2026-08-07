@@ -3051,13 +3051,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         const errBody = dpsErr.response?.data || {};
                         const errBodyStr = JSON.stringify(errBody);
 
-                        if ((errBodyStr.includes('E0014') || errBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
-                            console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe no SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                        if ((st === 500 || errBodyStr.includes('500') || errBodyStr.includes('server error') || errBodyStr.includes('E0014') || errBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
+                            console.warn(`⚠️ [ADN-NACIONAL SEFIN 500/E0014] DPS número ${currentDpsSeq} colidiu ou retornou 500 no SEFIN (Tentativa ${retryCount + 1}/${maxDpsRetries}). Auto-incrementando para ${currentDpsSeq + 1}...`);
                             currentDpsSeq++;
                             continue;
                         }
 
-                        if (st === 500 || st === 400 || st === 404) {
+                        if (st === 400 || st === 404) {
                             console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto...`);
                             try {
                                 adnResponse = await axios.post(
@@ -3071,8 +3071,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 );
                             } catch (xmlErr: any) {
                                 const xmlErrBodyStr = JSON.stringify(xmlErr.response?.data || {});
-                                if ((xmlErrBodyStr.includes('E0014') || xmlErrBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
-                                    console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe na SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                                const xmlSt = xmlErr.response?.status;
+                                if ((xmlSt === 500 || xmlErrBodyStr.includes('500') || xmlErrBodyStr.includes('server error') || xmlErrBodyStr.includes('E0014') || xmlErrBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
+                                    console.warn(`⚠️ [ADN-NACIONAL SEFIN 500/E0014] DPS número ${currentDpsSeq} colidiu na SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
                                     currentDpsSeq++;
                                     continue;
                                 }
