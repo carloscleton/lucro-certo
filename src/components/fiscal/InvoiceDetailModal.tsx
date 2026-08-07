@@ -12,6 +12,7 @@ import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
 import { parseFiscalError } from '../../pages/Invoices';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
+import { formatXmlString } from '../../utils/xmlFormatter';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
@@ -77,7 +78,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                     if (!token) return;
                     const blob = await fiscalService.downloadXML(invoice.external_id, invoice.type, invoice.company_id, token);
                     const text = await blob.text();
-                    setXmlText(text);
+                    setXmlText(formatXmlString(text));
                 } catch (err: any) {
                     console.error('Erro ao buscar XML:', err);
                     setXmlText('<!-- Não foi possível carregar o conteúdo do XML -->');
