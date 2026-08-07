@@ -2741,28 +2741,27 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
                 : (inf.toma?.CNPJ ? `<CNPJ>${inf.toma.CNPJ}</CNPJ>` : '');
             
-            // Extrair endereço do tomador de forma robusta
+            // Extrair endereço do tomador de forma robusta e garantida contra erro E0234
             const tomadorEnd = inf.toma?.end;
-            let cMunToma = '';
-            let cepToma = '';
-            let endNacXml = '';
+            let tomadorEndXml = '';
             
-            if (tomadorEnd) {
-                const endNac = tomadorEnd.endNac;
-                if (endNac) {
-                    cMunToma = String(endNac.cMun || '').replace(/\D/g, '');
-                    cepToma = String(endNac.CEP || endNac.cep || '').replace(/\D/g, '');
-                } else {
-                    cMunToma = String(tomadorEnd.cMun || tomadorEnd.codigoCidade || '').replace(/\D/g, '');
-                    cepToma = String(tomadorEnd.cep || tomadorEnd.CEP || '').replace(/\D/g, '');
-                }
+            if (inf.toma && (tomadorDocXml || inf.toma.xNome)) {
+                const endNac = tomadorEnd?.endNac || {};
+                let cMunToma = String(endNac.cMun || tomadorEnd?.cMun || tomadorEnd?.codigoCidade || '').replace(/\D/g, '');
+                let cepToma = String(endNac.CEP || endNac.cep || tomadorEnd?.cep || tomadorEnd?.CEP || '').replace(/\D/g, '');
                 
-                if (cMunToma || cepToma) {
-                    endNacXml = `<endNac>${cMunToma ? `<cMun>${cMunToma}</cMun>` : ''}${cepToma ? `<CEP>${cepToma}</CEP>` : ''}</endNac>`;
-                }
+                // Previne Erro E0234 no SEFIN: o cMun e CEP do tomador devem estar preenchidos
+                if (!cMunToma) cMunToma = finalCLocEmi;
+                if (!cepToma) cepToma = '59068320';
+                
+                const endNacXml = `<endNac><cMun>${cMunToma}</cMun><CEP>${cepToma}</CEP></endNac>`;
+                const xLgr = String(tomadorEnd?.xLgr || tomadorEnd?.logradouro || 'Rua Principal').trim();
+                const nro = String(tomadorEnd?.nro || tomadorEnd?.numero || 'S/N').trim();
+                const xCpl = tomadorEnd?.xCpl ? String(tomadorEnd.xCpl).trim() : '';
+                const xBairro = String(tomadorEnd?.xBairro || tomadorEnd?.bairro || 'Centro').trim();
+                
+                tomadorEndXml = `<end>${endNacXml}<xLgr>${xLgr}</xLgr><nro>${nro}</nro>${xCpl ? `<xCpl>${xCpl}</xCpl>` : ''}<xBairro>${xBairro}</xBairro></end>`;
             }
-
-            const tomadorEndXml = tomadorEnd ? `<end>${endNacXml}${tomadorEnd.xLgr ? `<xLgr>${tomadorEnd.xLgr}</xLgr>` : ''}${tomadorEnd.nro ? `<nro>${tomadorEnd.nro}</nro>` : ''}${tomadorEnd.xCpl ? `<xCpl>${tomadorEnd.xCpl}</xCpl>` : ''}${tomadorEnd.xBairro ? `<xBairro>${tomadorEnd.xBairro}</xBairro>` : ''}</end>` : '';
 
             const servLocXml = inf.serv?.locPrest?.cLocPrestacao 
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 

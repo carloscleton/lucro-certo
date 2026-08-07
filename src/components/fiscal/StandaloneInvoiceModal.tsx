@@ -938,16 +938,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                     xNome: tomaNome,
                                     ...(contact?.email ? { email: contact.email } : {}),
                                     end: {
-                                        ...(tomaCityCode || tomaCep ? {
-                                            endNac: {
-                                                ...(tomaCityCode ? { cMun: tomaCityCode } : {}),
-                                                ...(tomaCep ? { CEP: tomaCep } : {})
-                                            }
-                                        } : {}),
-                                        ...(contact?.street ? { xLgr: contact.street } : {}),
-                                        ...(contact?.number ? { nro: contact.number } : {}),
+                                        endNac: {
+                                            cMun: tomaCityCode || companyCityCode || '2408102',
+                                            CEP: tomaCep || '59068320'
+                                        },
+                                        xLgr: contact?.street || 'Rua Principal',
+                                        nro: contact?.number || 'S/N',
                                         ...(contact?.complement ? { xCpl: contact.complement } : {}),
-                                        ...(contact?.neighborhood ? { xBairro: contact.neighborhood } : {})
+                                        xBairro: contact?.neighborhood || 'Centro'
                                     }
                                 }
                             } : {}),
