@@ -4855,11 +4855,30 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         if (!dateStr) return '';
         const s = String(dateStr).trim();
         if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+
+        // Se é uma string ISO com o horário local informado (ex: 2026-08-07T16:15:25-03:00)
+        const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+        if (isoMatch) {
+            const [, year, month, day, hours, minutes, seconds] = isoMatch;
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+        }
+
         try {
             const d = new Date(s);
             if (isNaN(d.getTime())) return s;
-            const pad = (n: number) => String(n).padStart(2, '0');
-            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            const parts = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).formatToParts(d);
+
+            const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+            return `${getPart('day')}/${getPart('month')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
         } catch (e) {
             return s;
         }
@@ -4869,11 +4888,24 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         if (!dateStr) return '';
         const s = String(dateStr).trim();
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+
+        const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) {
+            const [, year, month, day] = isoMatch;
+            return `${day}/${month}/${year}`;
+        }
+
         try {
             const d = new Date(s);
             if (isNaN(d.getTime())) return s;
-            const pad = (n: number) => String(n).padStart(2, '0');
-            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+            const parts = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).formatToParts(d);
+            const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+            return `${getPart('day')}/${getPart('month')}/${getPart('year')}`;
         } catch (e) {
             return s;
         }
