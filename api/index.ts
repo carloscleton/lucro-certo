@@ -3059,7 +3059,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         }
 
                         if (st === 500 || st === 400 || st === 404) {
-                            console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip retornou HTTP ${st}. Tentando fallback via XML direto...`);
+                            console.warn(`⚠️ [ADN-NACIONAL] Emissão via JSON Gzip para DPS #${currentDpsSeq} retornou HTTP ${st}. Tentando fallback via XML direto...`);
                             try {
                                 adnResponse = await axios.post(
                                     `${sefinBaseUrl}/nfse`,
@@ -3071,9 +3071,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     }
                                 );
                             } catch (xmlErr: any) {
+                                const xmlSt = xmlErr.response?.status;
                                 const xmlErrBodyStr = JSON.stringify(xmlErr.response?.data || {});
-                                if ((xmlErrBodyStr.includes('E0014') || xmlErrBodyStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
-                                    console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe na SEFIN. Auto-incrementando para ${currentDpsSeq + 1}...`);
+                                const isDupOr500 = xmlSt === 500 || xmlErrBodyStr.includes('E0014') || xmlErrBodyStr.includes('já existe em uma NFS-e') || xmlErrBodyStr.includes('server error');
+                                
+                                if (isDupOr500 && retryCount < maxDpsRetries) {
+                                    console.warn(`⚠️ [ADN-NACIONAL SEFIN] DPS número ${currentDpsSeq} retornou erro (HTTP ${xmlSt}). Auto-incrementando para ${currentDpsSeq + 1}...`);
                                     currentDpsSeq++;
                                     continue;
                                 }
