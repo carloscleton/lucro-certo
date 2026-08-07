@@ -10,6 +10,7 @@ import forge from 'node-forge';
 import zlib from 'zlib';
 import { SignedXml } from 'xml-crypto';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { PaymentFactory } from './_services/payments/PaymentFactory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -4940,16 +4941,22 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // Right Box: QR Code
     drawBox(margin + leftW, y, qrW, 26, [255, 255, 255], [0, 0, 0]);
     try {
-        const qrUrl = await QRCode.toDataURL(`https://sefin.nfse.gov.br/SefinNacional/valida/${chave}`, { margin: 0, width: 70 });
-        doc.addImage(qrUrl, 'PNG', margin + leftW + 14, y + 1.5, 18, 18);
-    } catch (e) {}
+        const qrTargetUrl = `https://sefin.nfse.gov.br/SefinNacional/valida/${chave}`;
+        const qrDataUrl = await QRCode.toDataURL(qrTargetUrl, { margin: 1, width: 120 });
+        const qrImageSize = 17;
+        const qrImageX = margin + leftW + (qrW - qrImageSize) / 2;
+        doc.addImage(qrDataUrl, 'PNG', qrImageX, y + 1, qrImageSize, qrImageSize);
+        console.log(`✅ [DANFSE-QR] QR Code impresso no PDF da DANFSe para a chave ${chave}`);
+    } catch (qrErr: any) {
+        console.error('❌ [DANFSE-QR] Erro ao gerar QR Code:', qrErr?.message || qrErr);
+    }
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5);
+    doc.setFontSize(4.8);
     doc.setTextColor(50, 50, 50);
     const qrSub = 'A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e';
     const splitQrSub = doc.splitTextToSize(qrSub, qrW - 4);
-    doc.text(splitQrSub, margin + leftW + 2, y + 20.5);
+    doc.text(splitQrSub, margin + leftW + 2, y + 19.5);
 
     y += 26;
 
