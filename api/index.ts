@@ -2921,6 +2921,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             let adnResponse: any = null;
+            let adnData: any = null;
             let currentDpsSeq = parseInt(String(numDpsInt || nextDpsNumber || 24), 10);
             if (isNaN(currentDpsSeq) || currentDpsSeq < 1) currentDpsSeq = 24;
 
@@ -3083,7 +3084,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         }
                     }
 
-                    const adnData = adnResponse.data;
+                    adnData = adnResponse?.data || null;
 
                     if (adnData?.erros && Array.isArray(adnData.erros) && adnData.erros.length > 0) {
                         const isE0014InResponse = adnData.erros.some((e: any) => e.Codigo === 'E0014' || String(e.Descricao || '').includes('já existe em uma NFS-e'));
