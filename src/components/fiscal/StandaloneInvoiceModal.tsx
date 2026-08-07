@@ -1243,17 +1243,21 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 }
                             };
 
-                            if (existingInv?.id) {
-                                console.log(`💾 [DB-SAVE] Atualizando nota pré-gravada ${existingInv.id} para CONCLUÍDO...`);
-                                const { error: dbError } = await supabase
-                                    .from('fiscal_invoices')
-                                    .update(completePayloadToSave)
-                                    .eq('id', existingInv.id);
-                                if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
-                            } else {
-                                console.log(`💾 [DB-SAVE] Inserindo nova nota ${returnedKey}...`);
-                                const { error: dbError } = await supabase.from('fiscal_invoices').insert(completePayloadToSave);
-                                if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                            // No Portal Nacional, o backend (api/index.ts) já grava o registro completo e descompacta o XML oficial.
+                            // Evita que o frontend sobrescreva com payload de rascunho anterior se o provedor for 'national'.
+                            if (activeProvider !== 'national' && !isNacional) {
+                                if (existingInv?.id) {
+                                    console.log(`💾 [DB-SAVE] Atualizando nota pré-gravada ${existingInv.id} para CONCLUÍDO...`);
+                                    const { error: dbError } = await supabase
+                                        .from('fiscal_invoices')
+                                        .update(completePayloadToSave)
+                                        .eq('id', existingInv.id);
+                                    if (dbError) console.error('❌ [DB-SAVE] Erro no update:', dbError);
+                                } else {
+                                    console.log(`💾 [DB-SAVE] Inserindo nova nota ${returnedKey}...`);
+                                    const { error: dbError } = await supabase.from('fiscal_invoices').insert(completePayloadToSave);
+                                    if (dbError) console.error('❌ [DB-SAVE] Erro no insert:', dbError);
+                                }
                             }
 
                             if (isNacional && currentCompany?.id) {
