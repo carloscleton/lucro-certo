@@ -3110,14 +3110,33 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-                const chaveAcesso = adnData?.chNFSe || adnData?.cChaveAcesso || adnData?.chaveAcesso || dpsId;
-                const nNFSeVal = adnData?.nNFSe || adnData?.numeroNfse || adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
-                // O número do DPS é alinhado com o número da NFS-e para consistência (são sempre iguais no Portal Nacional)
-                const nDPS = nNFSeVal || adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
+                // Descompacta o XML retornado pela SEFIN se presente no nfseXmlGZipB64
+                let officialXmlString = '';
+                let officialNfseNum = adnData?.nNFSe || adnData?.numeroNfse || null;
+                let officialDpsNum = adnData?.nDPS || adnPayload?.infDPS?.nDPS || null;
+
+                if (adnData?.nfseXmlGZipB64) {
+                    try {
+                        officialXmlString = zlib.gunzipSync(Buffer.from(adnData.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                        console.log(`✅ [ADN-NACIONAL] XML Oficial descompactado do retorno da SEFIN (${officialXmlString.length} bytes).`);
+                        
+                        const matchNfse = officialXmlString.match(/<nNFSe>([^<]+)<\/nNFSe>/i);
+                        if (matchNfse?.[1]) officialNfseNum = matchNfse[1].trim();
+
+                        const matchDps = officialXmlString.match(/<nDPS>([^<]+)<\/nDPS>/i);
+                        if (matchDps?.[1]) officialDpsNum = matchDps[1].trim();
+                    } catch (gzErr: any) {
+                        console.warn(`⚠️ [ADN-NACIONAL] Falha ao descompactar nfseXmlGZipB64:`, gzErr.message);
+                    }
+                }
+
+                const chaveAcesso = adnData?.chaveAcesso || adnData?.chNFSe || adnData?.cChaveAcesso || dpsId;
+                const nNFSeVal = officialNfseNum || adnData?.nNFSe || adnPayload?.infDPS?.nDPS || null;
+                const nDPS = officialDpsNum || adnPayload?.infDPS?.nDPS || adnData?.nDPS || null;
                 const sDPS = adnPayload?.infDPS?.serie || adnData?.serie || '1';
                 const docId = chaveAcesso || dpsId;
 
-                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${chaveAcesso} | Número NFS-e: ${nNFSeVal} | DPS: ${nDPS}`);
+                console.log(`✅ [ADN-NACIONAL] NFS-e emitida com sucesso. Chave: ${chaveAcesso} | Número NFS-e Oficial: ${nNFSeVal} | DPS: ${nDPS}`);
                 console.log(`✅ [ADN-NACIONAL] Resposta completa da SEFIN:`, JSON.stringify(adnData, null, 2));
 
                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
@@ -3146,7 +3165,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             xml_url: xmlUrlProxy,
                             payload: {
                                 ...adnPayload,
-                                xml_assinado: signedXml,
+                                xml_assinado: officialXmlString || signedXml,
                                 retorno: adnData,
                                 chaveAcesso,
                                 nNFSe: nNFSeVal,
@@ -3248,7 +3267,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     documents: [{ id: docId, status: 'AUTORIZADO', chaveAcesso }],
                     payload: {
                         ...adnPayload,
-                        xml_assinado: signedXml,
+                        xml_assinado: officialXmlString || signedXml,
                         retorno: adnData,
                         chaveAcesso,
                         nNFSe: nNFSeVal,
