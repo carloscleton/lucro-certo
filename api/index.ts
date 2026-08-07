@@ -2971,10 +2971,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
                 
                 inf.nDPS = currentNumStr;
-                if (adnPayload?.infDPS) adnPayload.infDPS.nDPS = currentNumStr;
+                inf.tpAmb = tpAmb;
+                if (adnPayload?.infDPS) {
+                    adnPayload.infDPS.nDPS = currentNumStr;
+                    adnPayload.infDPS.tpAmb = tpAmb;
+                }
 
                 // Montar XML da DPS conforme o leiaute nacional do contribuinte
-                dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${currentDpsId}"><tpAmb>${inf.tpAmb || tpAmb || 2}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${currentDpsSeq}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
+                dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${currentDpsId}"><tpAmb>${tpAmb}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${currentDpsSeq}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
                 console.log(`📝 [ADN-NACIONAL] (Tentativa ${retryCount}/${maxDpsRetries}) Gerando XML da DPS #${currentDpsSeq} [${currentDpsId}]...`);
 
