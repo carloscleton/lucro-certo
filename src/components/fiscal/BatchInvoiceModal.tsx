@@ -147,7 +147,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             if (c.fiscal_invoice_id) return c;
             return {
                 ...c,
-                amount: selectedService.price || c.amount,
+                amount: (c.amount && c.amount > 0) ? c.amount : (selectedService.price || 0),
                 subscription: {
                     ...c.subscription,
                     service: selectedService
@@ -162,7 +162,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             if (c.id === chargeId) {
                 return {
                     ...c,
-                    amount: selectedService ? (selectedService.price || c.amount) : c.amount,
+                    amount: (c.amount && c.amount > 0) ? c.amount : (selectedService?.price || 0),
                     subscription: {
                         ...c.subscription,
                         service: selectedService || undefined
