@@ -503,10 +503,8 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 const nat = settings?.national_config || {};
                 const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64 || settings?.nfeio_config?.certificado_pfx_base64;
                 const pfxPassword = nat.certificado_senha || settings?.certificado_senha || settings?.nfeio_config?.certificado_senha || '';
-                const adnAmbiente = nat.ambiente || settings?.ambiente || config.ambiente || 'producao';
-                let tpAmb = dbInvoiceRecord?.payload?.tpAmb || 
-                            dbInvoiceRecord?.payload?.infDPS?.tpAmb || 
-                            (adnAmbiente === 'producao' ? 1 : 2);
+                const adnAmbiente = nat.ambiente || 'homologacao';
+                let tpAmb = (adnAmbiente === 'producao') ? 1 : 2;
                 const sefinCancelUrl = tpAmb === 1
                     ? 'https://sefin.nfse.gov.br/SefinNacional'
                     : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
@@ -529,18 +527,23 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                              dbInvoiceRecord?.external_id || 
                              id;
 
-                let prestadorCnpj = dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ || 
-                                    dbInvoiceRecord?.payload?.prestador?.cnpj || 
-                                    nat.cnpj_prestador || 
-                                    config.cnpj || 
-                                    '';
+                let prestadorCnpj = (
+                    dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ || 
+                    dbInvoiceRecord?.payload?.prestador?.cnpj || 
+                    nat.cnpj || 
+                    config.cnpj || 
+                    '00893566000190'
+                ).replace(/\D/g, '');
                 
-                if (SUPABASE_URL && (!chNFSe || !prestadorCnpj)) {
+                if (SUPABASE_URL && (!chNFSe || chNFSe.length !== 50 || !prestadorCnpj)) {
                     try {
                         const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
                             params: { 
-                                or: `(id.eq.${id},external_id.eq.${id},access_key.eq.${id})`,
-                                select: 'access_key,external_id,payload,company_id' 
+                                company_id: `eq.${resolvedId}`,
+                                or: `(id.eq.${id},external_id.eq.${id},access_key.eq.${id},invoice_number.eq.${id},dps_number.eq.${id})`,
+                                select: 'access_key,external_id,payload,company_id',
+                                order: 'created_at.desc',
+                                limit: 1
                             },
                             headers: { 
                                 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!, 
