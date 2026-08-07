@@ -4941,7 +4941,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // Right Box: QR Code
     drawBox(margin + leftW, y, qrW, 26, [255, 255, 255], [0, 0, 0]);
     try {
-        const qrTargetUrl = `https://sefin.nfse.gov.br/SefinNacional/valida/${chave}`;
+        const qrTargetUrl = `https://www.nfse.gov.br/ConsultaPublica?tpc=1&chave=${chave}`;
         const qrDataUrl = await QRCode.toDataURL(qrTargetUrl, { margin: 1, width: 120 });
         const qrImageSize = 17;
         const qrImageX = margin + leftW + (qrW - qrImageSize) / 2;
