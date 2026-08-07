@@ -2456,8 +2456,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
 
             if (nat.proximo_numero_dps && Number(nat.proximo_numero_dps) > 0) {
-                nextDpsNumber = Number(nat.proximo_numero_dps);
-                console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS obtido das configurações da empresa: ${nextDpsNumber}`);
+                const configDps = Number(nat.proximo_numero_dps);
+                if (configDps > nextDpsNumber) {
+                    nextDpsNumber = configDps;
+                    console.log(`🏛️ [ADN-NACIONAL] Próximo número DPS obtido das configurações da empresa: ${nextDpsNumber}`);
+                } else {
+                    console.log(`🏛️ [ADN-NACIONAL] Número DPS das configurações (${configDps}) é menor ou igual ao banco. Usando próximo sequencial seguro: ${nextDpsNumber}`);
+                }
             }
 
             // Se o usuário especificou um nDPS no payload superior ao próximo número calculated, respeita o número do usuário
