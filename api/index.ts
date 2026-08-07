@@ -5093,11 +5093,15 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
         let dbFound = false;
         if (id && SUPABASE_URL) {
             try {
-                const queryParam = !isNaN(Number(id)) ? { id: `eq.${id}` } : { external_id: `eq.${id}` };
+                const isShortNumericId = /^\d{1,10}$/.test(String(id));
+                const isUuidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id));
+                const queryParam = isUuidId 
+                    ? { id: `eq.${id}` }
+                    : (isShortNumericId ? { or: `(id.eq.${id},invoice_number.eq.${id},dps_number.eq.${id})` } : { or: `(external_id.eq.${id},access_key.eq.${id})` });
                 const dbKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                 const dbAuth = authHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}`;
                 const { data: invData } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                    params: { ...queryParam, select: 'type,status' },
+                    params: { company_id: `eq.${companyId}`, ...queryParam, select: 'type,status', order: 'created_at.desc', limit: 1 },
                     headers: { 'apikey': dbKey, 'Authorization': dbAuth }
                 });
                 if (invData?.[0]) {
@@ -5248,11 +5252,25 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 try {
                     const dbKeyDl = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                     const dbAuthDl = authHeader || `Bearer ${dbKeyDl}`;
-                    const searchOr = !isNaN(Number(chNFSe))
-                        ? `(id.eq.${chNFSe},external_id.eq.${chNFSe},access_key.eq.${chNFSe})`
-                        : `(external_id.eq.${chNFSe},access_key.eq.${chNFSe})`;
+                    const isShortNumericKey = /^\d{1,10}$/.test(chNFSe);
+                    const isUuidKey = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(chNFSe);
+                    let searchOrClause = '';
+                    if (isUuidKey) {
+                        searchOrClause = `id.eq.${chNFSe}`;
+                    } else if (isShortNumericKey) {
+                        searchOrClause = `id.eq.${chNFSe},invoice_number.eq.${chNFSe},dps_number.eq.${chNFSe}`;
+                    } else {
+                        searchOrClause = `external_id.eq.${chNFSe},access_key.eq.${chNFSe}`;
+                    }
+
                     const { data: invRowsDl } = await axios.get(`${SUPABASE_URL}/rest/v1/fiscal_invoices`, {
-                        params: { or: searchOr, select: 'access_key,invoice_number,dps_number,dps_serie,amount,payload' },
+                        params: { 
+                            company_id: `eq.${companyId}`, 
+                            or: `(${searchOrClause})`, 
+                            select: 'access_key,invoice_number,dps_number,dps_serie,amount,payload',
+                            order: 'created_at.desc',
+                            limit: 1
+                        },
                         headers: { 'apikey': dbKeyDl, 'Authorization': dbAuthDl }
                     });
                     if (invRowsDl?.[0]) {
@@ -5297,10 +5315,13 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const val = inf.valores || invPayload.valores || {};
                 const amountVal = Number(xmlVServ || val.vServPrest?.vServ || val.vServ || dbInvoiceRecord?.amount || invPayload.amount || 0.09);
 
+                const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(26, 41), 10) || '') : '';
+                const finalNfseNum = xmlNfse || dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || chaveNfseNum || '1';
+
                 return await generateServerDanfseBuffer({
-                    nNfse: xmlNfse || dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || '36',
+                    nNfse: finalNfseNum,
                     serie: xmlSerie || dbInvoiceRecord?.dps_serie || inf.serie || '1',
-                    nDPS: xmlDps || dbInvoiceRecord?.dps_number || inf.nDPS || '35',
+                    nDPS: xmlDps || dbInvoiceRecord?.dps_number || inf.nDPS || finalNfseNum,
                     chaveAcesso: xmlChave || chNFSe,
                     dhEmi: xmlDhEmi || dbInvoiceRecord?.created_at || inf.dhEmi || new Date().toISOString(),
                     prestador: {
