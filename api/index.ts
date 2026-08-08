@@ -2919,8 +2919,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN>${pAliqXml}</tribMun>${tribFedXml}${totTribXml}</trib></valores>` : '';
 
-            const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO'));
-            const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
+            const isNoTomadorXml = !inf.toma || (!inf.toma.CPF && !inf.toma.CNPJ && (!inf.toma.xNome || inf.toma.xNome === 'NÃO IDENTIFICADO' || inf.toma.xNome === 'CONSUMIDOR FINAL'));
+            const defaultPrestCMun = String(finalCLocEmi || nat.codigo_municipio || '2408102').replace(/\D/g, '');
+            const defaultPrestCep = String(nat.cep || config?.cep || '59025902').replace(/\D/g, '');
+            const consumidorFinalTomaXml = `<toma><cNaoNIF>1</cNaoNIF><xNome>CONSUMIDOR FINAL</xNome><end><endNac><cMun>${defaultPrestCMun}</cMun><CEP>${defaultPrestCep}</CEP></endNac><xLgr>NAO INFORMADO</xLgr><nro>SN</nro><xBairro>NAO INFORMADO</xBairro></end></toma>`;
+            const tomaXml = isNoTomadorXml ? consumidorFinalTomaXml : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
 
             // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
             const isReformaAtiva = !!(nat.reforma_tributaria_calculadora_ativa ?? config.reforma_tributaria_calculadora_ativa);
@@ -2928,7 +2931,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const pIBS = isReformaAtiva ? Number(nat.reforma_tributaria_ibs_aliquota || config.reforma_tributaria_ibs_aliquota || '0.10') : 0;
             const indDest = inf.IBSCBS?.indDest !== undefined ? inf.IBSCBS.indDest : 0;
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
-            const indFinal = inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0;
+            const indFinal = isNoTomadorXml ? 1 : (inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0);
             // cIndOp: Indicador da Operação no Anexo VII da NFS-e Nacional. '100101' é o código para prestação de serviço onerosa no país.
             const userIndOp = inf.IBSCBS?.cIndOp;
             const cIndOp = (userIndOp && userIndOp !== '010101') ? userIndOp : '100101';
