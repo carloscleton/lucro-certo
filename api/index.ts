@@ -2703,9 +2703,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 };
 
 
-                // Adicionar endereço do tomador se disponível
+                // Adicionar endereço do tomador se disponível e se a tag toma existir
                 const tomadorEnd = firstItem?.tomador?.endereco;
-                if (tomadorEnd) {
+                if (tomadorEnd && adnPayload.infDPS?.toma) {
                     const endToma: any = {};
                     if (tomadorEnd.logradouro) endToma.xLgr = tomadorEnd.logradouro;
                     if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
@@ -2728,8 +2728,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                 }
 
-                // Adicionar e-mail do tomador se disponível
-                if (firstItem?.tomador?.email) {
+                // Adicionar e-mail do tomador se disponível e se a tag toma existir
+                if (firstItem?.tomador?.email && adnPayload.infDPS?.toma) {
                     adnPayload.infDPS.toma.email = firstItem.tomador.email;
                 }
             }
