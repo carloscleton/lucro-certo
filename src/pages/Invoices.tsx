@@ -20,6 +20,7 @@ import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
+import { formatPhoneWhatsapp } from '../utils/phoneUtils';
 
 
 export function parseFiscalError(error: any): string {
@@ -696,7 +697,8 @@ ${messageWithPlaceholder}`;
     };
 
     const handleOpenSendWhatsApp = async (invoice: any) => {
-        const phone = getPhoneFromPayload(invoice);
+        const rawPhone = getPhoneFromPayload(invoice);
+        const phone = formatPhoneWhatsapp(rawPhone);
         const pdfUrl = getPdfUrlFromInvoice(invoice);
         const p = invoice.payload;
         const clientName = invoice.quote?.contact?.name || 
@@ -826,7 +828,7 @@ ${messageWithPlaceholder}`;
                     const contact = data[0];
                     const resolvedPhone = contact.whatsapp || contact.phone;
                     if (resolvedPhone) {
-                        const cleanPhone = String(resolvedPhone).replace(/\D/g, '');
+                        const cleanPhone = formatPhoneWhatsapp(String(resolvedPhone));
                         setSendModal(prev => {
                             if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'whatsapp') {
                                 return { ...prev, recipient: cleanPhone };
@@ -1723,9 +1725,13 @@ ${messageWithPlaceholder}`;
                             </label>
                             <input
                                 type="text"
-                                value={sendModal.recipient}
-                                onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
-                                placeholder={sendModal.type === 'whatsapp' ? 'Ex: 44999999999' : 'Ex: cliente@email.com'}
+                                value={sendModal.type === 'whatsapp' ? formatPhoneWhatsapp(sendModal.recipient) : sendModal.recipient}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const formatted = sendModal.type === 'whatsapp' ? formatPhoneWhatsapp(val) : val;
+                                    setSendModal(prev => ({ ...prev, recipient: formatted }));
+                                }}
+                                placeholder={sendModal.type === 'whatsapp' ? 'Ex: 55 (84) 9 9807-1213' : 'Ex: cliente@email.com'}
                                 className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
                             />
                         </div>

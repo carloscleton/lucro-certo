@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabase';
 import { PDFService } from '../services/pdfService';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
+import { formatPhoneWhatsapp } from '../utils/phoneUtils';
 
 export function Quotes() {
     const navigate = useNavigate();
@@ -2480,14 +2481,13 @@ export function Quotes() {
                     </div>
 
                     <Input
-                        label="Número do WhatsApp"
-                        value={waNumber}
+                        label="Número do WhatsApp (com DDD)"
+                        value={formatPhoneWhatsapp(waNumber)}
                         onChange={(e) => {
-                            // Basic mask to help user
-                            const val = e.target.value.replace(/\D/g, '');
-                            setWaNumber(val);
+                            const val = e.target.value;
+                            setWaNumber(formatPhoneWhatsapp(val));
                         }}
-                        placeholder="EX: 5584999999999"
+                        placeholder="Ex: 55 (84) 9 9807-1213"
                         autoFocus
                     />
 
