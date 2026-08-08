@@ -610,7 +610,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     }
                 }
 
-                // 2. Prepare payload
+                // 2. Prepare item data
                 const isSimples = config?.regime_tributario === '1' || config?.regime_tributario === '2' || config?.regime_tributario === '4';
                 const defaultIss = isSimples ? (config?.simples_nacional_aliquota || '0') : (config?.default_iss_aliquota || '3');
                 const natCode = config?.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
@@ -618,102 +618,186 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const serviceObj = (charge.subscription as any)?.service;
                 const planName = serviceObj?.name || charge.subscription?.plan?.name || 'Recorrente';
                 const serviceDescription = serviceObj?.description || serviceObj?.name || `Mensalidade do plano de fidelidade: ${planName}`;
-                
+
                 const serviceTaxCode = serviceObj?.codigo_servico_municipal || serviceObj?.item_lista_servico;
                 const serviceNatCode = serviceObj?.codigo_tributacao_nacional;
-                
+
                 const finalTaxCode = serviceTaxCode ? serviceTaxCode.replace(/\D/g, '') : (isNacional ? natCode : (config?.default_taxation_code || '01.01'));
                 const finalNatCode = serviceNatCode ? serviceNatCode.replace(/\D/g, '').substring(0, 9) : natCode;
 
-                const itemPayload = {
-                    amount: String(charge.amount),
-                    quantity: 1,
-                    description: serviceDescription,
-                    taxCode: isNacional ? finalNatCode : finalTaxCode,
-                    cnae: config?.default_cnae || '',
-                    taxationCode: isNacional ? finalNatCode : '',
-                    codigoTributacaoNacional: isNacional ? finalNatCode : '',
-                    issAliquota: defaultIss,
-                    issExigibilidade: config?.default_iss_exigibilidade || '1',
-                    issTipo: config?.default_iss_tipo || '7',
-                    pisAliquota: config?.default_pis_aliquota || '',
-                    cofinsAliquota: config?.default_cofins_aliquota || '',
-                    csllAliquota: config?.default_csll_aliquota || '',
-                    irrfAliquota: config?.default_irrf_aliquota || ''
-                };
+                // Combine service description with charge notes (same as individual)
+                const chargeNotes = charge.notes?.trim() || '';
+                const cleanServiceDesc = serviceDescription.trim();
+                const fullDescription = chargeNotes
+                    ? (cleanServiceDesc && !cleanServiceDesc.includes(chargeNotes) ? `${cleanServiceDesc}\n${chargeNotes}` : chargeNotes)
+                    : cleanServiceDesc;
 
-                const payload: any = {
-                    idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
-                    codigoIbge: companyCityCode,
-                    prestador: {
-                        cpfCnpj: currentCompany?.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
-                        inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
-                        regimeTributario: parseInt(config?.regime_tributario || '1'),
-                        regimeEspecialTributacao: config?.regime_tributario === '1' || config?.regime_tributario === '2' ? 6 : 
-                                                 config?.regime_tributario === '4' ? 5 : 
-                                                 parseInt(config?.default_regime_especial || '0')
-                    },
-                    tomador: {
-                        cpfCnpj: charge.contact.tax_id!.replace(/\D/g, ''),
-                        razaoSocial: charge.contact.name,
-                        email: charge.contact.email,
-                        endereco: {
-                            logradouro: charge.contact.street || '',
-                            numero: charge.contact.number || 'S/N',
-                            bairro: charge.contact.neighborhood || '',
-                            cep: charge.contact.zip_code?.replace(/\D/g, ''),
-                            codigoCidade: clientCityCode,
-                            cidade: charge.contact.city || '',
-                            descricaoCidade: charge.contact.city || '',
-                            uf: charge.contact.state || ''
-                        }
-                    },
-                    servico: [
-                        {
-                            codigo: isNacional ? (itemPayload.taxCode?.replace(/\D/g, '').substring(0, 6)) : itemPayload.taxCode,
-                            codigoIbge: companyCityCode,
-                            discriminacao: itemPayload.description,
-                            valor: {
-                                servico: charge.amount,
-                                descontoCondicionado: 0,
-                                descontoIncondicionado: 0
+                const cleanTaxCodeStr = String(finalNatCode || finalTaxCode || '').replace(/\D/g, '');
+                const cTribNac6 = cleanTaxCodeStr.length >= 6 ? cleanTaxCodeStr.substring(0, 6) : '010701';
+                const cNBS9 = cleanTaxCodeStr.length === 9 ? cleanTaxCodeStr : undefined;
+
+                let payload: any;
+
+                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                // PORTAL NACIONAL (infDPS) — same as StandaloneInvoiceModal
+                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                if (activeProvider === 'national') {
+                    const prestCnpj = currentCompany?.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, '');
+                    const opSN = Number(config?.op_simp_nac || (config?.simples_nacional ? 3 : (config?.regime_tributario === '1' ? 3 : 1)));
+                    const now = new Date();
+
+                    const tomaDoc = charge.contact.tax_id?.replace(/\D/g, '') || '';
+                    const tomaNome = charge.contact.name || 'NÃO IDENTIFICADO';
+                    const tomaCep = charge.contact.zip_code?.replace(/\D/g, '');
+
+                    // Informações complementares (NBS)
+                    let finalNotes = chargeNotes;
+                    if (cNBS9 && !finalNotes.includes(`NBS: ${cNBS9}`)) {
+                        finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cNBS9}` : `NBS: ${cNBS9}`;
+                    }
+
+                    payload = {
+                        idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
+                        infDPS: {
+                            tpAmb: config?.ambiente === 'producao' ? 1 : 2,
+                            verAplic: "1.00",
+                            serie: "1",
+                            dCompet: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+                            tpEmit: 1,
+                            cLocEmi: companyCityCode,
+                            prest: {
+                                CNPJ: prestCnpj || "",
+                                regTrib: {
+                                    opSimpNac: opSN,
+                                    ...(opSN === 3 ? { regApTribSN: Number(config?.reg_ap_trib_sn || 1) } : {})
+                                }
                             },
-                            quantidade: 1,
-                            itemListaServico: itemPayload.taxCode.includes('.') ? itemPayload.taxCode : '01.01',
-                            cnae: itemPayload.cnae ? String(itemPayload.cnae).replace(/\D/g, '').substring(0, 7) : undefined,
-                            iss: {
-                                aliquota: parseFloat(itemPayload.issAliquota || '0'),
-                                exigibilidade: parseInt(itemPayload.issExigibilidade || '1'),
-                                tipoTributacao: parseInt(itemPayload.issTipo || '7')
-                            }
-                        }
-                    ]
-                };
-
-                // Add national taxes if Simples Nacional config is set
-                if (config?.simples_nacional_aliquota) {
-                    payload.servico[0].valor.aliquota = parseFloat(config.simples_nacional_aliquota);
-                }
-                if (config?.pis_cofins_situacao_tributaria) {
-                    payload.servico[0].pis = { situacaoTributaria: config.pis_cofins_situacao_tributaria };
-                    payload.servico[0].cofins = { situacaoTributaria: config.pis_cofins_situacao_tributaria };
-                }
-
-                if (config?.default_regime_especial && config.default_regime_especial !== '0') {
-                    payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
-                }
-
-                if (charge.notes) {
-                    payload.informacoesComplementares = charge.notes.replace(/\n/g, '|');
-                }
-
-                if (config?.send_email_automatically) {
-                    payload.configuracao = {
-                        email: {
-                            envio: true,
-                            destinatarios: [charge.contact.email]
+                            ...(tomaDoc ? {
+                                toma: {
+                                    ...(tomaDoc.length === 11 ? { CPF: tomaDoc } : { CNPJ: tomaDoc }),
+                                    xNome: tomaNome,
+                                    ...(charge.contact.email ? { email: charge.contact.email } : {}),
+                                    end: {
+                                        ...(clientCityCode || tomaCep ? {
+                                            endNac: {
+                                                ...(clientCityCode ? { cMun: clientCityCode } : {}),
+                                                ...(tomaCep ? { CEP: tomaCep } : {})
+                                            }
+                                        } : {}),
+                                        ...(charge.contact.street ? { xLgr: charge.contact.street } : {}),
+                                        ...(charge.contact.number ? { nro: charge.contact.number } : {}),
+                                        ...(charge.contact.complement ? { xCpl: charge.contact.complement } : {}),
+                                        ...(charge.contact.neighborhood ? { xBairro: charge.contact.neighborhood } : {})
+                                    }
+                                }
+                            } : {}),
+                            serv: {
+                                locPrest: {
+                                    cLocPrestacao: companyCityCode
+                                },
+                                cServ: {
+                                    cTribNac: cTribNac6,
+                                    xDescServ: fullDescription
+                                }
+                            },
+                            valores: {
+                                vServPrest: {
+                                    vServ: charge.amount
+                                },
+                                trib: {
+                                    tribMun: {
+                                        tribISSQN: 1,
+                                        tpRetISSQN: 1,
+                                        pAliq: parseFloat(defaultIss) || 5.00
+                                    },
+                                    totTrib: {
+                                        pTotTribSN: parseFloat(config?.default_tot_trib_sn || '5.00')
+                                    }
+                                }
+                            },
+                            ...(finalNotes ? {
+                                infComp: {
+                                    xInfComp: finalNotes.replace(/\n/g, '|')
+                                }
+                            } : {})
                         }
                     };
+
+                } else {
+                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    // TECNOSPEED / NFe.io — original batch payload
+                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    payload = {
+                        idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
+                        codigoIbge: companyCityCode,
+                        prestador: {
+                            cpfCnpj: currentCompany?.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
+                            inscricaoMunicipal: config?.inscricao_municipal?.replace(/\D/g, '') || config?.inscricaoMunicipal?.replace(/\D/g, ''),
+                            regimeTributario: parseInt(config?.regime_tributario || '1'),
+                            regimeEspecialTributacao: config?.regime_tributario === '1' || config?.regime_tributario === '2' ? 6 :
+                                                     config?.regime_tributario === '4' ? 5 :
+                                                     parseInt(config?.default_regime_especial || '0')
+                        },
+                        tomador: {
+                            cpfCnpj: charge.contact.tax_id!.replace(/\D/g, ''),
+                            razaoSocial: charge.contact.name,
+                            email: charge.contact.email,
+                            endereco: {
+                                logradouro: charge.contact.street || '',
+                                numero: charge.contact.number || 'S/N',
+                                bairro: charge.contact.neighborhood || '',
+                                cep: charge.contact.zip_code?.replace(/\D/g, ''),
+                                codigoCidade: clientCityCode,
+                                cidade: charge.contact.city || '',
+                                descricaoCidade: charge.contact.city || '',
+                                uf: charge.contact.state || ''
+                            }
+                        },
+                        servico: [
+                            {
+                                codigo: isNacional ? (finalTaxCode?.replace(/\D/g, '').substring(0, 6)) : finalTaxCode,
+                                codigoIbge: companyCityCode,
+                                discriminacao: fullDescription,
+                                descricao: fullDescription,
+                                valor: {
+                                    servico: charge.amount,
+                                    descontoCondicionado: 0,
+                                    descontoIncondicionado: 0
+                                },
+                                quantidade: 1,
+                                itemListaServico: finalTaxCode.includes('.') ? finalTaxCode : '01.01',
+                                cnae: config?.default_cnae ? String(config.default_cnae).replace(/\D/g, '').substring(0, 7) : undefined,
+                                iss: {
+                                    aliquota: parseFloat(defaultIss || '0'),
+                                    exigibilidade: parseInt(config?.default_iss_exigibilidade || '1'),
+                                    tipoTributacao: parseInt(config?.default_iss_tipo || '7')
+                                }
+                            }
+                        ]
+                    };
+
+                    // Add national taxes
+                    if (config?.simples_nacional_aliquota) {
+                        payload.servico[0].valor.aliquota = parseFloat(config.simples_nacional_aliquota);
+                    }
+                    if (config?.pis_cofins_situacao_tributaria) {
+                        payload.servico[0].pis = { situacaoTributaria: config.pis_cofins_situacao_tributaria };
+                        payload.servico[0].cofins = { situacaoTributaria: config.pis_cofins_situacao_tributaria };
+                    }
+                    if (config?.default_regime_especial && config.default_regime_especial !== '0') {
+                        payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
+                    }
+                    if (chargeNotes) {
+                        payload.informacoesComplementares = chargeNotes.replace(/\n/g, '|');
+                    }
+                    if (config?.send_email_automatically) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: [charge.contact.email]
+                            }
+                        };
+                    }
                 }
 
                 // 3. Call API

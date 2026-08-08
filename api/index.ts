@@ -5091,7 +5091,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // 4. TOMADOR / ADQUIRENTE
     drawHeaderBox(margin, y, pageWidth, 4.5, 'TOMADOR / ADQUIRENTE');
     y += 4.5;
-    drawBox(margin, y, pageWidth, 15, [255, 255, 255], [0, 0, 0]);
+    drawBox(margin, y, pageWidth, 17, [255, 255, 255], [0, 0, 0]);
 
     const toma = data.tomador || {};
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
@@ -5120,7 +5120,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text(tomaIbgeCep, margin + 135, y + 13.8);
     doc.text(toma.email || '-', margin + 165, y + 13.8);
 
-    y += 15;
+    y += 17;
 
     // 5. DESTINATÁRIO / INTERMEDIÁRIO BARS
     drawBox(margin, y, pageWidth, 7, [255, 255, 255], [0, 0, 0]);

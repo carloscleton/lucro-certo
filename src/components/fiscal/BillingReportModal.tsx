@@ -777,14 +777,26 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                         const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero;
                                         const ident = num ? `Nº ${num}` : (invoice.external_id?.slice(0, 8) || 'Sem ID');
                                         
-                                        // Cliente
-                                        const clientName = invoice.quote?.contact?.name || 
-                                                           p?.tomador?.razaoSocial || 
-                                                           p?.tomador?.nome || 
-                                                           p?.destinatario?.nome || 
-                                                           p?.borrower?.name || 
-                                                           p?.retorno?.borrower?.name || 
-                                                           'Cliente';
+                                        // Cliente — cobre TecnoSpeed, NFe.io e Portal Nacional (infDPS / infNFSe)
+                                        const clientName = invoice.quote?.contact?.name ||
+                                                           // Portal Nacional — payload original
+                                                           p?.infDPS?.toma?.xNome ||
+                                                           // Portal Nacional — dentro do retorno da API
+                                                           p?.retorno?.infNFSe?.infDPS?.toma?.xNome ||
+                                                           p?.retorno?.infDPS?.toma?.xNome ||
+                                                           p?.retorno?.toma?.xNome ||
+                                                           // TecnoSpeed / NFe.io
+                                                           p?.tomador?.razaoSocial ||
+                                                           p?.tomador?.nome ||
+                                                           p?.retorno?.tomador?.razaoSocial ||
+                                                           p?.retorno?.tomador?.nome ||
+                                                           // NF-e
+                                                           p?.destinatario?.nome ||
+                                                           p?.destinatario?.xNome ||
+                                                           // NFe.io
+                                                           p?.borrower?.name ||
+                                                           p?.retorno?.borrower?.name ||
+                                                           'Não identificado';
 
                                         // Cancelamento info
                                         const isCancelled = invoice.status?.toLowerCase() === 'cancelado';
