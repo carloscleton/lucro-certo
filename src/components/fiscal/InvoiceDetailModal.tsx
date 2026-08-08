@@ -142,13 +142,17 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     // Extrair dados do cliente/tomador
     const clientName = invoice.quote?.contact?.name || 
+                       payload.infDPS?.toma?.xNome ||
+                       payload.toma?.xNome ||
+                       payload.DPS?.infDPS?.toma?.xNome ||
+                       retorno.infDPS?.toma?.xNome ||
                        payload.tomador?.razaoSocial || 
                        payload.destinatario?.razaoSocial || 
                        payload.destinatario?.nome || 
                        payload.borrower?.name || 
                        retorno.tomador?.razaoSocial ||
                        retorno.borrower?.name ||
-                       'Cliente Desconhecido';
+                       (payload.noTomador || invoice.payload?.noTomador ? 'CONSUMIDOR FINAL' : 'CONSUMIDOR FINAL');
                        
     const clientTaxId = invoice.quote?.contact?.tax_id || 
                         payload.tomador?.cpfCnpj || 

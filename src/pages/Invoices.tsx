@@ -335,9 +335,9 @@ ${messageWithPlaceholder}`;
         
         const clientNameQuote = invoice.quote?.contact?.name || '';
         const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
-        const clientNamePayloadNfse = invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
+        const clientNamePayloadNfse = invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.DPS?.infDPS?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
         const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
-        const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || 'Cliente Desconhecido').toLowerCase();
+        const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || (invoice.payload?.noTomador ? 'consumidor final' : 'consumidor final')).toLowerCase();
         
         const invoiceNumber = String(invoice.invoice_number || '').toLowerCase();
         const payloadNumber = String(invoice.payload?.numero || invoice.payload?.retorno?.numeroNfse || invoice.payload?.numeroNfse || invoice.payload?.numeroNfe || invoice.payload?.retorno?.numero || invoice.payload?.retorno?.dps?.numero || '').toLowerCase();
@@ -1336,7 +1336,7 @@ ${messageWithPlaceholder}`;
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
-                                                        {invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || 'Avulsa'}
+                                                        {invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.DPS?.infDPS?.toma?.xNome || invoice.payload?.retorno?.infDPS?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.destinatario?.nome || invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || (invoice.payload?.noTomador ? 'CONSUMIDOR FINAL' : 'CONSUMIDOR FINAL')}
                                                     </span>
                                                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 uppercase tracking-wider">
                                                         Emissão Direta
