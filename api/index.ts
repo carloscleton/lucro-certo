@@ -5088,8 +5088,8 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Telefone', margin + 170, y + 3.2);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(toma.nome || 'AFIP - ASSOCIACAO FUNDO DE INCENTIVO A PESQUISA', margin + 2, y + 6.5);
-    doc.text(toma.doc || '47.673.793/0102-17', margin + 95, y + 6.5);
+    doc.text(toma.nome || 'NÃO IDENTIFICADO', margin + 2, y + 6.5);
+    doc.text(toma.doc || '-', margin + 95, y + 6.5);
     doc.text('-', margin + 135, y + 6.5);
     doc.text('-', margin + 170, y + 6.5);
 
@@ -5100,10 +5100,12 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('E-mail', margin + 165, y + 10.5);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(toma.endereco || 'Rua Padre Machado, 1040, Bosque da Saúde', margin + 2, y + 13.8);
-    doc.text(toma.uf ? `${toma.cidade || 'São Paulo'} / ${toma.uf}` : 'São Paulo / SP', margin + 95, y + 13.8);
-    doc.text('35.50308 / 04.127-001', margin + 135, y + 13.8);
-    doc.text(toma.email || 'pagamentosti@afip.com.br', margin + 165, y + 13.8);
+    doc.text(toma.endereco || '-', margin + 2, y + 13.8);
+    const tomaCityUf = (toma.cidade || toma.cMun || toma.uf) ? `${toma.cidade || toma.cMun || ''}${toma.uf ? ' / ' + toma.uf : ''}` : '-';
+    doc.text(tomaCityUf, margin + 95, y + 13.8);
+    const tomaIbgeCep = (toma.cMun || toma.cep) ? `${toma.cMun ? toma.cMun + ' / ' : ''}${toma.cep || ''}` : '-';
+    doc.text(tomaIbgeCep, margin + 135, y + 13.8);
+    doc.text(toma.email || '-', margin + 165, y + 13.8);
 
     y += 15;
 
@@ -5535,24 +5537,35 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const invPayload = dbInvoiceRecord?.payload || {};
                 const savedXml = xmlInputStr || invPayload.xml_assinado || invPayload.retorno?.xml_assinado || invPayload.xml || '';
 
-                const getXmlVal = (tag: string) => {
-                    if (!savedXml) return '';
-                    const m = savedXml.match(new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`, 'i'));
+                const getXmlBlock = (xml: string, tag: string) => {
+                    if (!xml) return '';
+                    const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));
+                    return m ? m[1] : '';
+                };
+
+                const getXmlVal = (xmlSnippet: string, tag: string) => {
+                    if (!xmlSnippet) return '';
+                    const m = xmlSnippet.match(new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`, 'i'));
                     return m ? m[1].trim() : '';
                 };
 
-                const xmlNfse = getXmlVal('nNFSe');
-                const xmlDps = getXmlVal('nDPS');
-                const xmlSerie = getXmlVal('serie');
-                const xmlDhEmi = getXmlVal('dhEmi');
-                const xmlDhProc = getXmlVal('dhProc');
-                const xmlDCompet = getXmlVal('dCompet');
-                const xmlChave = getXmlVal('chNFSe');
-                const xmlCTribNac = getXmlVal('cTribNac');
-                const xmlXTribNac = getXmlVal('xTribNac');
-                const xmlDesc = getXmlVal('xDescServ');
-                const xmlNbs = getXmlVal('cNBS');
-                const xmlVServ = getXmlVal('vServ');
+                const emitBlock = getXmlBlock(savedXml, 'emit') || getXmlBlock(savedXml, 'prest');
+                const tomaBlock = getXmlBlock(savedXml, 'toma');
+                const servBlock = getXmlBlock(savedXml, 'serv');
+                const valBlock = getXmlBlock(savedXml, 'valores');
+
+                const xmlNfse = getXmlVal(savedXml, 'nNFSe');
+                const xmlDps = getXmlVal(savedXml, 'nDPS');
+                const xmlSerie = getXmlVal(savedXml, 'serie');
+                const xmlDhEmi = getXmlVal(savedXml, 'dhEmi');
+                const xmlDhProc = getXmlVal(savedXml, 'dhProc');
+                const xmlDCompet = getXmlVal(savedXml, 'dCompet');
+                const xmlChave = getXmlVal(savedXml, 'chNFSe');
+                const xmlCTribNac = getXmlVal(servBlock, 'cTribNac') || getXmlVal(savedXml, 'cTribNac');
+                const xmlXTribNac = getXmlVal(savedXml, 'xTribNac');
+                const xmlDesc = getXmlVal(servBlock, 'xDescServ') || getXmlVal(savedXml, 'xDescServ');
+                const xmlNbs = getXmlVal(servBlock, 'cNBS') || getXmlVal(savedXml, 'cNBS');
+                const xmlVServ = getXmlVal(valBlock, 'vServ') || getXmlVal(savedXml, 'vServ');
 
                 const inf = invPayload.infDPS || invPayload.payload?.infDPS || invPayload.retorno?.infDPS || {};
                 const prest = inf.prest || invPayload.prestador || {};
@@ -5561,6 +5574,24 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const serv = Array.isArray(servs) ? servs[0] : servs;
                 const val = inf.valores || invPayload.valores || {};
                 const amountVal = Number(xmlVServ || val.vServPrest?.vServ || val.vServ || dbInvoiceRecord?.amount || invPayload.amount || 0.09);
+
+                // Prestador extraído do XML assinado ou payload
+                const prestCnpj = getXmlVal(emitBlock, 'CNPJ') || prest.CNPJ || prest.cnpj || nat.cnpj || '';
+                const prestNome = getXmlVal(emitBlock, 'xNome') || prest.xNome || prest.nome || nat.razao_social || '';
+                const prestIm = getXmlVal(emitBlock, 'IM') || prest.IM || prest.im || nat.inscricao_municipal || '';
+
+                // Tomador extraído do XML assinado ou payload
+                const tomaCnpj = getXmlVal(tomaBlock, 'CNPJ') || getXmlVal(tomaBlock, 'CPF') || toma.CNPJ || toma.CPF || toma.cnpj || toma.cpf || toma.doc || toma.tax_id || toma.cpfCnpj || '';
+                const tomaNome = getXmlVal(tomaBlock, 'xNome') || toma.xNome || toma.nome || toma.razaoSocial || toma.name || 'NÃO IDENTIFICADO';
+                const tomaEmail = getXmlVal(tomaBlock, 'email') || toma.email || '';
+                const tomaLgr = getXmlVal(tomaBlock, 'xLgr') || toma.end?.xLgr || toma.endereco?.logradouro || toma.logradouro || '';
+                const tomaNro = getXmlVal(tomaBlock, 'nro') || toma.end?.nro || toma.endereco?.numero || toma.numero || '';
+                const tomaBairro = getXmlVal(tomaBlock, 'xBairro') || toma.end?.xBairro || toma.endereco?.bairro || toma.bairro || '';
+                const tomaCMun = getXmlVal(tomaBlock, 'cMun') || toma.end?.endNac?.cMun || toma.endereco?.codigoCidade || toma.cMun || '';
+                const tomaCep = getXmlVal(tomaBlock, 'CEP') || toma.end?.endNac?.CEP || toma.endereco?.cep || toma.cep || '';
+                const tomaUf = getXmlVal(tomaBlock, 'UF') || toma.end?.endNac?.UF || toma.endereco?.uf || toma.uf || '';
+
+                const tomaEnderStr = tomaLgr ? `${tomaLgr}${tomaNro ? ', ' + tomaNro : ''}${tomaBairro ? ', ' + tomaBairro : ''}` : (toma.endereco || '');
 
                 // posição 22-36 (0-indexed) = 15 dígitos do nNFSe na chave de 50 dígitos do SEFIN Nacional
                 const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(22, 37), 10) || '') : '';
@@ -5575,14 +5606,18 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     dhProc: xmlDhProc || dbInvoiceRecord?.created_at || new Date().toISOString(),
                     dCompet: xmlDCompet || inf.dCompet || '07/08/2026',
                     prestador: {
-                        cnpj: getXmlVal('CNPJ') || prest.CNPJ || prest.cnpj || nat.cnpj || '00.893.566/0001-90',
-                        nome: getXmlVal('xNome') || prest.xNome || prest.nome || nat.razao_social || 'CARLOSCLETON CARVALHO FERNANDES ME',
-                        im: prest.IM || prest.im || nat.inscricao_municipal || '1254103'
+                        cnpj: prestCnpj,
+                        nome: prestNome,
+                        im: prestIm
                     },
                     tomador: {
-                        doc: toma.CNPJ || toma.CPF || toma.cnpj || toma.cpf || toma.doc || toma.federalTaxNumber || '47.673.793/0102-17',
-                        nome: toma.xNome || toma.nome || toma.razaoSocial || toma.name || 'AFIP - ASSOCIACAO FUNDO DE INCENTIVO A PESQUISA',
-                        email: toma.email || 'pagamentosti@afip.com.br'
+                        doc: tomaCnpj,
+                        nome: tomaNome,
+                        email: tomaEmail,
+                        endereco: tomaEnderStr,
+                        cMun: tomaCMun,
+                        cep: tomaCep,
+                        uf: tomaUf
                     },
                     servico: {
                         cTribNac: xmlCTribNac || serv?.cServ?.cTribNac || serv?.cTribNac || serv?.codigo || '01.07.01',
