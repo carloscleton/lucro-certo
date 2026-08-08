@@ -146,9 +146,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const { companies, updateCompany } = useCompanies();
     const { services } = useServices();
     const { products } = useProducts();
-    const currentCompany = companies.find(c => c.id === currentEntity.id);
 
     const companyEntities = availableEntities.filter(e => e.type === 'company');
+
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() => {
+        return currentEntity.id || companyEntities[0]?.id || companies[0]?.id || '';
+    });
+
+    const currentCompany = useMemo(() => {
+        return companies.find(c => c.id === selectedCompanyId) || 
+               companies.find(c => c.id === currentEntity.id) || 
+               companies[0];
+    }, [companies, selectedCompanyId, currentEntity.id]);
+
+    const activeEntityId = currentCompany?.id || selectedCompanyId || currentEntity.id || '';
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -1142,7 +1153,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
                 console.log('📤 [FRONTEND] Enviando requisição para emissão de nota ao backend...', { provider: activeProvider, type, payload });
                 const result = await fiscalService.emitirNFSe(
-                    currentEntity.id!,
+                    activeEntityId,
                     payload,
                     token,
                     undefined,
@@ -1158,7 +1169,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     try {
                         // Tentar buscar o payload completo imediatamente para gravar no banco
                         console.log(`🔄 [DB-SAVE] Buscando dados completos da nota ${externalId}...`);
-                        const fullStatus = await fiscalService.checkStatus(externalId, currentEntity.id!, token);
+                        const fullStatus = await fiscalService.checkStatus(externalId, activeEntityId, token);
                         if (fullStatus && Object.keys(fullStatus).length > 2) {
                             finalPayloadToSave = fullStatus;
                             console.log(`✅ [DB-SAVE] Dados completos obtidos com sucesso.`);
@@ -1402,7 +1413,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                 // console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
                 const result = await fiscalService.emitirNFe(
-                    currentEntity.id!,
+                    activeEntityId,
                     payload,
                     token,
                     undefined,
@@ -1416,7 +1427,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 if (externalId) {
                     try {
                         console.log(`🔄 [DB-SAVE] Buscando dados completos da NFe ${externalId}...`);
-                        const fullStatus = await fiscalService.checkStatus(externalId, currentEntity.id!, token);
+                        const fullStatus = await fiscalService.checkStatus(externalId, activeEntityId, token);
                         if (fullStatus && Object.keys(fullStatus).length > 2) {
                             finalPayloadToSave = fullStatus;
                             console.log(`✅ [DB-SAVE] Dados completos obtidos com sucesso.`);
@@ -1841,9 +1852,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         <div className="space-y-1.5 md:col-span-2">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Empresa Emissora</label>
                             <select
-                                value={currentEntity.id || ''}
+                                value={activeEntityId}
                                 onChange={(e) => {
-                                    const targetEntity = availableEntities.find(x => x.id === e.target.value);
+                                    const newId = e.target.value;
+                                    setSelectedCompanyId(newId);
+                                    const targetEntity = availableEntities.find(x => x.id === newId);
                                     if (targetEntity) {
                                         switchEntity(targetEntity);
                                     }
