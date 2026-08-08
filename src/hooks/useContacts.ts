@@ -99,13 +99,8 @@ export function useContacts() {
     };
 
     const applyFilteredContacts = (list: Contact[]) => {
-        if (currentEntity?.type === 'company' && currentEntity.id) {
-            // Show contacts belonging to this company, or unassigned contacts (fallback)
-            setContacts(list.filter(c => c.company_id === currentEntity.id || c.company_id === null));
-        } else {
-            // Personal context shows only unassigned contacts
-            setContacts(list.filter(c => c.company_id === null));
-        }
+        // Exibe todos os contatos cadastrados pelo usuário para que possam receber notas de qualquer empresa do usuário
+        setContacts(list);
     };
 
     const fetchContacts = async () => {

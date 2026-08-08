@@ -766,6 +766,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         }
 
         const contact = contacts.find(c => c.id === contactId);
+        console.log('📋 [EMISSÃO-CONFERÊNCIA]', {
+            empresaEmissora: currentCompany?.trade_name || currentEntity.name,
+            cnpjEmissora: currentCompany?.cnpj || currentEntity.cnpj,
+            clienteSelecionado: contact?.name,
+            cnpjCliente: contact?.tax_id,
+            contactId: contactId
+        });
         if (!noTomador) {
             if (!contact) {
                 console.warn('⚠️ [handleSubmit] Tomador não encontrado.');
