@@ -758,8 +758,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
         const hasTaxCode = (i: any) => !!(i.taxCode || i.codigoTributacaoNacional || i.taxationCode);
 
-        if (!contactId || items.some(i => !i.description || !i.amount || !hasTaxCode(i))) {
-            console.warn('⚠️ [handleSubmit] Campos obrigatórios ausentes:', { contactId, items });
+        if ((!noTomador && !contactId) || items.some(i => !i.description || !i.amount || !hasTaxCode(i))) {
+            console.warn('⚠️ [handleSubmit] Campos obrigatórios ausentes:', { noTomador, contactId, items });
             setError('Preencha todos os campos obrigatórios de todos os itens (Descrição, Valor e Código de Tributação).');
             setLoading(false);
             return;
