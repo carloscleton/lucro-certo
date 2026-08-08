@@ -2983,8 +2983,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             let adnResponse: any = null;
             let adnData: any = null;
-            let currentDpsSeq = parseInt(String(numDpsInt || nextDpsNumber || 24), 10);
-            if (isNaN(currentDpsSeq) || currentDpsSeq < 1) currentDpsSeq = 24;
+            let currentDpsSeq = parseInt(String(numDpsInt || nextDpsNumber || defaultMigrationDpsNumber), 10);
+            if (isNaN(currentDpsSeq) || currentDpsSeq < 1) currentDpsSeq = defaultMigrationDpsNumber;
 
             let retryCount = 0;
             const maxDpsRetries = 20;
