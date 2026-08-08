@@ -913,7 +913,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     const totalVal = numVal * (firstItem?.quantity || 1);
 
                     const itemNotes = notes?.trim() || '';
-                    const fullDescription = itemNotes ? `${firstItem.description}\n${itemNotes}` : firstItem.description;
+                    const cleanDesc = (firstItem?.description || '').trim();
+                    const fullDescription = itemNotes 
+                        ? (cleanDesc && !cleanDesc.includes(itemNotes) ? `${cleanDesc}\n${itemNotes}` : itemNotes) 
+                        : cleanDesc;
 
                     const cleanTaxCode = String(firstItem?.taxCode || '').replace(/\D/g, '').trim();
                     const cleanNatCode = String(firstItem?.codigoTributacaoNacional || firstItem?.taxationCode || '').replace(/\D/g, '').trim();
@@ -1039,7 +1042,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             const descSuffix = i.quantity > 1 ? ` (${i.quantity} x R$ ${formattedUnit} = R$ ${formattedTotal})` : '';
 
                             const itemNotes = notes?.trim() || '';
-                            const fullDescription = itemNotes ? `${i.description}\n${itemNotes}` : i.description;
+                            const cleanDesc = (i?.description || '').trim();
+                            const fullDescription = itemNotes 
+                                ? (cleanDesc && !cleanDesc.includes(itemNotes) ? `${cleanDesc}\n${itemNotes}` : itemNotes) 
+                                : cleanDesc;
 
                             const safeTaxCode = String(i.taxCode || i.codigoTributacaoNacional || i.taxationCode || '010701');
                             const item: any = {

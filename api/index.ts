@@ -2835,7 +2835,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cTribMunXml = (cTribMunVal.length === 7 && cTribMunVal !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
 
             // Informações Complementares (infComp / xInfComp) e resolução do código NBS
-            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '';
+            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || firstItem?.notes || firstItem?.observacoes || '';
             let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
             const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
 
@@ -2852,7 +2852,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
-            const descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').trim();
+            let descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').replace(/\|/g, '\n').trim();
+
+            if (infCompText && typeof infCompText === 'string') {
+                const cleanInfComp = infCompText.replace(/\|/g, '\n').trim();
+                const infCompWithoutNbs = cleanInfComp.replace(/NBS:\s*\d+/gi, '').trim();
+                if (infCompWithoutNbs && !descFinal.includes(infCompWithoutNbs)) {
+                    descFinal = `${descFinal}\n${infCompWithoutNbs}`;
+                }
+            }
+            descFinal = descFinal.substring(0, 2000);
+
             // Conforme XSD NFS-e Nacional v1.01: a sequência exata em <cServ> é <cTribNac>, <cTribMun>, <CNAE>, <xDescServ>, <cNBS>
             const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ>${cNbsXml}</cServ>` : '';
 
