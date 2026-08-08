@@ -41,7 +41,7 @@ export function CompanyFiscalModal({ isOpen, onClose, company }: CompanyFiscalMo
             }
         }
         onClose();
-        navigate('/settings?tab=fiscal');
+        navigate('/dashboard/settings?tab=fiscal');
     };
 
     return (
