@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { StandaloneInvoiceModal } from '../fiscal/StandaloneInvoiceModal';
 import { useNavigate } from 'react-router-dom';
 
+import { useEntity } from '../../context/EntityContext';
+
 interface CompanyFiscalModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -14,6 +16,7 @@ interface CompanyFiscalModalProps {
 
 export function CompanyFiscalModal({ isOpen, onClose, company }: CompanyFiscalModalProps) {
     const navigate = useNavigate();
+    const { availableEntities, switchEntity } = useEntity();
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
     if (!company) return null;
@@ -31,6 +34,12 @@ export function CompanyFiscalModal({ isOpen, onClose, company }: CompanyFiscalMo
     const certSujeito = nat.certificado_sujeito || tec.certificado_sujeito || null;
 
     const handleOpenSettings = () => {
+        if (company?.id) {
+            const target = availableEntities.find(e => e.id === company.id);
+            if (target) {
+                switchEntity(target);
+            }
+        }
         onClose();
         navigate('/settings?tab=fiscal');
     };

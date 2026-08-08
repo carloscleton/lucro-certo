@@ -1235,7 +1235,7 @@ export function Settings() {
                     
                     // 1. Feature Availability / Plan Check
                     if (tab.key === 'loyalty' && !currentCompany?.loyalty_module_enabled) return false;
-                    if (tab.key === 'fiscal' && (isPersonalOrPF || !currentCompany?.fiscal_module_enabled)) return false;
+                    if (tab.key === 'fiscal' && isPersonalOrPF && !isAdmin) return false;
                     if (tab.key === 'email' && isPersonalOrPF) return false;
                     if (tab.key === 'banking' && isPersonalOrPF) return false;
                     
