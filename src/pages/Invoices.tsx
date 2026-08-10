@@ -1362,14 +1362,9 @@ ${messageWithPlaceholder}`;
                                                     if (num) {
                                                         return (
                                                             <>
-                                                                <div className="flex flex-col items-start">
-                                                                    <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">
-                                                                        Número da Nota
-                                                                    </span>
-                                                                    <span className="font-extrabold text-blue-600 dark:text-blue-400 text-base">
-                                                                        Nº {num}
-                                                                    </span>
-                                                                </div>
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">
+                                                                    Número da Nota: <span className="text-blue-600 dark:text-blue-400 font-extrabold">Nº {num}</span>
+                                                                </span>
                                                                 {chaveAcesso && (
                                                                     <div className="mt-1">
                                                                         <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-semibold break-all leading-relaxed bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/60 inline-block max-w-full select-all">
