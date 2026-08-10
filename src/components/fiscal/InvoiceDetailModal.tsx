@@ -772,8 +772,8 @@ ${messageWithPlaceholder}`;
 
                 {/* Main Tab Area */}
                 {activeTab === 'pdf' && (
-                    <div className="flex-1 flex flex-col p-4 bg-slate-900/5 dark:bg-slate-950/40 overflow-hidden">
-                        <div className="flex items-center justify-between pb-3 px-2">
+                    <div className="flex-1 min-h-0 flex flex-col p-4 bg-slate-900/5 dark:bg-slate-950/40 overflow-hidden">
+                        <div className="flex items-center justify-between pb-3 px-2 flex-shrink-0">
                             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2">
                                 <FileText size={16} className="text-blue-500" />
                                 Visualizando Documento Auxiliar DANFSe
@@ -801,7 +801,7 @@ ${messageWithPlaceholder}`;
                         </div>
                         <iframe
                             src={pdfUrl}
-                            className="w-full flex-1 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white min-h-[500px]"
+                            className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white block"
                             title="Visualizador de PDF DANFSe"
                         />
                     </div>
