@@ -492,6 +492,7 @@ export function FiscalSettings() {
     const [testJson, setTestJson] = useState(() => {
         return localStorage.getItem('fiscal_lab_json') || '';
     });
+    const [loadingLastApproved, setLoadingLastApproved] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('fiscal_lab_json', testJson);
@@ -1985,6 +1986,73 @@ export function FiscalSettings() {
             setTestJson(ev.target?.result as string);
         };
         reader.readAsText(file);
+    };
+
+    const handleLoadLastApproved = async () => {
+        if (!currentEntity.id) return;
+        setLoadingLastApproved(true);
+        try {
+            const { data, error } = await supabase
+                .from('fiscal_invoices')
+                .select('payload, sent_payload')
+                .eq('company_id', currentEntity.id)
+                .eq('provider', 'national')
+                .in('status', ['autorizada', 'authorized', 'emitida'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !data) {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Nenhuma nota encontrada',
+                    message: 'Não foi encontrada nenhuma nota autorizada do Portal Nacional para esta empresa.',
+                    type: 'info'
+                });
+                return;
+            }
+
+            // Prefere o sent_payload (payload enviado ao governo) sobre o payload armazenado
+            const rawPayload = data.sent_payload || data.payload;
+            if (!rawPayload) {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Payload não disponível',
+                    message: 'A nota foi encontrada mas o payload não está disponível.',
+                    type: 'info'
+                });
+                return;
+            }
+
+            // Se for string, tenta parsear; senão usa direto
+            const payloadObj = typeof rawPayload === 'string' ? JSON.parse(rawPayload) : rawPayload;
+
+            // Extrai o infDPS se estiver dentro de uma estrutura de resposta
+            const dpsPayload = payloadObj?.infDPS
+                ? payloadObj
+                : payloadObj?.DPS?.infDPS
+                    ? { infDPS: payloadObj.DPS.infDPS }
+                    : payloadObj?.retorno?.infDPS
+                        ? { infDPS: payloadObj.retorno.infDPS }
+                        : payloadObj;
+
+            setTestJson(JSON.stringify(dpsPayload, null, 2));
+            setResultModal({
+                isOpen: true,
+                title: '✅ Payload Carregado!',
+                message: 'O JSON da última nota autorizada foi carregado no laboratório. Revise os campos antes de emitir.',
+                type: 'success'
+            });
+        } catch (err: any) {
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao carregar',
+                message: err?.message || 'Erro ao buscar a última nota aprovada.',
+                type: 'error'
+            });
+        } finally {
+            setLoadingLastApproved(false);
+        }
     };
 
     const handleGenerateExample = () => {
@@ -5978,7 +6046,7 @@ export function FiscalSettings() {
         {/* Bloco Compartilhado: Laboratório de Testes (JSON Manual) */}
         {((activeSubTab === 'tecnospeed' && config.ambiente === 'homologacao') || 
           (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao') ||
-          (activeSubTab === 'national' && nationalConfig.ambiente === 'homologacao') ||
+          activeSubTab === 'national' ||
           activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
@@ -5992,6 +6060,14 @@ export function FiscalSettings() {
                 </div>
                 
                 <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/20">
+                    {activeSubTab === 'national' && nationalConfig.ambiente === 'producao' && (
+                        <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-800 dark:text-amber-400 font-semibold">
+                                ⚠️ <strong>Ambiente de Produção:</strong> Notas emitidas aqui terão validade fiscal real. Use com cautela.
+                            </p>
+                        </div>
+                    )}
                     <p className="text-xs text-purple-700 dark:text-purple-300 mb-4">
                         Use esta área para testar payloads JSON diretamente. Útil para validar campos específicos exigidos pela {activeSubTab === 'nfeio' ? 'NFe.io' : (activeSubTab === 'national' ? 'Portal Nacional' : 'TecnoSpeed')}.
                     </p>
@@ -6039,13 +6115,26 @@ export function FiscalSettings() {
                                         </Button>
                                     </Tooltip>
                                 )}
+                                {activeSubTab === 'national' && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 h-10 font-bold flex items-center gap-1.5"
+                                        onClick={handleLoadLastApproved}
+                                        disabled={testingJson || loadingLastApproved}
+                                    >
+                                        <RefreshCw size={14} className={loadingLastApproved ? 'animate-spin' : ''} />
+                                        Carregar Última Nota Aprovada
+                                    </Button>
+                                )}
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     className="text-purple-600 hover:bg-purple-100 h-10 font-bold"
                                     onClick={handleGenerateExample}
-                                    disabled={testingJson}
+                                    disabled={testingJson || loadingLastApproved}
                                 >
                                     Gerar Exemplo
                                 </Button>
