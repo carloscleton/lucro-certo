@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     X, Receipt, DollarSign, User, MapPin, Mail, MessageCircle, FileText, 
     FileCode, Trash2, AlertTriangle, Printer, History, 
-    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw, Sparkles
+    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw, Sparkles,
+    Maximize2, Minimize2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fiscalService } from '../../services/fiscalService';
@@ -23,6 +24,11 @@ interface InvoiceDetailModalProps {
 }
 
 export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company }: InvoiceDetailModalProps) {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
+    const [isMaximized, setIsMaximized] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+
     const [events, setEvents] = useState<any[]>([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -37,6 +43,54 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const [xmlText, setXmlText] = useState<string>('');
     const [loadingXml, setLoadingXml] = useState(false);
     const [copiedXml, setCopiedXml] = useState(false);
+
+    // Definir tamanho inicial maior (ampliado por padrão)
+    useEffect(() => {
+        if (isOpen && !modalSize) {
+            const initialWidth = Math.min(window.innerWidth - 48, 1280);
+            const initialHeight = Math.min(window.innerHeight - 48, 900);
+            setModalSize({ width: initialWidth, height: initialHeight });
+        }
+    }, [isOpen]);
+
+    // Manipulador do arrasto para redimensionamento livre do modal
+    const handleStartResize = (e: React.MouseEvent, direction: 'corner' | 'right' | 'bottom') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isMaximized) setIsMaximized(false);
+
+        setIsResizing(true);
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = modalRef.current?.offsetWidth || modalSize?.width || 1280;
+        const startHeight = modalRef.current?.offsetHeight || modalSize?.height || 900;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+
+            if (direction === 'corner' || direction === 'right') {
+                newWidth = Math.max(640, Math.min(window.innerWidth - 24, startWidth + deltaX));
+            }
+            if (direction === 'corner' || direction === 'bottom') {
+                newHeight = Math.max(480, Math.min(window.innerHeight - 24, startHeight + deltaY));
+            }
+
+            setModalSize({ width: newWidth, height: newHeight });
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
 
     const [sendModal, setSendModal] = useState<{
         isOpen: boolean;
@@ -617,10 +671,32 @@ ${messageWithPlaceholder}`;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 w-full max-w-4xl h-[90vh] max-h-[800px] flex flex-col animate-in zoom-in-95 duration-300">
+            {/* Overlay transparente enquanto redimensiona para evitar retenção de eventos do mouse pelo iframe do PDF */}
+            {isResizing && (
+                <div className="fixed inset-0 z-[100] cursor-nwse-resize select-none" />
+            )}
+
+            <div 
+                ref={modalRef}
+                style={{
+                    width: isMaximized ? '98vw' : (modalSize ? `${modalSize.width}px` : '95vw'),
+                    height: isMaximized ? '98vh' : (modalSize ? `${modalSize.height}px` : '90vh'),
+                    maxWidth: '98vw',
+                    maxHeight: '98vh',
+                    minWidth: '640px',
+                    minHeight: '480px'
+                }}
+                className={`bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 flex flex-col relative animate-in zoom-in-95 duration-200 ${
+                    isResizing ? 'select-none transition-none' : 'transition-all'
+                }`}
+            >
                 
                 {/* Header */}
-                <div className="flex flex-col border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+                <div 
+                    onDoubleClick={() => setIsMaximized(!isMaximized)}
+                    className="flex flex-col border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 select-none cursor-default"
+                    title="Clique duas vezes para maximizar ou restaurar"
+                >
                     <div className="flex justify-between items-center p-6 pb-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
@@ -640,6 +716,13 @@ ${messageWithPlaceholder}`;
                                 {statusStyle.icon}
                                 {statusStyle.label}
                             </div>
+                            <button 
+                                onClick={() => setIsMaximized(!isMaximized)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                title={isMaximized ? "Restaurar tamanho" : "Maximizar"}
+                            >
+                                {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                            </button>
                             <button 
                                 onClick={onClose}
                                 className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -771,10 +854,10 @@ ${messageWithPlaceholder}`;
 
                 {activeTab === 'details' && (
                 /* Content Details */
-                <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-slate-800">
+                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-slate-800 overflow-hidden">
                     
                     {/* Left: General Info & Summary */}
-                    <div className="col-span-2 p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-thin">
+                    <div className="col-span-2 p-6 space-y-6 overflow-y-auto h-full scrollbar-thin">
                         
                         {/* Cliente */}
                         <div className="space-y-3">
@@ -962,7 +1045,7 @@ ${messageWithPlaceholder}`;
                     </div>
 
                     {/* Right: Actions & Timeline */}
-                    <div className="p-6 space-y-6 flex flex-col max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-thin bg-gray-50/30 dark:bg-slate-800/10">
+                    <div className="p-6 space-y-6 flex flex-col h-full overflow-y-auto scrollbar-thin bg-gray-50/30 dark:bg-slate-800/10">
                         
                         {/* Ações */}
                         <div className="space-y-3">
@@ -1111,6 +1194,34 @@ ${messageWithPlaceholder}`;
                     </div>
 
                 </div>
+                )}
+
+                {/* Handles de Redimensionamento Interativo (Drag-to-Resize) */}
+                {!isMaximized && (
+                    <>
+                        {/* Alça lateral direita */}
+                        <div 
+                            onMouseDown={(e) => handleStartResize(e, 'right')}
+                            className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize hover:bg-blue-500/20 active:bg-blue-500/40 transition-colors z-20"
+                            title="Arraste para ajustar a largura"
+                        />
+                        {/* Alça inferior */}
+                        <div 
+                            onMouseDown={(e) => handleStartResize(e, 'bottom')}
+                            className="absolute bottom-0 left-0 w-full h-2.5 cursor-ns-resize hover:bg-blue-500/20 active:bg-blue-500/40 transition-colors z-20"
+                            title="Arraste para ajustar a altura"
+                        />
+                        {/* Alça de canto inferior direito com ícone visual */}
+                        <div 
+                            onMouseDown={(e) => handleStartResize(e, 'corner')}
+                            className="absolute bottom-1 right-1 w-7 h-7 cursor-nwse-resize flex items-center justify-center text-gray-400 hover:text-blue-500 hover:scale-110 active:scale-95 transition-all z-30 group"
+                            title="Arraste aqui para redimensionar o modal"
+                        >
+                            <svg className="w-4.5 h-4.5 opacity-40 group-hover:opacity-100 transition-opacity" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M11 11h2v2h-2zM8 11h2v2H8zM11 8h2v2h-2zM5 11h2v2H5zM11 5h2v2h-2z" />
+                            </svg>
+                        </div>
+                    </>
                 )}
 
             </div>
