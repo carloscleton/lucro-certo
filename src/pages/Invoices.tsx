@@ -588,9 +588,10 @@ ${messageWithPlaceholder}`;
     };
 
     const getPhoneFromPayload = (invoice: any): string => {
-        const contactPhone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone;
-        if (contactPhone) {
-            return String(contactPhone).replace(/\D/g, '');
+        // ✅ Usa SOMENTE o campo WhatsApp p/ Automação — nunca cai no telefone comercial
+        const whatsappField = invoice.quote?.contact?.whatsapp;
+        if (whatsappField) {
+            return String(whatsappField).replace(/\D/g, '');
         }
 
         const p = invoice.payload;
@@ -826,7 +827,8 @@ ${messageWithPlaceholder}`;
 
                 if (!error && data && data.length > 0) {
                     const contact = data[0];
-                    const resolvedPhone = contact.whatsapp || contact.phone;
+                    // ✅ Usa SOMENTE o campo WhatsApp p/ Automação — nunca cai no telefone comercial
+                    const resolvedPhone = contact.whatsapp;
                     if (resolvedPhone) {
                         const cleanPhone = formatPhoneWhatsapp(String(resolvedPhone));
                         setSendModal(prev => {
