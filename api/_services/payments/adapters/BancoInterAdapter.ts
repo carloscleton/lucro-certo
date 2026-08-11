@@ -43,6 +43,8 @@ export class BancoInterAdapter implements PaymentAdapter {
     private async getAccessToken(): Promise<string> {
         try {
             const params = new URLSearchParams();
+            params.append('client_id', this.clientId);
+            params.append('client_secret', this.clientSecret);
             params.append('grant_type', 'client_credentials');
             params.append('scope', 'boleto-cobranca.read boleto-cobranca.write');
 
