@@ -46,15 +46,6 @@ export function PaymentSettings() {
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
 
-    const isOwner = currentEntity.role === 'owner';
-
-    // Force Production for Admins
-    useEffect(() => {
-        if (!isOwner && isSandbox) {
-            setIsSandbox(false);
-        }
-    }, [isOwner, isSandbox]);
-
     // Load initial environment and config when provider is SELECTED
     const handleSelectProvider = (providerId: string) => {
         setSelectedProvider(providerId);
@@ -272,31 +263,29 @@ export function PaymentSettings() {
                                 </div>
                             </div>
 
-                            {/* Environment Toggle - Only for Owner */}
-                            {isOwner && (
-                                <div className="mb-8 p-1 bg-gray-100 dark:bg-slate-900 rounded-xl flex">
-                                    <button
-                                        onClick={() => setIsSandbox(true)}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${isSandbox
-                                            ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                            }`}
-                                    >
-                                        <FlaskConical size={16} />
-                                        Ambiente de Teste (Sandbox)
-                                    </button>
-                                    <button
-                                        onClick={() => setIsSandbox(false)}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${!isSandbox
-                                            ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                            }`}
-                                    >
-                                        <Rocket size={16} />
-                                        Ambiente de Produção
-                                    </button>
-                                </div>
-                            )}
+                            {/* Environment Toggle */}
+                            <div className="mb-8 p-1 bg-gray-100 dark:bg-slate-900 rounded-xl flex">
+                                <button
+                                    onClick={() => setIsSandbox(true)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${isSandbox
+                                        ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <FlaskConical size={16} />
+                                    Ambiente de Teste (Sandbox)
+                                </button>
+                                <button
+                                    onClick={() => setIsSandbox(false)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${!isSandbox
+                                        ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <Rocket size={16} />
+                                    Ambiente de Produção
+                                </button>
+                            </div>
 
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
