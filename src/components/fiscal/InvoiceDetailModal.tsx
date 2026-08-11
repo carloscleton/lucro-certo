@@ -53,6 +53,21 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         }
     }, [isOpen]);
 
+    const [authToken, setAuthToken] = useState<string>('');
+
+    // Recupera o token de sessão do Supabase para injetar no iframe do PDF
+    useEffect(() => {
+        if (isOpen) {
+            const fetchToken = async () => {
+                const session = (await supabase.auth.getSession()).data.session;
+                if (session?.access_token) {
+                    setAuthToken(session.access_token);
+                }
+            };
+            fetchToken();
+        }
+    }, [isOpen]);
+
     // Manipulador do arrasto para redimensionamento livre do modal
     const handleStartResize = (e: React.MouseEvent, direction: 'corner' | 'right' | 'bottom') => {
         e.preventDefault();
@@ -360,18 +375,25 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     // Resolver Links de Documentos
     const getDocUrl = (format: 'pdf' | 'xml'): string => {
+        let base = '';
         if (format === 'pdf' && invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
-            return invoice.pdf_url;
+            base = invoice.pdf_url;
+        } else if (format === 'xml' && invoice.xml_url && invoice.xml_url.startsWith('http')) {
+            base = invoice.xml_url;
+        } else {
+            let apiBase = API_BASE_URL.replace(/\/$/, '');
+            if (apiBase.startsWith('/')) {
+                apiBase = window.location.origin + apiBase;
+            }
+            base = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/${format}?companyId=${invoice.company_id}`;
         }
-        if (format === 'xml' && invoice.xml_url && invoice.xml_url.startsWith('http')) {
-            return invoice.xml_url;
+
+        // Se for uma URL do nosso backend, anexa o token do usuário para passar pelo RLS do Supabase
+        if (authToken && (base.includes('/fiscal-module/') || base.includes('/api/fiscal-module/'))) {
+            const separator = base.includes('?') ? '&' : '?';
+            return `${base}${separator}token=${encodeURIComponent(authToken)}`;
         }
-        
-        let apiBase = API_BASE_URL.replace(/\/$/, '');
-        if (apiBase.startsWith('/')) {
-            apiBase = window.location.origin + apiBase;
-        }
-        return `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/${format}?companyId=${invoice.company_id}`;
+        return base;
     };
 
     const pdfUrl = getDocUrl('pdf');

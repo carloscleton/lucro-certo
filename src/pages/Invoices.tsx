@@ -1524,9 +1524,21 @@ ${messageWithPlaceholder}`;
                                                 {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Ver Link Externo (DANFSE Oficial)">
                                                         <button
-                                                            onClick={() => {
+                                                            onClick={async () => {
                                                                 const baseApi = API_BASE_URL.replace(/\/$/, '');
-                                                                const targetUrl = invoice.pdf_url || `${baseApi}/fiscal-module/${invoice.type || 'national'}/${invoice.external_id}/pdf?companyId=${invoice.company_id || currentEntity.id}`;
+                                                                let targetUrl = invoice.pdf_url || `${baseApi}/fiscal-module/${invoice.type || 'national'}/${invoice.external_id}/pdf?companyId=${invoice.company_id || currentEntity.id}`;
+                                                                
+                                                                // Anexa o token de autenticação se for rota do nosso backend para passar pelo RLS do Supabase
+                                                                try {
+                                                                    const session = (await supabase.auth.getSession()).data.session;
+                                                                    if (session?.access_token && (targetUrl.includes('/fiscal-module/') || targetUrl.includes('/api/fiscal-module/'))) {
+                                                                        const separator = targetUrl.includes('?') ? '&' : '?';
+                                                                        targetUrl = `${targetUrl}${separator}token=${encodeURIComponent(session.access_token)}`;
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Erro ao recuperar token para link externo:', err);
+                                                                }
+                                                                
                                                                 window.open(targetUrl, '_blank');
                                                             }}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all shadow-sm"

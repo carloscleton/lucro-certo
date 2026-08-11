@@ -3209,8 +3209,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // Exemplo nota 51: substring(22,37) = "000000000000051" → 51 ✓
                 // Validar se a chave retornada pelo SEFIN corresponde ao DPS autorizado
                 if (chaveAcesso && chaveAcesso.length === 50) {
-                    const keyDpsNum = parseInt(chaveAcesso.substring(22, 37), 10);
-                    console.log(`🔑 [ADN-NACIONAL] Validando chaveAcesso: extração nNFSe="${chaveAcesso.substring(22, 37)}" (parseInt=${keyDpsNum}) vs authorizedDpsSeq=${authorizedDpsSeq}`);
+                    const keyDpsNum = parseInt(chaveAcesso.substring(23, 36), 10);
+                    console.log(`🔑 [ADN-NACIONAL] Validando chaveAcesso: extração nNFSe="${chaveAcesso.substring(23, 36)}" (parseInt=${keyDpsNum}) vs authorizedDpsSeq=${authorizedDpsSeq}`);
                     if (!isNaN(keyDpsNum) && keyDpsNum !== authorizedDpsSeq) {
                         console.warn(`⚠️ [ADN-NACIONAL] DIVERGÊNCIA DETECTADA: chaveAcesso retornada pelo SEFIN tem DPS #${keyDpsNum} mas o DPS efetivamente autorizado foi #${authorizedDpsSeq}. Ignorando chave inconsistente.`);
                         chaveAcesso = ''; // Forçar busca pelo número correto
@@ -3288,8 +3288,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 let keyExtractedNum = '';
                 if (chaveAcesso && chaveAcesso.length === 50) {
-                    // posição 22-36 (0-indexed) = 15 dígitos do nNFSe
-                    keyExtractedNum = String(parseInt(chaveAcesso.substring(22, 37), 10) || '');
+                    // posição 24-36 (1-based / 23-35 index) = 13 dígitos do nNFSe
+                    keyExtractedNum = String(parseInt(chaveAcesso.substring(23, 36), 10) || '');
                 }
 
                 // Fonte de verdade final: usar o currentDpsSeq (número autorizado nesta iteração) como fallback absoluto
@@ -5606,8 +5606,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
                 const tomaEnderStr = tomaLgr ? `${tomaLgr}${tomaNro ? ', ' + tomaNro : ''}${tomaBairro ? ', ' + tomaBairro : ''}` : (toma.endereco || '');
 
-                // posição 22-36 (0-indexed) = 15 dígitos do nNFSe na chave de 50 dígitos do SEFIN Nacional
-                const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(22, 37), 10) || '') : '';
+                // posição 24-36 (1-based / 23-35 index) = 13 dígitos do nNFSe na chave de 50 dígitos do SEFIN Nacional
+                const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(23, 36), 10) || '') : '';
                 const finalNfseNum = xmlNfse || dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || chaveNfseNum || '1';
 
                 return await generateServerDanfseBuffer({
