@@ -6048,7 +6048,7 @@ export function FiscalSettings() {
         {/* Bloco Compartilhado: Laboratório de Testes (JSON Manual) */}
         {((activeSubTab === 'tecnospeed' && config.ambiente === 'homologacao') || 
           (activeSubTab === 'nfeio' && nfeioConfig.ambiente === 'homologacao') ||
-          activeSubTab === 'national' ||
+          (activeSubTab === 'national' && nationalConfig.ambiente === 'homologacao') ||
           activeSubTab === 'other') && (
             <div className="mt-6 bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
