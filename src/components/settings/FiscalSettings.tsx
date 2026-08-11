@@ -2050,6 +2050,7 @@ export function FiscalSettings() {
                 message: err?.message || 'Erro ao buscar a última nota aprovada.',
                 type: 'error'
             });
+            return;
         } finally {
             setLoadingLastApproved(false);
         }
@@ -2078,111 +2079,112 @@ export function FiscalSettings() {
                 return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
             };
 
+            // Auto-incrementa o número da DPS a partir do que estiver no campo
             let nextDpsNumber = "1";
             try {
                 const existingObj = JSON.parse(testJson);
                 if (existingObj?.infDPS?.nDPS) {
                     const currentDps = parseInt(String(existingObj.infDPS.nDPS).replace(/\D/g, ''), 10);
-                    if (!isNaN(currentDps) && currentDps > 0) {
-                        nextDpsNumber = String(currentDps + 1);
-                    }
+                    if (!isNaN(currentDps) && currentDps > 0) nextDpsNumber = String(currentDps + 1);
                 }
             } catch (e) {}
-
             if (nextDpsNumber === "1") {
-                const timeBasedNum = String(Math.floor(Date.now() / 1000)).substring(4);
-                nextDpsNumber = timeBasedNum && parseInt(timeBasedNum) > 0 ? timeBasedNum : String(Date.now()).substring(7);
+                const t = String(Math.floor(Date.now() / 1000)).substring(4);
+                nextDpsNumber = t && parseInt(t) > 0 ? t : String(Date.now()).substring(7);
+            }
+
+            // Regime tributário e bloco de tributos
+            const opSN        = Number((nationalConfig as any).op_simp_nac ?? (nationalConfig.simples_nacional ? 3 : 1));
+            const tpRet       = Number(nationalConfig.tp_ret_issqn ?? 1);
+            const isSimplesSemRetencao = (opSN === 2 || opSN === 3) && tpRet === 1;
+            const isRegimeNormal       = opSN === 1;
+            const pAliq       = parseFloat(nationalConfig.default_iss_aliquota || '0');
+            const cTribNac    = nationalConfig.default_cTribNac || "010101";
+            const xDescServ   = nationalConfig.default_xDescServ || "Análise e desenvolvimento de sistemas de informação";
+            const municipio   = effectiveMun.replace(/\D/g, '');
+            const cnpjLimpo   = effectiveCnpj.replace(/\D/g, '');
+            const imLimpa     = effectiveIm.trim().replace(/\D/g, '');
+            const vServ       = 100.00;
+
+            const tribMunBlock: any = {
+                tribISSQN:  Number(nationalConfig.trib_issqn ?? 1),
+                tpRetISSQN: tpRet,
+            };
+            if (!isSimplesSemRetencao && pAliq > 0) tribMunBlock.pAliq = pAliq;
+
+            const tribBlock: any = { tribMun: tribMunBlock };
+            if (isRegimeNormal) {
+                tribBlock.tribFed = {
+                    pPIS:    parseFloat(nationalConfig.default_pis_aliquota    || '0.65'),
+                    pCOFINS: parseFloat(nationalConfig.default_cofins_aliquota || '3.00'),
+                    pCSLL:   parseFloat(nationalConfig.default_csll_aliquota   || '1.00'),
+                    pIRRF:   parseFloat(nationalConfig.default_irrf_aliquota   || '1.50'),
+                };
+                tribBlock.totTrib = { indTotTrib: 0 };
+            } else {
+                tribBlock.totTrib = { pTotTribSN: parseFloat(nationalConfig.default_tot_trib_sn || '6.00') };
+            }
+            if (nationalConfig.reforma_tributaria_calculadora_ativa) {
+                const pCBS = parseFloat(nationalConfig.reforma_tributaria_cbs_aliquota || '0.90');
+                const pIBS = parseFloat(nationalConfig.reforma_tributaria_ibs_aliquota || '0.10');
+                tribBlock.reformaTributaria = {
+                    pCBS,
+                    pIBS,
+                    vCBS: parseFloat((vServ * pCBS / 100).toFixed(2)),
+                    vIBS: parseFloat((vServ * pIBS / 100).toFixed(2)),
+                };
             }
 
             const mock = {
                 infDPS: {
-                    tpAmb: nationalConfig.ambiente === 'producao' ? 1 : 2,
-                    dhEmi: formatLocal(now),
+                    tpAmb:    nationalConfig.ambiente === 'producao' ? 1 : 2,
+                    dhEmi:    formatLocal(now),
                     verAplic: "1.01",
-                    serie: "1",
-                    nDPS: nextDpsNumber,
-                    dCompet: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-                    tpEmit: 1,
-                    cLocEmi: effectiveMun.replace(/\D/g, ''),
+                    serie:    "1",
+                    nDPS:     nextDpsNumber,
+                    dCompet:  `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+                    tpEmit:   1,
+                    cLocEmi:  municipio,
                     prest: {
-                        CNPJ: effectiveCnpj.replace(/\D/g, ''),
-                        ...(effectiveIm.trim() ? { IM: effectiveIm.trim().replace(/\D/g, '') } : {}),
+                        CNPJ: cnpjLimpo,
+                        ...(imLimpa ? { IM: imLimpa } : {}),
                         regTrib: {
-                            opSimpNac: Number((nationalConfig as any).op_simp_nac || (nationalConfig.simples_nacional ? 2 : 1)),
-                            ...(Number((nationalConfig as any).op_simp_nac || 2) === 3 ? { regApTribSN: Number(nationalConfig.reg_ap_trib_sn || 1) } : {})
-                        }
+                            opSimpNac:  opSN,
+                            regEspTrib: Number(nationalConfig.reg_esp_trib ?? 0),
+                            ...(opSN === 3 ? { regApTribSN: Number(nationalConfig.reg_ap_trib_sn || 1) } : {}),
+                        },
                     },
                     toma: {
-                        CNPJ: "08187168000160",
-                        xNome: "EMPRESA DE TESTE LTDA",
-                        email: "teste@nfe.io",
+                        CNPJ:  "08187168000160",
+                        xNome: "EMPRESA TOMADORA DE TESTE LTDA",
+                        email: "financeiro@empresateste.com.br",
+                        fone:  "11999990000",
                         end: {
-                            endNac: {
-                                cMun: effectiveMun.replace(/\D/g, ''),
-                                CEP: "59010000"
-                            },
-                            xLgr: "Rua Barão do Rio Branco",
-                            nro: "1001",
-                            xCpl: "Sala 01",
-                            xBairro: "Cidade Alta"
-                        }
+                            endNac: { cMun: municipio, CEP: "59010000" },
+                            xLgr:    "Rua Barão do Rio Branco",
+                            nro:     "1001",
+                            xCpl:    "Sala 01",
+                            xBairro: "Cidade Alta",
+                        },
                     },
                     serv: {
-                        locPrest: {
-                            cLocPrestacao: effectiveMun.replace(/\D/g, '')
-                        },
+                        locPrest: { cLocPrestacao: municipio },
                         cServ: {
-                            cTribNac: nationalConfig.default_cTribNac || "010101",
-                            cNBS: "101010000",
-                            xDescServ: nationalConfig.default_xDescServ || "Análise e desenvolvimento de sistemas"
-                        }
+                            cTribNac,
+                            cNBS:     "1.01.01.00.00",
+                            xDescServ,
+                        },
                     },
                     valores: {
                         vServPrest: {
-                            vServ: 100.00
+                            vServ,
+                            vDescIncond: 0.00,
                         },
-                        trib: {
-                            tribMun: {
-                                tribISSQN: Number(nationalConfig.trib_issqn ?? 1),
-                                tpRetISSQN: Number(nationalConfig.tp_ret_issqn ?? 1),
-                                // E0625: NÃO incluir pAliq para Simples Nacional (opSimpNac=2 ou 3) sem retenção (tpRetISSQN=1)
-                                ...(() => {
-                                    const opSN = Number((nationalConfig as any).op_simp_nac ?? (nationalConfig.simples_nacional ? 3 : 1));
-                                    const tpRet = Number(nationalConfig.tp_ret_issqn ?? 1);
-                                    const isSimplesSemRetencao = (opSN === 2 || opSN === 3) && tpRet === 1;
-                                    if (isSimplesSemRetencao) return {};
-                                    const pAliq = parseFloat(nationalConfig.default_iss_aliquota || '0');
-                                    return pAliq > 0 ? { pAliq } : {};
-                                })()
-                            },
-                            ...(Number((nationalConfig as any).op_simp_nac) === 1 ? {
-                                tribFed: {
-                                    pPIS: parseFloat(nationalConfig.default_pis_aliquota || '0.65'),
-                                    pCOFINS: parseFloat(nationalConfig.default_cofins_aliquota || '3.00'),
-                                    pCSLL: parseFloat(nationalConfig.default_csll_aliquota || '1.00'),
-                                    pIRRF: parseFloat(nationalConfig.default_irrf_aliquota || '1.50')
-                                },
-                                totTrib: {
-                                    indTotTrib: 0
-                                }
-                            } : {
-                                totTrib: {
-                                    pTotTribSN: parseFloat(nationalConfig.default_tot_trib_sn || '6.00')
-                                }
-                            }),
-                            ...(nationalConfig.reforma_tributaria_calculadora_ativa ? {
-                                reformaTributaria: {
-                                    pCBS: parseFloat(nationalConfig.reforma_tributaria_cbs_aliquota || '0.90'),
-                                    pIBS: parseFloat(nationalConfig.reforma_tributaria_ibs_aliquota || '0.10'),
-                                    vCBS: parseFloat((100 * (parseFloat(nationalConfig.reforma_tributaria_cbs_aliquota || '0.90') / 100)).toFixed(2)),
-                                    vIBS: parseFloat((100 * (parseFloat(nationalConfig.reforma_tributaria_ibs_aliquota || '0.10') / 100)).toFixed(2))
-                                }
-                            } : {})
-                        }
+                        trib: tribBlock,
                     },
                     infComp: {
-                        xInfComp: "NBS: 101010000"
-                    }
+                        xInfComp: `NBS: ${cTribNac} | Serviço: ${xDescServ} | Template gerado pelo Lucro Certo`,
+                    },
                 }
             };
 
