@@ -5,7 +5,6 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { TextArea } from '../ui/TextArea';
 import { usePaymentGateways } from '../../hooks/usePaymentGateways';
-import { useEntity } from '../../context/EntityContext';
 import { useNotification } from '../../context/NotificationContext';
 
 const PROVIDERS = [
@@ -37,7 +36,6 @@ const PROVIDERS = [
 ];
 
 export function PaymentSettings() {
-    const { currentEntity } = useEntity();
     const { gateways, loading, saveGateway, toggleGateway, deleteGateway, testConnection } = usePaymentGateways();
     const { notify } = useNotification();
     const [selectedProvider, setSelectedProvider] = useState<string>('');
