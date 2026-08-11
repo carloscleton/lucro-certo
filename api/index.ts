@@ -9221,6 +9221,45 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 
 
 
+// --- BANCO INTER PDF PROXY ROUTE ---
+app.get('/payments/inter/pdf/:companyId/:nossoNumero', async (req, res) => {
+    try {
+        const { companyId, nossoNumero } = req.params;
+
+        // 1. Buscar a configuração de pagamento da empresa
+        const { data: gateway } = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways`, {
+            params: { 
+                company_id: `eq.${companyId}`, 
+                provider: 'eq.banco_inter', 
+                select: '*' 
+            },
+            headers: { 
+                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!, 
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}` 
+            }
+        });
+
+        if (!gateway || gateway.length === 0) {
+            return res.status(404).send('Configuração de pagamento do Banco Inter não encontrada para esta empresa.');
+        }
+
+        const config = gateway[0].config;
+        const isSandbox = gateway[0].is_sandbox;
+
+        const { BancoInterAdapter } = await import('./_services/payments/adapters/BancoInterAdapter.js');
+        const adapter = new BancoInterAdapter(config, isSandbox);
+        const pdfBuffer = await adapter.getBoletoPdf(nossoNumero);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="boleto-${nossoNumero}.pdf"`);
+        return res.send(pdfBuffer);
+    } catch (err: any) {
+        console.error('Erro ao buscar PDF do boleto Inter:', err.message);
+        return res.status(500).send(`Erro ao processar download do PDF: ${err.message}`);
+    }
+});
+
+
 // --- PAYMENT GATEWAY ROUTES ---
 
 app.post('/payments/create', authenticate, async (req, res) => {

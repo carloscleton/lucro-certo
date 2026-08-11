@@ -2,12 +2,14 @@ import type { PaymentAdapter } from './PaymentAdapter.js';
 import { MercadoPagoAdapter } from './adapters/MercadoPagoAdapter.js';
 import { AsaasAdapter } from './adapters/AsaasAdapter.js';
 import { StripeAdapter } from './adapters/StripeAdapter.js';
+import { BancoInterAdapter } from './adapters/BancoInterAdapter.js';
 
 export class PaymentFactory {
     private static adapters: Record<string, any> = {
         'mercado_pago': MercadoPagoAdapter,
         'asaas': AsaasAdapter,
         'stripe': StripeAdapter,
+        'banco_inter': BancoInterAdapter,
     };
 
     static getAdapter(provider: string, config: any, isSandbox: boolean = true): PaymentAdapter {

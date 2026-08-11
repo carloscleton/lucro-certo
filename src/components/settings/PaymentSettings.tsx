@@ -3,6 +3,7 @@ import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircl
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { TextArea } from '../ui/TextArea';
 import { usePaymentGateways } from '../../hooks/usePaymentGateways';
 import { useEntity } from '../../context/EntityContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -23,6 +24,14 @@ const PROVIDERS = [
     {
         id: 'asaas', name: 'Asaas', fields: [
             { key: 'api_key', label: 'API Key', placeholder: '$...', type: 'password' }
+        ]
+    },
+    {
+        id: 'banco_inter', name: 'Banco Inter (BolePix)', fields: [
+            { key: 'client_id', label: 'Client ID', placeholder: 'Chave obtida no console Inter' },
+            { key: 'client_secret', label: 'Client Secret', placeholder: 'Segredo obtido no console Inter', type: 'password' },
+            { key: 'certificate_pem', label: 'Certificado Público (PEM)', placeholder: 'Conteúdo do arquivo público (.crt ou .pem)', type: 'textarea' },
+            { key: 'private_key_pem', label: 'Chave Privada (PEM)', placeholder: 'Conteúdo da chave privada (.key ou .pem)', type: 'textarea_hidden' }
         ]
     }
 ];
@@ -293,17 +302,35 @@ export function PaymentSettings() {
                                 <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
                                     {isSandbox ? 'Credenciais de Teste' : 'Credenciais Reais'}
                                 </div>
-                                {PROVIDERS.find(p => p.id === selectedProvider)?.fields.map(field => (
-                                    <Input
-                                        key={field.key}
-                                        label={field.label}
-                                        type={field.type || 'text'}
-                                        value={config[field.key] || ''}
-                                        onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
-                                        placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
-                                        autoComplete="off"
-                                    />
-                                ))}
+                                {PROVIDERS.find(p => p.id === selectedProvider)?.fields.map(field => {
+                                    if (field.type === 'textarea' || field.type === 'textarea_hidden') {
+                                        return (
+                                            <div key={field.key} className="space-y-1" style={{ contentVisibility: 'auto' }}>
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight">
+                                                    {field.label}
+                                                </label>
+                                                <TextArea
+                                                    value={config[field.key] || ''}
+                                                    onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                    placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
+                                                    rows={4}
+                                                    className="font-mono text-xs dark:bg-slate-900 dark:border-slate-700"
+                                                />
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <Input
+                                            key={field.key}
+                                            label={field.label}
+                                            type={field.type || 'text'}
+                                            value={config[field.key] || ''}
+                                            onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                            placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
+                                            autoComplete="off"
+                                        />
+                                    );
+                                })}
 
                                 <div className={`p-4 rounded-xl border flex gap-3 ${isSandbox
                                     ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
