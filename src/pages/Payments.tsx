@@ -60,10 +60,16 @@ export function Payments() {
     const [selectedProvider, setSelectedProvider] = useState('');
 
     useEffect(() => {
-        if (isModalOpen && !selectedProvider) {
-            setSelectedProvider(defaultGateway?.provider || (gateways.find(g => g.is_active)?.provider || 'unified'));
+        if (isModalOpen) {
+            const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'unified');
+            setSelectedProvider(defProv);
+            if (defProv === 'banco_inter') {
+                setSelectedMethods(['boleto']);
+            } else {
+                setSelectedMethods(['pix', 'credit_card', 'boleto']);
+            }
         }
-    }, [isModalOpen, defaultGateway, gateways, selectedProvider]);
+    }, [isModalOpen, defaultGateway]);
     
     const [selectedMethods, setSelectedMethods] = useState<string[]>(['pix', 'credit_card', 'boleto']);
     const [result, setResult] = useState<any>(null);
@@ -236,8 +242,9 @@ export function Payments() {
         setSelectedQuoteId('');
         setAmount('');
         setDescription('');
-        setSelectedProvider(activeGateways[0]?.provider || 'unified');
-        setSelectedMethods(['pix', 'credit_card', 'boleto']);
+        const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'unified');
+        setSelectedProvider(defProv);
+        setSelectedMethods(defProv === 'banco_inter' ? ['boleto'] : ['pix', 'credit_card', 'boleto']);
         setSelectedCurrency('BRL');
         setResult(null);
         setViewingCharge(null);
