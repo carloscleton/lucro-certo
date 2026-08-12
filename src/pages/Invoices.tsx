@@ -1505,7 +1505,7 @@ ${messageWithPlaceholder}`;
                                                                 description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
                                                                 contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
                                                             });
-                                                            window.location.href = `/payments?${params.toString()}`;
+                                                            window.location.href = `/dashboard/payments?${params.toString()}`;
                                                         }}
                                                         className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
                                                     >

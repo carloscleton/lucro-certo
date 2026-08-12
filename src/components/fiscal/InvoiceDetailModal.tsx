@@ -811,7 +811,7 @@ ${messageWithPlaceholder}`;
                                             description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
                                             contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
                                         });
-                                        window.location.href = `/payments?${params.toString()}`;
+                                        window.location.href = `/dashboard/payments?${params.toString()}`;
                                     }}
                                 >
                                     <FileText size={14} className="mr-1" />
