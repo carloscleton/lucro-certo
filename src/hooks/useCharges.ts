@@ -75,6 +75,7 @@ export function useCharges() {
         payload: {
             amount: number,
             description: string,
+            due_date?: string,
             currency?: string,
             customer: {
                 name: string,

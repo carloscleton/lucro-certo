@@ -53,7 +53,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
             if (matchedContact) {
                 setSelectedContactId(matchedContact.id);
                 setCustomName(matchedContact.name);
-                setCustomTaxId(matchedContact.tax_id || matchedContact.cpf_cnpj || '');
+                setCustomTaxId(matchedContact.tax_id || (matchedContact as any).cpf_cnpj || '');
             } else {
                 // Tenta puxar do payload tomador se existir
                 const tomador = invoice.payload?.tomador;
@@ -81,7 +81,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         const contact = contacts.find(c => c.id === contactId);
         if (contact) {
             setCustomName(contact.name);
-            setCustomTaxId(contact.tax_id || contact.cpf_cnpj || '');
+            setCustomTaxId(contact.tax_id || (contact as any).cpf_cnpj || '');
         }
     };
 
@@ -102,7 +102,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         setGenerating(true);
         try {
             const customerName = selectedContact?.name || customName || 'Consumidor Final';
-            const customerTaxId = selectedContact?.tax_id || selectedContact?.cpf_cnpj || customTaxId || undefined;
+            const customerTaxId = selectedContact?.tax_id || (selectedContact as any)?.cpf_cnpj || customTaxId || undefined;
 
             const res = await createCharge({
                 provider: selectedProvider,
@@ -172,7 +172,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             <option value="">Selecione um cliente cadastrado...</option>
                             {contacts.map(c => (
                                 <option key={c.id} value={c.id}>
-                                    {c.name} {c.tax_id || c.cpf_cnpj ? `(${c.tax_id || c.cpf_cnpj})` : ''}
+                                    {c.name} {c.tax_id || (c as any).cpf_cnpj ? `(${c.tax_id || (c as any).cpf_cnpj})` : ''}
                                 </option>
                             ))}
                         </select>
