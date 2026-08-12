@@ -1495,6 +1495,24 @@ ${messageWithPlaceholder}`;
                                                     </button>
                                                 </Tooltip>
 
+                                                {/* Gerar Boleto Banco Inter */}
+                                                <Tooltip content="Gerar Boleto Banco Inter / Cobrança">
+                                                    <button
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams({
+                                                                open: 'true',
+                                                                amount: (invoice.amount || invoice.valor || 0).toString(),
+                                                                description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
+                                                                contact_id: invoice.customer_id || invoice.contact_id || ''
+                                                            });
+                                                            window.location.href = `/payments?${params.toString()}`;
+                                                        }}
+                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
+                                                    >
+                                                        <FileText size={18} />
+                                                    </button>
+                                                </Tooltip>
+
                                                 {invoice.external_id && (
                                                     <Tooltip content="Sincronizar Status">
                                                         <button

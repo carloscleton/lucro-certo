@@ -60,6 +60,16 @@ export function Payments() {
     const [selectedProvider, setSelectedProvider] = useState('');
 
     useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('open') === 'true') {
+            setIsModalOpen(true);
+            if (searchParams.get('amount')) setAmount(searchParams.get('amount') || '');
+            if (searchParams.get('description')) setDescription(searchParams.get('description') || '');
+            if (searchParams.get('contact_id')) setSelectedContactId(searchParams.get('contact_id') || '');
+        }
+    }, []);
+
+    useEffect(() => {
         if (isModalOpen) {
             const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'unified');
             setSelectedProvider(defProv);

@@ -803,6 +803,22 @@ ${messageWithPlaceholder}`;
                             <div className="flex items-center gap-2">
                                 <Button
                                     size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 font-bold shadow-sm"
+                                    onClick={() => {
+                                        const params = new URLSearchParams({
+                                            open: 'true',
+                                            amount: (invoice.amount || invoice.valor || 0).toString(),
+                                            description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
+                                            contact_id: invoice.customer_id || invoice.contact_id || ''
+                                        });
+                                        window.location.href = `/payments?${params.toString()}`;
+                                    }}
+                                >
+                                    <FileText size={14} className="mr-1" />
+                                    Gerar Boleto Banco Inter
+                                </Button>
+                                <Button
+                                    size="sm"
                                     variant="outline"
                                     onClick={() => handleDownloadFile('pdf')}
                                     className="text-xs py-1.5"
