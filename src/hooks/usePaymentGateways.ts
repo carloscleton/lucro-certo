@@ -7,7 +7,7 @@ import axios from 'axios';
 export interface PaymentGateway {
     id: string;
     company_id: string;
-    provider: 'mercado_pago' | 'stripe' | 'asaas';
+    provider: 'mercado_pago' | 'stripe' | 'asaas' | 'banco_inter' | string;
     is_active: boolean;
     is_sandbox: boolean;
     is_default?: boolean;
