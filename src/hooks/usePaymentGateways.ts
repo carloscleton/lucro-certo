@@ -10,6 +10,7 @@ export interface PaymentGateway {
     provider: 'mercado_pago' | 'stripe' | 'asaas';
     is_active: boolean;
     is_sandbox: boolean;
+    is_default?: boolean;
     config: Record<string, any>;
     webhook_secret?: string;
     last_verified_at?: string;
@@ -134,11 +135,38 @@ export function usePaymentGateways() {
         }
     };
 
+    const setDefaultGateway = async (provider: string) => {
+        if (!currentEntity || currentEntity.type !== 'company') return { error: 'Not in company context' };
+        try {
+            await supabase
+                .from('company_payment_gateways')
+                .update({ is_default: false })
+                .eq('company_id', currentEntity.id);
+
+            const { error } = await supabase
+                .from('company_payment_gateways')
+                .update({ is_default: true })
+                .eq('company_id', currentEntity.id)
+                .eq('provider', provider);
+
+            if (error) throw error;
+            await fetchGateways();
+            return { error: null };
+        } catch (error) {
+            console.error('Error setting default payment gateway:', error);
+            return { error };
+        }
+    };
+
+    const defaultGateway = gateways.find(g => g.is_default && g.is_active) || gateways.find(g => g.is_active) || gateways[0];
+
     return {
         gateways,
+        defaultGateway,
         loading,
         saveGateway,
         toggleGateway,
+        setDefaultGateway,
         deleteGateway,
         testConnection,
         refresh: fetchGateways

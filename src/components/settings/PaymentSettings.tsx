@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircle2, Star } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -36,7 +36,7 @@ const PROVIDERS = [
 ];
 
 export function PaymentSettings() {
-    const { gateways, loading, saveGateway, toggleGateway, deleteGateway, testConnection } = usePaymentGateways();
+    const { gateways, loading, saveGateway, toggleGateway, setDefaultGateway, deleteGateway, testConnection } = usePaymentGateways();
     const { notify } = useNotification();
     const [selectedProvider, setSelectedProvider] = useState<string>('');
     const [isSandbox, setIsSandbox] = useState(true);
@@ -181,17 +181,40 @@ export function PaymentSettings() {
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg ${gateway ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                        <div className={`p-2 rounded-lg ${gateway ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500'}`}>
                                             <CreditCard size={20} />
                                         </div>
                                         <div className="text-left">
-                                            <span className="block font-medium dark:text-white">{provider.name}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="block font-medium dark:text-white">{provider.name}</span>
+                                                {gateway?.is_default && (
+                                                    <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 uppercase">
+                                                        <Star size={10} className="fill-amber-500 text-amber-500" /> Padrão
+                                                    </span>
+                                                )}
+                                            </div>
                                             <span className="text-xs text-gray-500">
                                                 {gateway ? (gateway.is_sandbox ? 'Modo Teste' : 'Modo Produção') : 'Não Configurado'}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                        {gateway && gateway.is_active && (
+                                            <Tooltip content={gateway.is_default ? 'Gateway Padrão da Empresa' : 'Definir como Gateway Padrão'}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!gateway.is_default) {
+                                                            setDefaultGateway(provider.id);
+                                                            notify('success', 'Padrão Atualizado', `${provider.name} definido como gateway padrão.`);
+                                                        }
+                                                    }}
+                                                    className={`p-1 rounded-md transition-colors ${gateway.is_default ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-gray-300 hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                                                >
+                                                    <Star size={18} className={gateway.is_default ? 'fill-amber-500 text-amber-500' : ''} />
+                                                </button>
+                                            </Tooltip>
+                                        )}
                                         {gateway && (
                                             <Tooltip content={gateway.is_active ? 'Desativar Gateway' : 'Ativar Gateway'}>
                                                 <button
@@ -248,6 +271,23 @@ export function PaymentSettings() {
                                                 {gateways.find(g => g.provider === selectedProvider)?.is_active ? 'ATIVO' : 'INATIVO'}
                                             </button>
                                         </div>
+                                    )}
+                                    {gateways.find(g => g.provider === selectedProvider)?.is_active && (
+                                        <button
+                                            onClick={() => {
+                                                setDefaultGateway(selectedProvider);
+                                                notify('success', 'Padrão Atualizado', `${PROVIDERS.find(p => p.id === selectedProvider)?.name} definido como gateway padrão.`);
+                                            }}
+                                            disabled={gateways.find(g => g.provider === selectedProvider)?.is_default}
+                                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                                                gateways.find(g => g.provider === selectedProvider)?.is_default
+                                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 cursor-default'
+                                                    : 'bg-gray-100 hover:bg-amber-50 text-gray-600 hover:text-amber-600 dark:bg-slate-700 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            <Star size={14} className={gateways.find(g => g.provider === selectedProvider)?.is_default ? 'fill-amber-500 text-amber-500' : ''} />
+                                            {gateways.find(g => g.provider === selectedProvider)?.is_default ? 'GATEWAY PADRÃO' : 'DEFINIR COMO PADRÃO'}
+                                        </button>
                                     )}
                                     {gateways.find(g => g.provider === selectedProvider) && (
                                         <Button

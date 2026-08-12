@@ -14,7 +14,8 @@ import {
     Trash2,
     QrCode,
     FileText,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Star
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -34,9 +35,9 @@ import { ResultModal } from '../components/ui/ResultModal';
 
 export function Payments() {
     const { currentEntity } = useEntity();
-    const { charges, loading: loadingCharges, createCharge, deleteCharge } = useCharges();
     const { contacts } = useContacts();
-    const { gateways } = usePaymentGateways();
+    const { charges, loading: loadingCharges, createCharge, deleteCharge, cancelCharge } = useCharges();
+    const { gateways, defaultGateway } = usePaymentGateways();
     const { quotes } = useQuotes();
     const { notify } = useNotification();
 
@@ -57,6 +58,13 @@ export function Payments() {
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [selectedProvider, setSelectedProvider] = useState('');
+
+    useEffect(() => {
+        if (isModalOpen && !selectedProvider) {
+            setSelectedProvider(defaultGateway?.provider || (gateways.find(g => g.is_active)?.provider || 'unified'));
+        }
+    }, [isModalOpen, defaultGateway, gateways, selectedProvider]);
+    
     const [selectedMethods, setSelectedMethods] = useState<string[]>(['pix', 'credit_card', 'boleto']);
     const [result, setResult] = useState<any>(null);
     const [viewingCharge, setViewingCharge] = useState<any>(null);
@@ -550,7 +558,7 @@ export function Payments() {
                                             setSelectedProvider(gateway.provider);
                                             setSelectedMethods([selectedMethods[0] || 'pix']);
                                         }}
-                                        className={`group flex items-center gap-4 p-5 rounded-3xl border-2 transition-all ${selectedProvider === gateway.provider
+                                        className={`group relative flex items-center gap-4 p-5 rounded-3xl border-2 transition-all ${selectedProvider === gateway.provider
                                             ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10'
                                             : 'border-gray-50 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-gray-200'
                                             }`}
@@ -558,9 +566,16 @@ export function Payments() {
                                         <div className={`p-3 rounded-2xl transition-colors ${selectedProvider === gateway.provider ? 'bg-white text-emerald-600' : 'bg-gray-50 dark:bg-slate-800 text-gray-400'}`}>
                                             <CreditCard size={24} />
                                         </div>
-                                        <div className="text-left">
-                                            <span className="block text-sm font-black dark:text-white uppercase tracking-tight leading-none">{gateway.provider.replace('_', ' ')}</span>
-                                            <span className={`text-[9px] font-black uppercase mt-1 tracking-[0.2em] ${gateway.is_sandbox ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                        <div className="text-left flex-1">
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="block text-sm font-black dark:text-white uppercase tracking-tight leading-none">{gateway.provider.replace('_', ' ')}</span>
+                                                {gateway.is_default && (
+                                                    <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5 uppercase tracking-wider">
+                                                        <Star size={9} className="fill-amber-500 text-amber-500" /> Padrão
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={`text-[9px] font-black uppercase mt-1 tracking-[0.2em] block ${gateway.is_sandbox ? 'text-amber-500' : 'text-emerald-500'}`}>
                                                 {gateway.is_sandbox ? 'Sandbox' : 'Produção'}
                                             </span>
                                         </div>
