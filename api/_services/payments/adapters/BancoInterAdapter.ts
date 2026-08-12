@@ -214,15 +214,23 @@ export class BancoInterAdapter implements PaymentAdapter {
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            httpsAgent: this.httpsAgent,
-            responseType: 'arraybuffer'
+            httpsAgent: this.httpsAgent
         });
 
-        if (!response.data) {
+        const rawData = response.data;
+        const pdfBase64 = typeof rawData === 'object' ? rawData?.pdf : rawData;
+
+        if (!pdfBase64) {
             throw new Error('PDF vazio ou inválido retornado pelo Banco Inter.');
         }
 
-        return Buffer.from(response.data);
+        if (typeof pdfBase64 === 'string') {
+            // Remove qualquer prefixo data URL se houver e decodifica base64 para Buffer binário
+            const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '').trim();
+            return Buffer.from(cleanBase64, 'base64');
+        }
+
+        return Buffer.from(pdfBase64);
     }
 
     async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
