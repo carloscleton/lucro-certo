@@ -10,6 +10,9 @@ export interface FiscalInvoice {
     type: 'nfe' | 'nfse';
     status: string;
     amount?: number;
+    valor?: number;
+    customer_id?: string;
+    contact_id?: string;
     pdf_url?: string;
     xml_url?: string;
     error_message?: string;

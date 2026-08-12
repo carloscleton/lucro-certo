@@ -1501,9 +1501,9 @@ ${messageWithPlaceholder}`;
                                                         onClick={() => {
                                                             const params = new URLSearchParams({
                                                                 open: 'true',
-                                                                amount: (invoice.amount || invoice.valor || 0).toString(),
+                                                                amount: (invoice.amount || (invoice as any).valor || 0).toString(),
                                                                 description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
-                                                                contact_id: invoice.customer_id || invoice.contact_id || ''
+                                                                contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
                                                             });
                                                             window.location.href = `/payments?${params.toString()}`;
                                                         }}
