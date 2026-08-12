@@ -26,7 +26,10 @@ import {
     Plus,
     Search,
     Maximize2,
-    Minimize2
+    Minimize2,
+    ChevronLeft,
+    ChevronRight
+} from 'lucide-react';
 } from 'lucide-react';
 import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
@@ -50,10 +53,26 @@ import { ShareWhatsAppModal } from '../affiliates/ShareWhatsAppModal';
 
 export function Layout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('lucro-certo:sidebar-collapsed') === 'true');
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const { signOut, user, profile, refreshProfile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { currentEntity, availableEntities, switchEntity, isLoading } = useEntity();
     const { t } = useTranslation();
+
+    useEffect(() => {
+        localStorage.setItem('lucro-certo:sidebar-collapsed', isCollapsed.toString());
+    }, [isCollapsed]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const showCollapsed = isCollapsed && !isMobile;
 
     const isIncomplete = profile && (!profile.full_name || !profile.phone);
 
@@ -355,39 +374,55 @@ export function Layout() {
             {/* Sidebar */}
             {profile?.status !== 'blocked' && (
                 <aside
-                    className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''}`}
+                    className={`${styles.sidebar} ${sidebarOpen ? styles.open : ''} ${showCollapsed ? styles.sidebarCollapsed : ''}`}
                     data-tour="sidebar"
                 >
                     <div className={`${styles.sidebarHeader} relative`}>
-                        <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md mb-2 w-full flex justify-center border border-gray-100 dark:border-slate-700">
-                            <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[240px] h-auto object-contain transition-transform hover:scale-105" />
-                        </div>
+                        {showCollapsed ? (
+                            <div className="p-2 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-xl shadow-md mb-2 w-12 h-12 flex items-center justify-center border border-gray-100 dark:border-slate-700 mx-auto text-white font-extrabold text-base select-none">
+                                LC
+                            </div>
+                        ) : (
+                            <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md mb-2 w-full flex justify-center border border-gray-100 dark:border-slate-700">
+                                <img src={logoFull} alt="Lucro Certo" className="w-full max-w-[240px] h-auto object-contain transition-transform hover:scale-105" />
+                            </div>
+                        )}
                         <button
                             className="md:hidden absolute right-3 top-3 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 z-10 transition-colors"
                             onClick={() => setSidebarOpen(false)}
                         >
                             <X size={18} />
                         </button>
+                        
+                        {/* Desktop Sidebar Toggle Button */}
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="hidden md:flex absolute -right-3 top-7 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 items-center justify-center text-gray-500 hover:text-blue-600 shadow-md hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer"
+                        >
+                            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        </button>
                     </div>
 
-                    <div className={styles.contextSection} data-tour="entity-selector" ref={entityMenuRef}>
+                    <div className={`${styles.contextSection} ${showCollapsed ? styles.contextSectionCollapsed : ''}`} data-tour="entity-selector" ref={entityMenuRef}>
                         <div className={styles.contextDropdown}>
-                            <div className="flex items-center justify-between mb-1.5 px-1">
-                                <span className={styles.contextSectionLabel}>{t('layout.current_environment')}</span>
-                                <div 
-                                    className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}
-                                    style={{ 
-                                        backgroundColor: currentEntity.type === 'personal' ? '#dcfce7' : '#dbeafe',
-                                        color: currentEntity.type === 'personal' ? '#166534' : '#1e40af'
-                                    }}
-                                >
-                                    {currentEntity.type === 'personal' ? t('layout.personal_label') : t('layout.company_label')}
+                            {!showCollapsed && (
+                                <div className="flex items-center justify-between mb-1.5 px-1">
+                                    <span className={styles.contextSectionLabel}>{t('layout.current_environment')}</span>
+                                    <div 
+                                        className={`${styles.entityBadge} ${currentEntity.type === 'personal' ? styles.badgePersonal : styles.badgeCompany}`}
+                                        style={{ 
+                                            backgroundColor: currentEntity.type === 'personal' ? '#dcfce7' : '#dbeafe',
+                                            color: currentEntity.type === 'personal' ? '#166534' : '#1e40af'
+                                        }}
+                                    >
+                                        {currentEntity.type === 'personal' ? t('layout.personal_label') : t('layout.company_label')}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             
                             <button
                                 type="button"
-                                className={`${styles.contextTrigger} ${isEntityMenuOpen ? styles.contextTriggerOpen : ''}`}
+                                className={`${styles.contextTrigger} ${isEntityMenuOpen ? styles.contextTriggerOpen : ''} ${showCollapsed ? styles.contextTriggerCollapsed : ''}`}
                                 onClick={() => setIsEntityMenuOpen(!isEntityMenuOpen)}
                                 disabled={isLoading}
                                 style={{ 
@@ -410,13 +445,15 @@ export function Layout() {
                                             <Building2 size={18} />
                                         )}
                                     </div>
-                                    <span className={styles.triggerName}>{currentEntity.name}</span>
+                                    {!showCollapsed && <span className={styles.triggerName}>{currentEntity.name}</span>}
                                 </div>
-                                <ChevronDown 
-                                    size={16} 
-                                    className={`text-gray-400 transition-transform duration-200 ${isEntityMenuOpen ? 'rotate-180' : ''}`} 
-                                    style={isEntityMenuOpen ? { color: currentEntityColor } : {}}
-                                />
+                                {!showCollapsed && (
+                                    <ChevronDown 
+                                        size={16} 
+                                        className={`text-gray-400 transition-transform duration-200 ${isEntityMenuOpen ? 'rotate-180' : ''}`} 
+                                        style={isEntityMenuOpen ? { color: currentEntityColor } : {}}
+                                    />
+                                )}
                             </button>
 
                             {isEntityMenuOpen && (
@@ -472,12 +509,12 @@ export function Layout() {
                         {finalNavItems
                             .map((item) => {
                                 const color = MODULE_COLORS[item.key] || '#2563eb';
-                                return (
+                                const navLink = (
                                     <NavLink
                                         key={item.path}
                                         to={item.path || '#'}
                                         className={({ isActive }) =>
-                                            `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+                                            `${styles.navItem} ${isActive ? styles.navItemActive : ''} ${showCollapsed ? styles.navItemCollapsed : ''}`
                                         }
                                         style={{ '--hover-color': color } as React.CSSProperties}
                                         data-tour={`nav-${item.key}`}
@@ -486,40 +523,62 @@ export function Layout() {
                                         <div className={styles.navIcon}>
                                             <item.icon size={20} />
                                         </div>
-                                        <span className={styles.navLabel}>{t(`nav.${item.key}`)}</span>
+                                        {!showCollapsed && <span className={styles.navLabel}>{t(`nav.${item.key}`)}</span>}
                                     </NavLink>
                                 );
+
+                                return showCollapsed ? (
+                                    <Tooltip key={item.path} content={t(`nav.${item.key}`)} position="right">
+                                        {navLink}
+                                    </Tooltip>
+                                ) : navLink;
                             })}
 
                         {/* Admin Submenu */}
                         {canSeeManagementGroup && (
                             <div className="mt-2 pt-2 border-t border-gray-100 dark:border-slate-700">
-                                <button
-                                    onClick={() => setAdminOpen(!adminOpen)}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-all group ${adminOpen
-                                        ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
-                                        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`${styles.navIcon} ${adminOpen ? 'bg-blue-600 !text-white' : ''}`}>
-                                            <Shield size={20} />
+                                {showCollapsed ? (
+                                    <Tooltip content={t('nav.administrative')} position="right">
+                                        <button
+                                            onClick={() => setAdminOpen(!adminOpen)}
+                                            className={`w-full flex items-center justify-center p-2 text-sm font-medium rounded-md transition-all group ${adminOpen
+                                                ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
+                                                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
+                                                }`}
+                                        >
+                                            <div className={`${styles.navIcon} ${adminOpen ? 'bg-blue-600 !text-white' : ''}`}>
+                                                <Shield size={20} />
+                                            </div>
+                                        </button>
+                                    </Tooltip>
+                                ) : (
+                                    <button
+                                        onClick={() => setAdminOpen(!adminOpen)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-all group ${adminOpen
+                                            ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
+                                            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`${styles.navIcon} ${adminOpen ? 'bg-blue-600 !text-white' : ''}`}>
+                                                <Shield size={20} />
+                                            </div>
+                                            <span className="font-semibold">{t('nav.administrative')}</span>
                                         </div>
-                                        <span className="font-semibold">{t('nav.administrative')}</span>
-                                    </div>
-                                    {adminOpen ? <ArrowUpCircle size={18} className="text-blue-500" /> : <ArrowDownCircle size={18} className="text-gray-400 group-hover:text-gray-600" />}
-                                </button>
+                                        {adminOpen ? <ArrowUpCircle size={18} className="text-blue-500" /> : <ArrowDownCircle size={18} className="text-gray-400 group-hover:text-gray-600" />}
+                                    </button>
+                                )}
 
                                 {adminOpen && (
                                     <div className="mt-1 space-y-1">
                                         {managementItems.map((item) => {
                                             const color = MODULE_COLORS[item.key] || '#2563eb';
-                                            return (
+                                            const adminLink = (
                                                 <NavLink
                                                     key={item.path}
                                                     to={item.path}
                                                     className={({ isActive }) =>
-                                                        `${styles.navItem} ${styles.adminItem} ${isActive ? styles.navItemActive : ''}`
+                                                        `${styles.navItem} ${showCollapsed ? '' : styles.adminItem} ${isActive ? styles.navItemActive : ''} ${showCollapsed ? styles.navItemCollapsed : ''}`
                                                     }
                                                     style={{ '--hover-color': color } as React.CSSProperties}
                                                     onClick={() => setSidebarOpen(false)}
@@ -527,56 +586,74 @@ export function Layout() {
                                                     <div className={styles.navIcon}>
                                                         <item.icon size={20} />
                                                     </div>
-                                                    <span className={styles.navLabel}>{item.label}</span>
+                                                    {!showCollapsed && <span className={styles.navLabel}>{item.label}</span>}
                                                 </NavLink>
                                             );
+
+                                            return showCollapsed ? (
+                                                <Tooltip key={item.path} content={item.label} position="right">
+                                                    {adminLink}
+                                                </Tooltip>
+                                            ) : adminLink;
                                         })}
 
                                         {/* Super Admin Panel Shortcut */}
-                                        {isSystemAdmin && (
-                                            <NavLink
-                                                to="/dashboard/settings?tab=platform_billing"
-                                                className={({ isActive }) =>
-                                                    `${styles.navItem} ${styles.adminItem} ${isActive ? styles.navItemActive : ''}`
-                                                }
-                                                style={{ '--hover-color': '#059669' } as React.CSSProperties}
-                                                onClick={() => setSidebarOpen(false)}
-                                            >
-                                                <div className={styles.navIcon}>
-                                                    <Activity size={20} />
-                                                </div>
-                                                <span className={styles.navLabel}>Gestão da Plataforma</span>
-                                            </NavLink>
-                                        )}
+                                        {isSystemAdmin && (() => {
+                                            const superAdminLink = (
+                                                <NavLink
+                                                    to="/dashboard/settings?tab=platform_billing"
+                                                    className={({ isActive }) =>
+                                                        `${styles.navItem} ${showCollapsed ? '' : styles.adminItem} ${isActive ? styles.navItemActive : ''} ${showCollapsed ? styles.navItemCollapsed : ''}`
+                                                    }
+                                                    style={{ '--hover-color': '#059669' } as React.CSSProperties}
+                                                    onClick={() => setSidebarOpen(false)}
+                                                >
+                                                    <div className={styles.navIcon}>
+                                                        <Activity size={20} />
+                                                    </div>
+                                                    {!showCollapsed && <span className={styles.navLabel}>Gestão da Plataforma</span>}
+                                                </NavLink>
+                                            );
+
+                                            return showCollapsed ? (
+                                                <Tooltip content="Gestão da Plataforma" position="right">
+                                                    {superAdminLink}
+                                                </Tooltip>
+                                            ) : superAdminLink;
+                                        })()}
                                     </div>
                                 )}
                             </div>
                         )}
                     </nav>
 
-                    <div className={styles.userSection} data-tour="user-section">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold truncate text-gray-900 dark:text-gray-100">
-                                {profile?.full_name || t('common.user')}
-                            </p>
-                            <p className="text-[11px] text-gray-500 truncate -mt-0.5">
-                                {user?.email}
-                            </p>
-                            <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400 truncate mt-0.5">
-                                {currentEntity.type === 'personal'
-                                    ? t('layout.personal_account')
-                                    : translateRole(currentEntity.role || 'member', t)}
-                            </p>
+                    <div className={`${styles.userSection} ${showCollapsed ? styles.userSectionCollapsed : ''}`} data-tour="user-section">
+                        {!showCollapsed && (
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold truncate text-gray-900 dark:text-gray-100">
+                                    {profile?.full_name || t('common.user')}
+                                </p>
+                                <p className="text-[11px] text-gray-500 truncate -mt-0.5">
+                                    {user?.email}
+                                </p>
+                                <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400 truncate mt-0.5">
+                                    {currentEntity.type === 'personal'
+                                        ? t('layout.personal_account')
+                                        : translateRole(currentEntity.role || 'member', t)}
+                                </p>
+                            </div>
+                        )}
+                        <div className={showCollapsed ? 'mx-auto' : ''}>
+                            <Tooltip content={t('nav.logout')} position={showCollapsed ? 'right' : 'bottom'}>
+                                <Button variant="ghost" size="sm" onClick={async () => {
+                                    localStorage.setItem('loggingOut', 'true');
+                                    await signOut();
+                                    window.location.href = '/';
+                                }}>
+                                    <LogOut size={18} />
+                                </Button>
+                            </Tooltip>
                         </div>
-                        <Tooltip content={t('nav.logout')}>
-                            <Button variant="ghost" size="sm" onClick={async () => {
-                                localStorage.setItem('loggingOut', 'true');
-                                await signOut();
-                                window.location.href = '/';
-                            }}>
-                                <LogOut size={18} />
-                            </Button>
-                        </Tooltip>
                     </div>
                 </aside>
             )}

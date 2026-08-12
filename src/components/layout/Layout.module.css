@@ -472,3 +472,48 @@
         display: flex !important;
     }
 }
+
+/* COLLAPSED SIDEBAR RULES */
+@media (min-width: 769px) {
+    .sidebar {
+        /* Transition width smoothly */
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebarCollapsed {
+        width: 88px !important;
+    }
+    
+    .contextSectionCollapsed {
+        padding: 0 var(--spacing-xs) !important;
+    }
+    
+    .contextTriggerCollapsed {
+        padding: 0.75rem 0 !important;
+        justify-content: center !important;
+    }
+
+    .contextSectionCollapsed .dropdownMenu {
+        width: 280px !important;
+        left: var(--spacing-xs) !important;
+    }
+    
+    .navItemCollapsed {
+        padding: 0.6rem 0 !important;
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+    
+    .navItemCollapsed:hover {
+        transform: none !important;
+    }
+    
+    .navItemCollapsed::before {
+        left: 4px !important;
+    }
+    
+    .userSectionCollapsed {
+        padding: var(--spacing-md) var(--spacing-xs) !important;
+        justify-content: center !important;
+    }
+}
