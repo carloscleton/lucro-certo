@@ -9246,7 +9246,7 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 
 
 // --- BANCO INTER PDF PROXY ROUTE ---
-app.get('/payments/inter/pdf/:companyId/:nossoNumero', async (req, res) => {
+app.get(['/payments/inter/pdf/:companyId/:nossoNumero', '/api/payments/inter/pdf/:companyId/:nossoNumero'], async (req, res) => {
     try {
         const { companyId, nossoNumero } = req.params;
 

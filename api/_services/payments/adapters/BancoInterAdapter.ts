@@ -155,8 +155,8 @@ export class BancoInterAdapter implements PaymentAdapter {
             }
 
             // Gera o link de proxy interno da API local para download de PDF, já que o PDF exige mTLS
-            const host = (request.notification_url ? request.notification_url.split('/payments/webhook/')[0] : 'https://api.vinx.com.br');
-            const pdfProxyUrl = `${host}/payments/inter/pdf/${companyId}/${nossoNumero}${this.isSandbox ? '?sandbox=true' : ''}`;
+            const host = (request.notification_url ? request.notification_url.split('/payments/webhook/')[0] : '');
+            const pdfProxyUrl = `${host}/api/payments/inter/pdf/${companyId}/${nossoNumero}${this.isSandbox ? '?sandbox=true' : ''}`;
 
             return {
                 success: true,

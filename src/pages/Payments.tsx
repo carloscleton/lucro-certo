@@ -632,7 +632,7 @@ export function Payments() {
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">A cobrança foi registrada e está pronta para envio.</p>
                         </div>
 
-                        <div className="max-w-xs mx-auto p-2 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 overflow-hidden shadow-inner">
+                        <div className="max-w-md mx-auto p-2 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 overflow-hidden shadow-inner">
                             {result.qr_code_base64 ? (
                                 <div className="bg-white p-6 rounded-[2rem] shadow-sm">
                                     <img
@@ -644,6 +644,27 @@ export function Payments() {
                                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic">QR Code via {selectedProvider.replace('_', ' ')}</p>
                                     </div>
                                 </div>
+                            ) : result.payment_link ? (
+                                <div className="bg-white dark:bg-slate-800 p-3 rounded-[2rem] shadow-sm border border-gray-100 dark:border-slate-700">
+                                    <div className="flex items-center justify-between mb-3 px-2">
+                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic flex items-center gap-1">
+                                            <FileText size={14} /> Boleto Digital (Banco Inter)
+                                        </span>
+                                        <a
+                                            href={result.payment_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                        >
+                                            Abrir em nova aba <ExternalLink size={12} />
+                                        </a>
+                                    </div>
+                                    <iframe
+                                        src={result.payment_link}
+                                        className="w-full h-80 rounded-xl border border-gray-200 dark:border-slate-700 bg-white"
+                                        title="Visualização do Boleto"
+                                    />
+                                </div>
                             ) : (
                                 <div className="p-12 bg-white dark:bg-slate-800 rounded-[2rem] text-emerald-600/30 shadow-sm border border-gray-50 dark:border-slate-700">
                                     <LinkIcon size={64} className="mx-auto mb-4 opacity-50" />
@@ -652,17 +673,28 @@ export function Payments() {
                             )}
                         </div>
 
-                        <div className="space-y-4 max-w-sm mx-auto pt-4">
+                        <div className="space-y-3 max-w-sm mx-auto pt-2">
+                            {result.payment_link && (
+                                <a
+                                    href={result.payment_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3.5 shadow-xl shadow-blue-500/20 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                >
+                                    <ExternalLink size={16} />
+                                    Visualizar / Baixar Boleto (PDF)
+                                </a>
+                            )}
                             <Button
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-4 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3.5 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
                                 onClick={() => {
                                     const key = result.qr_code || result.payment_link;
                                     navigator.clipboard.writeText(key);
                                     notify('success', 'Copiado', result.qr_code ? 'Código PIX copiado!' : 'Link copiado com sucesso!');
                                 }}
                             >
-                                <Copy size={18} className="mr-2" />
-                                {result.qr_code ? 'Copiar Chave PIX' : 'Copiar Link'}
+                                <Copy size={16} className="mr-2" />
+                                {result.qr_code ? 'Copiar Chave PIX' : 'Copiar Link do Boleto'}
                             </Button>
                             <Button variant="ghost" className="w-full font-bold uppercase tracking-widest text-[10px] text-gray-400 hover:text-gray-600" onClick={resetForm}>
                                 Voltar para a Lista
