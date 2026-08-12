@@ -5548,7 +5548,14 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
             const buildDanfsePdfBuffer = async (xmlInputStr?: string) => {
                 const invPayload = dbInvoiceRecord?.payload || {};
-                const savedXml = xmlInputStr || invPayload.xml_assinado || invPayload.retorno?.xml_assinado || invPayload.xml || '';
+                let savedXml = xmlInputStr || invPayload.xml_assinado || invPayload.retorno?.xml_assinado || invPayload.xml || '';
+                if (!savedXml && invPayload.retorno?.nfseXmlGZipB64) {
+                    try {
+                        savedXml = zlib.gunzipSync(Buffer.from(invPayload.retorno.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                    } catch (gzErr: any) {
+                        console.warn(`⚠️ [ADN-PDF] Erro ao descompactar GZip do retorno salvo para PDF:`, gzErr.message);
+                    }
+                }
 
                 const getXmlBlock = (xml: string, tag: string) => {
                     if (!xml) return '';
@@ -5650,7 +5657,24 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
             // Se for XML e tiver o XML assinado salvo no banco, pode servi-lo diretamente
             const invPayloadObj = dbInvoiceRecord?.payload || {};
-            const savedXml = invPayloadObj.xml_assinado || invPayloadObj.retorno?.xml_assinado || invPayloadObj.xml;
+            let savedXml = invPayloadObj.xml_assinado || invPayloadObj.retorno?.xml_assinado || invPayloadObj.xml;
+
+            if (!savedXml && invPayloadObj.retorno?.nfseXmlGZipB64) {
+                try {
+                    savedXml = zlib.gunzipSync(Buffer.from(invPayloadObj.retorno.nfseXmlGZipB64, 'base64')).toString('utf-8');
+                    console.log(`📝 [ADN-DOWNLOAD] XML descompactado com sucesso a partir de retorno.nfseXmlGZipB64`);
+                } catch (gzErr: any) {
+                    console.warn(`⚠️ [ADN-DOWNLOAD] Erro ao descompactar GZip do retorno salvo:`, gzErr.message);
+                }
+            }
+
+            // Otimização: se pedirem XML e ele já existir (ou foi descompactado) do banco, serve imediatamente
+            if (isXml && savedXml) {
+                console.log(`📝 [ADN-DOWNLOAD] Servindo XML diretamente do banco para chave: ${chNFSe}`);
+                res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+                res.setHeader('Content-Disposition', `attachment; filename="nfse-${chNFSe}.xml"`);
+                return res.send(Buffer.from(savedXml, 'utf-8'));
+            }
 
             // Sem certificado e pediu PDF: gera o PDF da DANFSE diretamente no servidor
             if (!pfxBase64Dl) {
