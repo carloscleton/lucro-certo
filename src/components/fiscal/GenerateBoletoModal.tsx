@@ -39,32 +39,99 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         return date.toISOString().split('T')[0];
     };
 
+    // Helper function to extract invoice details comprehensively
+    const getInvoiceDetails = (inv: any) => {
+        if (!inv) return { amount: 0, clientName: '', clientTaxId: '', clientEmail: '' };
+        
+        const payload = inv.payload || {};
+        const retorno = payload.retorno || {};
+        const infDPS = payload.infDPS || payload.DPS?.infDPS || retorno.infDPS || {};
+        const toma = infDPS.toma || payload.toma || {};
+
+        const amount = Number(
+            inv.amount || 
+            payload.servicesAmount || 
+            retorno.servicesAmount || 
+            retorno.valorTotal || 
+            infDPS.valores?.vServPrest?.vServ ||
+            payload.valores?.vServPrest?.vServ ||
+            retorno.valores?.vServPrest?.vServ ||
+            payload.servico?.[0]?.valor?.servico || 
+            payload.itens?.[0]?.valorUnitario?.comercial || 
+            payload.vServ ||
+            inv.valor ||
+            0
+        );
+
+        const clientName = inv.quote?.contact?.name || 
+                           toma.xNome ||
+                           payload.tomador?.razaoSocial || 
+                           payload.tomador?.nome ||
+                           payload.destinatario?.razaoSocial || 
+                           payload.destinatario?.nome || 
+                           payload.borrower?.name || 
+                           retorno.tomador?.razaoSocial ||
+                           retorno.borrower?.name ||
+                           '';
+
+        const rawTaxId = inv.quote?.contact?.tax_id || 
+                         toma.CNPJ ||
+                         toma.CPF ||
+                         toma.cnpj ||
+                         toma.cpf ||
+                         payload.tomador?.cpfCnpj || 
+                         payload.tomador?.cnpj || 
+                         payload.tomador?.cpf || 
+                         payload.destinatario?.cpfCnpj || 
+                         payload.destinatario?.cnpj || 
+                         payload.borrower?.federalTaxNumber || 
+                         retorno.borrower?.federalTaxNumber || 
+                         '';
+                         
+        const clientTaxId = (rawTaxId || '').replace(/\D/g, '');
+
+        const clientEmail = inv.quote?.contact?.email || 
+                            toma.email ||
+                            payload.tomador?.email || 
+                            payload.destinatario?.email || 
+                            payload.borrower?.email || 
+                            retorno.borrower?.email || 
+                            '';
+
+        return { amount, clientName, clientTaxId, clientEmail };
+    };
+
     useEffect(() => {
         if (isOpen && invoice) {
             setResult(null);
-            setAmount(Number(invoice.amount || invoice.valor || 0));
+            const { amount: extractedAmount, clientName: extractedName, clientTaxId: extractedTaxId } = getInvoiceDetails(invoice);
+
+            setAmount(extractedAmount);
             setDescription(`Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`);
             setDueDate(getDefaultDueDate());
 
-            // Tenta identificar o cliente tomador vinculado à nota
+            // 1. Tenta identificar o cliente por ID de contato
             const contactId = invoice.customer_id || invoice.contact_id || invoice.quote?.contact_id || '';
-            const matchedContact = contacts.find(c => c.id === contactId);
+            let matchedContact = contacts.find(c => c.id === contactId);
+
+            // 2. Se não encontrou por ID, tenta buscar por CNPJ/CPF limpo!
+            if (!matchedContact && extractedTaxId) {
+                matchedContact = contacts.find(c => (c.tax_id || (c as any).cpf_cnpj || '').replace(/\D/g, '') === extractedTaxId);
+            }
+
+            // 3. Se não encontrou por CNPJ/CPF, tenta buscar por Nome!
+            if (!matchedContact && extractedName) {
+                matchedContact = contacts.find(c => c.name.toLowerCase().trim() === extractedName.toLowerCase().trim());
+            }
 
             if (matchedContact) {
                 setSelectedContactId(matchedContact.id);
                 setCustomName(matchedContact.name);
-                setCustomTaxId(matchedContact.tax_id || (matchedContact as any).cpf_cnpj || '');
+                setCustomTaxId(matchedContact.tax_id || (matchedContact as any).cpf_cnpj || extractedTaxId);
             } else {
-                // Tenta puxar do payload tomador se existir
-                const tomador = invoice.payload?.tomador;
-                if (tomador) {
-                    setCustomName(tomador.razaoSocial || tomador.nome || '');
-                    setCustomTaxId(tomador.cpfCnpj || tomador.cnpj || tomador.cpf || '');
-                } else {
-                    setCustomName('');
-                    setCustomTaxId('');
-                }
                 setSelectedContactId('');
+                setCustomName(extractedName);
+                setCustomTaxId(extractedTaxId);
             }
 
             // Define o gateway padrão
