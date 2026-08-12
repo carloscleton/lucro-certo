@@ -43,7 +43,10 @@ export function usePaymentGateways() {
 
             if (error) throw error;
             
-            const fetchedData = data || [];
+            const fetchedData = (data || []).map((g: any) => ({
+                ...g,
+                is_default: g.is_default ?? g.config?.is_default ?? false
+            }));
             setGateways(fetchedData);
             globalGatewaysCache[currentEntity.id] = fetchedData;
             globalLoadingCache[currentEntity.id] = false;
@@ -138,18 +141,15 @@ export function usePaymentGateways() {
     const setDefaultGateway = async (provider: string) => {
         if (!currentEntity || currentEntity.type !== 'company') return { error: 'Not in company context' };
         try {
-            await supabase
-                .from('company_payment_gateways')
-                .update({ is_default: false })
-                .eq('company_id', currentEntity.id);
+            for (const gw of gateways) {
+                const isDef = gw.provider === provider;
+                const newConfig = { ...(gw.config || {}), is_default: isDef };
+                await supabase
+                    .from('company_payment_gateways')
+                    .update({ config: newConfig })
+                    .eq('id', gw.id);
+            }
 
-            const { error } = await supabase
-                .from('company_payment_gateways')
-                .update({ is_default: true })
-                .eq('company_id', currentEntity.id)
-                .eq('provider', provider);
-
-            if (error) throw error;
             await fetchGateways();
             return { error: null };
         } catch (error) {
@@ -158,7 +158,7 @@ export function usePaymentGateways() {
         }
     };
 
-    const defaultGateway = gateways.find(g => g.is_default && g.is_active) || gateways.find(g => g.is_active) || gateways[0];
+    const defaultGateway = gateways.find(g => (g.is_default || g.config?.is_default) && g.is_active) || gateways.find(g => g.is_active) || gateways[0];
 
     return {
         gateways,
