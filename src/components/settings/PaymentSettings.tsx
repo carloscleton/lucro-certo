@@ -95,7 +95,11 @@ export function PaymentSettings() {
         const providerDef = PROVIDERS.find(p => p.id === selectedProvider);
         providerDef?.fields.forEach(field => {
             const envKey = isSandbox ? `sandbox_${field.key}` : `prod_${field.key}`;
-            fullConfig[envKey] = config[field.key] || '';
+            let val = (config[field.key] || '').trim();
+            if (field.key === 'client_id') {
+                val = val.toLowerCase();
+            }
+            fullConfig[envKey] = val;
         });
 
         // 2. Test Connection FIRST
@@ -312,7 +316,11 @@ export function PaymentSettings() {
                                             label={field.label}
                                             type={field.type || 'text'}
                                             value={config[field.key] || ''}
-                                            onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                            onChange={e => {
+                                                const rawVal = e.target.value;
+                                                const val = field.key === 'client_id' ? rawVal.toLowerCase() : rawVal;
+                                                setConfig(prev => ({ ...prev, [field.key]: val }));
+                                            }}
                                             placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
                                             autoComplete="off"
                                         />
