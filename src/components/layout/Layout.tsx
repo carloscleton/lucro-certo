@@ -396,9 +396,9 @@ export function Layout() {
                         {/* Desktop Sidebar Toggle Button */}
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="hidden md:flex absolute -right-3 top-7 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 items-center justify-center text-gray-500 hover:text-blue-600 shadow-md hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer"
+                            className="hidden md:flex absolute -right-3 top-7 w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white items-center justify-center shadow-lg hover:bg-blue-700 dark:hover:bg-blue-400 hover:scale-110 active:scale-95 transition-all z-50 cursor-pointer border-2 border-white dark:border-slate-800"
                         >
-                            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                            {isCollapsed ? <ChevronRight size={12} strokeWidth={3.5} /> : <ChevronLeft size={12} strokeWidth={3.5} />}
                         </button>
                     </div>
 
