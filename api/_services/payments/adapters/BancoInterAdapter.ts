@@ -24,8 +24,8 @@ export class BancoInterAdapter implements PaymentAdapter {
         this.keyPem = isSandbox ? config.sandbox_private_key_pem : config.prod_private_key_pem;
 
         this.baseUrl = isSandbox 
-            ? 'https://cdg.sandbox.bancointer.com.br' 
-            : 'https://cdg.bancointer.com.br';
+            ? 'https://cdpj-sandbox.partners.uatinter.co' 
+            : 'https://cdpj.partners.bancointer.com.br';
 
         if (!this.clientId || !this.clientSecret || !this.certPem || !this.keyPem) {
             throw new Error(`Credenciais do Banco Inter (${isSandbox ? 'Sandbox' : 'Produção'}) incompletas ou ausentes.`);
