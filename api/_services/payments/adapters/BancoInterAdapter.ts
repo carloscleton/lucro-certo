@@ -93,12 +93,18 @@ export class BancoInterAdapter implements PaymentAdapter {
     async createCharge(request: ChargeRequest): Promise<PaymentResponse> {
         try {
             const token = await this.getAccessToken();
-            const taxId = (request.customer.tax_id || '').replace(/\D/g, '');
-            if (!taxId) {
-                throw new Error('CPF/CNPJ do cliente é obrigatório para cobranças via Banco Inter.');
+            const taxId = (request.customer?.tax_id || '').replace(/\D/g, '');
+            // Garante que o CPF/CNPJ tenha 11 (CPF) ou 14 (CNPJ) dígitos. Se estiver incompleto em Sandbox, usa padrão válido
+            let cleanTaxId = taxId;
+            if (cleanTaxId.length !== 11 && cleanTaxId.length !== 14) {
+                if (this.isSandbox) {
+                    cleanTaxId = '00000000000191'; // CNPJ padrão para testes no Sandbox
+                } else {
+                    throw new Error('CPF/CNPJ do cliente precisa ter 11 (CPF) ou 14 dígitos (CNPJ).');
+                }
             }
 
-            const tipoPessoa = taxId.length === 11 ? 'FISICA' : 'JURIDICA';
+            const tipoPessoa = cleanTaxId.length === 11 ? 'FISICA' : 'JURIDICA';
             
             // O vencimento é padrão de 24h após a emissão
             const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -110,23 +116,27 @@ export class BancoInterAdapter implements PaymentAdapter {
                 companyId = parts[parts.length - 1] || '';
             }
 
+            // Identificador próprio do título (seuNumero) - Máximo 15 caracteres alfanuméricos
+            const seuNumero = (request.external_reference || `CHG${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+
             const payload = {
+                seuNumero: seuNumero || '12345',
                 valorNominal: request.amount,
                 dataVencimento: dueDate,
                 numDiasAgendaRecebimento: 30, // Mantém ativo por 30 dias para pagamentos em atraso
                 pagador: {
-                    cpfCnpj: taxId,
+                    cpfCnpj: cleanTaxId,
                     tipoPessoa: tipoPessoa,
                     nome: request.customer.name.substring(0, 100),
                     endereco: request.customer.address?.street?.substring(0, 90) || 'Rua Principal',
-                    numero: request.customer.address?.number?.substring(0, 10) || 'S/N',
+                    numero: request.customer.address?.number?.substring(0, 10) || '100',
                     bairro: request.customer.address?.neighborhood?.substring(0, 60) || 'Centro',
                     cidade: request.customer.address?.city?.substring(0, 60) || 'Cidade',
                     uf: request.customer.address?.state?.substring(0, 2) || 'SP',
                     cep: (request.customer.address?.zip_code || '').replace(/\D/g, '').substring(0, 8) || '01001000'
                 },
                 mensagem: {
-                    linha1: request.description.substring(0, 78)
+                    linha1: (request.description || 'Cobranca').substring(0, 78)
                 }
             };
 
@@ -159,7 +169,13 @@ export class BancoInterAdapter implements PaymentAdapter {
 
         } catch (error: any) {
             console.error('Banco Inter Charge Error:', error.response?.data || error.message);
-            const detail = error.response?.data?.title || error.response?.data?.detail || error.response?.data?.message || error.message;
+            const errData = error.response?.data;
+            let detail = '';
+            if (errData?.violacoes && Array.isArray(errData.violacoes)) {
+                detail = errData.violacoes.map((v: any) => `${v.propriedade || ''}: ${v.razao || v.valor || ''}`).join('; ');
+            } else {
+                detail = errData?.detail || errData?.title || errData?.message || error.message;
+            }
             return {
                 success: false,
                 status: 'rejected',
