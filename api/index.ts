@@ -9900,6 +9900,69 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
 });
 
 
+app.post(['/payments/inter/cancel', '/api/payments/inter/cancel'], authenticate, async (req, res) => {
+    const { companyId, chargeId, codigoSolicitacao } = req.body;
+
+    try {
+        console.log(`❌ Solicitando cancelamento de boleto Inter (Solicitação: ${codigoSolicitacao}, Charge: ${chargeId})...`);
+
+        // 1. Get Gateway Config for company
+        const gatewayResponse = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways?company_id=eq.${companyId}&provider=eq.banco_inter&is_active=eq.true&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY }
+        });
+
+        const gateway = gatewayResponse.data?.[0];
+        if (!gateway) return res.status(400).json({ error: 'Configuração do Banco Inter não encontrada para esta empresa.' });
+
+        const { BancoInterAdapter } = await import('./_services/payments/adapters/BancoInterAdapter.js');
+        const adapter = new BancoInterAdapter(gateway.config, gateway.is_sandbox ?? true);
+
+        const targetCode = codigoSolicitacao || chargeId;
+        const result = await adapter.cancelCharge(targetCode, 'APEDIDODOCLIENTE');
+
+        // 2. Update status in Supabase company_charges table to 'cancelled'
+        if (chargeId) {
+            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${chargeId}`, {
+                status: 'cancelled'
+            }, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        res.json({ success: true, message: 'Boleto cancelado no Banco Inter com sucesso!' });
+    } catch (error: any) {
+        console.error('❌ Erro ao cancelar boleto no Banco Inter:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get(['/payments/inter/status/:codigoSolicitacao', '/api/payments/inter/status/:codigoSolicitacao'], authenticate, async (req, res) => {
+    const { codigoSolicitacao } = req.params;
+    const companyId = req.query.companyId as string;
+
+    try {
+        const gatewayResponse = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways?company_id=eq.${companyId}&provider=eq.banco_inter&is_active=eq.true&select=*`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY }
+        });
+
+        const gateway = gatewayResponse.data?.[0];
+        if (!gateway) return res.status(400).json({ error: 'Configuração do Banco Inter não encontrada.' });
+
+        const { BancoInterAdapter } = await import('./_services/payments/adapters/BancoInterAdapter.js');
+        const adapter = new BancoInterAdapter(gateway.config, gateway.is_sandbox ?? true);
+
+        const result = await adapter.checkStatus(codigoSolicitacao);
+        res.json(result);
+    } catch (error: any) {
+        console.error('❌ Erro ao consultar status no Banco Inter:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.post('/payments/process-checkout', async (req, res) => {
     const { chargeId, provider, method } = req.body;
 

@@ -116,8 +116,8 @@ export class BancoInterAdapter implements PaymentAdapter {
                 companyId = parts[parts.length - 1] || '';
             }
 
-            // Identificador próprio do título (seuNumero) - Máximo 15 caracteres alfanuméricos
-            const seuNumero = (request.external_reference || `CHG${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+            // Identificador próprio do título (seuNumero) - Máximo 15 caracteres alfanuméricos (ex: NF63)
+            const seuNumero = (request.external_reference || `NF${request.description?.replace(/\D/g, '') || Date.now()}`).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
 
             const payload = {
                 seuNumero: seuNumero || '12345',
@@ -205,6 +205,28 @@ export class BancoInterAdapter implements PaymentAdapter {
         } catch (error: any) {
             console.error('Banco Inter status check error:', error.response?.data || error.message);
             throw error;
+        }
+    }
+
+    async cancelCharge(codigoSolicitacao: string, motivo: string = 'APEDIDODOCLIENTE'): Promise<{ success: boolean; message: string }> {
+        try {
+            const token = await this.getAccessToken();
+            await axios.post(`${this.baseUrl}/cobranca/v3/cobrancas/${codigoSolicitacao}/cancelar`, {
+                motivoCancelamento: motivo
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                httpsAgent: this.httpsAgent
+            });
+
+            return {
+                success: true,
+                message: 'Boleto cancelado no Banco Inter com sucesso!'
+            };
+        } catch (error: any) {
+            console.error('Banco Inter cancel charge error:', error.response?.data || error.message);
+            throw new Error(error.response?.data?.mensagem || error.response?.data?.detail || error.message || 'Erro ao cancelar boleto no Banco Inter.');
         }
     }
 
