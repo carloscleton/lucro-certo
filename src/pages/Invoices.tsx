@@ -19,6 +19,7 @@ import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
 import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
+import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 import { formatPhoneWhatsapp } from '../utils/phoneUtils';
 
@@ -174,6 +175,7 @@ export function Invoices() {
     const [showConsultaModal, setShowConsultaModal] = useState(false);
     const [showBillingModal, setShowBillingModal] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
+    const [boletoModal, setBoletoModal] = useState<{ isOpen: boolean; invoice: any }>({ isOpen: false, invoice: null });
     const [searchQuery, setSearchQuery] = useState('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [showDeleted, setShowDeleted] = useState(false);
@@ -1498,15 +1500,7 @@ ${messageWithPlaceholder}`;
                                                 {/* Gerar Boleto Banco Inter */}
                                                 <Tooltip content="Gerar Boleto Banco Inter / Cobrança">
                                                     <button
-                                                        onClick={() => {
-                                                            const params = new URLSearchParams({
-                                                                open: 'true',
-                                                                amount: (invoice.amount || (invoice as any).valor || 0).toString(),
-                                                                description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
-                                                                contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
-                                                            });
-                                                            window.location.href = `/dashboard/payments?${params.toString()}`;
-                                                        }}
+                                                        onClick={() => setBoletoModal({ isOpen: true, invoice })}
                                                         className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
                                                     >
                                                         <FileText size={18} />
@@ -2001,8 +1995,15 @@ ${messageWithPlaceholder}`;
                     invoice={selectedInvoiceDetail}
                     onRefresh={refresh}
                     company={companies.find(c => c.id === selectedInvoiceDetail.company_id) || currentCompany}
+                    onGenerateBoleto={(inv) => setBoletoModal({ isOpen: true, invoice: inv })}
                 />
             )}
+
+            <GenerateBoletoModal
+                isOpen={boletoModal.isOpen}
+                onClose={() => setBoletoModal({ isOpen: false, invoice: null })}
+                invoice={boletoModal.invoice}
+            />
 
             <ResultModal
                 isOpen={resultModal.isOpen}

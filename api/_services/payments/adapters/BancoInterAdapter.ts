@@ -106,8 +106,8 @@ export class BancoInterAdapter implements PaymentAdapter {
 
             const tipoPessoa = cleanTaxId.length === 11 ? 'FISICA' : 'JURIDICA';
             
-            // O vencimento é padrão de 24h após a emissão
-            const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            // O vencimento utiliza o due_date informado ou padrão de 24h
+            const dueDate = (request as any).due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
             // Extrai o companyId da url de notificação para compor o proxy de PDF
             let companyId = '';

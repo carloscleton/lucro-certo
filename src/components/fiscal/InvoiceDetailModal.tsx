@@ -21,9 +21,10 @@ interface InvoiceDetailModalProps {
     invoice: any;
     onRefresh: () => void;
     company?: any;
+    onGenerateBoleto?: (invoice: any) => void;
 }
 
-export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company }: InvoiceDetailModalProps) {
+export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company, onGenerateBoleto }: InvoiceDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
     const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
@@ -805,13 +806,17 @@ ${messageWithPlaceholder}`;
                                     size="sm"
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 font-bold shadow-sm"
                                     onClick={() => {
-                                        const params = new URLSearchParams({
-                                            open: 'true',
-                                            amount: (invoice.amount || (invoice as any).valor || 0).toString(),
-                                            description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
-                                            contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
-                                        });
-                                        window.location.href = `/dashboard/payments?${params.toString()}`;
+                                        if (onGenerateBoleto) {
+                                            onGenerateBoleto(invoice);
+                                        } else {
+                                            const params = new URLSearchParams({
+                                                open: 'true',
+                                                amount: (invoice.amount || (invoice as any).valor || 0).toString(),
+                                                description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
+                                                contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
+                                            });
+                                            window.location.href = `/dashboard/payments?${params.toString()}`;
+                                        }
                                     }}
                                 >
                                     <FileText size={14} className="mr-1" />
