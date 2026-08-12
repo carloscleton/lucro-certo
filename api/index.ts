@@ -9295,11 +9295,15 @@ app.post('/payments/create', authenticate, async (req, res) => {
         // 1. Gerar referência externa se não existir
         const external_reference = payload.external_reference || `CHG-${new Date().getTime()}-${Math.floor(Math.random() * 1000)}`;
 
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const hostHeader = req.headers['x-forwarded-host'] || req.headers.host;
+        const publicHost = process.env.PUBLIC_URL || `${protocol}://${hostHeader}`;
+
         const adapter = PaymentFactory.getAdapter(provider, config, is_sandbox ?? true);
         const result = await adapter.createCharge({
             ...payload,
             external_reference,
-            notification_url: `${process.env.PUBLIC_URL || 'https://seu-servidor.com'}/payments/webhook/${provider}/${companyId}`
+            notification_url: `${publicHost}/payments/webhook/${provider}/${companyId}`
         });
 
         if (result.success) {
