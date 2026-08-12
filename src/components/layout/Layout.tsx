@@ -30,7 +30,6 @@ import {
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
-} from 'lucide-react';
 import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
 import styles from './Layout.module.css';
