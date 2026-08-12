@@ -130,7 +130,7 @@ export class BancoInterAdapter implements PaymentAdapter {
                 }
             };
 
-            const response = await axios.post(`${this.baseUrl}/cobranca/v3/boletos`, payload, {
+            const response = await axios.post(`${this.baseUrl}/cobranca/v3/cobrancas`, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -139,26 +139,27 @@ export class BancoInterAdapter implements PaymentAdapter {
             });
 
             const data = response.data;
-            if (!data?.nossoNumero) {
-                throw new Error('Banco Inter não retornou o nossoNumero do boleto.');
+            const nossoNumero = data?.nossoNumero || data?.codigoSolicitacao || data?.seuNumero;
+            if (!nossoNumero) {
+                throw new Error('Banco Inter não retornou a identificação da cobrança.');
             }
 
             // Gera o link de proxy interno da API local para download de PDF, já que o PDF exige mTLS
             const host = (request.notification_url ? request.notification_url.split('/payments/webhook/')[0] : 'https://api.vinx.com.br');
-            const pdfProxyUrl = `${host}/payments/inter/pdf/${companyId}/${data.nossoNumero}${this.isSandbox ? '?sandbox=true' : ''}`;
+            const pdfProxyUrl = `${host}/payments/inter/pdf/${companyId}/${nossoNumero}${this.isSandbox ? '?sandbox=true' : ''}`;
 
             return {
                 success: true,
-                payment_id: data.nossoNumero,
-                qr_code: data.pix?.pixCopiaeCola || '',
-                qr_code_base64: data.pix?.imagemQrCode || '',
+                payment_id: nossoNumero,
+                qr_code: data.pix?.pixCopiaeCola || data.pixCopiaeCola || '',
+                qr_code_base64: data.pix?.imagemQrCode || data.imagemQrCode || '',
                 payment_link: pdfProxyUrl,
                 status: 'pending'
             };
 
         } catch (error: any) {
             console.error('Banco Inter Charge Error:', error.response?.data || error.message);
-            const detail = error.response?.data?.title || error.response?.data?.detail || error.message;
+            const detail = error.response?.data?.title || error.response?.data?.detail || error.response?.data?.message || error.message;
             return {
                 success: false,
                 status: 'rejected',
@@ -170,7 +171,7 @@ export class BancoInterAdapter implements PaymentAdapter {
     async getPaymentStatus(payment_id: string): Promise<PaymentResponse> {
         try {
             const token = await this.getAccessToken();
-            const response = await axios.get(`${this.baseUrl}/cobranca/v3/boletos/${payment_id}`, {
+            const response = await axios.get(`${this.baseUrl}/cobranca/v3/cobrancas/${payment_id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
@@ -191,7 +192,7 @@ export class BancoInterAdapter implements PaymentAdapter {
 
     async getBoletoPdf(nossoNumero: string): Promise<Buffer> {
         const token = await this.getAccessToken();
-        const response = await axios.get(`${this.baseUrl}/cobranca/v3/boletos/${nossoNumero}/pdf`, {
+        const response = await axios.get(`${this.baseUrl}/cobranca/v3/cobrancas/${nossoNumero}/pdf`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             },
