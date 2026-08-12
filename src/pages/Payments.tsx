@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     CreditCard,
     Plus,
@@ -36,7 +36,7 @@ import { ResultModal } from '../components/ui/ResultModal';
 export function Payments() {
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
-    const { charges, loading: loadingCharges, createCharge, deleteCharge, cancelCharge } = useCharges();
+    const { charges, loading: loadingCharges, createCharge, deleteCharge } = useCharges();
     const { gateways, defaultGateway } = usePaymentGateways();
     const { quotes } = useQuotes();
     const { notify } = useNotification();
