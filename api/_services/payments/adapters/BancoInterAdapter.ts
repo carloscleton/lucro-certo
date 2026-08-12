@@ -173,8 +173,10 @@ export class BancoInterAdapter implements PaymentAdapter {
             let detail = '';
             if (errData?.violacoes && Array.isArray(errData.violacoes)) {
                 detail = errData.violacoes.map((v: any) => `${v.propriedade || ''}: ${v.razao || v.valor || ''}`).join('; ');
+            } else if (errData && typeof errData === 'object') {
+                detail = errData.detail || errData.message || errData.title || JSON.stringify(errData);
             } else {
-                detail = errData?.detail || errData?.title || errData?.message || error.message;
+                detail = errData || error.message;
             }
             return {
                 success: false,
