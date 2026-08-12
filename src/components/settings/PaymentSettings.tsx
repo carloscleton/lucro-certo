@@ -305,6 +305,7 @@ export function PaymentSettings() {
                                                     onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
                                                     placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
                                                     rows={4}
+                                                    preserveCase={true}
                                                     className="font-mono text-xs dark:bg-slate-900 dark:border-slate-700"
                                                 />
                                             </div>

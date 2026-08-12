@@ -665,6 +665,7 @@ export function BankingSettings() {
                                                         onChange={e => setConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
                                                         placeholder={field.placeholder}
                                                         rows={4}
+                                                        preserveCase={true}
                                                         className="font-mono text-xs dark:bg-slate-900 dark:border-slate-700"
                                                     />
                                                 </div>

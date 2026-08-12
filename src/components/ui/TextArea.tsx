@@ -6,10 +6,11 @@ interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
     label?: string;
     error?: string;
     helpText?: string;
+    preserveCase?: boolean;
 }
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-    ({ className, label, error, helpText, ...props }, ref) => {
+    ({ className, label, error, helpText, preserveCase = false, ...props }, ref) => {
         return (
             <div className="flex flex-col gap-1 w-full">
                 {label && (
@@ -20,16 +21,19 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
                 <textarea
                     ref={ref}
                     className={clsx(
-                        'flex w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 uppercase',
+                        'flex w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50',
+                        !preserveCase && 'uppercase',
                         error && 'border-red-500 focus:ring-red-500 dark:border-red-500',
                         className
                     )}
                     {...props}
                     onChange={(e) => {
-                        const start = e.target.selectionStart;
-                        const end = e.target.selectionEnd;
-                        e.target.value = e.target.value.toUpperCase();
-                        e.target.setSelectionRange(start, end);
+                        if (!preserveCase) {
+                            const start = e.target.selectionStart;
+                            const end = e.target.selectionEnd;
+                            e.target.value = e.target.value.toUpperCase();
+                            e.target.setSelectionRange(start, end);
+                        }
                         props.onChange?.(e);
                     }}
                 />
