@@ -15,8 +15,11 @@ export class BancoInterAdapter implements PaymentAdapter {
         this.isSandbox = isSandbox;
         
         // As credenciais são carregadas do banco. O frontend prefixa as chaves com sandbox_ ou prod_
-        this.clientId = isSandbox ? config.sandbox_client_id : config.prod_client_id;
-        this.clientSecret = isSandbox ? config.sandbox_client_secret : config.prod_client_secret;
+        const rawClientId = isSandbox ? config.sandbox_client_id : config.prod_client_id;
+        const rawClientSecret = isSandbox ? config.sandbox_client_secret : config.prod_client_secret;
+
+        this.clientId = (rawClientId || '').trim().toLowerCase();
+        this.clientSecret = (rawClientSecret || '').trim();
         this.certPem = isSandbox ? config.sandbox_certificate_pem : config.prod_certificate_pem;
         this.keyPem = isSandbox ? config.sandbox_private_key_pem : config.prod_private_key_pem;
 
@@ -28,9 +31,28 @@ export class BancoInterAdapter implements PaymentAdapter {
             throw new Error(`Credenciais do Banco Inter (${isSandbox ? 'Sandbox' : 'Produção'}) incompletas ou ausentes.`);
         }
 
-        // Limpa quebras de linha que possam vir no copy-paste do Windows (\r\n para \n)
-        const cleanCert = this.certPem.replace(/\r\n/g, '\n').trim();
-        const cleanKey = this.keyPem.replace(/\r\n/g, '\n').trim();
+        // Sanitiza e normaliza quebras de linha no formato PEM
+        const normalizePem = (pem: string): string => {
+            if (!pem) return '';
+            let formatted = pem.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+            if (!formatted.includes('\n')) {
+                formatted = formatted
+                    .replace(/(-----BEGIN [A-Z ]+-----)/, '$1\n')
+                    .replace(/(-----END [A-Z ]+-----)/, '\n$1');
+            }
+            return formatted;
+        };
+
+        let cleanCert = normalizePem(this.certPem);
+        let cleanKey = normalizePem(this.keyPem);
+
+        // Se o usuário por engano colou a Chave Privada no campo do Certificado e vice-versa, corrige automaticamente
+        if (cleanCert.includes('PRIVATE KEY') && (cleanKey.includes('CERTIFICATE') || !cleanKey.includes('PRIVATE KEY'))) {
+            console.log('⚠️ Detectada inversão entre Certificado e Chave Privada no Banco Inter. Corrigindo automaticamente...');
+            const temp = cleanCert;
+            cleanCert = cleanKey;
+            cleanKey = temp;
+        }
 
         // Configura o agente HTTPS para mTLS (Autenticação mútua via certificado digital)
         this.httpsAgent = new https.Agent({
