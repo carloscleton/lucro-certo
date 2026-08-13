@@ -76,20 +76,21 @@ export class BancoInterAdapter implements PaymentAdapter {
             return cached.token;
         }
 
-        try {
-            const params = new URLSearchParams();
-            params.append('client_id', this.clientId);
-            params.append('client_secret', this.clientSecret);
-            params.append('grant_type', 'client_credentials');
-            params.append('scope', 'boleto-cobranca.read boleto-cobranca.write');
+        const params = new URLSearchParams();
+        params.append('client_id', this.clientId);
+        params.append('client_secret', this.clientSecret);
+        params.append('grant_type', 'client_credentials');
+        params.append('scope', 'boleto-cobranca.read boleto-cobranca.write');
 
-            const tokenUrl = `${this.baseUrl}/oauth/v2/token`;
+        const tokenUrl = `${this.baseUrl}/oauth/v2/token`;
+
+        const attemptFetch = async (timeoutMs: number) => {
             const response = await axios.post(tokenUrl, params.toString(), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
                 httpsAgent: this.httpsAgent,
-                timeout: 8000
+                timeout: timeoutMs
             });
 
             if (!response.data?.access_token) {
@@ -99,12 +100,24 @@ export class BancoInterAdapter implements PaymentAdapter {
             const token = response.data.access_token;
             const expiresIn = (response.data.expires_in || 3600) * 1000;
             tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
-
             return token;
-        } catch (error: any) {
-            console.error('Banco Inter OAuth Error:', error.response?.data || error.message);
-            const detail = error.response?.data?.error_description || error.message;
-            throw new Error(`Erro de Autenticação no Banco Inter (mTLS): ${detail}`);
+        };
+
+        try {
+            return await attemptFetch(15000);
+        } catch (firstErr: any) {
+            console.warn('⚠️ Primeira tentativa de token mTLS no Banco Inter falhou. Tentando novamente...', firstErr.message);
+            try {
+                return await attemptFetch(15000);
+            } catch (retryErr: any) {
+                console.error('Banco Inter OAuth Error:', retryErr.response?.data || retryErr.message);
+                const detail = retryErr.response?.data?.error_description || retryErr.message || '';
+                if (detail.includes('timeout') || retryErr.code === 'ECONNABORTED' || retryErr.message?.includes('timeout')) {
+                    const envName = this.isSandbox ? 'Sandbox (uatinter.co)' : 'Produção (bancointer.com.br)';
+                    throw new Error(`O ambiente de ${envName} do Banco Inter demorou para responder. Os servidores de Sandbox passam por manutenção noturna fora do horário comercial. Altere para Produção nas configurações para emitir boletos 24h.`);
+                }
+                throw new Error(`Erro de Autenticação no Banco Inter (mTLS): ${detail}`);
+            }
         }
     }
 
