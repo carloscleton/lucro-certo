@@ -309,10 +309,9 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                     />
 
                     <Input
-                        label={entityType === 'PJ' ? "Razão Social" : "Nome Completo *"}
+                        label={entityType === 'PJ' ? "Razão Social" : "Nome Completo"}
                         value={legalName}
                         onChange={e => setLegalName(e.target.value)}
-                        required={entityType === 'PF'}
                         placeholder={entityType === 'PJ' ? "Ex: Minha Loja Ltda" : "Seu nome completo"}
                     />
 
