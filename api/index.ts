@@ -9249,6 +9249,7 @@ app.delete('/instances/:name', authenticate, async (req, res) => {
 app.get(['/payments/inter/pdf/:companyId/:nossoNumero', '/api/payments/inter/pdf/:companyId/:nossoNumero'], async (req, res) => {
     try {
         const { companyId, nossoNumero } = req.params;
+        const isSandboxQuery = req.query.sandbox === 'true';
 
         // 1. Buscar a configuração de pagamento da empresa
         const { data: gateway } = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways`, {
@@ -9268,7 +9269,7 @@ app.get(['/payments/inter/pdf/:companyId/:nossoNumero', '/api/payments/inter/pdf
         }
 
         const config = gateway[0].config;
-        const isSandbox = gateway[0].is_sandbox;
+        const isSandbox = isSandboxQuery || gateway[0].is_sandbox || false;
 
         const { BancoInterAdapter } = await import('./_services/payments/adapters/BancoInterAdapter.js');
         const adapter = new BancoInterAdapter(config, isSandbox);
