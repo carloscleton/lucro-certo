@@ -8,7 +8,6 @@ import type { Company } from '../../hooks/useCompanies';
 import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 import { useAutoSave } from '../../hooks/useAutoSave';
-import { useAuth } from '../../context/AuthContext';
 import { useAdmin } from '../../hooks/useAdmin';
 
 interface CompanyFormProps {
@@ -20,7 +19,6 @@ interface CompanyFormProps {
 
 export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyFormProps) {
     const { notify } = useNotification();
-    const { profile } = useAuth();
     const { appSettings } = useAdmin();
     const [tradeName, setTradeName] = useState('');
     const [legalName, setLegalName] = useState('');
