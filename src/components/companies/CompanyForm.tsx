@@ -235,7 +235,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 trade_name: tradeName,
                 legal_name: legalName,
                 cnpj: entityType === 'PJ' ? cnpj : null,
-                inscricao_municipal: inscricaoMunicipal || null,
+                inscricao_municipal: inscricaoMunicipal ? inscricaoMunicipal.trim() : '',
                 cpf: entityType === 'PF' ? cpf : null,
                 slug: slug || null,
                 entity_type: entityType,

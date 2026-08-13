@@ -80,9 +80,15 @@ export function useCompanies() {
                 .map((item: any) => {
                     const c = item.company;
                     if (!c) return null;
+                    const im = (c.inscricao_municipal !== undefined && c.inscricao_municipal !== null)
+                        ? c.inscricao_municipal
+                        : (c.settings?.inscricao_municipal !== undefined && c.settings?.inscricao_municipal !== null)
+                        ? c.settings?.inscricao_municipal
+                        : c.settings?.national_config?.inscricao_municipal;
+
                     return {
                         ...c,
-                        inscricao_municipal: c.inscricao_municipal || c.settings?.inscricao_municipal || c.settings?.national_config?.inscricao_municipal || ''
+                        inscricao_municipal: im || ''
                     };
                 })
                 .filter(Boolean)
@@ -114,14 +120,16 @@ export function useCompanies() {
 
         // 1. Create company via RPC
         const { logo_file, inscricao_municipal, ...restCompany } = company as any;
+        const valIM = inscricao_municipal ? String(inscricao_municipal).trim() : '';
         const initialSettings = {
             ...(restCompany.settings || {}),
-            ...(inscricao_municipal ? { inscricao_municipal } : {})
+            inscricao_municipal: valIM
         };
 
         const { data, error } = await supabase.rpc('create_company_with_admin', {
             company_data: {
                 ...restCompany,
+                inscricao_municipal: valIM || null,
                 settings: initialSettings,
                 user_id: user.id
             }
@@ -135,14 +143,18 @@ export function useCompanies() {
 
         const newCompanyId = data.company_id;
 
-        if (inscricao_municipal) {
+        if (inscricao_municipal !== undefined) {
             try {
                 const { data: cData } = await supabase.from('companies').select('settings').eq('id', newCompanyId).single();
                 const updatedSettings = {
                     ...(cData?.settings || {}),
-                    inscricao_municipal
+                    inscricao_municipal: valIM,
+                    national_config: {
+                        ...(cData?.settings?.national_config || {}),
+                        inscricao_municipal: valIM
+                    }
                 };
-                await supabase.from('companies').update({ settings: updatedSettings }).eq('id', newCompanyId);
+                await supabase.from('companies').update({ inscricao_municipal: valIM || null, settings: updatedSettings }).eq('id', newCompanyId);
             } catch (e) {
                 console.warn('Erro ao salvar inscricao_municipal em settings:', e);
             }
@@ -189,10 +201,14 @@ export function useCompanies() {
             }
         }
 
-        // Clean up updates object to remove logo_file and top-level inscricao_municipal before sending to DB
+        // Clean up updates object to remove logo_file before sending to DB
         const { logo_file, inscricao_municipal, ...companyUpdates } = updates as any;
+        const valIM = (inscricao_municipal !== undefined && inscricao_municipal !== null) ? String(inscricao_municipal).trim() : '';
 
-        const finalUpdates: any = { ...companyUpdates };
+        const finalUpdates: any = {
+            ...companyUpdates,
+            inscricao_municipal: valIM || null
+        };
         if (logoUrl) finalUpdates.logo_url = logoUrl;
 
         if (inscricao_municipal !== undefined) {
@@ -203,14 +219,14 @@ export function useCompanies() {
 
             finalUpdates.settings = {
                 ...existingSettings,
-                inscricao_municipal: inscricao_municipal || '',
+                inscricao_municipal: valIM,
                 national_config: {
                     ...existingNatConfig,
-                    inscricao_municipal: inscricao_municipal || existingNatConfig.inscricao_municipal || ''
+                    inscricao_municipal: valIM
                 },
                 nfeio_config: {
                     ...existingNfeioConfig,
-                    inscricao_municipal: inscricao_municipal || existingNfeioConfig.inscricao_municipal || ''
+                    inscricao_municipal: valIM
                 }
             };
         }
