@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, CheckCircle2, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck } from 'lucide-react';
+import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
