@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck } from 'lucide-react';
+import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -35,11 +35,12 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
     const [generating, setGenerating] = useState(false);
     const [result, setResult] = useState<any>(null);
 
-    // Existing Charge State
+    // Existing Charge State & Error state
     const [existingCharge, setExistingCharge] = useState<any>(null);
     const [loadingExisting, setLoadingExisting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Initial default due date: +15 days from today
     const getDefaultDueDate = () => {
@@ -115,6 +116,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         if (isOpen && invoice) {
             setResult(null);
             setExistingCharge(null);
+            setErrorMessage(null);
             const { amount: extractedAmount, clientName: extractedName, clientTaxId: extractedTaxId } = getInvoiceDetails(invoice);
 
             setAmount(extractedAmount);
@@ -176,6 +178,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
     }, [isOpen, invoice, contacts, gateways, defaultGateway]);
 
     const activeGateways = gateways.filter(g => g.is_active);
+    const selectedGateway = activeGateways.find(g => g.provider === selectedProvider) || activeGateways[0];
 
     const handleSelectContact = (contactId: string) => {
         setSelectedContactId(contactId);
@@ -187,6 +190,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
     };
 
     const handleGenerate = async () => {
+        setErrorMessage(null);
         if (!amount || amount <= 0) {
             notify('warning', 'Atenção', 'Informe um valor válido para a cobrança.');
             return;
@@ -231,11 +235,15 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                 setExistingCharge(res);
                 notify('success', 'Sucesso', 'Boleto do Banco Inter gerado com sucesso!');
             } else {
-                notify('error', 'Erro ao Gerar Boleto', res.error || 'Falha na comunicação com o Banco Inter.');
+                const errMsg = res.error || 'Falha na comunicação com o Banco Inter.';
+                setErrorMessage(errMsg);
+                notify('error', 'Erro ao Gerar Boleto', errMsg);
             }
         } catch (error: any) {
             console.error('Error generating boleto for invoice:', error);
-            notify('error', 'Erro', error.message || 'Erro ao gerar boleto.');
+            const errMsg = error.message || 'Erro ao gerar boleto.';
+            setErrorMessage(errMsg);
+            notify('error', 'Erro', errMsg);
         } finally {
             setGenerating(false);
         }
@@ -325,6 +333,27 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
             ) : !activeCharge ? (
                 /* FORMULÁRIO DE GERAÇÃO */
                 <div className="space-y-6 py-2">
+                    {/* Alerta de Erro / Indisponibilidade caso ocorra */}
+                    {errorMessage && (
+                        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-start gap-3.5 shadow-sm animate-in fade-in duration-300">
+                            <AlertCircle className="text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" size={20} />
+                            <div className="space-y-1">
+                                <h5 className="text-xs font-black text-rose-900 dark:text-rose-200 uppercase tracking-wide">
+                                    Não foi possível comunicar com o Banco Inter
+                                </h5>
+                                <p className="text-xs text-rose-800 dark:text-rose-300 font-medium leading-relaxed">
+                                    {errorMessage}
+                                </p>
+                                {selectedGateway?.is_sandbox && (
+                                    <div className="mt-2 pt-2 border-t border-rose-200/60 dark:border-rose-800/40 text-[11px] text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
+                                        <Info size={14} className="text-rose-600 flex-shrink-0" />
+                                        <span><strong>Dica:</strong> Em ambiente de Produção os boletos funcionam 24h sem interrupção noturna.</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Alerta de Nota e Tomador */}
                     <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/40 rounded-2xl flex items-start gap-3">
                         <FileText className="text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" size={20} />
@@ -429,7 +458,10 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                                 <button
                                     key={gw.id}
                                     type="button"
-                                    onClick={() => setSelectedProvider(gw.provider)}
+                                    onClick={() => {
+                                        setSelectedProvider(gw.provider);
+                                        setErrorMessage(null);
+                                    }}
                                     className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
                                         selectedProvider === gw.provider
                                             ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-md'
@@ -449,7 +481,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                                             )}
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-widest ${gw.is_sandbox ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                            {gw.is_sandbox ? 'Sandbox' : 'Produção'}
+                                            {gw.is_sandbox ? 'Sandbox (Manutenção Noturna)' : 'Produção 24/7'}
                                         </span>
                                     </div>
                                 </button>
