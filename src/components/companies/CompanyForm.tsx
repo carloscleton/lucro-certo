@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -54,6 +54,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [searchStreet, setSearchStreet] = useState('');
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
+    const loadedCepRef = useRef<string>('');
 
     const handleCNPJLookup = async (cnpjValue: string) => {
         const clean = cnpjValue.replace(/\D/g, '');
@@ -94,7 +95,9 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setLegalName(initialData.legal_name || '');
             setCnpj(initialData.cnpj || '');
             setInscricaoMunicipal(initialData.inscricao_municipal || (initialData as any).state_tax_number || '');
-            setZipCode(initialData.zip_code || '');
+            const initCep = initialData.zip_code || '';
+            setZipCode(initCep);
+            loadedCepRef.current = initCep.replace(/\D/g, '');
             setStreet(initialData.street || '');
             setNumber(initialData.number || '');
             setComplement(initialData.complement || '');
@@ -108,15 +111,13 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setPhone(formatPhoneFromDB(initialData.phone));
             setLoyaltyModuleEnabled(initialData.loyalty_module_enabled || false);
             setLogoFile(null);
-        } else if (isOpen) {
+        } else {
             setTradeName('');
             setLegalName('');
-            setEntityType('PJ');
-            setCpf('');
             setCnpj('');
-            setPhone('');
-            setSlug('');
+            setInscricaoMunicipal('');
             setZipCode('');
+            loadedCepRef.current = '';
             setStreet('');
             setNumber('');
             setComplement('');
@@ -124,10 +125,14 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             setCity('');
             setState('');
             setLogoUrl('');
+            setEntityType('PJ');
+            setCpf('');
+            setSlug('');
+            setPhone('');
             setLoyaltyModuleEnabled(false);
             setLogoFile(null);
         }
-    }, [initialData, isOpen, profile]);
+    }, [initialData, isOpen]);
 
     const { clearCache } = useAutoSave(
         'company_form',
@@ -150,10 +155,10 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         onClose();
     };
 
-    // Auto-CEP search when 8 digits are reached
+    // Auto-CEP search when 8 digits are reached (only if CEP actually changed)
     useEffect(() => {
         const cleanCep = zipCode.replace(/\D/g, '');
-        if (cleanCep.length === 8) {
+        if (cleanCep.length === 8 && cleanCep !== loadedCepRef.current) {
             handleZipCodeLookup(cleanCep);
         }
     }, [zipCode]);
@@ -165,10 +170,11 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             const data = await response.json();
  
             if (!data.erro) {
-                setStreet(data.logradouro);
-                setNeighborhood(data.bairro);
-                setCity(data.localidade);
-                setState(data.uf);
+                if (data.logradouro) setStreet(data.logradouro);
+                if (data.bairro) setNeighborhood(data.bairro);
+                if (data.localidade) setCity(data.localidade);
+                if (data.uf) setState(data.uf);
+                loadedCepRef.current = cleanCep;
             }
         } catch (error) {
             console.error('Erro ao buscar CEP:', error);
@@ -179,7 +185,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
 
     const handleZipCodeBlur = () => {
         const cleanCep = zipCode.replace(/\D/g, '');
-        if (cleanCep.length === 8) {
+        if (cleanCep.length === 8 && cleanCep !== loadedCepRef.current) {
             handleZipCodeLookup(cleanCep);
         }
     };

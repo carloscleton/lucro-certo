@@ -1,4 +1,4 @@
-import { Edit2, Trash2, User, Truck, History, Award, CheckSquare, Square } from 'lucide-react';
+import { Edit2, Trash2, User, Truck, History, Award, CheckSquare, Square, AlertTriangle, MapPin } from 'lucide-react';
 import type { Contact } from '../../hooks/useContacts';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -13,6 +13,32 @@ interface ContactListProps {
     onToggleSelect: (id: string) => void;
     onToggleSelectAll: () => void;
     allSelected: boolean;
+}
+
+export function getContactMissingInfo(contact: Contact): string[] {
+    const missing: string[] = [];
+    
+    // Tax ID check
+    if (!contact.tax_id || contact.tax_id.trim() === '') {
+        missing.push(contact.entity_type === 'PJ' ? 'CNPJ' : 'CPF');
+    }
+    
+    // Address check
+    const hasZip = !!(contact.zip_code && contact.zip_code.trim());
+    const hasStreet = !!(contact.street && contact.street.trim());
+    const hasCity = !!(contact.city && contact.city.trim());
+    const hasState = !!(contact.state && contact.state.trim());
+
+    if (!hasZip || !hasStreet || !hasCity || !hasState) {
+        const addrFields: string[] = [];
+        if (!hasZip) addrFields.push('CEP');
+        if (!hasStreet) addrFields.push('Rua');
+        if (!hasCity) addrFields.push('Cidade');
+        if (!hasState) addrFields.push('UF');
+        missing.push(`Endereço Incompleto (${addrFields.join(', ')})`);
+    }
+
+    return missing;
 }
 
 export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDelete = true, isLoyaltyEnabled = true, selectedIds, onToggleSelect, onToggleSelectAll, allSelected }: ContactListProps) {
@@ -50,120 +76,149 @@ export function ContactList({ contacts, onEdit, onViewHistory, onDelete, canDele
                             </td>
                         </tr>
                     ) : (
-                        contacts.map((contact) => (
-                            <tr key={contact.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
-                                <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        type="button"
-                                        disabled={!contact.email || contact.email.trim() === ""}
-                                        onClick={() => onToggleSelect(contact.id)}
-                                        className="p-1 text-gray-400 disabled:opacity-30 hover:text-blue-500"
-                                    >
-                                        {selectedIds.includes(contact.id) ? (
-                                            <CheckSquare size={18} className="text-blue-600" />
-                                        ) : (
-                                            <Square size={18} />
-                                        )}
-                                    </button>
-                                </td>
-                                <td className="px-6 py-4 font-medium">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2.5 rounded-2xl shadow-sm ${contact.type === 'client'
-                                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                                            : contact.type === 'supplier'
-                                            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                                            : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            }`}>
-                                            {contact.type === 'client' || contact.type === 'both' ? <User size={18} /> : <Truck size={18} />}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-gray-900 dark:text-white">{contact.name}</span>
-                                                <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
-                                                    contact.entity_type === 'PJ'
-                                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30 dark:text-indigo-400'
-                                                    : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:border-slate-800 dark:text-slate-400'
+                        contacts.map((contact) => {
+                            const missingInfo = getContactMissingInfo(contact);
+
+                            return (
+                                <tr key={contact.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
+                                    <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            type="button"
+                                            disabled={!contact.email || contact.email.trim() === ""}
+                                            onClick={() => onToggleSelect(contact.id)}
+                                            className="p-1 text-gray-400 disabled:opacity-30 hover:text-blue-500"
+                                        >
+                                            {selectedIds.includes(contact.id) ? (
+                                                <CheckSquare size={18} className="text-blue-600" />
+                                            ) : (
+                                                <Square size={18} />
+                                            )}
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2.5 rounded-2xl shadow-sm ${contact.type === 'client'
+                                                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                                : contact.type === 'supplier'
+                                                ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                                                : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                 }`}>
-                                                    {contact.entity_type || 'PF'}
-                                                </span>
-                                                {isLoyaltyEnabled && contact.loyalty_subscriptions?.[0] && (
-                                                    <Tooltip content={
-                                                        contact.loyalty_subscriptions[0].status === 'pending'
-                                                        ? "Pagamento pendente no Gateway."
-                                                        : `Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`
-                                                    }>
-                                                        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all ${
-                                                            contact.loyalty_subscriptions[0].status === 'active' 
-                                                            ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' 
-                                                            : 'bg-blue-50 text-blue-600 border-blue-100'
-                                                        }`}>
-                                                            <Award size={10} />
-                                                            {contact.loyalty_subscriptions[0].status === 'active' ? 'VIP' : 'PENDENTE'}
-                                                        </div>
-                                                    </Tooltip>
+                                                {contact.type === 'client' || contact.type === 'both' ? <User size={18} /> : <Truck size={18} />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="font-bold text-gray-900 dark:text-white">{contact.name}</span>
+                                                    <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
+                                                        contact.entity_type === 'PJ'
+                                                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30 dark:text-indigo-400'
+                                                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:border-slate-800 dark:text-slate-400'
+                                                    }`}>
+                                                        {contact.entity_type || 'PF'}
+                                                    </span>
+
+                                                    {/* Badge de Dados Faltantes */}
+                                                    {missingInfo.length > 0 && (
+                                                        <Tooltip content={`Atenção! Faltam dados no cadastro: ${missingInfo.join(' • ')}`}>
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 cursor-help">
+                                                                <AlertTriangle size={11} className="text-amber-500 shrink-0" />
+                                                                Dados Pendentes
+                                                            </span>
+                                                        </Tooltip>
+                                                    )}
+
+                                                    {isLoyaltyEnabled && contact.loyalty_subscriptions?.[0] && (
+                                                        <Tooltip content={
+                                                            contact.loyalty_subscriptions[0].status === 'pending'
+                                                            ? "Pagamento pendente no Gateway."
+                                                            : `Plano: ${contact.loyalty_subscriptions[0].plan?.name || 'Clube VIP'}`
+                                                        }>
+                                                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                                                contact.loyalty_subscriptions[0].status === 'active' 
+                                                                ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' 
+                                                                : 'bg-blue-50 text-blue-600 border-blue-100'
+                                                            }`}>
+                                                                <Award size={10} />
+                                                                {contact.loyalty_subscriptions[0].status === 'active' ? 'VIP' : 'PENDENTE'}
+                                                            </div>
+                                                        </Tooltip>
+                                                    )}
+                                                </div>
+                                                {contact.tax_id ? (
+                                                    <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">{contact.tax_id}</span>
+                                                ) : (
+                                                    <span className="text-[9px] text-rose-500 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-0.5">
+                                                        <AlertTriangle size={10} /> Sem {contact.entity_type === 'PJ' ? 'CNPJ' : 'CPF'}
+                                                    </span>
                                                 )}
                                             </div>
-                                            {contact.tax_id && (
-                                                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">{contact.tax_id}</span>
+                                        </div>
+                                        <div className="md:hidden text-xs text-gray-500 mt-2 ml-14">
+                                            {contact.email} {contact.phone && `• ${contact.phone}`}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${contact.type === 'client'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30'
+                                            : contact.type === 'supplier'
+                                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30'
+                                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30'
+                                            }`}>
+                                            {contact.type === 'client' ? 'Cliente' : contact.type === 'supplier' ? 'Fornecedor' : 'Ambos'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 hidden md:table-cell text-gray-500 dark:text-gray-400">
+                                        <div className="flex flex-col gap-0.5">
+                                            {contact.email && <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{contact.email}</span>}
+                                            {(contact.phone || contact.whatsapp) && (
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-0.5">
+                                                    {contact.whatsapp || contact.phone}
+                                                </span>
+                                            )}
+                                            {contact.street && contact.city ? (
+                                                <span className="text-[10px] font-medium text-gray-400 truncate max-w-[240px] flex items-center gap-1 mt-0.5">
+                                                    <MapPin size={10} className="text-emerald-500 shrink-0" />
+                                                    {contact.street}, {contact.number || 'S/N'} - {contact.city}/{contact.state}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                                                    <AlertTriangle size={10} /> Endereço Incompleto
+                                                </span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="md:hidden text-xs text-gray-500 mt-2 ml-14">
-                                        {contact.email} {contact.phone && `• ${contact.phone}`}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${contact.type === 'client'
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30'
-                                        : contact.type === 'supplier'
-                                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30'
-                                        : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30'
-                                        }`}>
-                                        {contact.type === 'client' ? 'Cliente' : contact.type === 'supplier' ? 'Fornecedor' : 'Ambos'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 hidden md:table-cell text-gray-500 dark:text-gray-400">
-                                    <div className="flex flex-col gap-0.5">
-                                        {contact.email && <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{contact.email}</span>}
-                                        {(contact.phone || contact.whatsapp) && (
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-0.5">
-                                                {contact.whatsapp || contact.phone}
-                                            </span>
-                                        )}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <Tooltip content="Ver Histórico">
-                                            <button
-                                                onClick={() => onViewHistory(contact)}
-                                                className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
-                                            >
-                                                <History size={16} />
-                                            </button>
-                                        </Tooltip>
-                                        <Tooltip content="Editar">
-                                            <button
-                                                onClick={() => onEdit(contact)}
-                                                className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                        </Tooltip>
-                                        {canDelete && (
-                                            <Tooltip content="Excluir">
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Tooltip content="Ver Histórico">
                                                 <button
-                                                    onClick={() => onDelete(contact.id)}
-                                                    className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                    onClick={() => onViewHistory(contact)}
+                                                    className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 transition-all shadow-sm shadow-emerald-500/10"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <History size={16} />
                                                 </button>
                                             </Tooltip>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
+                                            <Tooltip content="Editar">
+                                                <button
+                                                    onClick={() => onEdit(contact)}
+                                                    className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all shadow-sm shadow-blue-500/10"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                            </Tooltip>
+                                            {canDelete && (
+                                                <Tooltip content="Excluir">
+                                                    <button
+                                                        onClick={() => onDelete(contact.id)}
+                                                        className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 transition-all shadow-sm shadow-rose-500/10"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })
                     )}
                 </tbody>
             </table>
