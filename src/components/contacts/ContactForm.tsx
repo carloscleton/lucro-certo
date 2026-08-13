@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { UserPlus, Search, Award, Check, Copy } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -88,6 +88,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [cepResults, setCepResults] = useState<any[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [isFetchingTaxId, setIsFetchingTaxId] = useState(false);
+    const loadedCepRef = useRef<string>('');
 
     const handleTaxIdLookup = async (value: string) => {
         if (!user) return;
@@ -172,7 +173,9 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             }
 
             setBirthday(initialData.birthday || '');
-            setZipCode(initialData.zip_code || '');
+            const initCep = initialData.zip_code || '';
+            setZipCode(initCep);
+            loadedCepRef.current = initCep.replace(/\D/g, '');
             setStreet(initialData.street || '');
             setNumber(initialData.number || '');
             setComplement(initialData.complement || '');
@@ -267,10 +270,10 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
         onClose();
     };
 
-    // Auto-CEP search when 8 digits are reached
+    // Auto-CEP search when 8 digits are reached (only if CEP actually changed)
     useEffect(() => {
         const cleanCep = zipCode.replace(/\D/g, '');
-        if (cleanCep.length === 8) {
+        if (cleanCep.length === 8 && cleanCep !== loadedCepRef.current) {
             handleZipCodeLookup(cleanCep);
         }
     }, [zipCode]);
@@ -282,10 +285,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const data = await response.json();
 
             if (!data.erro) {
-                setStreet(data.logradouro);
-                setNeighborhood(data.bairro);
-                setCity(data.localidade);
-                setState(data.uf);
+                // Apenas preenche o logradouro se o ViaCEP retornar algo válido,
+                // evitando apagar o nome da rua digitado manualmente para CEPs genéricos de cidade (ex: 68680000)
+                if (data.logradouro) setStreet(data.logradouro);
+                if (data.bairro) setNeighborhood(data.bairro);
+                if (data.localidade) setCity(data.localidade);
+                if (data.uf) setState(data.uf);
+                loadedCepRef.current = cleanCep;
             }
         } catch (error) {
             console.error('Erro ao buscar CEP:', error);
@@ -296,7 +302,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
 
     const handleZipCodeBlur = () => {
         const cleanCep = zipCode.replace(/\D/g, '');
-        if (cleanCep.length === 8) {
+        if (cleanCep.length === 8 && cleanCep !== loadedCepRef.current) {
             handleZipCodeLookup(cleanCep);
         }
     };
@@ -327,11 +333,13 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     };
 
     const selectCep = (result: any) => {
+        const cleanCep = (result.cep || '').replace(/\D/g, '');
         setZipCode(result.cep);
-        setStreet(result.logradouro);
-        setNeighborhood(result.bairro);
-        setCity(result.localidade);
-        setState(result.uf);
+        if (result.logradouro) setStreet(result.logradouro);
+        if (result.bairro) setNeighborhood(result.bairro);
+        if (result.localidade) setCity(result.localidade);
+        if (result.uf) setState(result.uf);
+        loadedCepRef.current = cleanCep;
         setShowCepSearch(false);
         // Clear search
         setSearchState('');
