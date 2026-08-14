@@ -34,8 +34,15 @@ export interface Alert {
     category_name?: string;
 }
 
+const dashboardCache = new Map<string, any>();
+
 export function useDashboard(startDate: string, endDate: string) {
-    const [metrics, setMetrics] = useState<DashboardMetrics>({
+    const { user } = useAuth();
+    const { currentEntity } = useEntity();
+    const cacheKey = `${currentEntity?.id || 'personal'}_${startDate}_${endDate}`;
+    const cached = dashboardCache.get(cacheKey);
+
+    const [metrics, setMetrics] = useState<DashboardMetrics>(cached?.metrics || {
         balance: 0,
         totalPayable: 0,
         totalReceivable: 0,
@@ -44,29 +51,25 @@ export function useDashboard(startDate: string, endDate: string) {
         rejectedTotal: 0,
         rejectedCount: 0,
     });
-    const [chartData, setChartData] = useState<ChartData[]>([]);
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [expensesByCategory, setExpensesByCategory] = useState<{ category_id: string; amount: number }[]>([]);
-    const [pendingList, setPendingList] = useState<any[]>([]);
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [contextMetrics, setContextMetrics] = useState<ContextMetrics>({
+    const [chartData, setChartData] = useState<ChartData[]>(cached?.chartData || []);
+    const [alerts, setAlerts] = useState<Alert[]>(cached?.alerts || []);
+    const [expensesByCategory, setExpensesByCategory] = useState<{ category_id: string; amount: number }[]>(cached?.expensesByCategory || []);
+    const [pendingList, setPendingList] = useState<any[]>(cached?.pendingList || []);
+    const [transactions, setTransactions] = useState<any[]>(cached?.transactions || []);
+    const [contextMetrics, setContextMetrics] = useState<ContextMetrics>(cached?.contextMetrics || {
         personal: { income: 0, expense: 0, balance: 0 },
         business: { income: 0, expense: 0, balance: 0 }
     });
-    const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>({ income: 0, expense: 0 });
-    const [agendaTasks, setAgendaTasks] = useState<any[]>([]);
-    const [invoices, setInvoices] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [previousPeriod, setPreviousPeriod] = useState<{ income: number; expense: number }>(cached?.previousPeriod || { income: 0, expense: 0 });
+    const [agendaTasks, setAgendaTasks] = useState<any[]>(cached?.agendaTasks || []);
+    const [invoices, setInvoices] = useState<any[]>(cached?.invoices || []);
+    const [loading, setLoading] = useState(!cached);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const { user } = useAuth();
-    const { currentEntity } = useEntity();
 
     const fetchMetrics = useCallback(async () => {
         if (!user) return;
 
-        // Only show full loader if we have NO data yet
-        const hasData = metrics.income !== 0 || metrics.expense !== 0 || metrics.balance !== 0;
-        if (!hasData) {
+        if (!dashboardCache.has(cacheKey)) {
             setLoading(true);
         } else {
             setIsRefreshing(true);
@@ -374,6 +377,19 @@ export function useDashboard(startDate: string, endDate: string) {
                 .filter(t => t.type === 'expense' && (t.status === 'pending' || t.status === 'late'))
                 .sort((a, b) => a.date.localeCompare(b.date));
             setPendingList(pending);
+
+            dashboardCache.set(cacheKey, {
+                metrics: calcMetrics,
+                chartData: cData,
+                alerts: alertsList,
+                expensesByCategory: expenseByCat,
+                pendingList: pending,
+                transactions: allTx,
+                contextMetrics: cMetrics,
+                previousPeriod: prevPeriodData,
+                agendaTasks: tasksList,
+                invoices: invList
+            });
 
         } catch (err) {
             console.error("Dashboard Error:", err);

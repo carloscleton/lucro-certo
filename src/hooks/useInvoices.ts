@@ -43,10 +43,15 @@ export interface FiscalInvoice {
     updated_at: string;
 }
 
+const invoicesCache = new Map<string, FiscalInvoice[]>();
+
 export function useInvoices() {
-    const [invoices, setInvoices] = useState<FiscalInvoice[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const { currentEntity } = useEntity();
+    const cacheKey = currentEntity?.id || 'personal';
+    const cachedData = invoicesCache.get(cacheKey);
+
+    const [invoices, setInvoices] = useState<FiscalInvoice[]>(cachedData || []);
+    const [isLoading, setIsLoading] = useState(!cachedData);
 
     const fetchInvoices = useCallback(async () => {
         if (!currentEntity.id || currentEntity.type === 'personal') {
@@ -55,7 +60,9 @@ export function useInvoices() {
             return;
         }
 
-        setIsLoading(true);
+        if (!invoicesCache.has(cacheKey)) {
+            setIsLoading(true);
+        }
         try {
             let filterId = currentEntity.id;
             
@@ -112,7 +119,9 @@ export function useInvoices() {
             );
 
             if (error) throw error;
-            setInvoices(data || []);
+            const finalData = data || [];
+            invoicesCache.set(cacheKey, finalData);
+            setInvoices(finalData);
         } catch (error) {
             console.error('Error fetching invoices:', error);
         } finally {

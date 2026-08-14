@@ -33,11 +33,16 @@ export interface Contact {
     }[];
 }
 
+const contactsCache = new Map<string, Contact[]>();
+
 export function useContacts() {
-    const [contacts, setContacts] = useState<Contact[]>([]);
-    const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
+    const cacheKey = `${user?.id || 'guest'}_${currentEntity?.id || 'personal'}`;
+    const cached = contactsCache.get(cacheKey);
+
+    const [contacts, setContacts] = useState<Contact[]>(cached || []);
+    const [loading, setLoading] = useState(!cached);
 
     const runMigration = async (nullContacts: Contact[]) => {
         if (nullContacts.length === 0) return false;
@@ -99,12 +104,15 @@ export function useContacts() {
     };
 
     const applyFilteredContacts = (list: Contact[]) => {
-        // Exibe todos os contatos cadastrados pelo usuário para que possam receber notas de qualquer empresa do usuário
+        contactsCache.set(cacheKey, list);
         setContacts(list);
     };
 
     const fetchContacts = async () => {
         if (!user) return;
+        if (!contactsCache.has(cacheKey)) {
+            setLoading(true);
+        }
         try {
             const { data, error } = await withRetry(() => supabase
                 .from('contacts')

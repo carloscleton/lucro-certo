@@ -43,18 +43,23 @@ export interface Transaction {
     created_at: string;
 }
 
+const transactionsCache = new Map<string, Transaction[]>();
+
 export function useTransactions(type: TransactionType) {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
     const { currentEntity } = useEntity();
+    const cacheKey = `${user?.id || 'guest'}_${currentEntity?.id || 'personal'}_${type}`;
+    const cached = transactionsCache.get(cacheKey);
+
+    const [transactions, setTransactions] = useState<Transaction[]>(cached || []);
+    const [loading, setLoading] = useState(!cached);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchTransactions = useCallback(async () => {
         if (!user) return;
 
-        if (transactions.length === 0) {
+        if (!transactionsCache.has(cacheKey)) {
             setLoading(true);
         } else {
             setIsRefreshing(true);
@@ -77,7 +82,9 @@ export function useTransactions(type: TransactionType) {
             const { data, error } = await query;
 
             if (error) throw error;
-            setTransactions(data || []);
+            const res = data || [];
+            transactionsCache.set(cacheKey, res);
+            setTransactions(res);
         } catch (err: any) {
             setError(err.message);
         } finally {

@@ -56,13 +56,21 @@ export interface Company {
     status?: string;
 }
 
+const companiesCache = new Map<string, Company[]>();
+
 export function useCompanies() {
-    const [companies, setCompanies] = useState<Company[]>([]);
-    const [loading, setLoading] = useState(true);
     const { user } = useAuth();
+    const cacheKey = user?.id || 'guest';
+    const cached = companiesCache.get(cacheKey);
+
+    const [companies, setCompanies] = useState<Company[]>(cached || []);
+    const [loading, setLoading] = useState(!cached);
 
     const fetchCompanies = async () => {
         if (!user) return;
+        if (!companiesCache.has(cacheKey)) {
+            setLoading(true);
+        }
         try {
             const { data, error } = await withRetry(() => supabase
                 .from('company_members')
@@ -90,7 +98,9 @@ export function useCompanies() {
                 .filter(Boolean)
                 .sort((a: any, b: any) => (a.trade_name || '').localeCompare(b.trade_name || ''));
 
-            setCompanies(companiesList as Company[]);
+            const result = companiesList as Company[];
+            companiesCache.set(cacheKey, result);
+            setCompanies(result);
         } catch (error) {
             console.error('Error fetching companies:', error);
         } finally {
