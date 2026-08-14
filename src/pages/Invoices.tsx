@@ -22,6 +22,7 @@ import { DeleteProtectionModal } from '../components/transactions/DeleteProtecti
 import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 import { formatPhoneWhatsapp } from '../utils/phoneUtils';
+import { usePaymentGateways } from '../hooks/usePaymentGateways';
 
 
 export function parseFiscalError(error: any): string {
@@ -168,7 +169,7 @@ export function Invoices() {
     const { companies } = useCompanies();
     const { gateways } = usePaymentGateways();
 
-    const hasActiveGateway = gateways.some(g => g.is_active);
+    const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     // activeProvider is no longer used here
     // config is no longer used because WhatsApp/Email buttons are always shown manually
