@@ -193,10 +193,12 @@ export function useDashboard(startDate: string, endDate: string) {
             setInvoices(invoices);
 
             // Previous period metrics (safe - don't let it break dashboard)
+            let prevPeriodData = { income: 0, expense: 0 };
             try {
                 const prevIncome = prevTx.filter((t: any) => t.type === 'income' && t.status === 'received').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
                 const prevExpense = prevTx.filter((t: any) => t.type === 'expense' && t.status === 'paid').reduce((acc: number, t: any) => acc + Number(t.paid_amount || t.amount), 0);
-                setPreviousPeriod({ income: prevIncome, expense: prevExpense });
+                prevPeriodData = { income: prevIncome, expense: prevExpense };
+                setPreviousPeriod(prevPeriodData);
             } catch {
                 setPreviousPeriod({ income: 0, expense: 0 });
             }
@@ -378,17 +380,32 @@ export function useDashboard(startDate: string, endDate: string) {
                 .sort((a, b) => a.date.localeCompare(b.date));
             setPendingList(pending);
 
+            const calculatedMetrics: DashboardMetrics = {
+                balance: periodBalance,
+                totalPayable: periodPayable,
+                totalReceivable: periodReceivable,
+                income,
+                expense,
+                rejectedTotal,
+                rejectedCount
+            };
+
+            const calculatedContextMetrics: ContextMetrics = {
+                personal: { income: personalIncome, expense: personalExpense, balance: personalIncome - personalExpense },
+                business: { income: businessIncome, expense: businessExpense, balance: businessIncome - businessExpense }
+            };
+
             dashboardCache.set(cacheKey, {
-                metrics: calcMetrics,
-                chartData: cData,
-                alerts: alertsList,
+                metrics: calculatedMetrics,
+                chartData: chart,
+                alerts: newAlerts,
                 expensesByCategory: expenseByCat,
                 pendingList: pending,
                 transactions: allTx,
-                contextMetrics: cMetrics,
+                contextMetrics: calculatedContextMetrics,
                 previousPeriod: prevPeriodData,
-                agendaTasks: tasksList,
-                invoices: invList
+                agendaTasks,
+                invoices
             });
 
         } catch (err) {
