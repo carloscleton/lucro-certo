@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info, QrCode, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Modal } from '../ui/Modal';
@@ -116,9 +116,23 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         return { amount, clientName, clientTaxId, clientEmail };
     };
 
+    const prevIsOpenRef = useRef<boolean>(false);
+    const prevInvoiceIdRef = useRef<string | null>(null);
+
     // Check if a boleto has already been created for this invoice
     useEffect(() => {
-        if (isOpen && invoice) {
+        if (!isOpen) {
+            prevIsOpenRef.current = false;
+            return;
+        }
+
+        const isNewOpen = !prevIsOpenRef.current && isOpen;
+        const isDifferentInvoice = prevInvoiceIdRef.current !== (invoice?.id || null);
+
+        if ((isNewOpen || isDifferentInvoice) && invoice) {
+            prevIsOpenRef.current = true;
+            prevInvoiceIdRef.current = invoice.id || null;
+
             setResult(null);
             setExistingCharge(null);
             setErrorMessage(null);
@@ -180,7 +194,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
             const defProv = defaultGateway?.provider || activeGateways[0]?.provider || 'banco_inter';
             setSelectedProvider(defProv);
         }
-    }, [isOpen, invoice, contacts, gateways, defaultGateway]);
+    }, [isOpen, invoice?.id, contacts, gateways, defaultGateway]);
 
     const activeGateways = gateways.filter(g => g.is_active);
     const selectedGateway = activeGateways.find(g => g.provider === selectedProvider) || activeGateways[0];
@@ -584,23 +598,23 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
 
                     {/* Formas / Métodos de Pagamento Aceitos */}
                     <div className="space-y-3">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Métodos Aceitos / Tipo de Cobrança</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Método Aceito / Tipo de Cobrança</label>
+                        <div className="grid grid-cols-3 gap-3">
                             <button
                                 type="button"
                                 onClick={() => setSelectedMethod('pix')}
                                 className={clsx(
-                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    "p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all text-center cursor-pointer",
                                     selectedMethod === 'pix'
                                         ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
                                         : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
                                 )}
                             >
                                 <div className={clsx(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    "w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs",
                                     selectedMethod === 'pix' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
                                 )}>
-                                    <QrCode size={18} />
+                                    <QrCode size={20} />
                                 </div>
                                 <span className="text-[11px] font-black uppercase tracking-wider">Pix</span>
                             </button>
@@ -609,17 +623,17 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                                 type="button"
                                 onClick={() => setSelectedMethod('credit_card')}
                                 className={clsx(
-                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    "p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all text-center cursor-pointer",
                                     selectedMethod === 'credit_card'
                                         ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
                                         : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
                                 )}
                             >
                                 <div className={clsx(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    "w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs",
                                     selectedMethod === 'credit_card' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
                                 )}>
-                                    <CreditCard size={18} />
+                                    <CreditCard size={20} />
                                 </div>
                                 <span className="text-[11px] font-black uppercase tracking-wider">Cartão</span>
                             </button>
@@ -628,38 +642,19 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                                 type="button"
                                 onClick={() => setSelectedMethod('boleto')}
                                 className={clsx(
-                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    "p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all text-center cursor-pointer",
                                     selectedMethod === 'boleto'
                                         ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
                                         : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
                                 )}
                             >
                                 <div className={clsx(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    "w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs",
                                     selectedMethod === 'boleto' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
                                 )}>
-                                    <FileText size={18} />
+                                    <FileText size={20} />
                                 </div>
                                 <span className="text-[11px] font-black uppercase tracking-wider">Boleto</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setSelectedMethod('all')}
-                                className={clsx(
-                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
-                                    selectedMethod === 'all'
-                                        ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
-                                        : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
-                                )}
-                            >
-                                <div className={clsx(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
-                                    selectedMethod === 'all' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
-                                )}>
-                                    <Sparkles size={18} />
-                                </div>
-                                <span className="text-[11px] font-black uppercase tracking-wider">Todos</span>
                             </button>
                         </div>
                     </div>
@@ -681,113 +676,217 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                 </div>
             )
             ) : (
-                /* PAINEL DE GESTÃO DO BOLETO EXISTENTE OU RECÉM-GERADO */
-                <div className="py-4 space-y-5 animate-in zoom-in-95 duration-300">
-                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/40 rounded-2xl flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-600">
-                                <ShieldCheck size={24} />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                    Boleto ({activeCharge.provider === 'asaas' ? 'Asaas' : activeCharge.provider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter'}) Registrado
-                                </h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                    Referência: <strong>{activeCharge.external_reference || `NF${invoice?.invoice_number}`}</strong>
-                                </p>
-                            </div>
-                        </div>
+                /* PAINEL DE GESTÃO DO BOLETO / COBRANÇA EXISTENTE OU RECÉM-GERADA */
+                (() => {
+                    const method = activeCharge.payment_method || selectedMethod;
+                    const isPix = method === 'pix' || !!activeCharge.qr_code || !!activeCharge.qr_code_base64;
+                    const isCard = method === 'credit_card';
 
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                            activeCharge.status === 'approved' || activeCharge.status === 'paid'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
-                        }`}>
-                            {activeCharge.status === 'approved' || activeCharge.status === 'paid' ? '✓ PAGO' : '⏳ PENDENTE'}
-                        </span>
-                    </div>
+                    return (
+                        <div className="py-4 space-y-5 animate-in zoom-in-95 duration-300">
+                            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/40 rounded-2xl flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-600 font-bold">
+                                        {isPix ? <QrCode size={22} /> : isCard ? <CreditCard size={22} /> : <ShieldCheck size={24} />}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                            Cobrança {isPix ? 'PIX' : isCard ? 'CARTÃO' : 'BOLETO'} ({activeProviderName}) Registrada
+                                        </h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                            Referência: <strong>{activeCharge.external_reference || `NF${invoice?.invoice_number}`}</strong>
+                                        </p>
+                                    </div>
+                                </div>
 
-                    {/* Visualizador de PDF Embutido */}
-                    <div className="p-2 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden">
-                        {activeCharge.payment_link ? (
-                            <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
-                                <div className="flex items-center justify-between mb-2 px-2">
-                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic flex items-center gap-1">
-                                        <FileText size={14} /> PDF Oficial do Boleto ({activeCharge.provider === 'asaas' ? 'Asaas / Boleto Híbrido' : activeCharge.provider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter'})
-                                    </span>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                    activeCharge.status === 'approved' || activeCharge.status === 'paid'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
+                                }`}>
+                                    {activeCharge.status === 'approved' || activeCharge.status === 'paid' ? '✓ PAGO' : '⏳ PENDENTE'}
+                                </span>
+                            </div>
+
+                            {/* Conteúdo Específico por Método (Pix vs Cartão vs Boleto) */}
+                            {isPix ? (
+                                <div className="p-6 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-2xl border border-emerald-100 dark:border-emerald-800/40 text-center space-y-4">
+                                    <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
+                                        <QrCode size={26} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                            QR Code & Chave Pix Copia e Cola
+                                        </h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1 max-w-sm mx-auto">
+                                            Escaneie com o app do seu banco ou copie a chave Pix Copia e Cola para realizar o pagamento.
+                                        </p>
+                                    </div>
+
+                                    {activeCharge.qr_code_base64 && (
+                                        <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl inline-block border border-emerald-200 dark:border-emerald-800 shadow-sm mx-auto">
+                                            <img
+                                                src={activeCharge.qr_code_base64.startsWith('data:') ? activeCharge.qr_code_base64 : `data:image/png;base64,${activeCharge.qr_code_base64}`}
+                                                alt="QR Code Pix"
+                                                className="w-48 h-48 object-contain mx-auto rounded-lg"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {activeCharge.qr_code && (
+                                        <div className="space-y-1.5 text-left max-w-md mx-auto">
+                                            <label className="block text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest">Chave Pix Copia e Cola:</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={activeCharge.qr_code}
+                                                    className="flex-1 px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-mono text-gray-800 dark:text-gray-200 select-all focus:outline-none"
+                                                />
+                                                <Button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(activeCharge.qr_code);
+                                                        notify('success', 'Pix Copiado', 'Chave Pix Copia e Cola copiada com sucesso!');
+                                                    }}
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm shrink-0"
+                                                >
+                                                    <Copy size={14} /> Copiar Chave
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : isCard ? (
+                                <div className="p-6 bg-blue-50/60 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-800/40 text-center space-y-4">
+                                    <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-blue-500/20">
+                                        <CreditCard size={26} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                            Link de Pagamento no Cartão
+                                        </h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1 max-w-sm mx-auto">
+                                            Envie este link para o cliente realizar o pagamento seguro com Cartão de Crédito.
+                                        </p>
+                                    </div>
+
+                                    {(activeCharge.payment_link || activeCharge.qr_code) && (
+                                        <div className="space-y-3 max-w-md mx-auto">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={activeCharge.payment_link || activeCharge.qr_code}
+                                                    className="flex-1 px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-mono text-gray-800 dark:text-gray-200 select-all focus:outline-none"
+                                                />
+                                                <Button
+                                                    onClick={() => {
+                                                        const link = activeCharge.payment_link || activeCharge.qr_code;
+                                                        navigator.clipboard.writeText(link);
+                                                        notify('success', 'Link Copiado', 'Link de pagamento no cartão copiado com sucesso!');
+                                                    }}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm shrink-0"
+                                                >
+                                                    <Copy size={14} /> Copiar Link
+                                                </Button>
+                                            </div>
+                                            {activeCharge.payment_link && (
+                                                <a
+                                                    href={activeCharge.payment_link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
+                                                >
+                                                    Abrir Checkout em Nova Aba <ExternalLink size={14} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden">
+                                    {activeCharge.payment_link ? (
+                                        <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
+                                            <div className="flex items-center justify-between mb-2 px-2">
+                                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic flex items-center gap-1">
+                                                    <FileText size={14} /> PDF Oficial do Boleto ({activeProviderName})
+                                                </span>
+                                                <a
+                                                    href={activeCharge.payment_link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                >
+                                                    Abrir em nova aba <ExternalLink size={12} />
+                                                </a>
+                                            </div>
+                                            <iframe
+                                                src={activeCharge.payment_link}
+                                                className="w-full h-80 rounded-xl border border-gray-200 dark:border-slate-700 bg-white"
+                                                title="Visualização do Boleto"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 text-center text-gray-400">
+                                            <LinkIcon size={40} className="mx-auto mb-2 opacity-50" />
+                                            <p className="text-xs font-bold">Cobrança ativa registrada no banco.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Botões de Gestão (Download, Consultar Status, Cancelar) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                {!isPix && !isCard && activeCharge.payment_link && (
                                     <a
                                         href={activeCharge.payment_link}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                        download={`Boleto_NF_${invoice?.invoice_number || 'Inter'}.pdf`}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3 px-4 shadow-md font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
                                     >
-                                        Abrir em nova aba <ExternalLink size={12} />
+                                        <Download size={16} />
+                                        Baixar PDF do Boleto
                                     </a>
-                                </div>
-                                <iframe
-                                    src={activeCharge.payment_link}
-                                    className="w-full h-80 rounded-xl border border-gray-200 dark:border-slate-700 bg-white"
-                                    title="Visualização do Boleto"
-                                />
+                                )}
+
+                                <Button
+                                    onClick={handleCopyLink}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 px-4 shadow-md font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
+                                >
+                                    <Copy size={16} />
+                                    {isPix ? 'Copiar Chave Pix' : isCard ? 'Copiar Link do Cartão' : 'Copiar Link do Boleto'}
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCheckStatus}
+                                    isLoading={checkingStatus}
+                                    className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
+                                >
+                                    <RefreshCw size={16} className={checkingStatus ? 'animate-spin' : ''} />
+                                    Consultar Status no {activeProviderName || 'Gateway'}
+                                </Button>
+
+                                <Button
+                                    variant="danger"
+                                    onClick={handleCancelBoleto}
+                                    isLoading={cancelling}
+                                    className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
+                                >
+                                    <XCircle size={16} />
+                                    Cancelar {isPix ? 'Pix' : isCard ? 'Cobrança' : 'Boleto'} no {activeProviderName || 'Gateway'}
+                                </Button>
                             </div>
-                        ) : (
-                            <div className="p-8 text-center text-gray-400">
-                                <LinkIcon size={40} className="mx-auto mb-2 opacity-50" />
-                                <p className="text-xs font-bold">Cobrança ativa registrada no banco.</p>
+
+                            <div className="pt-2 text-center border-t border-gray-100 dark:border-slate-800">
+                                <Button variant="ghost" onClick={onClose} className="text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
+                                    Fechar Janela
+                                </Button>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Botões de Gestão (Download, Consultar Status, Cancelar Boleto) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                        {activeCharge.payment_link && (
-                            <a
-                                href={activeCharge.payment_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`Boleto_NF_${invoice?.invoice_number || 'Inter'}.pdf`}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3 px-4 shadow-md font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
-                            >
-                                <Download size={16} />
-                                Baixar PDF do Boleto
-                            </a>
-                        )}
-
-                        <Button
-                            onClick={handleCopyLink}
-                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 px-4 shadow-md font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
-                        >
-                            <Copy size={16} />
-                            Copiar Link do Boleto
-                        </Button>
-
-                        <Button
-                            variant="outline"
-                            onClick={handleCheckStatus}
-                            isLoading={checkingStatus}
-                            className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
-                        >
-                            <RefreshCw size={16} className={checkingStatus ? 'animate-spin' : ''} />
-                            Consultar Status no {activeProviderName || 'Gateway'}
-                        </Button>
-
-                        <Button
-                            variant="danger"
-                            onClick={handleCancelBoleto}
-                            isLoading={cancelling}
-                            className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
-                        >
-                            <XCircle size={16} />
-                            Cancelar Boleto no {activeProviderName || 'Gateway'}
-                        </Button>
-                    </div>
-
-                    <div className="pt-2 text-center border-t border-gray-100 dark:border-slate-800">
-                        <Button variant="ghost" onClick={onClose} className="text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
-                            Fechar Janela
-                        </Button>
-                    </div>
-                </div>
+                        </div>
+                    );
+                })()
             )}
         </Modal>
     );
