@@ -276,30 +276,30 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         const chargeProvider = targetCharge.provider || selectedProvider;
         const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
 
-        if (!window.confirm(`Deseja realmente cancelar este boleto no ${providerName}? Esta ação baixará/cancelará o título no provedor.`)) return;
+        if (!window.confirm(`Deseja realmente cancelar esta cobrança no ${providerName}? Esta ação baixará/cancelará o título no provedor.`)) return;
 
         setCancelling(true);
         try {
             const session = (await supabase.auth.getSession()).data.session;
             const res = await axios.post(`${API_BASE_URL}/payments/cancel`, {
                 companyId: invoice.company_id,
-                chargeId: targetCharge.id,
+                chargeId: targetCharge.id || targetCharge.chargeId,
                 provider: chargeProvider,
-                codigoSolicitacao: targetCharge.gateway_id || targetCharge.external_reference
+                codigoSolicitacao: targetCharge.gateway_id || targetCharge.payment_id || targetCharge.external_reference
             }, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
 
             if (res.data.success) {
-                notify('success', 'Boleto Cancelado', `O boleto foi cancelado no ${providerName} com sucesso!`);
+                notify('success', 'Cobrança Cancelada', `A cobrança foi cancelada no ${providerName} com sucesso!`);
                 setExistingCharge(null);
                 setResult(null);
             } else {
-                notify('error', 'Erro ao Cancelar', res.data.error || 'Falha ao cancelar boleto.');
+                notify('error', 'Erro ao Cancelar', res.data.error || 'Falha ao cancelar cobrança.');
             }
         } catch (err: any) {
-            console.error('Erro ao cancelar boleto:', err);
-            notify('error', 'Erro ao Cancelar', err.response?.data?.error || err.message || 'Falha ao cancelar boleto.');
+            console.error('Erro ao cancelar cobrança:', err);
+            notify('error', 'Erro ao Cancelar', err.response?.data?.error || err.message || 'Falha ao cancelar cobrança.');
         } finally {
             setCancelling(false);
         }

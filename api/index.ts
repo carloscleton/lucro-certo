@@ -9988,9 +9988,11 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
         let activeProvider = provider;
         let charge: any = null;
 
-        if (chargeId) {
+        const codeToFind = chargeId || codigoSolicitacao;
+        if (codeToFind) {
             try {
-                const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${chargeId}&select=*`, {
+                const queryFilter = `or=(id.eq.${codeToFind},gateway_id.eq.${codeToFind},external_reference.eq.${codeToFind})`;
+                const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?${queryFilter}&select=*`, {
                     headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
                 });
                 charge = chargeRes.data?.[0];
@@ -10002,14 +10004,16 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
             }
         }
 
-        activeProvider = activeProvider || 'banco_inter';
+        activeProvider = activeProvider || charge?.provider || 'banco_inter';
         const compId = companyId || charge?.company_id;
 
         if (!compId) {
             return res.status(400).json({ error: 'companyId ou chargeId é obrigatório.' });
         }
 
-        console.log(`❌ Solicitando cancelamento de cobrança (${activeProvider}) | Solicitação: ${codigoSolicitacao || chargeId} | Empresa: ${compId}...`);
+        const targetCode = charge?.gateway_id || codigoSolicitacao || chargeId;
+
+        console.log(`❌ Solicitando cancelamento de cobrança (${activeProvider}) | Target Code: ${targetCode} | Empresa: ${compId}...`);
 
         const gateway = await getGatewayForCompany(compId, activeProvider);
         const providerTitle = activeProvider === 'asaas' ? 'Asaas' : activeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
@@ -10018,8 +10022,8 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
             return res.status(400).json({ error: `Configuração do ${providerTitle} não encontrada para esta empresa.` });
         }
 
-        const adapter = PaymentFactory.getAdapter(activeProvider, gateway.config, gateway.is_sandbox ?? true);
-        const targetCode = codigoSolicitacao || charge?.gateway_id || chargeId;
+        const isSandbox = charge?.is_sandbox ?? gateway.is_sandbox ?? true;
+        const adapter = PaymentFactory.getAdapter(activeProvider, gateway.config, isSandbox);
 
         let result: any = { success: true };
         if (typeof (adapter as any).cancelCharge === 'function') {
@@ -10028,8 +10032,8 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
             result = { success: true, message: `Cobrança marcada como cancelada no ${providerTitle}.` };
         }
 
-        if (chargeId || charge?.id) {
-            const targetId = chargeId || charge.id;
+        const targetId = charge?.id || chargeId;
+        if (targetId) {
             await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${targetId}`, {
                 status: 'cancelled'
             }, {
@@ -10041,9 +10045,9 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
             });
         }
 
-        res.json({ success: true, message: result.message || `Boleto cancelado no ${providerTitle} com sucesso!`, ...result });
+        res.json({ success: true, message: result.message || `Cobrança cancelada no ${providerTitle} com sucesso!`, ...result });
     } catch (error: any) {
-        console.error('❌ Erro ao cancelar boleto:', error.message);
+        console.error('❌ Erro ao cancelar cobrança:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
