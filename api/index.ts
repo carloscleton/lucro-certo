@@ -9901,6 +9901,86 @@ app.post(['/fiscal-module/admin/billing-process', '/api/fiscal-module/admin/bill
 });
 
 
+async function getGatewayForCompany(companyId: string, provider: string) {
+    const dbKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+    const providerClean = String(provider || '').toLowerCase().trim();
+
+    if (!companyId || !providerClean) return null;
+
+    try {
+        const gatewayResponse = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways`, {
+            params: {
+                company_id: `eq.${companyId}`,
+                provider: `eq.${providerClean}`,
+                select: '*'
+            },
+            headers: {
+                'apikey': dbKey!,
+                'Authorization': `Bearer ${dbKey}`
+            }
+        });
+
+        const list = gatewayResponse.data || [];
+        const gateway = list.find((g: any) => g.is_active || g.is_active === undefined);
+        if (gateway) return gateway;
+    } catch (err: any) {
+        console.warn(`⚠️ Erro ao buscar gateway ${providerClean} na tabela da empresa ${companyId}:`, err.message);
+    }
+
+    try {
+        const gatewayResponseFallback = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways`, {
+            params: {
+                company_id: `eq.${companyId}`,
+                select: '*'
+            },
+            headers: {
+                'apikey': dbKey!,
+                'Authorization': `Bearer ${dbKey}`
+            }
+        });
+        const match = (gatewayResponseFallback.data || []).find((g: any) =>
+            (g.provider || '').toLowerCase().trim() === providerClean
+        );
+        if (match) return match;
+    } catch (fallbackErr: any) {
+        console.warn(`⚠️ Fallback da tabela de gateways falhou:`, fallbackErr.message);
+    }
+
+    try {
+        const { data: appSettings } = await axios.get(`${SUPABASE_URL}/rest/v1/app_settings?id=eq.1&select=*`, {
+            headers: { 'apikey': dbKey! }
+        });
+        const settings = appSettings?.[0];
+        if (settings) {
+            const isSandbox = settings.platform_billing_sandbox !== false;
+            const env = isSandbox ? 'sandbox' : 'production';
+            const configData = settings.platform_billing_config?.[providerClean]?.[env] || {};
+            
+            let config: any = null;
+            if (providerClean === 'asaas') {
+                const key = configData.api_key || configData.prod_api_key || configData.sandbox_api_key;
+                if (key) config = { prod_api_key: key, sandbox_api_key: key };
+            } else if (providerClean === 'stripe') {
+                if (configData.secret_key) config = { secret_key: configData.secret_key };
+            } else if (providerClean === 'mercadopago') {
+                if (configData.access_token) config = { access_token: configData.access_token };
+            }
+
+            if (config) {
+                return {
+                    config,
+                    is_sandbox: isSandbox
+                };
+            }
+        }
+    } catch (appErr: any) {
+        console.warn(`⚠️ Fallback app_settings falhou:`, appErr.message);
+    }
+
+    return null;
+}
+
+
 app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', '/api/payments/inter/cancel'], authenticate, async (req, res) => {
     const { companyId, chargeId, codigoSolicitacao, provider } = req.body;
 
@@ -9931,11 +10011,7 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
 
         console.log(`❌ Solicitando cancelamento de cobrança (${activeProvider}) | Solicitação: ${codigoSolicitacao || chargeId} | Empresa: ${compId}...`);
 
-        const gatewayResponse = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways?company_id=eq.${compId}&provider=eq.${activeProvider}&is_active=eq.true&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY }
-        });
-
-        const gateway = gatewayResponse.data?.[0];
+        const gateway = await getGatewayForCompany(compId, activeProvider);
         const providerTitle = activeProvider === 'asaas' ? 'Asaas' : activeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
 
         if (!gateway) {
@@ -10001,11 +10077,7 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
             return res.status(400).json({ error: 'companyId é obrigatório.' });
         }
 
-        const gatewayResponse = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways?company_id=eq.${compId}&provider=eq.${provider}&is_active=eq.true&select=*`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY }
-        });
-
-        const gateway = gatewayResponse.data?.[0];
+        const gateway = await getGatewayForCompany(compId, provider);
         if (!gateway) {
             return res.status(400).json({ error: `Configuração do ${providerTitle} não encontrada.` });
         }
