@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info } from 'lucide-react';
+import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info, QrCode, Sparkles } from 'lucide-react';
+import { clsx } from 'clsx';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -35,6 +36,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
     const [dueDate, setDueDate] = useState('');
     const [description, setDescription] = useState('');
     const [selectedProvider, setSelectedProvider] = useState('banco_inter');
+    const [selectedMethod, setSelectedMethod] = useState<'boleto' | 'pix' | 'credit_card' | 'all'>('boleto');
     const [generating, setGenerating] = useState(false);
     const [result, setResult] = useState<any>(null);
 
@@ -229,18 +231,19 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                         email: selectedContact?.email || 'financeiro@lucrocerto.com.br',
                         tax_id: customerTaxId
                     },
-                    payment_method: 'boleto'
+                    payment_method: selectedMethod
                 }
             });
 
             if (res.success) {
                 setResult(res);
                 setExistingCharge(res);
-                notify('success', 'Sucesso', 'Boleto bancário gerado com sucesso!');
+                const methodLabel = selectedMethod === 'pix' ? 'Pix' : selectedMethod === 'credit_card' ? 'Cartão de Crédito' : selectedMethod === 'all' ? 'Cobrança Flexível' : 'Boleto bancário';
+                notify('success', 'Sucesso', `${methodLabel} gerado com sucesso!`);
             } else {
-                const errMsg = res.error || 'Falha na comunicação com o Banco Inter.';
+                const errMsg = res.error || 'Falha na comunicação com o gateway de pagamento.';
                 setErrorMessage(errMsg);
-                notify('error', 'Erro ao Gerar Boleto', errMsg);
+                notify('error', 'Erro ao Gerar Cobrança', errMsg);
             }
         } catch (error: any) {
             console.error('Error generating boleto for invoice:', error);
@@ -579,6 +582,88 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                         </div>
                     </div>
 
+                    {/* Formas / Métodos de Pagamento Aceitos */}
+                    <div className="space-y-3">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Métodos Aceitos / Tipo de Cobrança</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMethod('pix')}
+                                className={clsx(
+                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    selectedMethod === 'pix'
+                                        ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
+                                        : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    selectedMethod === 'pix' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
+                                )}>
+                                    <QrCode size={18} />
+                                </div>
+                                <span className="text-[11px] font-black uppercase tracking-wider">Pix</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMethod('credit_card')}
+                                className={clsx(
+                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    selectedMethod === 'credit_card'
+                                        ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
+                                        : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    selectedMethod === 'credit_card' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
+                                )}>
+                                    <CreditCard size={18} />
+                                </div>
+                                <span className="text-[11px] font-black uppercase tracking-wider">Cartão</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMethod('boleto')}
+                                className={clsx(
+                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    selectedMethod === 'boleto'
+                                        ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
+                                        : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    selectedMethod === 'boleto' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
+                                )}>
+                                    <FileText size={18} />
+                                </div>
+                                <span className="text-[11px] font-black uppercase tracking-wider">Boleto</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMethod('all')}
+                                className={clsx(
+                                    "p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer",
+                                    selectedMethod === 'all'
+                                        ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shadow-sm"
+                                        : "border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 text-gray-500 bg-white dark:bg-slate-900"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                                    selectedMethod === 'all' ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600" : "bg-gray-100 dark:bg-slate-800 text-gray-400"
+                                )}>
+                                    <Sparkles size={18} />
+                                </div>
+                                <span className="text-[11px] font-black uppercase tracking-wider">Todos</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Botões de Ação */}
                     <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
                         <Button variant="ghost" onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-wider">
@@ -590,7 +675,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3 shadow-lg shadow-emerald-500/20 font-black uppercase tracking-wider text-xs"
                         >
                             <Rocket size={16} className="mr-2" />
-                            Lançar e Gerar Boleto
+                            {selectedMethod === 'pix' ? 'Lançar e Gerar Pix' : selectedMethod === 'credit_card' ? 'Lançar e Gerar Link Cartão' : selectedMethod === 'all' ? 'Lançar e Gerar Cobrança' : 'Lançar e Gerar Boleto'}
                         </Button>
                     </div>
                 </div>

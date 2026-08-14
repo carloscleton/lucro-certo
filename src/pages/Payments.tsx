@@ -171,7 +171,16 @@ export function Payments() {
 
                 setResult(updated);
             } else if (gateway) {
-                const selectedMethod = selectedProvider === 'unified' ? 'all' : (selectedMethods[0] || 'pix');
+                let selectedMethod: any = 'all';
+                if (selectedProvider === 'unified' || selectedMethods.length >= 3 || selectedMethods.includes('all')) {
+                    selectedMethod = 'all';
+                } else if (selectedMethods.length === 1) {
+                    selectedMethod = selectedMethods[0];
+                } else if (selectedMethods.includes('boleto')) {
+                    selectedMethod = 'boleto';
+                } else {
+                    selectedMethod = 'all';
+                }
 
                 const res = await createCharge({
                     provider: selectedProvider as any,
