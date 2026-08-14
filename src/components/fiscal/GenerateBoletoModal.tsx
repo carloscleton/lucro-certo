@@ -256,21 +256,25 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         const targetCharge = existingCharge || result;
         if (!targetCharge) return;
 
-        if (!window.confirm('Deseja realmente cancelar este boleto no Banco Inter? Esta ação baixará o título no banco.')) return;
+        const chargeProvider = targetCharge.provider || selectedProvider;
+        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
+
+        if (!window.confirm(`Deseja realmente cancelar este boleto no ${providerName}? Esta ação baixará/cancelará o título no provedor.`)) return;
 
         setCancelling(true);
         try {
             const session = (await supabase.auth.getSession()).data.session;
-            const res = await axios.post(`${API_BASE_URL}/payments/inter/cancel`, {
+            const res = await axios.post(`${API_BASE_URL}/payments/cancel`, {
                 companyId: invoice.company_id,
                 chargeId: targetCharge.id,
+                provider: chargeProvider,
                 codigoSolicitacao: targetCharge.gateway_id || targetCharge.external_reference
             }, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
 
             if (res.data.success) {
-                notify('success', 'Boleto Cancelado', 'O boleto foi cancelado no Banco Inter com sucesso!');
+                notify('success', 'Boleto Cancelado', `O boleto foi cancelado no ${providerName} com sucesso!`);
                 setExistingCharge(null);
                 setResult(null);
             } else {
@@ -288,24 +292,29 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
         const targetCharge = existingCharge || result;
         if (!targetCharge) return;
 
-        const code = targetCharge.gateway_id || targetCharge.external_reference;
+        const code = targetCharge.gateway_id || targetCharge.external_reference || targetCharge.id;
         if (!code) return;
+
+        const chargeProvider = targetCharge.provider || selectedProvider;
+        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
 
         setCheckingStatus(true);
         try {
             const session = (await supabase.auth.getSession()).data.session;
-            const res = await axios.get(`${API_BASE_URL}/payments/inter/status/${code}?companyId=${invoice.company_id}`, {
+            const res = await axios.get(`${API_BASE_URL}/payments/status/${code}?companyId=${invoice.company_id}&provider=${chargeProvider}`, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
 
             if (res.data.success) {
                 const statusMap: Record<string, string> = {
                     approved: 'PAGO / APROVADO',
+                    paid: 'PAGO / APROVADO',
                     pending: 'PENDENTE / EM ABERTO',
-                    cancelled: 'CANCELADO / EXPIRADO'
+                    cancelled: 'CANCELADO / EXPIRADO',
+                    rejected: 'RECUSADO / CANCELADO'
                 };
                 const formattedStatus = statusMap[res.data.status] || res.data.status;
-                notify('info', 'Status Banco Inter', `Status atual no Banco Inter: ${formattedStatus}`);
+                notify('info', `Status ${providerName}`, `Status atual no ${providerName}: ${formattedStatus}`);
 
                 if (res.data.status === 'cancelled') {
                     setExistingCharge(null);
@@ -316,18 +325,50 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
             }
         } catch (err: any) {
             console.error('Erro ao consultar status:', err);
-            notify('error', 'Erro', 'Não foi possível consultar o status atual no Banco Inter.');
+            notify('error', 'Erro', `Não foi possível consultar o status atual no ${providerName}.`);
         } finally {
             setCheckingStatus(false);
         }
     };
 
+    const handleCopyLink = async () => {
+        const targetCharge = existingCharge || result;
+        const textToCopy = targetCharge?.payment_link || targetCharge?.bank_slip_url || targetCharge?.invoice_url || targetCharge?.qr_code || '';
+
+        if (!textToCopy) {
+            notify('warning', 'Atenção', 'Nenhum link de boleto disponível para copiar.');
+            return;
+        }
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(textToCopy);
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            notify('success', 'Copiado', 'Link do boleto copiado com sucesso!');
+        } catch (copyErr) {
+            console.error('Erro ao copiar link:', copyErr);
+            notify('error', 'Erro ao copiar', 'Não foi possível copiar o link automaticamente.');
+        }
+    };
+
     const activeCharge = existingCharge || result;
+    const activeProviderName = ((activeCharge?.provider || selectedProvider || '').replace('_', ' ')).toUpperCase();
 
     if (!isOpen) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Gestão de Boleto Bancário (Banco Inter)" icon={FileText} maxWidth="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={`Gestão de Boleto Bancário (${activeProviderName || 'GATEWAY'})`} icon={FileText} maxWidth="max-w-2xl">
             {loadingExisting ? (
                 <div className="flex flex-col items-center justify-center py-16 text-emerald-600 gap-3">
                     <RefreshCw size={32} className="animate-spin" />
@@ -628,11 +669,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                         )}
 
                         <Button
-                            onClick={() => {
-                                const key = activeCharge.qr_code || activeCharge.payment_link;
-                                navigator.clipboard.writeText(key);
-                                notify('success', 'Copiado', 'Link do boleto copiado com sucesso!');
-                            }}
+                            onClick={handleCopyLink}
                             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 px-4 shadow-md font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
                         >
                             <Copy size={16} />
@@ -646,7 +683,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
                         >
                             <RefreshCw size={16} className={checkingStatus ? 'animate-spin' : ''} />
-                            Consultar Status no Inter
+                            Consultar Status no {activeProviderName || 'Gateway'}
                         </Button>
 
                         <Button
@@ -656,7 +693,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             className="rounded-xl py-3 px-4 font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2"
                         >
                             <XCircle size={16} />
-                            Cancelar Boleto no Banco Inter
+                            Cancelar Boleto no {activeProviderName || 'Gateway'}
                         </Button>
                     </div>
 

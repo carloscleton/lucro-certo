@@ -88,6 +88,28 @@ export class AsaasAdapter implements PaymentAdapter {
         }
     }
 
+    async cancelCharge(payment_id: string): Promise<PaymentResponse> {
+        try {
+            const response = await axios.delete(`${this.baseUrl}/payments/${payment_id}`, {
+                headers: { 'access_token': this.apiKey }
+            });
+
+            return {
+                success: true,
+                payment_id: response.data?.id || payment_id,
+                status: 'cancelled'
+            };
+        } catch (error: any) {
+            console.error('Asaas cancel charge error:', error.response?.data || error.message);
+            const detail = error.response?.data?.errors?.[0]?.description || error.message;
+            return {
+                success: false,
+                status: 'rejected',
+                error: `Erro ao cancelar cobrança no Asaas: ${detail}`
+            };
+        }
+    }
+
     async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
         // Asaas Webhook payload contains the payment object
         const payment = payload.payment;
