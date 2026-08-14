@@ -229,14 +229,14 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                         email: selectedContact?.email || 'financeiro@lucrocerto.com.br',
                         tax_id: customerTaxId
                     },
-                    payment_method: selectedProvider === 'banco_inter' ? 'boleto' : 'all'
+                    payment_method: 'boleto'
                 }
             });
 
             if (res.success) {
                 setResult(res);
                 setExistingCharge(res);
-                notify('success', 'Sucesso', 'Boleto do Banco Inter gerado com sucesso!');
+                notify('success', 'Sucesso', 'Boleto bancário gerado com sucesso!');
             } else {
                 const errMsg = res.error || 'Falha na comunicação com o Banco Inter.';
                 setErrorMessage(errMsg);
@@ -564,7 +564,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             </div>
                             <div>
                                 <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                    Boleto Banco Inter Registrado
+                                    Boleto ({activeCharge.provider === 'asaas' ? 'Asaas' : activeCharge.provider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter'}) Registrado
                                 </h4>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                     Referência: <strong>{activeCharge.external_reference || `NF${invoice?.invoice_number}`}</strong>
@@ -587,7 +587,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                             <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                                 <div className="flex items-center justify-between mb-2 px-2">
                                     <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic flex items-center gap-1">
-                                        <FileText size={14} /> PDF Oficial do Boleto Banco Inter
+                                        <FileText size={14} /> PDF Oficial do Boleto ({activeCharge.provider === 'asaas' ? 'Asaas / Boleto Híbrido' : activeCharge.provider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter'})
                                     </span>
                                     <a
                                         href={activeCharge.payment_link}

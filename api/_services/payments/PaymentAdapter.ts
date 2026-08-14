@@ -12,6 +12,7 @@ export interface ChargeRequest {
     amount: number;
     description: string;
     external_reference: string;
+    due_date?: string;
     customer: {
         name: string;
         email: string;

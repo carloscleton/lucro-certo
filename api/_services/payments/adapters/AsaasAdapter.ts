@@ -17,16 +17,17 @@ export class AsaasAdapter implements PaymentAdapter {
     async createCharge(request: ChargeRequest): Promise<PaymentResponse> {
         try {
             // 1. Map billing type
-            let billingType = 'PIX';
-            if (request.payment_method === 'boleto') billingType = 'BOLETO';
-            if (request.payment_method === 'credit_card') billingType = 'CREDIT_CARD';
+            let billingType = 'BOLETO';
+            if (request.payment_method === 'pix') billingType = 'PIX';
+            else if (request.payment_method === 'credit_card') billingType = 'CREDIT_CARD';
+            else if (request.payment_method === 'boleto' || request.payment_method === 'all' || !request.payment_method) billingType = 'BOLETO';
 
             // 2. Create the payment
             const payload: any = {
                 customer: await this.getOrCreateCustomer(request.customer),
                 billingType,
                 value: request.amount,
-                dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 24h due date
+                dueDate: request.due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 description: request.description,
                 externalReference: request.external_reference,
             };
@@ -37,9 +38,9 @@ export class AsaasAdapter implements PaymentAdapter {
 
             const payment = response.data;
 
-            // 3. Get PIX QR Code if it's PIX
+            // 3. Get PIX QR Code if it's PIX or BOLETO (Boleto Híbrido Asaas)
             let qrCodeData = null;
-            if (billingType === 'PIX') {
+            if (billingType === 'PIX' || billingType === 'BOLETO') {
                 try {
                     const qrCodeResponse = await axios.get(`${this.baseUrl}/payments/${payment.id}/pixQrCode`, {
                         headers: { 'access_token': this.apiKey }
@@ -55,7 +56,7 @@ export class AsaasAdapter implements PaymentAdapter {
                 payment_id: payment.id,
                 qr_code: qrCodeData?.payload,
                 qr_code_base64: qrCodeData?.encodedImage,
-                payment_link: payment.invoiceUrl,
+                payment_link: payment.bankSlipUrl || payment.invoiceUrl,
                 status: this.mapStatus(payment.status)
             };
 
