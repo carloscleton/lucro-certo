@@ -216,6 +216,12 @@ export function Dashboard() {
     const isCRMEnabled = currentEntity.type === 'company' && currentCompany?.crm_module_enabled;
     const isLoyaltyEnabled = currentEntity.type === 'company' && currentCompany?.loyalty_module_enabled;
     const isFiscalEnabled = currentEntity.type === 'company' && !!currentCompany?.fiscal_module_enabled;
+    const isFinancialEnabled = currentEntity.type === 'personal' || (
+        currentCompany?.payments_module_enabled !== false &&
+        currentCompany?.settings?.modules?.payables?.admin !== false &&
+        currentCompany?.settings?.modules?.receivables?.admin !== false
+    );
+
     const hasNoData = metrics.income === 0 && 
                       metrics.expense === 0 && 
                       metrics.totalPayable === 0 && 
@@ -366,22 +372,35 @@ export function Dashboard() {
                         Nenhuma movimentação neste período
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                        Não encontramos receitas, despesas, compromissos ou notas fiscais para o período selecionado.
+                        {isFinancialEnabled
+                            ? "Não encontramos receitas, despesas, compromissos ou notas fiscais para o período selecionado."
+                            : "Não encontramos notas fiscais ou registros para o período selecionado."}
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <button
-                            onClick={() => navigate('/dashboard/receivables')}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-500/10"
-                        >
-                            Nova Receita
-                        </button>
-                        <button
-                            onClick={() => navigate('/dashboard/payables')}
-                            className="px-4 py-2.5 bg-white dark:bg-slate-850 hover:bg-gray-50 dark:hover:bg-slate-750 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 font-bold text-sm rounded-xl transition-all"
-                        >
-                            Nova Despesa
-                        </button>
-                    </div>
+                    {isFinancialEnabled ? (
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => navigate('/dashboard/receivables')}
+                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-500/10"
+                            >
+                                Nova Receita
+                            </button>
+                            <button
+                                onClick={() => navigate('/dashboard/payables')}
+                                className="px-4 py-2.5 bg-white dark:bg-slate-850 hover:bg-gray-50 dark:hover:bg-slate-750 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 font-bold text-sm rounded-xl transition-all"
+                            >
+                                Nova Despesa
+                            </button>
+                        </div>
+                    ) : isFiscalEnabled ? (
+                        <div className="flex justify-center">
+                            <button
+                                onClick={() => navigate('/dashboard/invoices')}
+                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-500/10"
+                            >
+                                Emitir Nota Fiscal
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
             ) : (
                 <>
@@ -431,7 +450,7 @@ export function Dashboard() {
                                     previousMonthLabel={previousMonthLabel}
                                 />
                             )}
-                            <PendingList transactions={pendingList} />
+                            {isFinancialEnabled && <PendingList transactions={pendingList} />}
                             {expensesByCategory.length > 0 && (
                                 <BudgetProgress categories={categories} expenses={expensesByCategory} />
                             )}
@@ -458,7 +477,7 @@ export function Dashboard() {
                                 />
                             )}
 
-                            <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />
+                            {isFinancialEnabled && <UpcomingBillsWidget onRefreshMetrics={refreshDashboard} />}
 
                             {(metrics.income > 0 || metrics.expense > 0) && (
                                 <div className="glass-card p-6 rounded-2xl transition-all hover:shadow-2xl">
