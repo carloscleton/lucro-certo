@@ -12,6 +12,8 @@ import { supabase } from '../../lib/supabase';
 import { API_BASE_URL } from '../../lib/constants';
 import axios from 'axios';
 
+import { useNavigate } from 'react-router-dom';
+
 interface GenerateBoletoModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -19,6 +21,7 @@ interface GenerateBoletoModalProps {
 }
 
 export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoletoModalProps) {
+    const navigate = useNavigate();
     const { contacts } = useContacts();
     const { gateways, defaultGateway } = usePaymentGateways();
     const { createCharge } = useCharges();
@@ -331,8 +334,54 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                     <span className="text-xs font-black uppercase tracking-widest text-gray-500">Verificando boletos no Banco Inter...</span>
                 </div>
             ) : !activeCharge ? (
-                /* FORMULÁRIO DE GERAÇÃO */
-                <div className="space-y-6 py-2">
+                activeGateways.length === 0 ? (
+                    /* ALERTA DE GATEWAY NÃO CONFIGURADO */
+                    <div className="py-4 space-y-5 animate-in fade-in duration-300">
+                        <div className="p-6 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl text-center space-y-4 my-2">
+                            <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/50 rounded-2xl flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400 shadow-sm">
+                                <AlertCircle size={32} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                    Nenhum Gateway de Pagamento Configurado
+                                </h3>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                                    Para emitir e enviar boletos bancários ou cobranças Pix, sua empresa precisa ter ao menos um Gateway de Pagamento ativo (ex: Banco Inter, Asaas, Mercado Pago).
+                                </p>
+                            </div>
+
+                            <div className="p-3.5 bg-amber-100/60 dark:bg-amber-900/30 border border-amber-200/50 dark:border-amber-800/40 rounded-xl text-xs font-medium text-amber-900 dark:text-amber-200 inline-block text-left">
+                                <p className="font-bold flex items-center gap-1.5 mb-0.5">
+                                    <span>📍</span> Onde configurar:
+                                </p>
+                                <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                                    Acesse no menu lateral: <strong>Configurações &gt; Integradores / Pagamentos</strong> e ative o provedor desejado.
+                                </p>
+                            </div>
+
+                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                                <Button
+                                    variant="ghost"
+                                    onClick={onClose}
+                                    className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    Fechar
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        onClose();
+                                        navigate('/dashboard/settings?tab=payments');
+                                    }}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20"
+                                >
+                                    Ir para Configurações de Gateways
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* FORMULÁRIO DE GERAÇÃO */
+                    <div className="space-y-6 py-2">
                     {/* Alerta de Erro / Indisponibilidade caso ocorra */}
                     {errorMessage && (
                         <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-start gap-3.5 shadow-sm animate-in fade-in duration-300">
@@ -504,6 +553,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                         </Button>
                     </div>
                 </div>
+            )
             ) : (
                 /* PAINEL DE GESTÃO DO BOLETO EXISTENTE OU RECÉM-GERADO */
                 <div className="py-4 space-y-5 animate-in zoom-in-95 duration-300">

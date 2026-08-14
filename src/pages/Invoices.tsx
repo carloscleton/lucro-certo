@@ -166,7 +166,9 @@ export function Invoices() {
     const { invoices, isLoading, refresh } = useInvoices();
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
-    
+    const { gateways } = usePaymentGateways();
+
+    const hasActiveGateway = gateways.some(g => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
     // activeProvider is no longer used here
     // config is no longer used because WhatsApp/Email buttons are always shown manually
@@ -1497,11 +1499,20 @@ ${messageWithPlaceholder}`;
                                                     </button>
                                                 </Tooltip>
 
-                                                {/* Gerar Boleto Banco Inter */}
-                                                <Tooltip content="Gerar Boleto Banco Inter / Cobrança">
+                                                {/* Gerar Boleto / Cobrança */}
+                                                <Tooltip content={hasActiveGateway ? "Gerar Boleto Bancário / Cobrança" : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar."}>
                                                     <button
-                                                        onClick={() => setBoletoModal({ isOpen: true, invoice })}
-                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all shadow-sm"
+                                                        onClick={() => {
+                                                            if (!hasActiveGateway) return;
+                                                            setBoletoModal({ isOpen: true, invoice });
+                                                        }}
+                                                        disabled={!hasActiveGateway}
+                                                        className={clsx(
+                                                            "h-10 w-10 flex items-center justify-center glass-morphism rounded-xl transition-all shadow-sm",
+                                                            hasActiveGateway
+                                                                ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
+                                                                : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800"
+                                                        )}
                                                     >
                                                         <FileText size={18} />
                                                     </button>
