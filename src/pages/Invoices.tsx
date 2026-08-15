@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -23,6 +23,7 @@ import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 import { formatPhoneWhatsapp } from '../utils/phoneUtils';
 import { usePaymentGateways } from '../hooks/usePaymentGateways';
+import { useCharges } from '../hooks/useCharges';
 
 
 export function parseFiscalError(error: any): string {
@@ -168,9 +169,21 @@ export function Invoices() {
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
     const { gateways } = usePaymentGateways();
+    const { charges } = useCharges();
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+
+    const getInvoiceCharge = (invoice: any) => {
+        if (!invoice || !charges || charges.length === 0) return null;
+        const invNo = invoice.invoice_number || invoice.external_id?.slice(-6) || '';
+        if (!invNo) return null;
+
+        return charges.find(c =>
+            c.status !== 'cancelled' &&
+            (c.external_reference === `NF${invNo}` || (c.description || '').includes(`Nº ${invNo}`))
+        );
+    };
     // activeProvider is no longer used here
     // config is no longer used because WhatsApp/Email buttons are always shown manually
     
@@ -1467,6 +1480,55 @@ ${messageWithPlaceholder}`;
                                         <td className="py-3 px-6">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 {getStatusBadge(invoice.status)}
+
+                                                {/* Badge Visual da Cobrança Criada (Pix, Cartão ou Boleto) */}
+                                                {(() => {
+                                                    const activeCharge = getInvoiceCharge(invoice);
+                                                    if (!activeCharge) return null;
+
+                                                    const isPaid = activeCharge.status === 'approved' || activeCharge.status === 'paid';
+                                                    const method = activeCharge.payment_method || '';
+                                                    const isPix = method === 'pix' || !!activeCharge.qr_code;
+                                                    const isCard = method === 'credit_card';
+
+                                                    return (
+                                                        <Tooltip content={`Cobrança ${activeCharge.provider?.toUpperCase()} Registrada (${isPaid ? 'Status: PAGO' : 'Status: PENDENTE'})`}>
+                                                            <button
+                                                                onClick={() => setBoletoModal({ isOpen: true, invoice })}
+                                                                className={clsx(
+                                                                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-sm transition-all cursor-pointer",
+                                                                    isPaid
+                                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                                                        : isPix
+                                                                            ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30 hover:bg-teal-500/20"
+                                                                            : isCard
+                                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
+                                                                                : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
+                                                                )}
+                                                            >
+                                                                {isPaid ? (
+                                                                    <CheckCircle2 size={11} className="text-emerald-500" />
+                                                                ) : isPix ? (
+                                                                    <QrCode size={11} className="text-teal-500" />
+                                                                ) : isCard ? (
+                                                                    <CreditCard size={11} className="text-blue-500" />
+                                                                ) : (
+                                                                    <FileText size={11} className="text-purple-500" />
+                                                                )}
+                                                                <span>
+                                                                    {isPaid
+                                                                        ? 'Cobrança Paga ✓'
+                                                                        : isPix
+                                                                            ? 'Pix Gerado'
+                                                                            : isCard
+                                                                                ? 'Cartão Gerado'
+                                                                                : 'Boleto Gerado'}
+                                                                </span>
+                                                            </button>
+                                                        </Tooltip>
+                                                    );
+                                                })()}
+
                                                 {invoice.deleted && (
                                                     <div className="px-2.5 py-1 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-500/20">
                                                         Excluída do Histórico
@@ -1500,24 +1562,51 @@ ${messageWithPlaceholder}`;
                                                     </button>
                                                 </Tooltip>
 
-                                                {/* Gerar Boleto / Cobrança */}
-                                                <Tooltip content={hasActiveGateway ? "Gerar Boleto Bancário / Cobrança" : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar."}>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!hasActiveGateway) return;
-                                                            setBoletoModal({ isOpen: true, invoice });
-                                                        }}
-                                                        disabled={!hasActiveGateway}
-                                                        className={clsx(
-                                                            "h-10 w-10 flex items-center justify-center glass-morphism rounded-xl transition-all shadow-sm",
-                                                            hasActiveGateway
-                                                                ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
-                                                                : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-800"
-                                                        )}
-                                                    >
-                                                        <FileText size={18} />
-                                                    </button>
-                                                </Tooltip>
+                                                {/* Gerar / Gerenciar Boleto / Cobrança */}
+                                                {(() => {
+                                                    const activeCharge = getInvoiceCharge(invoice);
+                                                    const method = activeCharge?.payment_method || '';
+                                                    const isPix = method === 'pix' || !!activeCharge?.qr_code;
+                                                    const isCard = method === 'credit_card';
+
+                                                    return (
+                                                        <Tooltip content={
+                                                            activeCharge 
+                                                                ? `Cobrança (${isPix ? 'Pix' : isCard ? 'Cartão' : 'Boleto'}) Ativa — Clique para Gerenciar / Ver` 
+                                                                : hasActiveGateway 
+                                                                    ? "Gerar Cobrança (Pix, Cartão ou Boleto)" 
+                                                                    : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar."
+                                                        }>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (!hasActiveGateway) return;
+                                                                    setBoletoModal({ isOpen: true, invoice });
+                                                                }}
+                                                                disabled={!hasActiveGateway}
+                                                                className={clsx(
+                                                                    "h-10 w-10 flex items-center justify-center glass-morphism rounded-xl transition-all shadow-sm relative",
+                                                                    activeCharge
+                                                                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 dark:border-emerald-400 font-bold shadow-emerald-500/20"
+                                                                        : hasActiveGateway
+                                                                            ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
+                                                                            : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800"
+                                                                )}
+                                                            >
+                                                                {isPix ? (
+                                                                    <QrCode size={18} />
+                                                                ) : isCard ? (
+                                                                    <CreditCard size={18} />
+                                                                ) : (
+                                                                    <FileText size={18} />
+                                                                )}
+
+                                                                {activeCharge && (
+                                                                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
+                                                                )}
+                                                            </button>
+                                                        </Tooltip>
+                                                    );
+                                                })()}
 
                                                 {invoice.external_id && (
                                                     <Tooltip content="Sincronizar Status">
