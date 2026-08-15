@@ -32,6 +32,25 @@ export class AsaasAdapter implements PaymentAdapter {
                 externalReference: request.external_reference,
             };
 
+            if (request.fine && request.fine.value > 0) {
+                payload.fine = {
+                    value: request.fine.value,
+                    type: request.fine.type || 'PERCENTAGE'
+                };
+            }
+            if (request.interest && request.interest.value > 0) {
+                payload.interest = {
+                    value: request.interest.value
+                };
+            }
+            if (request.discount && request.discount.value > 0) {
+                payload.discount = {
+                    value: request.discount.value,
+                    dueDateLimitDays: request.discount.dueDateLimitDays || 0,
+                    type: request.discount.type || 'PERCENTAGE'
+                };
+            }
+
             const response = await axios.post(`${this.baseUrl}/payments`, payload, {
                 headers: { 'access_token': this.apiKey }
             });

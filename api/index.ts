@@ -9980,6 +9980,51 @@ async function getGatewayForCompany(companyId: string, provider: string) {
     return null;
 }
 
+app.post(['/payments/create', '/api/payments/create'], authenticate, async (req, res) => {
+    const { companyId, provider, config, is_sandbox, payload, customerId, quoteId } = req.body;
+    try {
+        const gateway = await getGatewayForCompany(companyId, provider);
+        const activeConfig = config || gateway?.config;
+        const activeSandbox = is_sandbox ?? gateway?.is_sandbox ?? true;
+
+        if (!activeConfig) {
+            return res.status(400).json({ error: `Configuração do gateway ${provider} não encontrada.` });
+        }
+
+        const adapter = PaymentFactory.getAdapter(provider, activeConfig, activeSandbox);
+        const result = await adapter.createCharge(payload);
+
+        if (result.success) {
+            await axios.post(`${SUPABASE_URL}/rest/v1/company_charges`, {
+                company_id: companyId,
+                customer_id: customerId || null,
+                quote_id: quoteId || null,
+                provider,
+                amount: payload.amount,
+                description: payload.description,
+                external_reference: payload.external_reference,
+                payment_method: payload.payment_method || 'all',
+                status: result.status || 'pending',
+                gateway_id: result.payment_id,
+                payment_link: result.payment_link,
+                qr_code: result.qr_code,
+                qr_code_base64: result.qr_code_base64,
+                is_sandbox: activeSandbox
+            }, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        res.json(result);
+    } catch (error: any) {
+        console.error('❌ Erro ao criar cobrança:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', '/api/payments/inter/cancel'], authenticate, async (req, res) => {
     const { companyId, chargeId, codigoSolicitacao, provider } = req.body;

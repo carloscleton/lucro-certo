@@ -15,7 +15,8 @@ import {
     QrCode,
     FileText,
     Link as LinkIcon,
-    Star
+    Star,
+    Percent
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -90,6 +91,23 @@ export function Payments() {
     const [result, setResult] = useState<any>(null);
     const [viewingCharge, setViewingCharge] = useState<any>(null);
     const [selectedCurrency, setSelectedCurrency] = useState('BRL');
+
+    // Rates States (Juros, Multa, Desconto)
+    const [interestValue, setInterestValue] = useState<string>('0');
+    const [fineValue, setFineValue] = useState<string>('0');
+    const [discountValue, setDiscountValue] = useState<string>('0');
+    const [discountDaysValue, setDiscountDaysValue] = useState<string>('0');
+    const [showAdvancedRates, setShowAdvancedRates] = useState(false);
+
+    useEffect(() => {
+        const gw = gateways.find(g => g.provider === selectedProvider);
+        if (gw?.config) {
+            setInterestValue(gw.config.default_interest_percent !== undefined ? String(gw.config.default_interest_percent) : '0');
+            setFineValue(gw.config.default_fine_percent !== undefined ? String(gw.config.default_fine_percent) : '0');
+            setDiscountValue(gw.config.default_discount_percent !== undefined ? String(gw.config.default_discount_percent) : '0');
+            setDiscountDaysValue(gw.config.default_discount_days !== undefined ? String(gw.config.default_discount_days) : '0');
+        }
+    }, [selectedProvider, gateways]);
 
     const activeGateways = gateways.filter(g => g.is_active);
     const approvedQuotes = useMemo(() => {
@@ -187,6 +205,10 @@ export function Payments() {
                     selectedMethod = 'all';
                 }
 
+                const fine = Number(fineValue) > 0 ? { value: Number(fineValue), type: 'PERCENTAGE' as const } : undefined;
+                const interest = Number(interestValue) > 0 ? { value: Number(interestValue) } : undefined;
+                const discount = Number(discountValue) > 0 ? { value: Number(discountValue), dueDateLimitDays: Number(discountDaysValue) || 0, type: 'PERCENTAGE' as const } : undefined;
+
                 const res = await createCharge({
                     provider: selectedProvider as any,
                     config: gateway.config,
@@ -202,7 +224,10 @@ export function Payments() {
                             name: contact.name,
                             email: contact.email || 'financeiro@exemplo.com',
                             tax_id: contact.tax_id || undefined
-                        }
+                        },
+                        fine,
+                        interest,
+                        discount
                     }
                 });
 
@@ -695,6 +720,64 @@ export function Payments() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Juros, Multa e Desconto (Pré-fixados) */}
+                        <div className="p-6 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 space-y-4">
+                            <div
+                                className="flex items-center justify-between cursor-pointer"
+                                onClick={() => setShowAdvancedRates(!showAdvancedRates)}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Percent size={18} className="text-emerald-500" />
+                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                                        Juros, Multa e Desconto (Pré-fixados)
+                                    </span>
+                                </div>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider">
+                                    {showAdvancedRates ? 'Ocultar' : 'Ajustar / Visualizar'}
+                                </span>
+                            </div>
+
+                            {showAdvancedRates && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-800 animate-in fade-in duration-200">
+                                    <Input
+                                        label="Juros ao mês (%)"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={interestValue}
+                                        onChange={e => setInterestValue(e.target.value)}
+                                        placeholder="Ex: 1.00"
+                                    />
+                                    <Input
+                                        label="Multa por atraso (%)"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={fineValue}
+                                        onChange={e => setFineValue(e.target.value)}
+                                        placeholder="Ex: 2.00"
+                                    />
+                                    <Input
+                                        label="Desconto antecipado (%)"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={discountValue}
+                                        onChange={e => setDiscountValue(e.target.value)}
+                                        placeholder="Ex: 5.00"
+                                    />
+                                    <Input
+                                        label="Prazo máximo do desconto (dias)"
+                                        type="number"
+                                        min="0"
+                                        value={discountDaysValue}
+                                        onChange={e => setDiscountDaysValue(e.target.value)}
+                                        placeholder="Ex: 0"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-6 bg-gray-50 dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 transition-all">

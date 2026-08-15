@@ -44,6 +44,11 @@ export function PaymentSettings() {
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState(false);
 
+    const [interestPercent, setInterestPercent] = useState<string>('0');
+    const [finePercent, setFinePercent] = useState<string>('0');
+    const [discountPercent, setDiscountPercent] = useState<string>('0');
+    const [discountDays, setDiscountDays] = useState<string>('0');
+
     // Load initial environment and config when provider is SELECTED
     const handleSelectProvider = (providerId: string) => {
         setSelectedProvider(providerId);
@@ -62,9 +67,18 @@ export function PaymentSettings() {
                 newLocalConfig[field.key] = fullConfig[envKey] || '';
             });
             setConfig(newLocalConfig);
+
+            setInterestPercent(fullConfig.default_interest_percent !== undefined ? String(fullConfig.default_interest_percent) : '0');
+            setFinePercent(fullConfig.default_fine_percent !== undefined ? String(fullConfig.default_fine_percent) : '0');
+            setDiscountPercent(fullConfig.default_discount_percent !== undefined ? String(fullConfig.default_discount_percent) : '0');
+            setDiscountDays(fullConfig.default_discount_days !== undefined ? String(fullConfig.default_discount_days) : '0');
         } else {
             setIsSandbox(true);
             setConfig({});
+            setInterestPercent('0');
+            setFinePercent('0');
+            setDiscountPercent('0');
+            setDiscountDays('0');
         }
     };
 
@@ -101,6 +115,11 @@ export function PaymentSettings() {
             }
             fullConfig[envKey] = val;
         });
+
+        fullConfig.default_interest_percent = parseFloat(interestPercent) || 0;
+        fullConfig.default_fine_percent = parseFloat(finePercent) || 0;
+        fullConfig.default_discount_percent = parseFloat(discountPercent) || 0;
+        fullConfig.default_discount_days = parseInt(discountDays) || 0;
 
         // 2. Test Connection FIRST
         setTesting(true);
@@ -367,6 +386,52 @@ export function PaymentSettings() {
                                         />
                                     );
                                 })}
+
+                                {/* Default Rates Section */}
+                                <div className="pt-6 border-t border-gray-100 dark:border-slate-700 space-y-4">
+                                    <h5 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Percent size={14} className="text-emerald-500" />
+                                        Juros, Multa & Desconto Padrão (Pré-fixados)
+                                    </h5>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Input
+                                            label="Juros ao mês (%)"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={interestPercent}
+                                            onChange={e => setInterestPercent(e.target.value)}
+                                            placeholder="Ex: 1.00"
+                                        />
+                                        <Input
+                                            label="Multa por atraso (%)"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={finePercent}
+                                            onChange={e => setFinePercent(e.target.value)}
+                                            placeholder="Ex: 2.00"
+                                        />
+                                        <Input
+                                            label="Desconto antecipado (%)"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={discountPercent}
+                                            onChange={e => setDiscountPercent(e.target.value)}
+                                            placeholder="Ex: 5.00"
+                                        />
+                                        <Input
+                                            label="Prazo do desconto (dias limite)"
+                                            type="number"
+                                            min="0"
+                                            value={discountDays}
+                                            onChange={e => setDiscountDays(e.target.value)}
+                                            placeholder="Ex: 0"
+                                        />
+                                    </div>
+                                </div>
 
                                 <div className={`p-4 rounded-xl border flex gap-3 ${isSandbox
                                     ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'

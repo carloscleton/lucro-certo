@@ -28,6 +28,10 @@ export interface ChargeRequest {
         };
     };
 
+    fine?: { value: number; type?: 'PERCENTAGE' | 'FIXED' };
+    interest?: { value: number };
+    discount?: { value: number; dueDateLimitDays?: number; type?: 'PERCENTAGE' | 'FIXED' };
+
     notification_url?: string;
     currency: string;
     payment_method?: 'pix' | 'boleto' | 'credit_card' | 'debit_card' | 'all';

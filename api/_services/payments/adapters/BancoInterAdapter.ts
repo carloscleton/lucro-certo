@@ -149,7 +149,7 @@ export class BancoInterAdapter implements PaymentAdapter {
             // Identificador próprio do título (seuNumero) - Máximo 15 caracteres alfanuméricos (ex: NF63)
             const seuNumero = (request.external_reference || `NF${request.description?.replace(/\D/g, '') || Date.now()}`).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
 
-            const payload = {
+            const payload: any = {
                 seuNumero: seuNumero || '12345',
                 valorNominal: request.amount,
                 dataVencimento: dueDate,
@@ -164,6 +164,27 @@ export class BancoInterAdapter implements PaymentAdapter {
                     cep: '59000000'
                 }
             };
+
+            if (request.fine && request.fine.value > 0) {
+                payload.multa = {
+                    codigoMulta: request.fine.type === 'FIXED' ? 'VALORFIXO' : 'PERCENTUAL',
+                    valor: request.fine.type === 'FIXED' ? request.fine.value : 0,
+                    taxa: request.fine.type === 'PERCENTAGE' ? request.fine.value : 0
+                };
+            }
+            if (request.interest && request.interest.value > 0) {
+                payload.mora = {
+                    codigoMora: 'TAXAMENSAL',
+                    taxa: request.interest.value
+                };
+            }
+            if (request.discount && request.discount.value > 0) {
+                payload.desconto1 = {
+                    codigoDesconto: request.discount.type === 'FIXED' ? 'VALORFIXO' : 'PERCENTUAL',
+                    valor: request.discount.type === 'FIXED' ? request.discount.value : 0,
+                    taxa: request.discount.type === 'PERCENTAGE' ? request.discount.value : 0
+                };
+            }
 
             const response = await axios.post(`${this.baseUrl}/cobranca/v3/cobrancas`, payload, {
                 headers: {
