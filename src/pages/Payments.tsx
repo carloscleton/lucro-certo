@@ -8,7 +8,6 @@ import {
     CheckCircle2,
     XCircle,
     Copy,
-    Smartphone,
     ExternalLink,
     AlertCircle,
     Trash2,
@@ -73,6 +72,8 @@ export function Payments() {
     const [description, setDescription] = useState('');
     const [selectedProvider, setSelectedProvider] = useState('');
 
+    const activeGateways = useMemo(() => gateways.filter(g => g.is_active), [gateways]);
+
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search);
         if (searchParams.get('open') === 'true') {
@@ -116,8 +117,6 @@ export function Payments() {
             setDiscountDaysValue(gw.config.default_discount_days !== undefined ? String(gw.config.default_discount_days) : '0');
         }
     }, [selectedProvider, gateways]);
-
-    const activeGateways = gateways.filter(g => g.is_active);
     const approvedQuotes = useMemo(() => {
         return quotes.filter(q => q.status === 'approved' && q.payment_status !== 'paid');
     }, [quotes]);
