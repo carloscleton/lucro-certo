@@ -46,6 +46,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
     const [fineValue, setFineValue] = useState<string>('0');
     const [discountValue, setDiscountValue] = useState<string>('0');
     const [discountDaysValue, setDiscountDaysValue] = useState<string>('0');
+    const [instructionsValue, setInstructionsValue] = useState<string>('');
     const [showAdvancedRates, setShowAdvancedRates] = useState(false);
 
     // Existing Charge State & Error state
@@ -211,6 +212,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
             setFineValue(gw.config.default_fine_percent !== undefined ? String(gw.config.default_fine_percent) : '0');
             setDiscountValue(gw.config.default_discount_percent !== undefined ? String(gw.config.default_discount_percent) : '0');
             setDiscountDaysValue(gw.config.default_discount_days !== undefined ? String(gw.config.default_discount_days) : '0');
+            setInstructionsValue(gw.config.default_payment_instructions || '');
         }
     }, [selectedProvider, gateways]);
 
@@ -250,6 +252,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
             const fine = Number(fineValue) > 0 ? { value: Number(fineValue), type: 'PERCENTAGE' as const } : undefined;
             const interest = Number(interestValue) > 0 ? { value: Number(interestValue) } : undefined;
             const discount = Number(discountValue) > 0 ? { value: Number(discountValue), dueDateLimitDays: Number(discountDaysValue) || 0, type: 'PERCENTAGE' as const } : undefined;
+            const instructions = instructionsValue.trim() || undefined;
 
             const res = await createCharge({
                 provider: selectedProvider,
@@ -270,7 +273,8 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                     payment_method: selectedMethod,
                     fine,
                     interest,
-                    discount
+                    discount,
+                    instructions
                 }
             });
 
@@ -638,6 +642,14 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                     onChange={e => setDiscountDaysValue(e.target.value)}
                                     placeholder="Ex: 0"
                                 />
+                                <div className="sm:col-span-2">
+                                    <Input
+                                        label="Mensagem / Instruções do Boleto"
+                                        value={instructionsValue}
+                                        onChange={e => setInstructionsValue(e.target.value)}
+                                        placeholder="Ex: Não receber após 30 dias do vencimento. Sujeito a protesto."
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>

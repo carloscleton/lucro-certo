@@ -31,6 +31,7 @@ export interface ChargeRequest {
     fine?: { value: number; type?: 'PERCENTAGE' | 'FIXED' };
     interest?: { value: number };
     discount?: { value: number; dueDateLimitDays?: number; type?: 'PERCENTAGE' | 'FIXED' };
+    instructions?: string;
 
     notification_url?: string;
     currency: string;

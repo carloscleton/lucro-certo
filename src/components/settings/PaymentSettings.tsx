@@ -48,6 +48,7 @@ export function PaymentSettings() {
     const [finePercent, setFinePercent] = useState<string>('0');
     const [discountPercent, setDiscountPercent] = useState<string>('0');
     const [discountDays, setDiscountDays] = useState<string>('0');
+    const [paymentInstructions, setPaymentInstructions] = useState<string>('');
 
     // Load initial environment and config when provider is SELECTED
     const handleSelectProvider = (providerId: string) => {
@@ -72,6 +73,7 @@ export function PaymentSettings() {
             setFinePercent(fullConfig.default_fine_percent !== undefined ? String(fullConfig.default_fine_percent) : '0');
             setDiscountPercent(fullConfig.default_discount_percent !== undefined ? String(fullConfig.default_discount_percent) : '0');
             setDiscountDays(fullConfig.default_discount_days !== undefined ? String(fullConfig.default_discount_days) : '0');
+            setPaymentInstructions(fullConfig.default_payment_instructions || '');
         } else {
             setIsSandbox(true);
             setConfig({});
@@ -79,6 +81,7 @@ export function PaymentSettings() {
             setFinePercent('0');
             setDiscountPercent('0');
             setDiscountDays('0');
+            setPaymentInstructions('');
         }
     };
 
@@ -120,6 +123,7 @@ export function PaymentSettings() {
         fullConfig.default_fine_percent = parseFloat(finePercent) || 0;
         fullConfig.default_discount_percent = parseFloat(discountPercent) || 0;
         fullConfig.default_discount_days = parseInt(discountDays) || 0;
+        fullConfig.default_payment_instructions = paymentInstructions;
 
         // 2. Test Connection FIRST
         setTesting(true);
@@ -429,6 +433,14 @@ export function PaymentSettings() {
                                             value={discountDays}
                                             onChange={e => setDiscountDays(e.target.value)}
                                             placeholder="Ex: 0"
+                                        />
+                                    </div>
+                                    <div className="pt-2">
+                                        <Input
+                                            label="Mensagem / Instruções Padrão do Boleto (Pré-fixadas)"
+                                            value={paymentInstructions}
+                                            onChange={e => setPaymentInstructions(e.target.value)}
+                                            placeholder="Ex: Não receber após 30 dias do vencimento. Sujeito a protesto."
                                         />
                                     </div>
                                 </div>

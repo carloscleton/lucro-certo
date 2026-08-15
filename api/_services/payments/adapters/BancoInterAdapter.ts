@@ -185,6 +185,13 @@ export class BancoInterAdapter implements PaymentAdapter {
                     taxa: request.discount.type === 'PERCENTAGE' ? request.discount.value : 0
                 };
             }
+            if (request.instructions) {
+                payload.mensagem = {
+                    linha1: request.instructions.slice(0, 78),
+                    linha2: request.instructions.slice(78, 156),
+                    linha3: request.instructions.slice(156, 234)
+                };
+            }
 
             const response = await axios.post(`${this.baseUrl}/cobranca/v3/cobrancas`, payload, {
                 headers: {

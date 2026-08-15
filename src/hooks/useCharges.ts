@@ -107,7 +107,8 @@ export function useCharges() {
             payment_method?: string,
             fine?: { value: number; type?: 'PERCENTAGE' | 'FIXED' },
             interest?: { value: number },
-            discount?: { value: number; dueDateLimitDays?: number; type?: 'PERCENTAGE' | 'FIXED' }
+            discount?: { value: number; dueDateLimitDays?: number; type?: 'PERCENTAGE' | 'FIXED' },
+            instructions?: string
         }
     }) => {
         try {
