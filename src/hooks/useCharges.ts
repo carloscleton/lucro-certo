@@ -64,7 +64,29 @@ export function useCharges() {
 
     useEffect(() => {
         fetchCharges();
-    }, [fetchCharges]);
+
+        if (!currentEntity || currentEntity.type !== 'company') return;
+
+        const channel = supabase
+            .channel(`company_charges_changes_${currentEntity.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'company_charges',
+                    filter: `company_id=eq.${currentEntity.id}`
+                },
+                () => {
+                    fetchCharges();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [fetchCharges, currentEntity]);
 
     const createCharge = async (params: {
         provider: string,

@@ -169,7 +169,7 @@ export function Invoices() {
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
     const { gateways } = usePaymentGateways();
-    const { charges } = useCharges();
+    const { charges, fetchCharges } = useCharges();
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -2102,7 +2102,13 @@ ${messageWithPlaceholder}`;
 
             <GenerateBoletoModal
                 isOpen={boletoModal.isOpen}
-                onClose={() => setBoletoModal({ isOpen: false, invoice: null })}
+                onClose={() => {
+                    setBoletoModal({ isOpen: false, invoice: null });
+                    fetchCharges();
+                }}
+                onSuccess={() => {
+                    fetchCharges();
+                }}
                 invoice={boletoModal.invoice}
             />
 

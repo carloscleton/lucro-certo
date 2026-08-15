@@ -18,10 +18,11 @@ import { useNavigate } from 'react-router-dom';
 interface GenerateBoletoModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
     invoice: any;
 }
 
-export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoletoModalProps) {
+export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: GenerateBoletoModalProps) {
     const navigate = useNavigate();
     const { contacts } = useContacts();
     const { gateways, defaultGateway } = usePaymentGateways();
@@ -254,6 +255,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                 setExistingCharge(res);
                 const methodLabel = selectedMethod === 'pix' ? 'Pix' : selectedMethod === 'credit_card' ? 'Cartão de Crédito' : selectedMethod === 'all' ? 'Cobrança Flexível' : 'Boleto bancário';
                 notify('success', 'Sucesso', `${methodLabel} gerado com sucesso!`);
+                onSuccess?.();
             } else {
                 const errMsg = res.error || 'Falha na comunicação com o gateway de pagamento.';
                 setErrorMessage(errMsg);
@@ -294,6 +296,7 @@ export function GenerateBoletoModal({ isOpen, onClose, invoice }: GenerateBoleto
                 notify('success', 'Cobrança Cancelada', `A cobrança foi cancelada no ${providerName} com sucesso!`);
                 setExistingCharge(null);
                 setResult(null);
+                onSuccess?.();
             } else {
                 notify('error', 'Erro ao Cancelar', res.data.error || 'Falha ao cancelar cobrança.');
             }
