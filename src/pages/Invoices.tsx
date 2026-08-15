@@ -474,11 +474,31 @@ ${messageWithPlaceholder}`;
 
                     if (phone) {
                         try {
+                            const activeCharge = getInvoiceCharge(updatedInvoice);
+                            let paymentMsgPart = '';
+                            if (activeCharge && activeCharge.status !== 'cancelled') {
+                                const method = activeCharge.payment_method || '';
+                                const isPix = method === 'pix' || !!activeCharge.qr_code;
+                                const isCard = method === 'credit_card';
+
+                                paymentMsgPart = `\n\n💳 *DADOS PARA PAGAMENTO:*\n`;
+                                if (isPix && activeCharge.qr_code) {
+                                    paymentMsgPart += `🔑 *Pix Copia e Cola:*\n\`${activeCharge.qr_code}\`\n`;
+                                    if (activeCharge.payment_link) {
+                                        paymentMsgPart += `🔗 *Link do Pagamento:* ${activeCharge.payment_link}\n`;
+                                    }
+                                } else if (isCard && activeCharge.payment_link) {
+                                    paymentMsgPart += `💳 *Link para Pagamento com Cartão:*\n${activeCharge.payment_link}\n`;
+                                } else if (activeCharge.payment_link) {
+                                    paymentMsgPart += `📄 *Link do Boleto / Pagamento:*\n${activeCharge.payment_link}\n`;
+                                }
+                            }
+
                             await whatsappService.sendMessage({
                                 instanceName: instance.instance_name,
                                 token: instance.evolution_instance_id,
                                 number: phone,
-                                text: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
+                                text: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}${paymentMsgPart}`,
                                 mediaUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
                                 mediaType: 'document',
                                 mimetype: 'application/pdf',
@@ -731,12 +751,34 @@ ${messageWithPlaceholder}`;
                            p?.retorno?.tomador?.razaoSocial ||
                            'Cliente';
 
+        const activeCharge = getInvoiceCharge(invoice);
+        let paymentMsgPart = '';
+
+        if (activeCharge && activeCharge.status !== 'cancelled') {
+            const method = activeCharge.payment_method || '';
+            const isPix = method === 'pix' || !!activeCharge.qr_code;
+            const isCard = method === 'credit_card';
+
+            paymentMsgPart = `\n\n💳 *DADOS PARA PAGAMENTO:*\n`;
+
+            if (isPix && activeCharge.qr_code) {
+                paymentMsgPart += `🔑 *Pix Copia e Cola:*\n\`${activeCharge.qr_code}\`\n`;
+                if (activeCharge.payment_link) {
+                    paymentMsgPart += `🔗 *Link do Pagamento:* ${activeCharge.payment_link}\n`;
+                }
+            } else if (isCard && activeCharge.payment_link) {
+                paymentMsgPart += `💳 *Link para Pagamento com Cartão:*\n${activeCharge.payment_link}\n`;
+            } else if (activeCharge.payment_link) {
+                paymentMsgPart += `📄 *Link do Boleto / Pagamento:*\n${activeCharge.payment_link}\n`;
+            }
+        }
+
         setSendModal({
             isOpen: true,
             invoice,
             type: 'whatsapp',
             recipient: phone,
-            message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
+            message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}${paymentMsgPart}`,
             isLoading: false
         });
 
