@@ -85,7 +85,7 @@ export function Payments() {
 
     useEffect(() => {
         if (isModalOpen) {
-            const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'unified');
+            const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'asaas');
             setSelectedProvider(defProv);
             if (defProv === 'banco_inter') {
                 setSelectedMethods(['boleto']);
@@ -93,7 +93,7 @@ export function Payments() {
                 setSelectedMethods(['pix', 'credit_card', 'boleto']);
             }
         }
-    }, [isModalOpen, defaultGateway]);
+    }, [isModalOpen, defaultGateway, activeGateways]);
     
     const [selectedMethods, setSelectedMethods] = useState<string[]>(['pix', 'credit_card', 'boleto']);
     const [result, setResult] = useState<any>(null);
@@ -689,36 +689,23 @@ export function Payments() {
                             />
                         </div>
 
-                        {/* Gateway Selection */}
+                        {/* Processador de Pagamento */}
                         <div className="space-y-4">
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Processador de Pagamento</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => {
-                                        setSelectedProvider('unified');
-                                        setSelectedMethods(['pix', 'credit_card', 'boleto']);
-                                    }}
-                                    className={`group flex items-center gap-4 p-5 rounded-3xl border-2 transition-all ${selectedProvider === 'unified'
-                                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10'
-                                        : 'border-gray-50 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-gray-200'
-                                        }`}
-                                >
-                                    <div className={`p-3 rounded-2xl transition-colors ${selectedProvider === 'unified' ? 'bg-white text-emerald-600' : 'bg-gray-50 dark:bg-slate-800 text-gray-400'}`}>
-                                        <Smartphone size={24} />
-                                    </div>
-                                    <div className="text-left">
-                                        <span className="block text-sm font-black dark:text-white uppercase tracking-tight leading-none">Checkout Único</span>
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest">Smart Link (Global)</span>
-                                    </div>
-                                </button>
                                 {activeGateways.map(gateway => (
                                     <button
                                         key={gateway.id}
+                                        type="button"
                                         onClick={() => {
                                             setSelectedProvider(gateway.provider);
-                                            setSelectedMethods([selectedMethods[0] || 'pix']);
+                                            if (gateway.provider === 'banco_inter') {
+                                                setSelectedMethods(['boleto']);
+                                            } else {
+                                                setSelectedMethods(['pix', 'credit_card', 'boleto']);
+                                            }
                                         }}
-                                        className={`group relative flex items-center gap-4 p-5 rounded-3xl border-2 transition-all ${selectedProvider === gateway.provider
+                                        className={`group relative flex items-center gap-4 p-5 rounded-3xl border-2 transition-all cursor-pointer ${selectedProvider === gateway.provider
                                             ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10'
                                             : 'border-gray-50 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-gray-200'
                                             }`}
