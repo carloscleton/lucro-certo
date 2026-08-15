@@ -144,6 +144,8 @@ export function useCharges() {
             console.error('Error deleting charge:', error);
             return { success: false, error: error.message };
         }
+    };
+
     const deleteMultipleCharges = async (ids: string[]) => {
         if (!ids || ids.length === 0) return { success: true };
         try {

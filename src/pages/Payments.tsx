@@ -944,6 +944,7 @@ export function Payments() {
                 message={`Tem certeza que deseja apagar ${selectedIds.length} cobrança(s) selecionada(s)? Esta ação removerá os registros do seu histórico.`}
                 variant="danger"
                 confirmLabel="Sim, Apagar Selecionadas"
+                isLoading={isBatchDeleting}
             />
 
             <ResultModal
