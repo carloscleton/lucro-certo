@@ -16,7 +16,8 @@ import {
     FileText,
     Link as LinkIcon,
     Star,
-    Percent
+    Percent,
+    Calendar
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -59,9 +60,16 @@ export function Payments() {
     });
 
     // Form state
+    const getDefaultDueDate = () => {
+        const date = new Date();
+        date.setDate(date.getDate() + 15);
+        return date.toISOString().split('T')[0];
+    };
+
     const [selectedContactId, setSelectedContactId] = useState('');
     const [selectedQuoteId, setSelectedQuoteId] = useState('');
     const [amount, setAmount] = useState('');
+    const [dueDate, setDueDate] = useState<string>(getDefaultDueDate());
     const [description, setDescription] = useState('');
     const [selectedProvider, setSelectedProvider] = useState('');
 
@@ -218,6 +226,7 @@ export function Payments() {
                     payload: {
                         amount: Number(amount),
                         description,
+                        due_date: dueDate || getDefaultDueDate(),
                         currency: selectedCurrency,
                         payment_method: selectedMethod as any,
                         customer: {
@@ -338,6 +347,7 @@ export function Payments() {
         setSelectedContactId('');
         setSelectedQuoteId('');
         setAmount('');
+        setDueDate(getDefaultDueDate());
         setDescription('');
         const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'unified');
         setSelectedProvider(defProv);
@@ -649,7 +659,18 @@ export function Payments() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                            <div className="md:col-span-1">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                    <Calendar size={12} className="text-emerald-500" /> Data de Vencimento
+                                </label>
+                                <input
+                                    type="date"
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer"
+                                />
+                            </div>
+                            <div>
                                 <CurrencyInput
                                     label="Valor da Cobrança"
                                     placeholder="0,00"
@@ -657,14 +678,15 @@ export function Payments() {
                                     onChange={(num: number) => setAmount(num.toString())}
                                 />
                             </div>
-                            <div className="md:col-span-1">
-                                <Input
-                                    label="Referência Externa"
-                                    placeholder="Ex: Pedido #1234"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                />
-                            </div>
+                        </div>
+
+                        <div>
+                            <Input
+                                label="Referência Externa"
+                                placeholder="Ex: Pedido #1234"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
                         </div>
 
                         {/* Gateway Selection */}
