@@ -36,7 +36,7 @@ import { ResultModal } from '../components/ui/ResultModal';
 export function Payments() {
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
-    const { charges, loading: loadingCharges, createCharge, deleteCharge } = useCharges();
+    const { charges, loading: loadingCharges, createCharge, deleteCharge, deleteMultipleCharges } = useCharges();
     const { gateways, defaultGateway } = usePaymentGateways();
     const { quotes } = useQuotes();
     const { notify } = useNotification();
@@ -44,6 +44,11 @@ export function Payments() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
+
+    // Multi-select & Batch Delete States
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
+    const [isBatchDeleting, setIsBatchDeleting] = useState(false);
 
     // Modal States
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -256,6 +261,54 @@ export function Payments() {
         }
     };
 
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredCharges.length && filteredCharges.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredCharges.map(c => c.id));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const executeBatchDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setIsBatchDeleting(true);
+        try {
+            const res = await deleteMultipleCharges(selectedIds);
+            setBatchDeleteConfirmOpen(false);
+            if (res.success) {
+                setSelectedIds([]);
+                setResultModal({
+                    isOpen: true,
+                    title: 'Sucesso',
+                    message: `${selectedIds.length} cobrança(s) removida(s) com sucesso.`,
+                    type: 'success'
+                });
+            } else {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Erro',
+                    message: 'Falha ao remover cobranças selecionadas.',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            setResultModal({
+                isOpen: true,
+                title: 'Erro',
+                message: 'Erro ao excluir registros.',
+                type: 'error'
+            });
+        } finally {
+            setIsBatchDeleting(false);
+        }
+    };
+
     const resetForm = () => {
         setSelectedContactId('');
         setSelectedQuoteId('');
@@ -340,6 +393,21 @@ export function Payments() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+
+                    {selectedIds.length > 0 && (
+                        <div className="flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                                {selectedIds.length} selecionado(s)
+                            </span>
+                            <button
+                                onClick={() => setBatchDeleteConfirmOpen(true)}
+                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-200 cursor-pointer"
+                            >
+                                <Trash2 size={16} />
+                                <span>Apagar Tudo de Uma Vez ({selectedIds.length})</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -352,7 +420,18 @@ export function Payments() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-gray-50/50 dark:bg-slate-800/50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-800">
-                                    <th className="px-8 py-5">Cliente / Referência</th>
+                                    <th className="px-8 py-5">
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredCharges.length > 0 && selectedIds.length === filteredCharges.length}
+                                                onChange={toggleSelectAll}
+                                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-700 cursor-pointer"
+                                                title="Marcar Todos"
+                                            />
+                                            <span>Cliente / Referência</span>
+                                        </div>
+                                    </th>
                                     <th className="px-8 py-5">Valor</th>
                                     <th className="px-8 py-5 text-center">Modo</th>
                                     <th className="px-8 py-5">Data</th>
@@ -377,9 +456,17 @@ export function Payments() {
                                     filteredCharges.map((charge) => (
                                         <tr key={charge.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
                                             <td className="px-8 py-5">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">{charge.customer?.name || 'Cliente Geral'}</span>
-                                                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">{charge.external_reference}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.includes(charge.id)}
+                                                        onChange={() => toggleSelect(charge.id)}
+                                                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-700 cursor-pointer shrink-0"
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">{charge.customer?.name || 'Cliente Geral'}</span>
+                                                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">{charge.external_reference}</span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
@@ -847,6 +934,16 @@ export function Payments() {
                 message={`Tem certeza que deseja excluir a cobrança de ${chargeToDelete?.customer?.name}? Esta ação não pode ser desfeita.`}
                 variant="danger"
                 confirmLabel="Sim, Excluir"
+            />
+
+            <ConfirmationModal
+                isOpen={batchDeleteConfirmOpen}
+                onClose={() => setBatchDeleteConfirmOpen(false)}
+                onConfirm={executeBatchDelete}
+                title="Excluir Cobranças Selecionadas"
+                message={`Tem certeza que deseja apagar ${selectedIds.length} cobrança(s) selecionada(s)? Esta ação removerá os registros do seu histórico.`}
+                variant="danger"
+                confirmLabel="Sim, Apagar Selecionadas"
             />
 
             <ResultModal

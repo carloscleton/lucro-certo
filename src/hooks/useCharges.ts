@@ -144,6 +144,21 @@ export function useCharges() {
             console.error('Error deleting charge:', error);
             return { success: false, error: error.message };
         }
+    const deleteMultipleCharges = async (ids: string[]) => {
+        if (!ids || ids.length === 0) return { success: true };
+        try {
+            const { error } = await supabase
+                .from('company_charges')
+                .delete()
+                .in('id', ids);
+
+            if (error) throw error;
+            await fetchCharges();
+            return { success: true };
+        } catch (error: any) {
+            console.error('Error deleting multiple charges:', error);
+            return { success: false, error: error.message };
+        }
     };
 
     return {
@@ -151,6 +166,7 @@ export function useCharges() {
         loading,
         fetchCharges,
         createCharge,
-        deleteCharge
+        deleteCharge,
+        deleteMultipleCharges
     };
 }
