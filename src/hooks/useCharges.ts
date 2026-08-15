@@ -104,7 +104,10 @@ export function useCharges() {
                 email: string,
                 tax_id?: string
             },
-            payment_method?: string
+            payment_method?: string,
+            fine?: { value: number; type?: 'PERCENTAGE' | 'FIXED' },
+            interest?: { value: number },
+            discount?: { value: number; dueDateLimitDays?: number; type?: 'PERCENTAGE' | 'FIXED' }
         }
     }) => {
         try {

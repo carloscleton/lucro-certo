@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircle2, Star } from 'lucide-react';
+import { CreditCard, Save, Trash2, Power, Info, FlaskConical, Rocket, CheckCircle2, Star, Percent } from 'lucide-react';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
