@@ -7443,11 +7443,12 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 
     try {
-        console.log(`✉️ [RESEND] Enviando e-mail para: ${to} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
+        const toList = Array.isArray(to) ? to : String(to).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+        console.log(`✉️ [RESEND] Enviando e-mail para ${toList.length} destinatário(s): ${toList.join(', ')} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
 
         const response = await axios.post('https://api.resend.com/emails', {
             from: activeFromEmail,
-            to: [to],
+            to: toList,
             subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
             html: htmlBody
         }, {

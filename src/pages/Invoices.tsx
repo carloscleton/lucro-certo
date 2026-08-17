@@ -1888,22 +1888,76 @@ ${messageWithPlaceholder}`;
                     maxWidth="max-w-md"
                 >
                     <div className="space-y-6 pt-2">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                                {sendModal.type === 'whatsapp' ? 'Número do WhatsApp (com DDD)' : 'Endereço de E-mail'}
-                            </label>
-                            <input
-                                type="text"
-                                value={sendModal.type === 'whatsapp' ? formatPhoneWhatsapp(sendModal.recipient) : sendModal.recipient}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    const formatted = sendModal.type === 'whatsapp' ? formatPhoneWhatsapp(val) : val;
-                                    setSendModal(prev => ({ ...prev, recipient: formatted }));
-                                }}
-                                placeholder={sendModal.type === 'whatsapp' ? 'Ex: 55 (84) 9 9807-1213' : 'Ex: cliente@email.com'}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
-                            />
-                        </div>
+                        {sendModal.type === 'whatsapp' ? (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                    Número do WhatsApp (com DDD)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formatPhoneWhatsapp(sendModal.recipient)}
+                                    onChange={(e) => {
+                                        const formatted = formatPhoneWhatsapp(e.target.value);
+                                        setSendModal(prev => ({ ...prev, recipient: formatted }));
+                                    }}
+                                    placeholder="Ex: 55 (84) 9 9807-1213"
+                                    className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {(() => {
+                                    const rawEmails = Array.from(new Set(
+                                        (sendModal.recipient || '').split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+                                    ));
+                                    if (rawEmails.length === 0) return null;
+                                    return (
+                                        <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3.5 rounded-xl border border-blue-100 dark:border-slate-700/60">
+                                            <label className="block text-[11px] font-extrabold text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-2">
+                                                {rawEmails.length > 1 ? `E-mails do Cliente (${rawEmails.length}) — Selecione os destinatários:` : 'E-mail do Cliente:'}
+                                            </label>
+                                            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                                                {rawEmails.map((emailItem, idx) => {
+                                                    const isChecked = sendModal.recipient.includes(emailItem);
+                                                    return (
+                                                        <label key={idx} className="flex items-center gap-2.5 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1.5 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={(e) => {
+                                                                    let current = sendModal.recipient.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                                                                    if (e.target.checked) {
+                                                                        if (!current.includes(emailItem)) current.push(emailItem);
+                                                                    } else {
+                                                                        current = current.filter(x => x !== emailItem);
+                                                                    }
+                                                                    setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
+                                                                }}
+                                                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                            />
+                                                            <span className="truncate">{emailItem}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        Endereço de E-mail (ou múltiplos separados por vírgula)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={sendModal.recipient}
+                                        onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
+                                        placeholder="Ex: cliente@email.com, financeiro@email.com"
+                                        className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {sendModal.type === 'whatsapp' && activeInstances.length > 1 && (
                             <div>

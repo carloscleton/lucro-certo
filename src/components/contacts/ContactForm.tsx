@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
-import { UserPlus, Search, Award, Check, Copy } from 'lucide-react';
+import { UserPlus, Search, Award, Check, Copy, Mail } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -610,13 +610,28 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         </select>
                     </div>
 
-                    <Input
-                        label="Email Principal"
-                        type="email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        placeholder="email@exemplo.com"
-                    />
+                    <div className="flex flex-col gap-1">
+                        <Input
+                            label="Email Principal (ou Múltiplos E-mails)"
+                            type="text"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="email1@exemplo.com, email2@exemplo.com"
+                            helpText="Para enviar notas e boletos a mais de um endereço, separe por vírgula (ex: financeiro@afip.com, cobranca@afip.com)."
+                        />
+                        {email && email.includes(',') && (
+                            <div className="flex flex-wrap gap-1.5 mt-1 bg-emerald-50/60 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-800/50">
+                                <span className="w-full text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-0.5">
+                                    📧 {email.split(/[,;]+/).map(e => e.trim()).filter(Boolean).length} E-mails configurados para notas & boletos:
+                                </span>
+                                {email.split(/[,;]+/).map(e => e.trim()).filter(Boolean).map((em, idx) => (
+                                    <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-sm border border-emerald-200 dark:border-emerald-800">
+                                        <Mail className="w-3 h-3 text-emerald-500" /> {em}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <Input
                         label="Telefone Comercial"
