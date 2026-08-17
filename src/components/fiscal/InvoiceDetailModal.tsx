@@ -40,17 +40,20 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
-    const [activeTab, setActiveTab] = useState<'pdf' | 'xml' | 'details'>('pdf');
+    const [activeTab, setActiveTab] = useState<'pdf' | 'xml' | 'details'>('details');
     const [xmlText, setXmlText] = useState<string>('');
     const [loadingXml, setLoadingXml] = useState(false);
     const [copiedXml, setCopiedXml] = useState(false);
 
-    // Definir tamanho inicial maior (ampliado por padrão)
+    // Definir tamanho inicial maior (ampliado por padrão) e resetar para a aba 'details' ao abrir
     useEffect(() => {
-        if (isOpen && !modalSize) {
-            const initialWidth = Math.min(window.innerWidth - 48, 1280);
-            const initialHeight = Math.min(window.innerHeight - 48, 900);
-            setModalSize({ width: initialWidth, height: initialHeight });
+        if (isOpen) {
+            setActiveTab('details');
+            if (!modalSize) {
+                const initialWidth = Math.min(window.innerWidth - 48, 1280);
+                const initialHeight = Math.min(window.innerHeight - 48, 900);
+                setModalSize({ width: initialWidth, height: initialHeight });
+            }
         }
     }, [isOpen]);
 
