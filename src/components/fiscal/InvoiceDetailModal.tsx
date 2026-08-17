@@ -1393,7 +1393,7 @@ ${messageWithPlaceholder}`;
                                 <div className="space-y-3">
                                     {(() => {
                                         const rawEmails = Array.from(new Set(
-                                            (sendModal.recipient || '').split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+                                            (sendModal.recipient || '').split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean)
                                         ));
                                         if (rawEmails.length === 0) return null;
                                         return (
@@ -1403,24 +1403,25 @@ ${messageWithPlaceholder}`;
                                                 </label>
                                                 <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                                                     {rawEmails.map((emailItem, idx) => {
-                                                        const isChecked = sendModal.recipient.includes(emailItem);
+                                                        const lowerItem = emailItem.toLowerCase();
+                                                        const isChecked = sendModal.recipient.toLowerCase().includes(lowerItem);
                                                         return (
-                                                            <label key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                                                            <label key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors lowercase">
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={isChecked}
                                                                     onChange={(e) => {
-                                                                        let current = sendModal.recipient.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                                                                        let current = sendModal.recipient.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
                                                                         if (e.target.checked) {
-                                                                            if (!current.includes(emailItem)) current.push(emailItem);
+                                                                            if (!current.includes(lowerItem)) current.push(lowerItem);
                                                                         } else {
-                                                                            current = current.filter(x => x !== emailItem);
+                                                                            current = current.filter(x => x !== lowerItem);
                                                                         }
                                                                         setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
                                                                     }}
                                                                     className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                                 />
-                                                                <span className="truncate">{emailItem}</span>
+                                                                <span className="truncate lowercase">{lowerItem}</span>
                                                             </label>
                                                         );
                                                     })}
@@ -1431,14 +1432,14 @@ ${messageWithPlaceholder}`;
 
                                     <div className="flex flex-col gap-1">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            E-mail do Destinatário (ou múltiplos separados por vírgula)
+                                            E-mail do Destinatário (Caixa Baixa)
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={sendModal.recipient}
-                                            onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
-                                            placeholder="Ex: cliente@email.com, financeiro@email.com"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                        <textarea
+                                            rows={2}
+                                            value={sendModal.recipient.toLowerCase()}
+                                            onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value.toLowerCase() }))}
+                                            placeholder="ex: cliente@email.com&#10;financeiro@email.com"
+                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 lowercase resize-y"
                                         />
                                     </div>
                                 </div>

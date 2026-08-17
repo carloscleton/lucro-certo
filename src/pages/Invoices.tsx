@@ -1908,7 +1908,7 @@ ${messageWithPlaceholder}`;
                             <div className="space-y-4">
                                 {(() => {
                                     const rawEmails = Array.from(new Set(
-                                        (sendModal.recipient || '').split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+                                        (sendModal.recipient || '').split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean)
                                     ));
                                     if (rawEmails.length === 0) return null;
                                     return (
@@ -1918,24 +1918,25 @@ ${messageWithPlaceholder}`;
                                             </label>
                                             <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                                                 {rawEmails.map((emailItem, idx) => {
-                                                    const isChecked = sendModal.recipient.includes(emailItem);
+                                                    const lowerItem = emailItem.toLowerCase();
+                                                    const isChecked = sendModal.recipient.toLowerCase().includes(lowerItem);
                                                     return (
-                                                        <label key={idx} className="flex items-center gap-2.5 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1.5 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                                                        <label key={idx} className="flex items-center gap-2.5 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1.5 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors lowercase">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
                                                                 onChange={(e) => {
-                                                                    let current = sendModal.recipient.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                                                                    let current = sendModal.recipient.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
                                                                     if (e.target.checked) {
-                                                                        if (!current.includes(emailItem)) current.push(emailItem);
+                                                                        if (!current.includes(lowerItem)) current.push(lowerItem);
                                                                     } else {
-                                                                        current = current.filter(x => x !== emailItem);
+                                                                        current = current.filter(x => x !== lowerItem);
                                                                     }
                                                                     setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
                                                                 }}
                                                                 className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             />
-                                                            <span className="truncate">{emailItem}</span>
+                                                            <span className="truncate lowercase">{lowerItem}</span>
                                                         </label>
                                                     );
                                                 })}
@@ -1946,15 +1947,18 @@ ${messageWithPlaceholder}`;
 
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                                        Endereço de E-mail (ou múltiplos separados por vírgula)
+                                        Endereço de E-mail (Caixa Baixa)
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={sendModal.recipient}
-                                        onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
-                                        placeholder="Ex: cliente@email.com, financeiro@email.com"
-                                        className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
+                                    <textarea
+                                        rows={2}
+                                        value={sendModal.recipient.toLowerCase()}
+                                        onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value.toLowerCase() }))}
+                                        placeholder="ex: cliente@email.com&#10;financeiro@email.com"
+                                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold text-xs lowercase resize-y"
                                     />
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        Separe múltiplos e-mails por vírgula ou por linha.
+                                    </p>
                                 </div>
                             </div>
                         )}
