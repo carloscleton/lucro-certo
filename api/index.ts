@@ -9308,6 +9308,7 @@ app.post('/payments/create', authenticate, async (req, res) => {
         });
 
         if (result.success) {
+            const dueDateValue = (result as any)?.due_date || payload.due_date || payload.dueDate || null;
             // 2. Salvar na tabela company_charges
             await axios.post(`${SUPABASE_URL}/rest/v1/company_charges`, {
                 company_id: companyId,
@@ -9323,6 +9324,7 @@ app.post('/payments/create', authenticate, async (req, res) => {
                 payment_link: result.payment_link,
                 qr_code: result.qr_code,
                 qr_code_base64: result.qr_code_base64,
+                due_date: dueDateValue,
                 is_sandbox: is_sandbox ?? true
             }, {
                 headers: {

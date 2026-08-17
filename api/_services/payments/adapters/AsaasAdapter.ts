@@ -76,6 +76,7 @@ export class AsaasAdapter implements PaymentAdapter {
                 qr_code: qrCodeData?.payload,
                 qr_code_base64: qrCodeData?.encodedImage,
                 payment_link: payment.bankSlipUrl || payment.invoiceUrl,
+                due_date: payment.dueDate || request.due_date,
                 status: this.mapStatus(payment.status)
             };
 

@@ -4,6 +4,8 @@ export interface PaymentResponse {
     qr_code?: string;
     qr_code_base64?: string;
     payment_link?: string;
+    due_date?: string;
+    bank_slip_code?: string;
     status: 'pending' | 'approved' | 'rejected' | 'cancelled';
     error?: string;
 }
