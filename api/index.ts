@@ -9343,6 +9343,43 @@ app.post('/payments/create', authenticate, async (req, res) => {
     }
 });
 
+// Endpoint para sincronizar dados cadastrais de contato diretamente no Asaas
+app.post(['/payments/sync-customer', '/api/payments/sync-customer'], async (req: any, res: any) => {
+    try {
+        const { companyId, contact } = req.body;
+
+        if (!companyId || !contact) {
+            return res.status(400).json({ success: false, error: 'companyId e dados do contato são obrigatórios.' });
+        }
+
+        const gatewayRes = await getGatewayForCompany(companyId, 'asaas');
+        if (!gatewayRes) {
+            return res.json({ success: false, message: 'Gateway Asaas não ativo para esta empresa.' });
+        }
+
+        const adapter = new AsaasAdapter(gatewayRes.gateway.config, gatewayRes.gateway.is_sandbox ?? true);
+        const result = await adapter.syncCustomer({
+            name: contact.name,
+            email: contact.email,
+            tax_id: contact.cpf || contact.cnpj || contact.tax_id || contact.cpf_cnpj,
+            phone: contact.phone,
+            mobilePhone: contact.whatsapp || contact.phone,
+            zipCode: contact.zipCode || contact.zip_code,
+            street: contact.street,
+            number: contact.number,
+            complement: contact.complement,
+            neighborhood: contact.neighborhood,
+            city: contact.city,
+            state: contact.state
+        });
+
+        res.json(result);
+    } catch (error: any) {
+        console.error('❌ Erro ao sincronizar contato com Asaas:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 
 // Helper to verify if the user is the admin (carloscleton.nat@gmail.com)
 async function verifyIsAdmin(authHeader: string | null): Promise<boolean> {

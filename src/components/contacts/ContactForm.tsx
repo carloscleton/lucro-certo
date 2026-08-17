@@ -15,6 +15,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useServices } from '../../hooks/useServices';
 import { CurrencyInput } from '../ui/CurrencyInput';
 
+import axios from 'axios';
+import { API_BASE_URL } from '../../lib/constants';
+
 interface ContactFormProps {
     isOpen: boolean;
     onClose: () => void;
@@ -376,6 +379,49 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             });
 
             const contactId = initialData?.id || savedContact?.id;
+
+            // Sincronizar dados cadastrais (incluindo multiplos e-mails) no Asaas
+            if (finalTaxId && currentEntity.id) {
+                try {
+                    const session = (await supabase.auth.getSession()).data.session;
+                    if (session?.access_token) {
+                        let apiBase = API_BASE_URL.replace(/\/$/, '');
+                        if (apiBase.startsWith('/')) {
+                            apiBase = window.location.origin + apiBase;
+                        }
+                        axios.post(`${apiBase}/payments/sync-customer`, {
+                            companyId: currentEntity.id,
+                            contact: {
+                                name,
+                                email: email || null,
+                                cpf: entityType === 'PF' ? cpf : null,
+                                cnpj: entityType === 'PJ' ? cnpj : null,
+                                phone: finalPhone,
+                                whatsapp: finalWhatsapp,
+                                zipCode,
+                                street,
+                                number,
+                                complement,
+                                neighborhood,
+                                city,
+                                state
+                            }
+                        }, {
+                            headers: {
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
+                        }).then(res => {
+                            if (res.data?.success) {
+                                console.log('✅ Contato sincronizado com Asaas:', res.data.message);
+                            }
+                        }).catch(syncErr => {
+                            console.warn('Sincronização opcional de contato no Asaas:', syncErr?.message);
+                        });
+                    }
+                } catch (syncErr) {
+                    console.warn('Erro ao disparar sincronização com Asaas:', syncErr);
+                }
+            }
 
             if (contactId && currentEntity.id) {
                 if (isRecorrenteEnabled && recorrenteType === 'plan' && loyaltyPlanId) {

@@ -197,6 +197,76 @@ export class AsaasAdapter implements PaymentAdapter {
         }
     }
 
+    async syncCustomer(customer: {
+        name: string;
+        email?: string;
+        tax_id?: string;
+        phone?: string;
+        mobilePhone?: string;
+        zipCode?: string;
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        state?: string;
+    }): Promise<{ success: boolean; customer_id?: string; message?: string }> {
+        try {
+            const taxId = (customer.tax_id || '').replace(/\D/g, '');
+            if (!taxId) {
+                return { success: false, message: 'CPF/CNPJ não informado para sincronizar no Asaas.' };
+            }
+
+            const cleanZip = (customer.zipCode || '').replace(/\D/g, '');
+            const payload: any = {
+                name: customer.name,
+                email: customer.email || undefined,
+                phone: (customer.phone || '').replace(/\D/g, '') || undefined,
+                mobilePhone: (customer.mobilePhone || customer.phone || '').replace(/\D/g, '') || undefined,
+                cpfCnpj: taxId,
+                postalCode: cleanZip || undefined,
+                address: customer.street || undefined,
+                addressNumber: customer.number || undefined,
+                complement: customer.complement || undefined,
+                province: customer.neighborhood || undefined,
+                notificationDisabled: false
+            };
+
+            // Search on Asaas
+            const searchResponse = await axios.get(`${this.baseUrl}/customers?cpfCnpj=${taxId}`, {
+                headers: { 'access_token': this.apiKey }
+            });
+
+            if (searchResponse.data?.data && searchResponse.data.data.length > 0) {
+                const existingId = searchResponse.data.data[0].id;
+                const updateResponse = await axios.put(`${this.baseUrl}/customers/${existingId}`, payload, {
+                    headers: { 'access_token': this.apiKey }
+                });
+                return {
+                    success: true,
+                    customer_id: updateResponse.data.id || existingId,
+                    message: 'Cliente atualizado com sucesso no Asaas!'
+                };
+            } else {
+                const createResponse = await axios.post(`${this.baseUrl}/customers`, payload, {
+                    headers: { 'access_token': this.apiKey }
+                });
+                return {
+                    success: true,
+                    customer_id: createResponse.data.id,
+                    message: 'Cliente criado com sucesso no Asaas!'
+                };
+            }
+        } catch (error: any) {
+            console.error('Asaas Sync Customer Error:', error.response?.data || error.message);
+            const detail = error.response?.data?.errors?.[0]?.description || error.message;
+            return {
+                success: false,
+                message: `Erro ao sincronizar com o Asaas: ${detail}`
+            };
+        }
+    }
+
     private async getOrCreateCustomer(customer: any): Promise<string> {
         try {
             const taxId = (customer.tax_id || '').replace(/\D/g, '');
@@ -211,7 +281,20 @@ export class AsaasAdapter implements PaymentAdapter {
             });
 
             if (searchResponse.data.data.length > 0) {
-                return searchResponse.data.data[0].id;
+                const existingId = searchResponse.data.data[0].id;
+                try {
+                    await axios.put(`${this.baseUrl}/customers/${existingId}`, {
+                        name: customer.name,
+                        email: customer.email,
+                        phone: (customer.phone || '').replace(/\D/g, '') || undefined,
+                        mobilePhone: (customer.mobilePhone || customer.phone || '').replace(/\D/g, '') || undefined
+                    }, {
+                        headers: { 'access_token': this.apiKey }
+                    });
+                } catch (updErr) {
+                    console.warn('Não foi possível atualizar dados do cliente no Asaas durante cobrança:', updErr);
+                }
+                return existingId;
             }
 
             // Create new if not found
