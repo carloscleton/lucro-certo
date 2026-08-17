@@ -9353,11 +9353,20 @@ app.post(['/payments/sync-customer', '/api/payments/sync-customer'], async (req:
         }
 
         const gateway = await getGatewayForCompany(companyId, 'asaas');
-        if (!gateway || !gateway.config) {
-            return res.json({ success: false, message: 'Gateway Asaas não ativo ou sem configuração para esta empresa.' });
+        
+        // Verifica se o gateway existe e está ativo para a empresa
+        if (!gateway || gateway.is_active === false) {
+            return res.json({ success: true, skipped: true, message: 'Gateway Asaas não está ativo para esta empresa.' });
         }
 
-        const adapter = PaymentFactory.getAdapter('asaas', gateway.config, gateway.is_sandbox ?? true) as any;
+        // Verifica se possui chave de API configurada
+        const config = gateway.config || {};
+        const hasKey = Boolean(config.prod_api_key || config.sandbox_api_key || config.api_key);
+        if (!hasKey) {
+            return res.json({ success: true, skipped: true, message: 'Gateway Asaas não possui chave de API configurada para esta empresa.' });
+        }
+
+        const adapter = PaymentFactory.getAdapter('asaas', config, gateway.is_sandbox ?? true) as any;
         const result = await adapter.syncCustomer({
             name: contact.name,
             email: contact.email,
@@ -9375,8 +9384,9 @@ app.post(['/payments/sync-customer', '/api/payments/sync-customer'], async (req:
 
         res.json(result);
     } catch (error: any) {
-        console.error('❌ Erro ao sincronizar contato com Asaas:', error.message);
-        res.status(500).json({ success: false, error: error.message });
+        console.warn('⚠️ Sincronização de contato no Asaas não concluída:', error.message);
+        // Retorna sucesso=false de forma graciosa (sem 500) para não travar a criação do contato no sistema
+        res.json({ success: false, error: error.message });
     }
 });
 
