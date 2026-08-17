@@ -9352,12 +9352,12 @@ app.post(['/payments/sync-customer', '/api/payments/sync-customer'], async (req:
             return res.status(400).json({ success: false, error: 'companyId e dados do contato são obrigatórios.' });
         }
 
-        const gatewayRes = await getGatewayForCompany(companyId, 'asaas');
-        if (!gatewayRes) {
-            return res.json({ success: false, message: 'Gateway Asaas não ativo para esta empresa.' });
+        const gateway = await getGatewayForCompany(companyId, 'asaas');
+        if (!gateway || !gateway.config) {
+            return res.json({ success: false, message: 'Gateway Asaas não ativo ou sem configuração para esta empresa.' });
         }
 
-        const adapter = PaymentFactory.getAdapter('asaas', gatewayRes.gateway.config, gatewayRes.gateway.is_sandbox ?? true) as any;
+        const adapter = PaymentFactory.getAdapter('asaas', gateway.config, gateway.is_sandbox ?? true) as any;
         const result = await adapter.syncCustomer({
             name: contact.name,
             email: contact.email,
