@@ -117,12 +117,16 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         recipient: string;
         message: string;
         isLoading: boolean;
+        isFetchingEmails?: boolean;
+        clientEmails?: string[];
     }>({
         isOpen: false,
         type: 'whatsapp',
         recipient: '',
         message: '',
-        isLoading: false
+        isLoading: false,
+        isFetchingEmails: false,
+        clientEmails: []
     });
 
     const [waInstances, setWaInstances] = useState<any[]>([]);
@@ -536,54 +540,97 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         }
         const cleanPhone = String(phone).replace(/\D/g, '');
         
-        const initialRecipient = mediaType === 'whatsapp' ? cleanPhone : clientEmail.toLowerCase();
+        const payloadEmail = clientEmail.toLowerCase().trim();
+        const initialEmails = payloadEmail ? payloadEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean) : [];
+        const initialRecipient = mediaType === 'whatsapp' ? cleanPhone : initialEmails.join(', ');
         
         setSendModal({
             isOpen: true,
             type: mediaType,
             recipient: initialRecipient,
             message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
-            isLoading: false
+            isLoading: false,
+            isFetchingEmails: mediaType === 'email',
+            clientEmails: initialEmails
         });
 
         if (mediaType === 'email') {
             try {
                 const contactId = invoice.quote?.contact_id || invoice.quote?.contact?.id;
-                const rawCpfCnpj = clientTaxId || payload?.tomador?.cpfCnpj || payload?.destinatario?.cpfCnpj || payload?.borrower?.federalTaxNumber;
-                const cleanCpfCnpj = rawCpfCnpj ? String(rawCpfCnpj).replace(/\D/g, '') : '';
-                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
-                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                    : cleanCpfCnpj.length === 14 
-                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-                        : cleanCpfCnpj;
+                const rawCpfCnpj = 
+                    clientTaxId ||
+                    payload?.tomador?.cpfCnpj || 
+                    payload?.tomador?.cnpj || 
+                    payload?.tomador?.cpf || 
+                    payload?.destinatario?.cpfCnpj || 
+                    payload?.destinatario?.cnpj || 
+                    payload?.destinatario?.cpf || 
+                    payload?.DPS?.infDPS?.toma?.CNPJ || 
+                    payload?.DPS?.infDPS?.toma?.CPF || 
+                    payload?.infDPS?.toma?.CNPJ || 
+                    payload?.infDPS?.toma?.CPF || 
+                    payload?.borrower?.federalTaxNumber || 
+                    retorno?.borrower?.federalTaxNumber;
 
-                let query = supabase.from('contacts').select('email');
+                const rawName = clientName;
+
+                let dbEmails: string[] = [];
+
+                // 1. Tentar por contactId
                 if (contactId) {
-                    query = query.eq('id', contactId);
-                } else if (cleanCpfCnpj) {
-                    query = query.in('tax_id', [cleanCpfCnpj, formattedCpfCnpj, rawCpfCnpj]);
-                } else {
-                    return;
+                    const { data } = await supabase.from('contacts').select('email').eq('id', contactId).limit(1);
+                    if (data?.[0]?.email) dbEmails.push(data[0].email);
                 }
 
-                const { data, error } = await query.limit(1);
-                if (!error && data && data.length > 0 && data[0].email) {
-                    const dbEmail = data[0].email || '';
-                    const allEmails = Array.from(new Set([
-                        ...dbEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()),
-                        ...clientEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase())
-                    ])).filter(Boolean);
+                // 2. Tentar por CPF/CNPJ
+                if (dbEmails.length === 0 && rawCpfCnpj) {
+                    const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
+                    if (cleanCpfCnpj) {
+                        const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                            ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                            : cleanCpfCnpj.length === 14 
+                                ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                                : cleanCpfCnpj;
 
-                    const finalRecipient = allEmails.join(', ');
-                    setSendModal(prev => {
-                        if (prev.isOpen && prev.type === 'email') {
-                            return { ...prev, recipient: finalRecipient };
-                        }
-                        return prev;
-                    });
+                        let q = supabase.from('contacts').select('email');
+                        if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
+                        q = q.in('tax_id', [cleanCpfCnpj, formattedCpfCnpj, rawCpfCnpj]);
+
+                        const { data } = await q.limit(1);
+                        if (data?.[0]?.email) dbEmails.push(data[0].email);
+                    }
                 }
+
+                // 3. Tentar por Nome
+                if (dbEmails.length === 0 && rawName && typeof rawName === 'string' && rawName.trim().length >= 3) {
+                    const cleanName = rawName.trim();
+                    let q = supabase.from('contacts').select('email');
+                    if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
+                    q = q.or(`name.ilike.%${cleanName}%,trade_name.ilike.%${cleanName}%`);
+
+                    const { data } = await q.limit(1);
+                    if (data?.[0]?.email) dbEmails.push(data[0].email);
+                }
+
+                const combinedList = Array.from(new Set([
+                    ...dbEmails.flatMap(e => e.split(/[,;\n]+/)).map((s: string) => s.trim().toLowerCase()),
+                    ...initialEmails
+                ])).filter(Boolean);
+
+                setSendModal(prev => {
+                    if (prev.isOpen && prev.type === 'email') {
+                        return { 
+                            ...prev, 
+                            isFetchingEmails: false,
+                            clientEmails: combinedList,
+                            recipient: combinedList.join(', ')
+                        };
+                    }
+                    return prev;
+                });
             } catch (err) {
                 console.warn('Erro ao carregar e-mails atualizados do contato:', err);
+                setSendModal(prev => ({ ...prev, isFetchingEmails: false }));
             }
         }
     };
@@ -1434,48 +1481,47 @@ ${messageWithPlaceholder}`;
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {(() => {
-                                        const rawEmails = Array.from(new Set(
-                                            (sendModal.recipient || '').split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean)
-                                        ));
-                                        if (rawEmails.length === 0) return null;
-                                        return (
-                                            <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3 rounded-xl border border-blue-100 dark:border-slate-700/60">
-                                                <label className="block text-[10px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-1.5">
-                                                    {rawEmails.length > 1 ? `E-mails do Cliente (${rawEmails.length}) — Selecione os destinatários:` : 'E-mail do Cliente:'}
-                                                </label>
-                                                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                                                    {rawEmails.map((emailItem, idx) => {
-                                                        const lowerItem = emailItem.toLowerCase();
-                                                        const isChecked = sendModal.recipient.toLowerCase().includes(lowerItem);
-                                                        return (
-                                                            <label key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors lowercase">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={isChecked}
-                                                                    onChange={(e) => {
-                                                                        let current = sendModal.recipient.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-                                                                        if (e.target.checked) {
-                                                                            if (!current.includes(lowerItem)) current.push(lowerItem);
-                                                                        } else {
-                                                                            current = current.filter(x => x !== lowerItem);
-                                                                        }
-                                                                        setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
-                                                                    }}
-                                                                    className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                                />
-                                                                <span className="truncate lowercase">{lowerItem}</span>
-                                                            </label>
-                                                        );
-                                                    })}
-                                                </div>
+                                    {sendModal.isFetchingEmails ? (
+                                        <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3 rounded-xl border border-blue-100 dark:border-slate-700/60 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                            <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                            Buscando e-mails cadastrados...
+                                        </div>
+                                    ) : (sendModal.clientEmails && sendModal.clientEmails.length > 0) ? (
+                                        <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3 rounded-xl border border-blue-100 dark:border-slate-700/60">
+                                            <label className="block text-[10px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-1.5">
+                                                📧 E-mails do Cliente Cadastrado ({sendModal.clientEmails.length}) — Selecione os destinatários:
+                                            </label>
+                                            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                                                {sendModal.clientEmails.map((emailItem, idx) => {
+                                                    const lowerItem = emailItem.toLowerCase();
+                                                    const isChecked = sendModal.recipient.toLowerCase().includes(lowerItem);
+                                                    return (
+                                                        <label key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors lowercase">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={(e) => {
+                                                                    let current = sendModal.recipient.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+                                                                    if (e.target.checked) {
+                                                                        if (!current.includes(lowerItem)) current.push(lowerItem);
+                                                                    } else {
+                                                                        current = current.filter(x => x !== lowerItem);
+                                                                    }
+                                                                    setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
+                                                                }}
+                                                                className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                            />
+                                                            <span className="truncate lowercase">{lowerItem}</span>
+                                                        </label>
+                                                    );
+                                                })}
                                             </div>
-                                        );
-                                    })()}
+                                        </div>
+                                    ) : null}
 
                                     <div className="flex flex-col gap-1">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            E-mail do Destinatário (Caixa Baixa)
+                                            E-mail(s) do Destinatário (Caixa Baixa)
                                         </label>
                                         <textarea
                                             rows={2}
