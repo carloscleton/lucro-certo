@@ -9357,7 +9357,7 @@ app.post(['/payments/sync-customer', '/api/payments/sync-customer'], async (req:
             return res.json({ success: false, message: 'Gateway Asaas não ativo para esta empresa.' });
         }
 
-        const adapter = new AsaasAdapter(gatewayRes.gateway.config, gatewayRes.gateway.is_sandbox ?? true);
+        const adapter = PaymentFactory.getAdapter('asaas', gatewayRes.gateway.config, gatewayRes.gateway.is_sandbox ?? true) as any;
         const result = await adapter.syncCustomer({
             name: contact.name,
             email: contact.email,
