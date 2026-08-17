@@ -676,7 +676,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 toma: {
                                     ...(tomaDoc.length === 11 ? { CPF: tomaDoc } : { CNPJ: tomaDoc }),
                                     xNome: tomaNome,
-                                    ...(charge.contact.email ? { email: charge.contact.email } : {}),
+                                    ...(charge.contact.email ? { email: charge.contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() } : {}),
                                     end: {
                                         ...(clientCityCode || tomaCep ? {
                                             endNac: {
@@ -741,7 +741,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         tomador: {
                             cpfCnpj: charge.contact.tax_id!.replace(/\D/g, ''),
                             razaoSocial: charge.contact.name,
-                            email: charge.contact.email,
+                            email: charge.contact.email ? charge.contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                             endereco: {
                                 logradouro: charge.contact.street || '',
                                 numero: charge.contact.number || 'S/N',
@@ -790,13 +790,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     if (chargeNotes) {
                         payload.informacoesComplementares = chargeNotes.replace(/\n/g, '|');
                     }
-                    if (config?.send_email_automatically) {
-                        payload.configuracao = {
-                            email: {
-                                envio: true,
-                                destinatarios: [charge.contact.email]
-                            }
-                        };
+                    if (config?.send_email_automatically && charge.contact.email) {
+                        const emailList = charge.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                        if (emailList.length > 0) {
+                            payload.configuracao = {
+                                email: {
+                                    envio: true,
+                                    destinatarios: emailList
+                                }
+                            };
+                        }
                     }
                 }
 

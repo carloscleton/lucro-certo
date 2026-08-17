@@ -886,12 +886,15 @@ export function Quotes() {
                     };
 
                     if (sendEmail && fullQuote.contact?.email) {
-                        payload.configuracao = {
-                            email: {
-                                envio: true,
-                                destinatarios: [fullQuote.contact.email]
-                            }
-                        };
+                        const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                        if (emailList.length > 0) {
+                            payload.configuracao = {
+                                email: {
+                                    envio: true,
+                                    destinatarios: emailList
+                                }
+                            };
+                        }
                     }
 
                     setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e Consolidada...' });
@@ -961,12 +964,15 @@ export function Quotes() {
                         };
 
                         if (sendEmail && fullQuote.contact?.email) {
-                            payload.configuracao = {
-                                email: {
-                                    envio: true,
-                                    destinatarios: [fullQuote.contact.email]
-                                }
-                            };
+                            const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                            if (emailList.length > 0) {
+                                payload.configuracao = {
+                                    email: {
+                                        envio: true,
+                                        destinatarios: emailList
+                                    }
+                                };
+                            }
                         }
 
                         const res = await fiscalService.emitirNFSe(currentEntity.id, payload, token, quote.id, false, activeProvider);
@@ -994,7 +1000,7 @@ export function Quotes() {
                         tomador: {
                             cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
                             razaoSocial: fullQuote.contact?.name,
-                            email: fullQuote.contact?.email,
+                            email: fullQuote.contact?.email ? fullQuote.contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                             endereco: {
                                 logradouro: fullQuote.contact?.street || '',
                                 numero: fullQuote.contact?.number || 'S/N',
@@ -1038,12 +1044,15 @@ export function Quotes() {
                     };
 
                     if (sendEmail && fullQuote.contact?.email) {
-                        payload.configuracao = {
-                            email: {
-                                envio: true,
-                                destinatarios: [fullQuote.contact.email]
-                            }
-                        };
+                        const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                        if (emailList.length > 0) {
+                            payload.configuracao = {
+                                email: {
+                                    envio: true,
+                                    destinatarios: emailList
+                                }
+                            };
+                        }
                     }
 
                     setFiscalStatus({ status: 'loading', message: 'Enviando NFS-e (Serviços)...' });
@@ -1065,7 +1074,7 @@ export function Quotes() {
                     destinatario: {
                         cpfCnpj: fullQuote.contact?.tax_id?.replace(/\D/g, ''),
                         razaoSocial: fullQuote.contact?.name,
-                        email: fullQuote.contact?.email,
+                        email: fullQuote.contact?.email ? fullQuote.contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                         endereco: {
                             logradouro: fullQuote.contact?.street || '',
                             numero: fullQuote.contact?.number || 'S/N',
@@ -1103,12 +1112,15 @@ export function Quotes() {
 
                 // Add email automation
                 if (sendEmail && fullQuote.contact?.email) {
-                    payload.configuracao = {
-                        email: {
-                            envio: true,
-                            destinatarios: [fullQuote.contact.email]
-                        }
-                    };
+                    const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                    if (emailList.length > 0) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: emailList
+                            }
+                        };
+                    }
                 }
 
                 setFiscalStatus({ status: 'loading', message: 'Enviando NF-e (Produtos)...' });

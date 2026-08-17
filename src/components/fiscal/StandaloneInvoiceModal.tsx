@@ -957,7 +957,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 toma: {
                                     ...(tomaDoc.length === 11 ? { CPF: tomaDoc } : { CNPJ: tomaDoc }),
                                     xNome: tomaNome,
-                                    ...(contact?.email ? { email: contact.email } : {}),
+                                    ...(contact?.email ? { email: contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() } : {}),
                                     end: {
                                         ...(tomaCityCode || tomaCep ? {
                                             endNac: {
@@ -1018,7 +1018,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         tomador: noTomador ? null : {
                             cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
                             razaoSocial: contact?.name || 'NÃO IDENTIFICADO',
-                            email: contact?.email || '',
+                            email: contact?.email ? contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                             endereco: {
                                 logradouro: contact?.street || '',
                                 numero: contact?.number || 'S/N',
@@ -1149,12 +1149,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
 
                     if (sendEmail && contact?.email) {
-                        payload.configuracao = {
-                            email: {
-                                envio: true,
-                                destinatarios: [contact.email]
-                            }
-                        };
+                        const emailList = contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                        if (emailList.length > 0) {
+                            payload.configuracao = {
+                                email: {
+                                    envio: true,
+                                    destinatarios: emailList
+                                }
+                            };
+                        }
                     }
                 }
                 console.log('📤 [FRONTEND] Enviando requisição para emissão de nota ao backend...', { provider: activeProvider, type, payload });
@@ -1365,7 +1368,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     destinatario: {
                         cpfCnpj: contact?.tax_id?.replace(/\D/g, '') || '',
                         razaoSocial: contact?.name || 'Consumidor Não Identificado',
-                        email: contact?.email || '',
+                        email: contact?.email ? contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                         endereco: {
                             logradouro: contact?.street || '',
                             numero: contact?.number || 'S/N',
@@ -1409,12 +1412,15 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
 
                 if (sendEmail && contact?.email) {
-                    payload.configuracao = {
-                        email: {
-                            envio: true,
-                            destinatarios: [contact.email]
-                        }
-                    };
+                    const emailList = contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+                    if (emailList.length > 0) {
+                        payload.configuracao = {
+                            email: {
+                                envio: true,
+                                destinatarios: emailList
+                            }
+                        };
+                    }
                 }
 
                 // console.log('📤 [FRONTEND] Payload NFe:', JSON.stringify(payload, null, 2));
