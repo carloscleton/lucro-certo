@@ -502,7 +502,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     };
 
     // Compartilhar Documento (WhatsApp / E-mail)
-    const handleOpenSend = (mediaType: 'whatsapp' | 'email') => {
+    const handleOpenSend = async (mediaType: 'whatsapp' | 'email') => {
         let phone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone || '';
         if (!phone && payload) {
             const targets = [
@@ -536,13 +536,56 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         }
         const cleanPhone = String(phone).replace(/\D/g, '');
         
+        const initialRecipient = mediaType === 'whatsapp' ? cleanPhone : clientEmail.toLowerCase();
+        
         setSendModal({
             isOpen: true,
             type: mediaType,
-            recipient: mediaType === 'whatsapp' ? cleanPhone : clientEmail,
+            recipient: initialRecipient,
             message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
             isLoading: false
         });
+
+        if (mediaType === 'email') {
+            try {
+                const contactId = invoice.quote?.contact_id || invoice.quote?.contact?.id;
+                const rawCpfCnpj = clientTaxId || payload?.tomador?.cpfCnpj || payload?.destinatario?.cpfCnpj || payload?.borrower?.federalTaxNumber;
+                const cleanCpfCnpj = rawCpfCnpj ? String(rawCpfCnpj).replace(/\D/g, '') : '';
+                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                    : cleanCpfCnpj.length === 14 
+                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                        : cleanCpfCnpj;
+
+                let query = supabase.from('contacts').select('email');
+                if (contactId) {
+                    query = query.eq('id', contactId);
+                } else if (cleanCpfCnpj) {
+                    query = query.in('tax_id', [cleanCpfCnpj, formattedCpfCnpj, rawCpfCnpj]);
+                } else {
+                    return;
+                }
+
+                const { data, error } = await query.limit(1);
+                if (!error && data && data.length > 0 && data[0].email) {
+                    const dbEmail = data[0].email || '';
+                    const allEmails = Array.from(new Set([
+                        ...dbEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()),
+                        ...clientEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase())
+                    ])).filter(Boolean);
+
+                    const finalRecipient = allEmails.join(', ');
+                    setSendModal(prev => {
+                        if (prev.isOpen && prev.type === 'email') {
+                            return { ...prev, recipient: finalRecipient };
+                        }
+                        return prev;
+                    });
+                }
+            } catch (err) {
+                console.warn('Erro ao carregar e-mails atualizados do contato:', err);
+            }
+        }
     };
 
     const handleAiRewrite = async () => {

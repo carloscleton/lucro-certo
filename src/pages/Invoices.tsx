@@ -906,50 +906,62 @@ ${messageWithPlaceholder}`;
     };
 
     const handleOpenSendEmail = async (invoice: any) => {
-        const email = getEmailFromPayload(invoice);
+        const payloadEmail = getEmailFromPayload(invoice);
+        
         setSendModal({
             isOpen: true,
             invoice,
             type: 'email',
-            recipient: email,
+            recipient: payloadEmail.toLowerCase(),
             message: '',
             isLoading: false
         });
 
-        // Se for emissão direta (sem orçamento) e tiver CPF/CNPJ do tomador, tenta buscar o contato no banco de dados para puxar o E-mail atualizado
-        const p = invoice.payload;
-        if (!invoice.quote && p) {
-            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber;
-            if (rawCpfCnpj) {
-                const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
-                const formattedCpfCnpj = cleanCpfCnpj.length === 11 
-                    ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                    : cleanCpfCnpj.length === 14 
-                        ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-                        : cleanCpfCnpj;
+        // Buscar todos os e-mails cadastrados no perfil do cliente (tabela contacts)
+        try {
+            const p = invoice.payload || {};
+            const contactId = invoice.quote?.contact_id || invoice.quote?.contact?.id;
+            const rawCpfCnpj = p?.tomador?.cpfCnpj || p?.tomador?.cnpj || p?.destinatario?.cpfCnpj || p?.destinatario?.cnpj || p?.borrower?.federalTaxNumber || p?.retorno?.borrower?.federalTaxNumber || invoice.quote?.contact?.tax_id;
+            
+            const cleanCpfCnpj = rawCpfCnpj ? String(rawCpfCnpj).replace(/\D/g, '') : '';
+            const formattedCpfCnpj = cleanCpfCnpj.length === 11 
+                ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                : cleanCpfCnpj.length === 14 
+                    ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                    : cleanCpfCnpj;
 
-                try {
-                    const { data, error } = await supabase
-                        .from('contacts')
-                        .select('email')
-                        .in('tax_id', [cleanCpfCnpj, rawCpfCnpj, formattedCpfCnpj])
-                        .limit(1);
+            let query = supabase.from('contacts').select('email');
+            
+            if (contactId) {
+                query = query.eq('id', contactId);
+            } else if (cleanCpfCnpj) {
+                query = query.in('tax_id', [cleanCpfCnpj, formattedCpfCnpj, rawCpfCnpj]);
+            } else {
+                return;
+            }
 
-                    if (!error && data && data.length > 0) {
-                        const contact = data[0];
-                        if (contact.email) {
-                            setSendModal(prev => {
-                                if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'email') {
-                                    return { ...prev, recipient: contact.email.trim() };
-                                }
-                                return prev;
-                            });
+            const { data, error } = await query.limit(1);
+
+            if (!error && data && data.length > 0) {
+                const dbEmail = data[0].email || '';
+                if (dbEmail) {
+                    const allEmails = Array.from(new Set([
+                        ...dbEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()),
+                        ...payloadEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase())
+                    ])).filter(Boolean);
+
+                    const finalRecipient = allEmails.join(', ');
+
+                    setSendModal(prev => {
+                        if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'email') {
+                            return { ...prev, recipient: finalRecipient };
                         }
-                    }
-                } catch (err) {
-                    console.warn('Erro ao carregar contato do banco:', err);
+                        return prev;
+                    });
                 }
             }
+        } catch (err) {
+            console.warn('Erro ao carregar contato atualizado do banco:', err);
         }
     };
 
