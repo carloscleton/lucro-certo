@@ -505,18 +505,28 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 const pfxBase64 = String(
                     nat.certificado_pfx_base64 || 
                     settings?.certificado_pfx_base64 || 
+                    settings?.national_config?.certificado_pfx_base64 ||
+                    settings?.tecnospeed_config?.certificado_pfx_base64 ||
                     settings?.nfeio_config?.certificado_pfx_base64 ||
                     config?.certificado_pfx_base64 ||
+                    config?.tecnospeed_config?.certificado_pfx_base64 ||
+                    config?.national_config?.certificado_pfx_base64 ||
                     ''
                 ).trim();
+
                 const pfxPassword = String(
                     nat.certificado_senha || 
                     settings?.certificado_senha || 
+                    settings?.national_config?.certificado_senha ||
+                    settings?.tecnospeed_config?.certificado_senha ||
                     settings?.nfeio_config?.certificado_senha ||
                     config?.certificado_senha ||
+                    config?.tecnospeed_config?.certificado_senha ||
+                    config?.national_config?.certificado_senha ||
                     ''
                 ).trim();
-                const adnAmbiente = nat.ambiente || 'homologacao';
+
+                const adnAmbiente = nat.ambiente || settings?.ambiente || config?.ambiente || 'homologacao';
                 let tpAmb = (adnAmbiente === 'producao') ? 1 : 2;
                 const sefinCancelUrl = tpAmb === 1
                     ? 'https://sefin.nfse.gov.br/SefinNacional'
@@ -524,7 +534,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 if (!pfxBase64) {
                     return res.status(400).json({ 
-                        error: 'Certificado digital não encontrado. Configure o certificado PFX nas Configurações Fiscais > Portal Nacional.' 
+                        error: 'Certificado digital não encontrado. Configure o arquivo PFX do certificado A1 nas Configurações Fiscais.' 
                     });
                 }
 
@@ -543,9 +553,13 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                 let prestadorCnpj = (
                     dbInvoiceRecord?.payload?.infDPS?.prest?.CNPJ || 
                     dbInvoiceRecord?.payload?.prestador?.cnpj || 
+                    dbInvoiceRecord?.payload?.emitente?.cnpj || 
+                    dbInvoiceRecord?.payload?.prestadorCnpj || 
                     nat.cnpj || 
                     config.cnpj || 
-                    '00893566000190'
+                    config.tecnospeed_config?.cnpj ||
+                    settings?.cnpj ||
+                    ''
                 ).replace(/\D/g, '');
                 
                 if (SUPABASE_URL && (!chNFSe || chNFSe.length !== 50 || !prestadorCnpj)) {
@@ -654,6 +668,12 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 if (!prestadorCnpj && certSubjectCnpj) {
                     prestadorCnpj = certSubjectCnpj;
+                }
+
+                if (!prestadorCnpj) {
+                    return res.status(400).json({ 
+                        error: 'CNPJ do prestador da NFS-e não foi localizado. Verifique se o Certificado Digital A1 (.pfx) pertence ao CNPJ emitente da nota.' 
+                    });
                 }
 
                 const httpsAgentCert = new https.Agent({
