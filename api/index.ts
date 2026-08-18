@@ -481,6 +481,10 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
         const invoiceProvider = dbInvoiceRecord?.provider || dbInvoiceRecord?.payload?.provider || activeProvider;
 
+        const isDpsId = String(id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
+                        String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
+
         const rawKeyCheck = String(id || dbInvoiceRecord?.access_key || dbInvoiceRecord?.external_id || '').trim().replace(/^DPS/i, '').replace(/\D/g, '');
         const is50Key = rawKeyCheck.length === 50 || rawKeyCheck.length === 44;
 

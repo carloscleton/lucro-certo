@@ -28,41 +28,44 @@ import { useCharges } from '../hooks/useCharges';
 
 export function parseFiscalError(error: any): string {
     if (!error) return 'Ocorreu um erro no cancelamento.';
+    if (typeof error === 'string') return error;
 
-    if (error.response?.data) {
-        const errData = error.response.data;
+    const data = error.response?.data || error.data || error;
 
-        if (errData.error && typeof errData.error === 'string') {
-            return errData.error;
+    if (data) {
+        if (typeof data === 'string' && data.trim()) {
+            return data.trim();
         }
 
-        const detail = errData.detail;
-        if (detail && typeof detail === 'object') {
-            if (detail.erros && Array.isArray(detail.erros) && detail.erros[0]?.Descricao) {
-                return `Erro do Portal Nacional (SEFIN): ${detail.erros[0].Descricao}`;
+        if (typeof data === 'object') {
+            if (typeof data.error === 'string' && data.error.trim()) return data.error;
+            if (typeof data.error === 'object' && data.error?.message) return data.error.message;
+            if (typeof data.message === 'string' && data.message.trim() && !data.message.includes('status code')) return data.message;
+            if (typeof data.mensagem === 'string' && data.mensagem.trim()) return data.mensagem;
+            
+            if (Array.isArray(data.erros) && data.erros.length > 0) {
+                return data.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
             }
-            if (detail.message) {
-                return `Erro no cancelamento: ${detail.message}`;
-            }
-            if (detail.error && typeof detail.error === 'string') {
-                return detail.error;
-            }
-        }
 
-        if (errData.message) {
-            return errData.message;
+            const detail = data.detail;
+            if (detail) {
+                if (typeof detail === 'string') return detail;
+                if (typeof detail === 'object') {
+                    if (Array.isArray(detail.erros) && detail.erros.length > 0) {
+                        return detail.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                    }
+                    if (detail.message) return detail.message;
+                    if (detail.error && typeof detail.error === 'string') return detail.error;
+                }
+            }
         }
     }
 
-    if (typeof error === 'string') {
-        return error;
+    if (error.message && !error.message.includes('status code')) {
+        return error.message;
     }
 
-    if (error.message === 'Network Error') {
-        return 'Falha de conexão com o servidor. Verifique sua conexão de rede.';
-    }
-
-    return error.message || 'Ocorreu um erro no cancelamento.';
+    return 'Erro na requisição com o Servidor Fiscal (HTTP 400). Verifique se a Nota Fiscal e o Certificado A1 estão configurados corretamente.';
 }
 
 export const renderInvoiceRates = (invoice: any) => {
