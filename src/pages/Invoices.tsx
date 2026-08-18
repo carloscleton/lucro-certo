@@ -563,43 +563,6 @@ ${messageWithPlaceholder}`;
         });
         setCancelModal({ isOpen: false, invoice: null });
         setPendingCancelInvoice(null);
-        return;
-        try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) throw new Error('Sessão expirada.');
-
-            const targetId = cancelModal.invoice.external_id || cancelModal.invoice.access_key || cancelModal.invoice.id;
-            await fiscalService.cancelarNota(
-                targetId,
-                cancelModal.invoice.type,
-                currentEntity.id,
-                cancelReason,
-                token,
-                cancelMotive
-            );
-
-            setResultModal({
-                isOpen: true,
-                title: 'Cancelamento Solicitado',
-                message: 'A solicitação de cancelamento foi enviada com sucesso no Portal Nacional.',
-                type: 'success'
-            });
-            setCancelModal({ isOpen: false, invoice: null });
-            setPendingCancelInvoice(null);
-            setCancelReason('');
-            setCancelMotive('2');
-            refresh();
-        } catch (error: any) {
-            console.error('Error cancelling invoice:', error);
-            setResultModal({
-                isOpen: true,
-                title: 'Erro no Cancelamento',
-                message: parseFiscalError(error),
-                type: 'error'
-            });
-        } finally {
-            setIsCancelling(false);
-        }
     };
 
     const handleCancelInvoice = async () => {
