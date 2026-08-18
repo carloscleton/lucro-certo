@@ -5365,7 +5365,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // 9. TRIBUTAÇÃO IBS/CBS
     drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO IBS/CBS');
     y += 4.5;
-    drawBox(margin, y, pageWidth, 24, [255, 255, 255], [0, 0, 0]);
+    drawBox(margin, y, pageWidth, 30, [255, 255, 255], [0, 0, 0]);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
     doc.text('CST / cClassTrib', margin + 2, y + 3.2);
@@ -5379,10 +5379,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text(`100101 / ${incIbge} / ${incCity} / ${incUf}`, margin + 65, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
-    doc.text('Exclusões e Reduções da Base de Cálculo', margin + 2, y + 9.8);
-    doc.text('Base de Cálculo Após Exclusões e Reduções', margin + 55, y + 9.8);
-    doc.text('Red. Alíquota IBS / Red. Alíquota CBS', margin + 110, y + 9.8);
-    doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 9.8);
+    doc.text('Exclusões e Reduções da Base de Cálculo', margin + 2, y + 10.2);
+    doc.text('Base de Cálculo Após Exclusões e Reduções', margin + 55, y + 10.2);
+    doc.text('Red. Alíquota IBS / Red. Alíquota CBS', margin + 110, y + 10.2);
+    doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 10.2);
 
     const amountVal = parseFloat(String(serv.valor || data.valorTotal || data.amount || 0.09));
     const valIbsEstadual = amountVal * 0.0010; // 0,10%
@@ -5390,68 +5390,68 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const totalIbsCbs = valIbsEstadual + valCbs; // 1,00%
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(formatCurrency(0), margin + 2, y + 12.5);
-    doc.text(formatCurrency(amountVal), margin + 55, y + 12.5);
-    doc.text('- / -', margin + 110, y + 12.5);
-    doc.text('0,10 % / 0,00 %', margin + 155, y + 12.5);
+    doc.text(formatCurrency(0), margin + 2, y + 13.7);
+    doc.text(formatCurrency(amountVal), margin + 55, y + 13.7);
+    doc.text('- / -', margin + 110, y + 13.7);
+    doc.text('0,10 % / 0,00 %', margin + 155, y + 13.7);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
-    doc.text('Aliq. Efetiva Municipal - IBS', margin + 2, y + 15.5);
-    doc.text('Valor Apurado Municipal - IBS', margin + 55, y + 15.5);
-    doc.text('Aliq. Efetiva Estadual - IBS', margin + 110, y + 15.5);
-    doc.text('Valor Apurado Estadual - IBS', margin + 155, y + 15.5);
+    doc.text('Aliq. Efetiva Municipal - IBS', margin + 2, y + 17.4);
+    doc.text('Valor Apurado Municipal - IBS', margin + 55, y + 17.4);
+    doc.text('Aliq. Efetiva Estadual - IBS', margin + 110, y + 17.4);
+    doc.text('Valor Apurado Estadual - IBS', margin + 155, y + 17.4);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text('0,00 %', margin + 2, y + 18.2);
-    doc.text(formatCurrency(0), margin + 55, y + 18.2);
-    doc.text('0,10 %', margin + 110, y + 18.2);
-    doc.text(formatCurrency(valIbsEstadual), margin + 155, y + 18.2);
+    doc.text('0,00 %', margin + 2, y + 20.9);
+    doc.text(formatCurrency(0), margin + 55, y + 20.9);
+    doc.text('0,10 %', margin + 110, y + 20.9);
+    doc.text(formatCurrency(valIbsEstadual), margin + 155, y + 20.9);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
-    doc.text('Valor Total Apurado - IBS', margin + 2, y + 21);
-    doc.text('Aliquota - CBS', margin + 55, y + 21);
-    doc.text('Aliquota Efetiva - CBS', margin + 110, y + 21);
-    doc.text('Valor Total Apurado - CBS', margin + 155, y + 21);
+    doc.text('Valor Total Apurado - IBS', margin + 2, y + 24.6);
+    doc.text('Aliquota - CBS', margin + 55, y + 24.6);
+    doc.text('Aliquota Efetiva - CBS', margin + 110, y + 24.6);
+    doc.text('Valor Total Apurado - CBS', margin + 155, y + 24.6);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(formatCurrency(valIbsEstadual), margin + 2, y + 23.5);
-    doc.text('0,90 %', margin + 55, y + 23.5);
-    doc.text('0,90 %', margin + 110, y + 23.5);
-    doc.text(formatCurrency(valCbs), margin + 155, y + 23.5);
+    doc.text(formatCurrency(valIbsEstadual), margin + 2, y + 28.1);
+    doc.text('0,90 %', margin + 55, y + 28.1);
+    doc.text('0,90 %', margin + 110, y + 28.1);
+    doc.text(formatCurrency(valCbs), margin + 155, y + 28.1);
 
-    y += 24;
+    y += 30;
 
     // 10. VALOR TOTAL DA NFS-e
     drawHeaderBox(margin, y, pageWidth, 4.5, 'VALOR TOTAL DA NFS-e');
     y += 4.5;
-    drawBox(margin, y, pageWidth, 14, [255, 255, 255], [0, 0, 0]);
+    drawBox(margin, y, pageWidth, 16, [255, 255, 255], [0, 0, 0]);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
-    doc.text('VALOR TOTAL DA NFS-e', margin + 2, y + 3.2);
-    doc.text('VALOR DA OPERAÇÃO / SERVIÇO', margin + 55, y + 3.2);
-    doc.text('Desconto Incondicionado', margin + 110, y + 3.2);
-    doc.text('Desconto Condicionado', margin + 155, y + 3.2);
+    doc.text('VALOR TOTAL DA NFS-e', margin + 2, y + 3.5);
+    doc.text('VALOR DA OPERAÇÃO / SERVIÇO', margin + 55, y + 3.5);
+    doc.text('Desconto Incondicionado', margin + 110, y + 3.5);
+    doc.text('Desconto Condicionado', margin + 155, y + 3.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
-    doc.text(formatCurrency(amountVal), margin + 2, y + 6.5);
+    doc.text(formatCurrency(amountVal), margin + 2, y + 7.2);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatCurrency(amountVal), margin + 55, y + 6.5);
-    doc.text('-', margin + 110, y + 6.5);
-    doc.text('-', margin + 155, y + 6.5);
+    doc.text(formatCurrency(amountVal), margin + 55, y + 7.2);
+    doc.text('-', margin + 110, y + 7.2);
+    doc.text('-', margin + 155, y + 7.2);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
-    doc.text('Total das Retenções (ISSQN / Federais)', margin + 2, y + 9.8);
-    doc.text('VALOR LÍQUIDO DA NFS-e', margin + 55, y + 9.8);
-    doc.text('Total do IBS/CBS', margin + 110, y + 9.8);
-    doc.text('VALOR LÍQUIDO DA NFS-e + IBS/CBS', margin + 150, y + 9.8);
+    doc.text('Total das Retenções (ISSQN / Federais)', margin + 2, y + 11.2);
+    doc.text('VALOR LÍQUIDO DA NFS-e', margin + 55, y + 11.2);
+    doc.text('Total do IBS/CBS', margin + 110, y + 11.2);
+    doc.text('VALOR LÍQUIDO DA NFS-e + IBS/CBS', margin + 150, y + 11.2);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
-    doc.text('-', margin + 2, y + 12.8);
-    doc.text(formatCurrency(amountVal), margin + 55, y + 12.8);
-    doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(totalIbsCbs), margin + 110, y + 12.8);
-    doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(amountVal), margin + 150, y + 12.8);
+    doc.text('-', margin + 2, y + 14.8);
+    doc.text(formatCurrency(amountVal), margin + 55, y + 14.8);
+    doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(totalIbsCbs), margin + 110, y + 14.8);
+    doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(amountVal), margin + 150, y + 14.8);
 
-    y += 14;
+    y += 16;
 
     // 11. INFORMAÇÕES COMPLEMENTARES
     drawHeaderBox(margin, y, pageWidth, 4.5, 'INFORMAÇÕES COMPLEMENTARES');
@@ -5466,6 +5466,20 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     drawBox(margin, y, pageWidth, infCompBoxHeight, [255, 255, 255], [0, 0, 0]);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text(splitInfComp, margin + 2, y + 4);
+
+    // 12. FOOTER RECEIPT STUB (AT BOTTOM OF PAGE)
+    const footerY = 274;
+    drawBox(margin, footerY, pageWidth, 13, [255, 255, 255], [0, 0, 0]);
+    const footW1 = 55;
+    const footW2 = 70;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
+    doc.text('DATA CIENTIFICAÇÃO:', margin + 2, footerY + 3.5);
+    doc.text('IDENTIFICAÇÃO E ASSINATURA', margin + footW1 + 2, footerY + 3.5);
+    doc.text('Nº NFS-e / CHAVE NFS-e', margin + footW1 + footW2 + 2, footerY + 3.5);
+
+    doc.setFont('courier', 'bold'); doc.setFontSize(6.5);
+    doc.text(`${nNfseVal} / ${chave}`, margin + footW1 + footW2 + 2, footerY + 8.5);
 
     const arrayBuf = doc.output('arraybuffer');
     return Buffer.from(arrayBuf);
