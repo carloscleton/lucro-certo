@@ -5404,7 +5404,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
     doc.text(formatCurrency(0), margin + 2, y + 13.7);
     doc.text(formatCurrency(amountVal), margin + 55, y + 13.7);
-    doc.text('- / -', margin + 110, y + 13.7);
+    doc.text('- / - / -', margin + 110, y + 13.7);
     doc.text('0,10 % / 0,00 %', margin + 155, y + 13.7);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
@@ -5470,7 +5470,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     y += 4.5;
     
     const customInfComp = data.infComp || data.informacoesComplementares || '';
-    const baseInfComp = `Inf. Cont.: NBS: ${formatNbs(serv.cNbs || '115013000')}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -`;
+    const baseInfComp = `Inf. Cont.: NBS: ${formatNbs(serv.cNbs || '115013000')}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -;`;
     const fullInfCompText = customInfComp ? `${baseInfComp}\n${customInfComp.replace(/\|/g, '\n')}` : baseInfComp;
     const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
     
