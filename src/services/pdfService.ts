@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 import { storageService } from '../lib/storageService';
 
 export interface QuotePDFData {
