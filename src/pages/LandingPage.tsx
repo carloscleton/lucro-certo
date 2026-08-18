@@ -17,7 +17,8 @@ import {
     Receipt,
     AlertTriangle,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -243,6 +244,27 @@ export function LandingPage() {
         window.scrollTo(0, 0);
     }, []);
 
+    const handleClearCache = async () => {
+        try {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+        } catch (err) {
+            console.warn('Erro ao limpar cache:', err);
+        } finally {
+            window.location.href = window.location.pathname + '?clearCache=' + Date.now();
+        }
+    };
+
     const updateCurrency = (code: string) => {
         setSelectedCurrency(code);
         const symbols: Record<string, string> = { 'BRL': 'R$', 'USD': '$', 'EUR': '€', 'PYG': 'Gs.', 'GBP': '£' };
@@ -373,8 +395,15 @@ export function LandingPage() {
                         })}
                     </div>
 
-                    <div className="ml-2">
+                    <div className="ml-2 flex items-center gap-2">
                         <LanguageSelector />
+                        <button
+                            onClick={handleClearCache}
+                            title="Limpar Cache do Navegador e Recarregar"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg border border-gray-200 dark:border-slate-600 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                        >
+                            <RefreshCw size={13} className="hover:rotate-180 transition-transform duration-300" />
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-4">
@@ -1040,10 +1069,19 @@ export function LandingPage() {
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
                     {t('landing.footer.rights')}
                 </p>
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                     <a href="#" className="nav-link">{t('landing.footer.privacy')}</a>
                     <a href="#" className="nav-link">{t('landing.footer.terms')}</a>
                     <a href="#" className="nav-link">{t('landing.footer.support')}</a>
+                    <button
+                        onClick={handleClearCache}
+                        className="nav-link inline-flex items-center gap-1.5 text-red-500 hover:text-red-600 font-bold transition-all"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                        title="Limpar todos os caches armazenados e recarregar o sistema"
+                    >
+                        <RefreshCw size={14} className="hover:rotate-180 transition-transform duration-300" />
+                        <span>Limpar Cache do Navegador</span>
+                    </button>
                 </div>
             </footer>
             {/* Video Modal */}
