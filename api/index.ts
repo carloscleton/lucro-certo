@@ -176,7 +176,7 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                         'Authorization': authHeader
                     }
                 }).catch(() => ({ data: [] }));
-                response = fbRes;
+                response = fbRes as any;
             }
 
             if (response.data && response.data.length > 0) {
@@ -3127,75 +3127,75 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-            while (retryCount < maxDpsRetries) {
-                retryCount++;
-                const currentNumStr = String(currentDpsSeq);
-                const paddedDpsNum = currentNumStr.padStart(15, '0');
-                const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
-                
-                inf.nDPS = currentNumStr;
-                inf.tpAmb = tpAmb;
-                if (adnPayload?.infDPS) {
-                    adnPayload.infDPS.nDPS = currentNumStr;
-                    adnPayload.infDPS.tpAmb = tpAmb;
-                }
-
-                // Montar XML da DPS conforme o leiaute nacional do contribuinte
-                dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${currentDpsId}"><tpAmb>${tpAmb}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${currentDpsSeq}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
-
-                console.log(`📝 [ADN-NACIONAL] (Tentativa ${retryCount}/${maxDpsRetries}) Gerando XML da DPS #${currentDpsSeq} [${currentDpsId}]...`);
-
-                signedXml = '';
-                try {
-                    const targetCert = leafCertificatePem || certificatePem;
-                    const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
-                        ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
-                        : targetCert;
-
-                    const sig = new SignedXml({
-                        privateKey: privateKeyPem,
-                        publicCert: leafCertPem,
-                        signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-                        canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
-                        idAttribute: 'Id'
-                    });
+            try {
+                while (retryCount < maxDpsRetries) {
+                    retryCount++;
+                    const currentNumStr = String(currentDpsSeq);
+                    const paddedDpsNum = currentNumStr.padStart(15, '0');
+                    const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
                     
-                    sig.addReference({
-                        xpath: "//*[local-name()='infDPS']",
-                        transforms: [
-                            'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
-                            'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
-                        ],
-                        digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
-                        uri: `#${currentDpsId}`
-                    });
+                    inf.nDPS = currentNumStr;
+                    inf.tpAmb = tpAmb;
+                    if (adnPayload?.infDPS) {
+                        adnPayload.infDPS.nDPS = currentNumStr;
+                        adnPayload.infDPS.tpAmb = tpAmb;
+                    }
 
-                    sig.computeSignature(dpsXml, {
-                        prefix: '',
-                        location: {
-                            reference: "//*[local-name()='infDPS']",
-                            action: 'after',
-                        },
-                    });
+                    // Montar XML da DPS conforme o leiaute nacional do contribuinte
+                    dpsXml = `<?xml version="1.0" encoding="UTF-8"?><DPS xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infDPS Id="${currentDpsId}"><tpAmb>${tpAmb}</tpAmb><dhEmi>${inf.dhEmi || dhEmi}</dhEmi><verAplic>${verAplic}</verAplic><serie>${serieVal}</serie><nDPS>${currentDpsSeq}</nDPS><dCompet>${inf.dCompet || dCompet}</dCompet><tpEmit>1</tpEmit><cLocEmi>${finalCLocEmi}</cLocEmi><prest><CNPJ>${prestCnpjClean}</CNPJ>${prestIM}<regTrib><opSimpNac>${opSimpNac}</opSimpNac>${regApTribSNXml}${regEspTribXml}</regTrib></prest>${tomaXml}<serv>${servLocXml}${servItemXml}${infoComplXml}</serv>${valoresXml}${ibscbsXml}</infDPS></DPS>`.trim();
 
-                    signedXml = sig.getSignedXml();
-                } catch (signErr: any) {
-                    console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
-                    throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
-                }
+                    console.log(`📝 [ADN-NACIONAL] (Tentativa ${retryCount}/${maxDpsRetries}) Gerando XML da DPS #${currentDpsSeq} [${currentDpsId}]...`);
 
-                let dpsXmlGZipB64 = '';
-                try {
-                    const gzipBuffer = zlib.gzipSync(Buffer.from(signedXml, 'utf-8'));
-                    dpsXmlGZipB64 = gzipBuffer.toString('base64');
-                } catch (gzipErr: any) {
-                    console.error('❌ [ADN-NACIONAL-GZIP] Erro ao compactar XML em Gzip:', gzipErr.message);
-                    throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
-                }
+                    signedXml = '';
+                    try {
+                        const targetCert = leafCertificatePem || certificatePem;
+                        const leafCertPem = targetCert.includes('-----END CERTIFICATE-----')
+                            ? targetCert.split('-----END CERTIFICATE-----')[0] + '-----END CERTIFICATE-----'
+                            : targetCert;
 
-                const finalRequestPayload = { dpsXmlGZipB64 };
+                        const sig = new SignedXml({
+                            privateKey: privateKeyPem,
+                            publicCert: leafCertPem,
+                            signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                            canonicalizationAlgorithm: 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                            idAttribute: 'Id'
+                        });
+                        
+                        sig.addReference({
+                            xpath: "//*[local-name()='infDPS']",
+                            transforms: [
+                                'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+                                'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                            ],
+                            digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256',
+                            uri: `#${currentDpsId}`
+                        });
 
-                try {
+                        sig.computeSignature(dpsXml, {
+                            prefix: '',
+                            location: {
+                                reference: "//*[local-name()='infDPS']",
+                                action: 'after',
+                            },
+                        });
+
+                        signedXml = sig.getSignedXml();
+                    } catch (signErr: any) {
+                        console.error('❌ [ADN-NACIONAL-SIGN] Erro ao assinar XML da DPS:', signErr.message);
+                        throw new Error(`Falha na assinatura digital da DPS: ${signErr.message}`);
+                    }
+
+                    let dpsXmlGZipB64 = '';
+                    try {
+                        const gzipBuffer = zlib.gzipSync(Buffer.from(signedXml, 'utf-8'));
+                        dpsXmlGZipB64 = gzipBuffer.toString('base64');
+                    } catch (gzipErr: any) {
+                        console.error('❌ [ADN-NACIONAL-GZIP] Erro ao compactar XML em Gzip:', gzipErr.message);
+                        throw new Error(`Falha na compactação Gzip da DPS: ${gzipErr.message}`);
+                    }
+
+                    const finalRequestPayload = { dpsXmlGZipB64 };
+
                     try {
                         adnResponse = await axios.post(
                             `${sefinBaseUrl}/nfse`,
@@ -3262,16 +3262,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
 
                     break; // Sucesso na emissão da nota!
-                } catch (loopErr: any) {
-                    const loopErrStr = JSON.stringify(loopErr.response?.data || loopErr.message || '');
-                    if ((loopErrStr.includes('E0014') || loopErrStr.includes('já existe em uma NFS-e')) && retryCount < maxDpsRetries) {
-                        console.warn(`⚠️ [ADN-NACIONAL SEFIN E0014] DPS número ${currentDpsSeq} já existe. Auto-incrementando para ${currentDpsSeq + 1}...`);
-                        currentDpsSeq++;
-                        continue;
-                    }
-                    throw loopErr;
                 }
-            }
 
                 // ==================================================================================
                 // FONTE DE VERDADE: currentDpsSeq é o número DPS que FOI EFETIVAMENTE enviado
@@ -6688,6 +6679,11 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                             dbRecord = { ...dbRecord, ...matched, status: 'concluido' };
                         }
                     }
+                } catch (matchErr: any) {
+                    console.warn('⚠️ Erro ao buscar registro concluído correspondente:', matchErr.message);
+                }
+            }
+
             // Se a nota continua em 'processando', consultar o SEFIN Nacional diretamente via mTLS
             if (dbRecord && (dbRecord.status === 'processando' || !dbRecord.status)) {
                 const nat = settings?.national_config || {};
