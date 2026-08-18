@@ -449,8 +449,16 @@ ${messageWithPlaceholder}`;
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
-            // Chama o endpoint de status e captura o retorno
-            const statusResult = await fiscalService.checkStatus(invoice.external_id, currentEntity.id, token);
+            // Timeout de 12s para a resposta do servidor para a sincronização não travar infinitamente
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Tempo limite excedido ao consultar o servidor (12s). Tente novamente em instantes.')), 12000)
+            );
+
+            const statusResult: any = await Promise.race([
+                fiscalService.checkStatus(invoice.external_id, currentEntity.id, token),
+                timeoutPromise
+            ]);
+
             await refresh();
 
             const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'success', 'emitida'];
@@ -462,82 +470,90 @@ ${messageWithPlaceholder}`;
                     setResultModal({
                         isOpen: true,
                         title: 'Nota Autorizada com Sucesso! ✅',
-                        message: `A Nota Fiscal foi liberada pelo Portal Nacional com o número #${statusResult?.number || statusResult?.invoice_number || '30'}.`,
+                        message: `A Nota Fiscal foi liberada pelo Portal Nacional com o número #${statusResult?.number || statusResult?.invoice_number || invoice.invoice_number || '30'}.`,
+                        type: 'success'
+                    });
+                } else {
+                    setResultModal({
+                        isOpen: true,
+                        title: 'Status Atualizado ✅',
+                        message: `Nota Fiscal #${statusResult?.number || statusResult?.invoice_number || invoice.invoice_number || ''} já está Autorizada e confirmada no sistema.`,
                         type: 'success'
                     });
                 }
-                // Busca a nota atualizada com os dados do contato
-                const { data: updatedInvoices } = await supabase
-                    .from('fiscal_invoices')
-                    .select('*, quote:quotes(*, contact:contacts(*))')
-                    .or(`id.eq.${invoice.id},external_id.eq.${invoice.external_id}`)
-                    .limit(1);
+                
+                // Processa WhatsApp em segundo plano sem travar o carregamento
+                (async () => {
+                    try {
+                        const { data: updatedInvoices } = await supabase
+                            .from('fiscal_invoices')
+                            .select('*, quote:quotes(*, contact:contacts(*))')
+                            .or(`id.eq.${invoice.id},external_id.eq.${invoice.external_id}`)
+                            .limit(1);
 
-                const updatedInvoice = updatedInvoices?.[0] || invoice;
+                        const updatedInvoice = updatedInvoices?.[0] || invoice;
+                        const { data: waInstances } = await supabase
+                            .from('instances')
+                            .select('*')
+                            .eq('status', 'connected')
+                            .neq('is_active', false)
+                            .eq('company_id', invoice.company_id);
 
-                // Busca as instâncias de WhatsApp ativas
-                const { data: waInstances } = await supabase
-                    .from('instances')
-                    .select('*')
-                    .eq('status', 'connected')
-                    .neq('is_active', false)
-                    .eq('company_id', invoice.company_id);
+                        if (waInstances && waInstances.length > 0) {
+                            const instance = waInstances[0];
+                            const phone = getPhoneFromPayload(updatedInvoice);
+                            const pdfUrl = getPdfUrlFromInvoice(updatedInvoice);
+                            const p = updatedInvoice.payload;
+                            const clientName = updatedInvoice.quote?.contact?.name ||
+                                p?.infDPS?.toma?.xNome || p?.toma?.xNome ||
+                                p?.tomador?.razaoSocial || p?.destinatario?.nome ||
+                                p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
 
-                if (waInstances && waInstances.length > 0) {
-                    const instance = waInstances[0];
-                    const phone = getPhoneFromPayload(updatedInvoice);
-                    const pdfUrl = getPdfUrlFromInvoice(updatedInvoice);
-                    const p = updatedInvoice.payload;
-                    const clientName = updatedInvoice.quote?.contact?.name ||
-                        p?.infDPS?.toma?.xNome || p?.toma?.xNome ||
-                        p?.tomador?.razaoSocial || p?.destinatario?.nome ||
-                        p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
+                            if (phone) {
+                                const activeCharge = getInvoiceCharge(updatedInvoice);
+                                let paymentMsgPart = '';
+                                if (activeCharge && activeCharge.status !== 'cancelled') {
+                                    const method = activeCharge.payment_method || '';
+                                    const isPix = method === 'pix' || !!activeCharge.qr_code;
+                                    const isCard = method === 'credit_card';
 
-                    if (phone) {
-                        try {
-                            const activeCharge = getInvoiceCharge(updatedInvoice);
-                            let paymentMsgPart = '';
-                            if (activeCharge && activeCharge.status !== 'cancelled') {
-                                const method = activeCharge.payment_method || '';
-                                const isPix = method === 'pix' || !!activeCharge.qr_code;
-                                const isCard = method === 'credit_card';
-
-                                paymentMsgPart = `\n\n💳 *DADOS PARA PAGAMENTO:*\n`;
-                                if (isPix && activeCharge.qr_code) {
-                                    paymentMsgPart += `🔑 *Pix Copia e Cola:*\n\`${activeCharge.qr_code}\`\n`;
-                                    if (activeCharge.payment_link) {
-                                        paymentMsgPart += `🔗 *Link do Pagamento:* ${activeCharge.payment_link}\n`;
+                                    paymentMsgPart = `\n\n💳 *DADOS PARA PAGAMENTO:*\n`;
+                                    if (isPix && activeCharge.qr_code) {
+                                        paymentMsgPart += `🔑 *Pix Copia e Cola:*\n\`${activeCharge.qr_code}\`\n`;
+                                        if (activeCharge.payment_link) {
+                                            paymentMsgPart += `🔗 *Link do Pagamento:* ${activeCharge.payment_link}\n`;
+                                        }
+                                    } else if (isCard && activeCharge.payment_link) {
+                                        paymentMsgPart += `💳 *Link para Pagamento com Cartão:*\n${activeCharge.payment_link}\n`;
+                                    } else if (activeCharge.payment_link) {
+                                        paymentMsgPart += `📄 *Link do Boleto / Pagamento:*\n${activeCharge.payment_link}\n`;
                                     }
-                                } else if (isCard && activeCharge.payment_link) {
-                                    paymentMsgPart += `💳 *Link para Pagamento com Cartão:*\n${activeCharge.payment_link}\n`;
-                                } else if (activeCharge.payment_link) {
-                                    paymentMsgPart += `📄 *Link do Boleto / Pagamento:*\n${activeCharge.payment_link}\n`;
                                 }
-                            }
 
-                            await whatsappService.sendMessage({
-                                instanceName: instance.instance_name,
-                                token: instance.evolution_instance_id,
-                                number: phone,
-                                text: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}${paymentMsgPart}`,
-                                mediaUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
-                                mediaType: 'document',
-                                mimetype: 'application/pdf',
-                                fileName: `NotaFiscal-${updatedInvoice.external_id || 'avulsa'}.pdf`,
-                                companyId: invoice.company_id
-                            });
-                            setResultModal({
-                                isOpen: true,
-                                title: 'Nota Autorizada! ✅',
-                                message: `Status atualizado para AUTORIZADA e notificação enviada via WhatsApp para ${clientName}.`,
-                                type: 'success'
-                            });
-                        } catch (waErr: any) {
-                            console.warn('⚠️ WhatsApp auto-send falhou após sincronização:', waErr.message);
-                            // Não bloqueia o usuário — nota já foi sincronizada com sucesso
+                                await whatsappService.sendMessage({
+                                    instanceName: instance.instance_name,
+                                    token: instance.evolution_instance_id,
+                                    number: phone,
+                                    text: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi autorizada com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}${paymentMsgPart}`,
+                                    mediaUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
+                                    mediaType: 'document',
+                                    mimetype: 'application/pdf',
+                                    fileName: `NotaFiscal-${updatedInvoice.external_id || 'avulsa'}.pdf`,
+                                    companyId: invoice.company_id
+                                });
+                            }
                         }
+                    } catch (waErr: any) {
+                        console.warn('⚠️ WhatsApp auto-send falhou:', waErr.message);
                     }
-                }
+                })();
+            } else {
+                setResultModal({
+                    isOpen: true,
+                    title: 'Status da Nota',
+                    message: `Status atual no provedor: ${resultStatus || 'em processamento'}`,
+                    type: 'info'
+                });
             }
         } catch (error: any) {
             console.error('Error checking status:', error);
@@ -1729,14 +1745,9 @@ ${messageWithPlaceholder}`;
                                                     <Tooltip content="Visualizar Nota (PDF/XML)">
                                                         <button
                                                             onClick={() => handleViewInternal(invoice)}
-                                                            disabled={isRefreshing === invoice.id}
                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm"
                                                         >
-                                                            {isRefreshing === invoice.id ? (
-                                                                <RefreshCw size={18} className="animate-spin" />
-                                                            ) : (
-                                                                <Eye size={18} />
-                                                            )}
+                                                            <Eye size={18} />
                                                         </button>
                                                     </Tooltip>
                                                 )}
