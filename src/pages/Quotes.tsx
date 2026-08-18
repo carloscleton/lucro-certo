@@ -63,7 +63,8 @@ export function Quotes() {
             const { data } = await supabase
                 .from('instances')
                 .select('*')
-                .eq('status', 'connected');
+                .eq('status', 'connected')
+                .neq('is_active', false);
 
             if (currentEntity.type === 'company' && currentEntity.id) {
                 const filtered = data?.filter(i => i.company_id === currentEntity.id) || [];

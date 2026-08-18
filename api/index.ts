@@ -10885,7 +10885,7 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                 if (SUPABASE_URL) {
                     try {
                         const { data: connectedDbInsts } = await axios.get(
-                            `${SUPABASE_URL}/rest/v1/instances?status=in.(connected,open,working,online,paired)&select=instance_name,evolution_instance_id,provider&limit=3`,
+                            `${SUPABASE_URL}/rest/v1/instances?status=in.(connected,open,working,online,paired)&is_active=neq.false&order=is_default.desc,created_at.desc&select=instance_name,evolution_instance_id,provider&limit=3`,
                             { headers: { 'apikey': supabaseKey, 'Authorization': dbAuthHeader } }
                         );
                         if (connectedDbInsts && connectedDbInsts.length > 0) {

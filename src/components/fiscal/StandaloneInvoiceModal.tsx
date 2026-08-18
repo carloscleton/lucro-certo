@@ -506,10 +506,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
             const { data } = await supabase
                 .from('instances')
                 .select('*')
-                .eq('status', 'connected');
+                .eq('status', 'connected')
+                .neq('is_active', false);
 
             if (currentEntity.id) {
-                setWaInstances(data?.filter(i => i.company_id === currentEntity.id) || []);
+                const filtered = data?.filter(i => i.company_id === currentEntity.id) || [];
+                filtered.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+                setWaInstances(filtered);
             }
         };
         fetchWA();

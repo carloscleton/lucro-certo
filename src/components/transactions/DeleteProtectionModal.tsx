@@ -151,20 +151,41 @@ export function DeleteProtectionModal({ isOpen, onClose, onConfirm, transaction,
 
                     let { data: waData } = await supabase
                         .from('instances')
-                        .select('instance_name, status, company_id')
+                        .select('instance_name, status, company_id, is_active, is_default')
+                        .order('is_default', { ascending: false })
                         .order('created_at', { ascending: false });
 
                     if (waData && waData.length > 0) {
                         const connectedStatuses = ['connected', 'open', 'working', 'online', 'paired'];
-                        // Prioriza instâncias conectadas da própria empresa
-                        const companyInst = waData.find(i => 
+                        
+                        // 1. Prioriza instância com disparos ativos (is_active !== false) e marcada como padrão (is_default)
+                        const activeDefaultCompanyInst = waData.find(i => 
                             (activeCompanyId ? i.company_id === activeCompanyId : true) && 
+                            i.is_active !== false && 
+                            i.is_default === true && 
                             connectedStatuses.includes((i.status || '').toLowerCase())
-                        ) || waData.find(i => connectedStatuses.includes((i.status || '').toLowerCase()));
+                        );
 
-                        const chosen = companyInst || waData.find(i => i.instance_name === 'SLIN') || waData[0];
-                        setHasWaInstance(true);
-                        setWaInstanceName(chosen.instance_name);
+                        // 2. Instância conectada da empresa com disparos ativos
+                        const activeCompanyInst = activeDefaultCompanyInst || waData.find(i => 
+                            (activeCompanyId ? i.company_id === activeCompanyId : true) && 
+                            i.is_active !== false && 
+                            connectedStatuses.includes((i.status || '').toLowerCase())
+                        );
+
+                        // 3. Qualquer instância conectada no sistema com disparos ativos
+                        const activeGlobalInst = activeCompanyInst || waData.find(i => 
+                            i.is_active !== false && 
+                            connectedStatuses.includes((i.status || '').toLowerCase())
+                        );
+
+                        // Fallback: instância conectada no sistema
+                        const chosen = activeGlobalInst || waData.find(i => connectedStatuses.includes((i.status || '').toLowerCase())) || waData[0];
+
+                        if (chosen) {
+                            setHasWaInstance(true);
+                            setWaInstanceName(chosen.instance_name);
+                        }
                     } else {
                         setHasWaInstance(false);
                     }

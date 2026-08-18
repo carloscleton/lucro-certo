@@ -213,8 +213,11 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             const { data } = await supabase
                 .from('instances')
                 .select('*')
-                .eq('status', 'connected');
-            setWaInstances(data?.filter(i => i.company_id === currentEntity.id) || []);
+                .eq('status', 'connected')
+                .neq('is_active', false);
+            const filtered = data?.filter(i => i.company_id === currentEntity.id) || [];
+            filtered.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+            setWaInstances(filtered);
         };
         fetchWA();
     }, [isOpen, currentEntity.id]);

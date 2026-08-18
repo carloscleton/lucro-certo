@@ -139,8 +139,11 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                 .from('instances')
                 .select('*')
                 .eq('status', 'connected')
+                .neq('is_active', false)
                 .eq('company_id', invoice.company_id);
-            setWaInstances(data || []);
+            const activeInsts = data || [];
+            activeInsts.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+            setWaInstances(activeInsts);
         };
         fetchWA();
     }, [invoice?.company_id, isOpen]);
