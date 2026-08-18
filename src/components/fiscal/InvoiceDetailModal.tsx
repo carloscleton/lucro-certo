@@ -214,6 +214,29 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         setTimeout(() => setCopiedField(null), 2500);
     };
 
+    const formatDateSafe = (dateStr: any): string => {
+        if (!dateStr) return 'Não informado';
+        try {
+            const raw = String(dateStr).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                const [y, m, d] = raw.split('-');
+                return `${d}/${m}/${y}`;
+            }
+            const cleanStr = raw.replace(' ', 'T');
+            const parsed = new Date(cleanStr);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('pt-BR');
+            }
+            const match = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+                return `${match[3]}/${match[2]}/${match[1]}`;
+            }
+            return raw;
+        } catch {
+            return String(dateStr);
+        }
+    };
+
     useEffect(() => {
         if (isOpen && invoice?.id) {
             fetchEvents();
@@ -967,7 +990,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                         <div>
                                             <span className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">Vencimento</span>
                                             <span className="text-xs font-bold text-gray-900 dark:text-white">
-                                                {linkedCharge.due_date ? new Date(linkedCharge.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+                                                {formatDateSafe(linkedCharge.due_date || linkedCharge.due_date_at || linkedCharge.vencimento)}
                                             </span>
                                         </div>
                                         <div>
