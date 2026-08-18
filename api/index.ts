@@ -8501,7 +8501,7 @@ app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authentica
     const { token, company_id } = req.query;
 
     try {
-        const targetName = await resolveTargetName(name, token as string, company_id as string);
+        const targetName = await resolveTargetName(name as any, token as string, company_id as string);
         const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string });
         console.log(`🔍 Fetching QR Code for instance "${targetName}" (Go: ${config.isGo})...`);
 
@@ -8616,7 +8616,7 @@ app.get(['/instances/:name/connect', '/api/instances/:name/connect'], authentica
                     base64: qrRes.data.data?.Qrcode || qrRes.data.data?.base64
                 };
             } else {
-                const encodedName = encodeURIComponent(name);
+                const encodedName = encodeURIComponent(name as any);
                 const response = await axios.get(`${activeConfig.url}/instance/connect/${encodedName}`, {
                     headers: { 'apikey': activeConfig.apiKey }
                 });
@@ -9443,7 +9443,7 @@ app.get(['/payments/inter/pdf/:companyId/:nossoNumero', '/api/payments/inter/pdf
 
         const { BancoInterAdapter } = await import('./_services/payments/adapters/BancoInterAdapter.js');
         const adapter = new BancoInterAdapter(config, isSandbox);
-        const pdfBuffer = await adapter.getBoletoPdf(nossoNumero);
+        const pdfBuffer = await adapter.getBoletoPdf(nossoNumero as any);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="boleto-${nossoNumero}.pdf"`);
