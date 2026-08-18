@@ -555,6 +555,7 @@ ${messageWithPlaceholder}`;
     const [pendingCancelInvoice, setPendingCancelInvoice] = useState<any | null>(null);
 
     const executeCancelInvoice = async () => {
+        setIsCancelling(true);
         setResultModal({
             isOpen: true,
             title: 'Funcionalidade Desabilitada',
@@ -563,6 +564,7 @@ ${messageWithPlaceholder}`;
         });
         setCancelModal({ isOpen: false, invoice: null });
         setPendingCancelInvoice(null);
+        setIsCancelling(false);
     };
 
     const handleCancelInvoice = async () => {
