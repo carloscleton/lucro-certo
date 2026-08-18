@@ -1149,12 +1149,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     }
 
                     if (sendEmail && contact?.email) {
-                        const emailList = contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                        if (emailList.length > 0) {
+                        const firstE = contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                        if (firstE) {
                             payload.configuracao = {
                                 email: {
                                     envio: true,
-                                    destinatarios: emailList
+                                    destinatarios: [firstE]
                                 }
                             };
                         }
@@ -1412,12 +1412,12 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 }
 
                 if (sendEmail && contact?.email) {
-                    const emailList = contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                    if (emailList.length > 0) {
+                    const firstE = contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                    if (firstE) {
                         payload.configuracao = {
                             email: {
                                 envio: true,
-                                destinatarios: emailList
+                                destinatarios: [firstE]
                             }
                         };
                     }

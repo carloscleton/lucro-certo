@@ -886,12 +886,12 @@ export function Quotes() {
                     };
 
                     if (sendEmail && fullQuote.contact?.email) {
-                        const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                        if (emailList.length > 0) {
+                        const firstE = fullQuote.contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                        if (firstE) {
                             payload.configuracao = {
                                 email: {
                                     envio: true,
-                                    destinatarios: emailList
+                                    destinatarios: [firstE]
                                 }
                             };
                         }
@@ -964,12 +964,12 @@ export function Quotes() {
                         };
 
                         if (sendEmail && fullQuote.contact?.email) {
-                            const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                            if (emailList.length > 0) {
+                            const firstE = fullQuote.contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                            if (firstE) {
                                 payload.configuracao = {
                                     email: {
                                         envio: true,
-                                        destinatarios: emailList
+                                        destinatarios: [firstE]
                                     }
                                 };
                             }
@@ -1044,12 +1044,12 @@ export function Quotes() {
                     };
 
                     if (sendEmail && fullQuote.contact?.email) {
-                        const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                        if (emailList.length > 0) {
+                        const firstE = fullQuote.contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                        if (firstE) {
                             payload.configuracao = {
                                 email: {
                                     envio: true,
-                                    destinatarios: emailList
+                                    destinatarios: [firstE]
                                 }
                             };
                         }
@@ -1112,12 +1112,12 @@ export function Quotes() {
 
                 // Add email automation
                 if (sendEmail && fullQuote.contact?.email) {
-                    const emailList = fullQuote.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                    if (emailList.length > 0) {
+                    const firstE = fullQuote.contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                    if (firstE) {
                         payload.configuracao = {
                             email: {
                                 envio: true,
-                                destinatarios: emailList
+                                destinatarios: [firstE]
                             }
                         };
                     }

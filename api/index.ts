@@ -2728,9 +2728,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
                 }
 
-                // Adicionar e-mail do tomador se disponível e se a tag toma existir
+                // Adicionar e-mail do tomador se disponível e se a tag toma existir (garante apenas o 1º e-mail limpo para validação fiscal)
                 if (firstItem?.tomador?.email && adnPayload.infDPS?.toma) {
-                    adnPayload.infDPS.toma.email = firstItem.tomador.email;
+                    const rawEmail = String(firstItem.tomador.email).trim().toLowerCase();
+                    const firstEmail = rawEmail.split(/[,;\n]+/)[0]?.trim();
+                    if (firstEmail) {
+                        adnPayload.infDPS.toma.email = firstEmail;
+                    }
                 }
             }
 
@@ -2933,7 +2937,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const defaultPrestCMun = String(finalCLocEmi || nat.codigo_municipio || '2408102').replace(/\D/g, '');
             const defaultPrestCep = String(nat.cep || config?.cep || '59025902').replace(/\D/g, '');
             const consumidorFinalTomaXml = `<toma><cNaoNIF>1</cNaoNIF><xNome>CONSUMIDOR FINAL</xNome><end><endNac><cMun>${defaultPrestCMun}</cMun><CEP>${defaultPrestCep}</CEP></endNac><xLgr>NAO INFORMADO</xLgr><nro>SN</nro><xBairro>NAO INFORMADO</xBairro></end></toma>`;
-            const tomaXml = isNoTomadorXml ? consumidorFinalTomaXml : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${inf.toma.email ? `<email>${inf.toma.email}</email>` : ''}</toma>`;
+            const rawTomaEmail = inf.toma?.email ? String(inf.toma.email).trim().toLowerCase() : '';
+            const cleanFirstTomaEmail = rawTomaEmail ? rawTomaEmail.split(/[,;\n]+/)[0]?.trim() : '';
+            const tomaXml = isNoTomadorXml ? consumidorFinalTomaXml : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${cleanFirstTomaEmail ? `<email>${cleanFirstTomaEmail}</email>` : ''}</toma>`;
 
             // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
             const isReformaAtiva = !!(nat.reforma_tributaria_calculadora_ativa ?? config.reforma_tributaria_calculadora_ativa);

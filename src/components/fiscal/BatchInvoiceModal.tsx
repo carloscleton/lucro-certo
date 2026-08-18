@@ -791,12 +791,12 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         payload.informacoesComplementares = chargeNotes.replace(/\n/g, '|');
                     }
                     if (config?.send_email_automatically && charge.contact.email) {
-                        const emailList = charge.contact.email.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-                        if (emailList.length > 0) {
+                        const firstE = charge.contact.email.split(/[,;\n]+/)[0]?.trim().toLowerCase();
+                        if (firstE) {
                             payload.configuracao = {
                                 email: {
                                     envio: true,
-                                    destinatarios: emailList
+                                    destinatarios: [firstE]
                                 }
                             };
                         }
