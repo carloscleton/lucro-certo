@@ -555,8 +555,15 @@ ${messageWithPlaceholder}`;
     const [pendingCancelInvoice, setPendingCancelInvoice] = useState<any | null>(null);
 
     const executeCancelInvoice = async () => {
-        if (!cancelModal.invoice || !cancelReason.trim() || !currentEntity.id) return;
-        setIsCancelling(true);
+        setResultModal({
+            isOpen: true,
+            title: 'Funcionalidade Desabilitada',
+            message: 'O cancelamento de notas fiscais está desabilitado temporariamente.',
+            type: 'error'
+        });
+        setCancelModal({ isOpen: false, invoice: null });
+        setPendingCancelInvoice(null);
+        return;
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
@@ -1795,13 +1802,10 @@ ${messageWithPlaceholder}`;
                                                     </Tooltip>
                                                 )}
                                                 {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
-                                                    <Tooltip content="Cancelar na Prefeitura">
+                                                    <Tooltip content="Cancelamento Temporariamente Desabilitado">
                                                         <button
-                                                            onClick={() => {
-                                                                setPendingCancelInvoice(invoice);
-                                                                setIsProtectedModalOpen(true);
-                                                            }}
-                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all shadow-sm"
+                                                            disabled={true}
+                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed rounded-xl transition-all shadow-sm"
                                                         >
                                                             <XCircle size={18} />
                                                         </button>
