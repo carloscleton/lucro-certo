@@ -728,6 +728,20 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     });
                 }
 
+                // Ajusta tpAmb e sefinCancelUrl dinamicamente com base no 8º dígito da chave de acesso (posição index 7)
+                if (cleanChNFSe.length === 50) {
+                    const keyTpAmb = cleanChNFSe.charAt(7);
+                    if (keyTpAmb === '1') {
+                        tpAmb = 1;
+                        sefinCancelUrl = 'https://sefin.nfse.gov.br/SefinNacional';
+                        console.log(`📌 [ADN-NACIONAL-CANCEL] Fuso/Ambiente ajustado para PRODUÇÃO (tpAmb=1) baseado na Chave de Acesso.`);
+                    } else if (keyTpAmb === '2') {
+                        tpAmb = 2;
+                        sefinCancelUrl = 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
+                        console.log(`📌 [ADN-NACIONAL-CANCEL] Fuso/Ambiente ajustado para HOMOLOGAÇÃO (tpAmb=2) baseado na Chave de Acesso.`);
+                    }
+                }
+
                 const formatCancelDate = (date: Date) => {
                     const formatter = new Intl.DateTimeFormat('en-US', {
                         timeZone: 'America/Sao_Paulo',
@@ -884,33 +898,61 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
             } catch (nationalCancelErr: any) {
                 let rawBody = nationalCancelErr.response?.data;
+                let parsedMsg = '';
+
                 if (Buffer.isBuffer(rawBody)) {
                     try { rawBody = zlib.gunzipSync(rawBody).toString('utf-8'); } catch (e) { rawBody = rawBody.toString('utf-8'); }
                 }
-                if (typeof rawBody === 'string') {
-                    try { rawBody = JSON.parse(rawBody); } catch (e) {}
-                }
-                console.error(`❌ [ADN-NACIONAL-CANCEL] Erro (${nationalCancelErr.response?.status}):`, JSON.stringify(rawBody || nationalCancelErr.message));
 
-                let errMsg = '';
-                if (rawBody && typeof rawBody === 'object') {
-                    if (Array.isArray(rawBody.erros) && rawBody.erros.length > 0) {
-                        errMsg = rawBody.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
-                    } else if (rawBody.mensagem || rawBody.message || rawBody.error) {
-                        errMsg = rawBody.mensagem || rawBody.message || (typeof rawBody.error === 'string' ? rawBody.error : rawBody.error?.message);
+                if (typeof rawBody === 'string') {
+                    const trimmed = rawBody.trim();
+                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                        try { rawBody = JSON.parse(trimmed); } catch (e) {}
+                    } else {
+                        const xMotivoMatch = trimmed.match(/<xMotivo>(.*?)<\/xMotivo>/i);
+                        const descMatch = trimmed.match(/<descricao>(.*?)<\/descricao>/i);
+                        const msgMatch = trimmed.match(/<mensagem>(.*?)<\/mensagem>/i);
+                        const cStatMatch = trimmed.match(/<cStat>(.*?)<\/cStat>/i);
+                        const codMatch = trimmed.match(/<codigo>(.*?)<\/codigo>/i);
+
+                        const parts = [];
+                        if (codMatch) parts.push(`[${codMatch[1]}]`);
+                        else if (cStatMatch) parts.push(`[cStat ${cStatMatch[1]}]`);
+
+                        if (descMatch) parts.push(descMatch[1]);
+                        else if (xMotivoMatch) parts.push(xMotivoMatch[1]);
+                        else if (msgMatch) parts.push(msgMatch[1]);
+
+                        if (parts.length > 0) {
+                            parsedMsg = parts.join(' ');
+                        }
                     }
                 }
 
-                if (!errMsg && typeof rawBody === 'string') {
-                    errMsg = rawBody;
+                if (!parsedMsg && Array.isArray(rawBody) && rawBody.length > 0) {
+                    parsedMsg = rawBody.map((e: any) => typeof e === 'string' ? e : `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                } else if (!parsedMsg && rawBody && typeof rawBody === 'object') {
+                    if (Array.isArray(rawBody.erros) && rawBody.erros.length > 0) {
+                        parsedMsg = rawBody.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                    } else if (Array.isArray(rawBody.mensagens) && rawBody.mensagens.length > 0) {
+                        parsedMsg = rawBody.mensagens.map((e: any) => `[${e.codigo || 'ERRO'}] ${e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                    } else if (rawBody.mensagem || rawBody.message || rawBody.error || rawBody.xMotivo) {
+                        parsedMsg = rawBody.mensagem || rawBody.message || rawBody.xMotivo || (typeof rawBody.error === 'string' ? rawBody.error : rawBody.error?.message);
+                    }
                 }
 
-                if (!errMsg) {
-                    errMsg = nationalCancelErr.message || 'Rejeição do Portal Nacional (400 Bad Request)';
+                if (!parsedMsg && typeof rawBody === 'string' && rawBody.trim()) {
+                    parsedMsg = rawBody.slice(0, 300);
                 }
+
+                if (!parsedMsg) {
+                    parsedMsg = nationalCancelErr.message || 'Rejeição do Portal Nacional (400 Bad Request)';
+                }
+
+                console.error(`❌ [ADN-NACIONAL-CANCEL] Erro (${nationalCancelErr.response?.status}):`, parsedMsg);
 
                 return res.status(nationalCancelErr.response?.status || 500).json({
-                    error: `Erro no Portal Nacional (SEFIN): ${errMsg}`,
+                    error: `Erro no Portal Nacional (SEFIN): ${parsedMsg}`,
                     detail: rawBody || nationalCancelErr.response?.data
                 });
             }
