@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-    X, Receipt, DollarSign, User, MapPin, Mail, MessageCircle, FileText, 
+    X, Receipt, DollarSign, User, MapPin, FileText, 
     FileCode, Trash2, AlertTriangle, Printer, History, 
-    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw, Sparkles,
-    Maximize2, Minimize2
+    UserCheck, XCircle, CheckCircle2, Clock3, RefreshCw,
+    Maximize2, Minimize2, CreditCard, Copy, ExternalLink, QrCode, Check
 } from 'lucide-react';
+import { clsx } from 'clsx';
 import { supabase } from '../../lib/supabase';
 import { fiscalService } from '../../services/fiscalService';
-import { whatsappService } from '../../services/whatsappService';
 import { Button } from '../ui/Button';
 import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
@@ -44,6 +44,10 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const [xmlText, setXmlText] = useState<string>('');
     const [loadingXml, setLoadingXml] = useState(false);
     const [copiedXml, setCopiedXml] = useState(false);
+
+    const [linkedCharge, setLinkedCharge] = useState<any>(null);
+    const [loadingCharge, setLoadingCharge] = useState(false);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
 
     // Definir tamanho inicial maior (ampliado por padrão) e resetar para a aba 'details' ao abrir
     useEffect(() => {
@@ -111,43 +115,6 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         window.addEventListener('mouseup', handleMouseUp);
     };
 
-    const [sendModal, setSendModal] = useState<{
-        isOpen: boolean;
-        type: 'whatsapp' | 'email';
-        recipient: string;
-        message: string;
-        isLoading: boolean;
-        isFetchingEmails?: boolean;
-        clientEmails?: string[];
-    }>({
-        isOpen: false,
-        type: 'whatsapp',
-        recipient: '',
-        message: '',
-        isLoading: false,
-        isFetchingEmails: false,
-        clientEmails: []
-    });
-
-    const [waInstances, setWaInstances] = useState<any[]>([]);
-    const [isRewriting, setIsRewriting] = useState(false);
-
-    useEffect(() => {
-        if (!isOpen || !invoice?.company_id) return;
-        const fetchWA = async () => {
-            const { data } = await supabase
-                .from('instances')
-                .select('*')
-                .eq('status', 'connected')
-                .neq('is_active', false)
-                .eq('company_id', invoice.company_id);
-            const activeInsts = data || [];
-            activeInsts.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
-            setWaInstances(activeInsts);
-        };
-        fetchWA();
-    }, [invoice?.company_id, isOpen]);
-
     // Buscar XML real descompactado quando a aba XML for selecionada
     useEffect(() => {
         if (activeTab === 'xml' && !xmlText && invoice?.external_id) {
@@ -209,9 +176,48 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         }
     };
 
+    const fetchLinkedCharge = async () => {
+        if (!invoice?.company_id) return;
+        setLoadingCharge(true);
+        try {
+            const invoiceNo = invoice.invoice_number || invoice.external_id?.slice(-6) || '';
+            
+            let query = supabase
+                .from('company_charges')
+                .select('*')
+                .eq('company_id', invoice.company_id)
+                .order('created_at', { ascending: false });
+
+            if (invoice.quote_id) {
+                query = query.or(`quote_id.eq.${invoice.quote_id},external_reference.eq.NF${invoiceNo},description.ilike.%Nº ${invoiceNo}%`);
+            } else if (invoiceNo) {
+                query = query.or(`external_reference.eq.NF${invoiceNo},description.ilike.%Nº ${invoiceNo}%`);
+            }
+
+            const { data } = await query.limit(1);
+            if (data && data.length > 0) {
+                setLinkedCharge(data[0]);
+            } else {
+                setLinkedCharge(null);
+            }
+        } catch (err) {
+            console.error('Erro ao buscar cobrança vinculada:', err);
+        } finally {
+            setLoadingCharge(false);
+        }
+    };
+
+    const handleCopyToClipboard = (text: string, fieldName: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedField(fieldName);
+        setTimeout(() => setCopiedField(null), 2500);
+    };
+
     useEffect(() => {
         if (isOpen && invoice?.id) {
             fetchEvents();
+            fetchLinkedCharge();
         }
     }, [invoice?.id, isOpen]);
 
@@ -506,246 +512,6 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
             alert('Erro ao ocultar do histórico: ' + error.message);
         } finally {
             setIsDeleting(false);
-        }
-    };
-
-    // Compartilhar Documento (WhatsApp / E-mail)
-    const handleOpenSend = async (mediaType: 'whatsapp' | 'email') => {
-        let phone = invoice.quote?.contact?.whatsapp || invoice.quote?.contact?.phone || '';
-        if (!phone && payload) {
-            const targets = [
-                payload.tomador?.telefone,
-                payload.tomador?.contato?.telefone,
-                payload.destinatario?.telefone,
-                payload.destinatario?.contato?.telefone,
-                payload.borrower?.phone,
-                payload.borrower?.telefone,
-                payload.borrower?.phone_number,
-                retorno.tomador?.telefone,
-                retorno.borrower?.phone
-            ];
-            for (const t of targets) {
-                if (!t) continue;
-                if (typeof t === 'string') {
-                    const clean = t.replace(/\D/g, '');
-                    if (clean) {
-                        phone = clean;
-                        break;
-                    }
-                } else if (typeof t === 'object') {
-                    const ddd = String(t.ddd || '').replace(/\D/g, '');
-                    const num = String(t.numero || '').replace(/\D/g, '');
-                    if (num) {
-                        phone = `${ddd}${num}`;
-                        break;
-                    }
-                }
-            }
-        }
-        const cleanPhone = String(phone).replace(/\D/g, '');
-        
-        const payloadEmail = clientEmail.toLowerCase().trim();
-        const initialEmails = payloadEmail ? payloadEmail.split(/[,;\n]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean) : [];
-        const initialRecipient = mediaType === 'whatsapp' ? cleanPhone : initialEmails.join(', ');
-        
-        setSendModal({
-            isOpen: true,
-            type: mediaType,
-            recipient: initialRecipient,
-            message: `Olá, *${clientName}*! 👋\n\nSua Nota Fiscal foi emitida com sucesso.\n\n🔗 *Acesse sua NOTA FISCAL aqui:*\n${pdfUrl}`,
-            isLoading: false,
-            isFetchingEmails: mediaType === 'email',
-            clientEmails: initialEmails
-        });
-
-        if (mediaType === 'email') {
-            try {
-                const contactId = invoice.quote?.contact_id || invoice.quote?.contact?.id;
-                const rawCpfCnpj = 
-                    clientTaxId ||
-                    payload?.tomador?.cpfCnpj || 
-                    payload?.tomador?.cnpj || 
-                    payload?.tomador?.cpf || 
-                    payload?.destinatario?.cpfCnpj || 
-                    payload?.destinatario?.cnpj || 
-                    payload?.destinatario?.cpf || 
-                    payload?.DPS?.infDPS?.toma?.CNPJ || 
-                    payload?.DPS?.infDPS?.toma?.CPF || 
-                    payload?.infDPS?.toma?.CNPJ || 
-                    payload?.infDPS?.toma?.CPF || 
-                    payload?.borrower?.federalTaxNumber || 
-                    retorno?.borrower?.federalTaxNumber;
-
-                const rawName = clientName;
-
-                let dbEmails: string[] = [];
-
-                // 1. Tentar por contactId
-                if (contactId) {
-                    const { data } = await supabase.from('contacts').select('email').eq('id', contactId).limit(1);
-                    if (data?.[0]?.email) dbEmails.push(data[0].email);
-                }
-
-                // 2. Tentar por CPF/CNPJ
-                if (dbEmails.length === 0 && rawCpfCnpj) {
-                    const cleanCpfCnpj = String(rawCpfCnpj).replace(/\D/g, '');
-                    if (cleanCpfCnpj) {
-                        const formattedCpfCnpj = cleanCpfCnpj.length === 11 
-                            ? cleanCpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                            : cleanCpfCnpj.length === 14 
-                                ? cleanCpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-                                : cleanCpfCnpj;
-
-                        let q = supabase.from('contacts').select('email');
-                        if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
-                        q = q.in('tax_id', [cleanCpfCnpj, formattedCpfCnpj, rawCpfCnpj]);
-
-                        const { data } = await q.limit(1);
-                        if (data?.[0]?.email) dbEmails.push(data[0].email);
-                    }
-                }
-
-                // 3. Tentar por Nome
-                if (dbEmails.length === 0 && rawName && typeof rawName === 'string' && rawName.trim().length >= 3) {
-                    const cleanName = rawName.trim();
-                    let q = supabase.from('contacts').select('email');
-                    if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
-                    q = q.or(`name.ilike.%${cleanName}%,trade_name.ilike.%${cleanName}%`);
-
-                    const { data } = await q.limit(1);
-                    if (data?.[0]?.email) dbEmails.push(data[0].email);
-                }
-
-                const combinedList = Array.from(new Set([
-                    ...dbEmails.flatMap(e => e.split(/[,;\n]+/)).map((s: string) => s.trim().toLowerCase()),
-                    ...initialEmails
-                ])).filter(Boolean);
-
-                setSendModal(prev => {
-                    if (prev.isOpen && prev.type === 'email') {
-                        return { 
-                            ...prev, 
-                            isFetchingEmails: false,
-                            clientEmails: combinedList,
-                            recipient: combinedList.join(', ')
-                        };
-                    }
-                    return prev;
-                });
-            } catch (err) {
-                console.warn('Erro ao carregar e-mails atualizados do contato:', err);
-                setSendModal(prev => ({ ...prev, isFetchingEmails: false }));
-            }
-        }
-    };
-
-    const handleAiRewrite = async () => {
-        if (!sendModal.message) return;
-        setIsRewriting(true);
-        try {
-            // Extrair o link original da mensagem
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const match = sendModal.message.match(urlRegex);
-            const originalUrl = match ? match[0] : '';
-            
-            // Substituir o link real pelo placeholder
-            const messageWithPlaceholder = originalUrl 
-                ? sendModal.message.replace(originalUrl, '[LINK_NOTAFISCAL]') 
-                : sendModal.message;
-
-            const prompt = `Você é um assistente de vendas e relacionamento inteligente. 
-Sua tarefa é reescrever a mensagem de WhatsApp abaixo para torná-la mais profissional, simpática ou com um tom levemente diferente, mantendo o mesmo objetivo.
-
-REGRAS CRÍTICAS:
-1. MANTENHA o marcador [LINK_NOTAFISCAL] exatamente como está (não altere os colchetes nem o texto interno). Ele representa o link real da nota fiscal que será reinserido automaticamente depois.
-2. Preserve a saudação e o nome do cliente.
-3. Não inclua aspas no início ou fim do texto reescrito.
-4. Mantenha formatações básicas de WhatsApp (como *negrito* para destacar pontos importantes e emojis amigáveis).
-5. O texto deve ter no máximo 4 parágrafos curtos.
-
-Mensagem atual a ser reescrita:
-${messageWithPlaceholder}`;
-
-            const companyId = invoice?.company_id;
-            if (!companyId) throw new Error('Company ID não encontrado');
-
-            const { data, error } = await supabase.functions.invoke('social-copilot-magic', {
-                body: { 
-                    company_id: companyId, 
-                    mode: 'landing_plan_magic', 
-                    topic: prompt 
-                }
-            });
-
-            if (error) throw error;
-            if (data?.template) {
-                let rewrittenText = data.template.trim();
-                
-                // Restaurar o link real no lugar do placeholder ou no final
-                if (originalUrl) {
-                    if (rewrittenText.includes('[LINK_NOTAFISCAL]')) {
-                        rewrittenText = rewrittenText.replace('[LINK_NOTAFISCAL]', originalUrl);
-                    } else {
-                        rewrittenText = rewrittenText + '\n' + originalUrl;
-                    }
-                }
-                
-                setSendModal(prev => ({ ...prev, message: rewrittenText }));
-            } else {
-                throw new Error("Nenhum texto gerado");
-            }
-        } catch (err: any) {
-            console.error('Erro ao reescrever mensagem:', err);
-            alert('Não foi possível reescrever a mensagem. Tente novamente.');
-        } finally {
-            setIsRewriting(false);
-        }
-    };
-
-    const handleSendDocument = async () => {
-        if (!sendModal.recipient) {
-            alert('Por favor, preencha o campo do destinatário.');
-            return;
-        }
-
-        setSendModal(prev => ({ ...prev, isLoading: true }));
-        try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) throw new Error('Sessão expirada. Faça login novamente.');
-
-            if (sendModal.type === 'whatsapp') {
-                const instance = waInstances[0];
-                if (!instance) {
-                    throw new Error('Nenhuma instância de WhatsApp conectada e ativa encontrada para sua empresa.');
-                }
-
-                await whatsappService.sendMessage({
-                    instanceName: instance.instance_name || instance.name,
-                    token: instance.evolution_instance_id,
-                    number: sendModal.recipient,
-                    text: sendModal.message,
-                    mediaUrl: pdfUrl.startsWith('http') ? pdfUrl : undefined,
-                    mediaType: 'document',
-                    mimetype: 'application/pdf',
-                    fileName: `NotaFiscal-${invoice.invoice_number || invoice.external_id || 'avulsa'}.pdf`
-                });
-            } else {
-                await fiscalService.resendEmail(
-                    invoice.external_id,
-                    invoice.type,
-                    invoice.company_id,
-                    [sendModal.recipient],
-                    token
-                );
-            }
-            
-            alert('Documento enviado com sucesso!');
-            setSendModal(prev => ({ ...prev, isOpen: false }));
-        } catch (err: any) {
-            console.error('Erro ao enviar documento:', err);
-            alert(err.message || 'Ocorreu um erro ao tentar enviar o documento.');
-        } finally {
-            setSendModal(prev => ({ ...prev, isLoading: false }));
         }
     };
 
@@ -1163,6 +929,152 @@ ${messageWithPlaceholder}`;
                             </div>
                         </div>
 
+                        {/* DADOS DE PAGAMENTO (COBRANÇA VINCULADA) */}
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                                    <CreditCard size={13} className="text-emerald-500" />
+                                    Dados de Pagamento & Cobrança
+                                </h4>
+                                {linkedCharge && (
+                                    <span className={clsx(
+                                        "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        ['approved', 'paid'].includes(linkedCharge.status) && "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+                                        ['pending'].includes(linkedCharge.status) && "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+                                        ['cancelled', 'rejected'].includes(linkedCharge.status) && "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                    )}>
+                                        {['approved', 'paid'].includes(linkedCharge.status) ? '✓ Pago' :
+                                         ['pending'].includes(linkedCharge.status) ? '⏳ Pendente' : '✕ Cancelado'}
+                                    </span>
+                                )}
+                            </div>
+
+                            {loadingCharge ? (
+                                <div className="py-6 flex items-center justify-center gap-2 text-xs font-semibold text-gray-400">
+                                    <RefreshCw size={14} className="animate-spin" />
+                                    Buscando dados de pagamento...
+                                </div>
+                            ) : linkedCharge ? (
+                                <div className="space-y-3.5">
+                                    {/* Grid de Informações Chave */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-gray-100 dark:border-slate-800/60">
+                                        <div>
+                                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">Valor do Boleto</span>
+                                            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(linkedCharge.amount || totalAmount)}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">Vencimento</span>
+                                            <span className="text-xs font-bold text-gray-900 dark:text-white">
+                                                {linkedCharge.due_date ? new Date(linkedCharge.due_date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">Gateway / Provedor</span>
+                                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 capitalize">
+                                                {linkedCharge.provider || 'Asaas'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Linha Digitável / Código de Barras */}
+                                    {(linkedCharge.barcode || linkedCharge.linha_digitavel || linkedCharge.line_code) && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">
+                                                Linha Digitável / Código de Barras do Boleto
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={linkedCharge.barcode || linkedCharge.linha_digitavel || linkedCharge.line_code}
+                                                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-gray-800 dark:text-gray-200 truncate select-all"
+                                                />
+                                                <Button
+                                                    onClick={() => handleCopyToClipboard(linkedCharge.barcode || linkedCharge.linha_digitavel || linkedCharge.line_code, 'barcode')}
+                                                    variant="outline"
+                                                    className="h-9 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                                                >
+                                                    {copiedField === 'barcode' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                                    {copiedField === 'barcode' ? 'Copiado!' : 'Copiar'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Pix Copia e Cola */}
+                                    {linkedCharge.qr_code && (
+                                        <div className="space-y-1.5">
+                                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                                                <QrCode size={11} className="text-emerald-500" /> Pix Copia e Cola (Payload)
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={linkedCharge.qr_code}
+                                                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-mono font-semibold text-gray-700 dark:text-gray-300 truncate select-all"
+                                                />
+                                                <Button
+                                                    onClick={() => handleCopyToClipboard(linkedCharge.qr_code, 'pix')}
+                                                    variant="outline"
+                                                    className="h-9 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                                >
+                                                    {copiedField === 'pix' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                                    {copiedField === 'pix' ? 'Copiado!' : 'Copiar Pix'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Imagem do QR Code Pix */}
+                                    {linkedCharge.qr_code_base64 && (
+                                        <div className="pt-2 flex flex-col items-center justify-center p-3 bg-gray-50 dark:bg-slate-800/60 rounded-xl border border-gray-100 dark:border-slate-800">
+                                            <img 
+                                                src={linkedCharge.qr_code_base64.startsWith('data:') ? linkedCharge.qr_code_base64 : `data:image/png;base64,${linkedCharge.qr_code_base64}`} 
+                                                alt="QR Code Pix"
+                                                className="w-36 h-36 object-contain rounded-lg border border-white dark:border-slate-700 shadow-sm" 
+                                            />
+                                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-1.5">
+                                                Escaneie com o app do seu banco para pagar via Pix
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Botões para Ver Boleto / Link de Pagamento */}
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {(linkedCharge.payment_link || linkedCharge.bank_slip_url || linkedCharge.invoice_url) && (
+                                            <a
+                                                href={linkedCharge.payment_link || linkedCharge.bank_slip_url || linkedCharge.invoice_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                                            >
+                                                <ExternalLink size={14} />
+                                                Visualizar Boleto / Fatura em PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 text-center space-y-2">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                        Nenhum boleto ou cobrança bancária gerada para esta nota fiscal ainda.
+                                    </p>
+                                    {onGenerateBoleto && (
+                                        <Button
+                                            onClick={() => onGenerateBoleto(invoice)}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 rounded-xl shadow-sm"
+                                        >
+                                            <DollarSign size={14} className="mr-1" />
+                                            Gerar Boleto Bancário / Pix
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Erros / Motivos se houver */}
                         {invoice.error_message && (
                             <div className="bg-rose-50 dark:bg-rose-950/10 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-400 text-xs">
@@ -1211,24 +1123,17 @@ ${messageWithPlaceholder}`;
                                     <FileCode size={14} />
                                     Baixar XML
                                 </Button>
-                                <Button 
-                                    onClick={() => handleOpenSend('whatsapp')}
-                                    disabled={!['concluido', 'autorizado'].includes(invoice.status?.toLowerCase())}
-                                    variant="outline"
-                                    className="h-10 text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                                >
-                                    <MessageCircle size={14} />
-                                    WhatsApp
-                                </Button>
-                                <Button 
-                                    onClick={() => handleOpenSend('email')}
-                                    disabled={!['concluido', 'autorizado'].includes(invoice.status?.toLowerCase())}
-                                    variant="outline"
-                                    className="h-10 text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-                                >
-                                    <Mail size={14} />
-                                    Enviar E-mail
-                                </Button>
+                                {linkedCharge && (linkedCharge.payment_link || linkedCharge.bank_slip_url || linkedCharge.invoice_url) && (
+                                    <a
+                                        href={linkedCharge.payment_link || linkedCharge.bank_slip_url || linkedCharge.invoice_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="col-span-2 h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                                    >
+                                        <ExternalLink size={14} />
+                                        Ver Boleto / Fatura PDF
+                                    </a>
+                                )}
                                 
                                 <Button 
                                     onClick={handleRefreshStatus}
@@ -1456,135 +1361,6 @@ ${messageWithPlaceholder}`;
                 invoiceNumber={invoice.invoice_number || invoice.external_id}
             />
 
-            {/* Modal para reenvio via E-mail / WhatsApp */}
-            {sendModal.isOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-6 border border-gray-100 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-300">
-                        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                            {sendModal.type === 'whatsapp' ? <MessageCircle className="text-emerald-500" /> : <Mail className="text-blue-500" />}
-                            Enviar Nota Fiscal
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 font-semibold">
-                            {sendModal.type === 'whatsapp' 
-                                ? 'Dispare uma mensagem contendo o PDF da nota fiscal para o cliente via WhatsApp.' 
-                                : 'Reenvie o e-mail contendo os arquivos PDF e XML da nota fiscal.'}
-                        </p>
-
-                        <div className="space-y-4">
-                            {sendModal.type === 'whatsapp' ? (
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                        Número do WhatsApp (com DDI/DDD)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={sendModal.recipient}
-                                        onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value }))}
-                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {sendModal.isFetchingEmails ? (
-                                        <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3 rounded-xl border border-blue-100 dark:border-slate-700/60 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
-                                            <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                            Buscando e-mails cadastrados...
-                                        </div>
-                                    ) : (sendModal.clientEmails && sendModal.clientEmails.length > 0) ? (
-                                        <div className="bg-blue-50/60 dark:bg-slate-800/60 p-3 rounded-xl border border-blue-100 dark:border-slate-700/60">
-                                            <label className="block text-[10px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-1.5">
-                                                📧 E-mails do Cliente Cadastrado ({sendModal.clientEmails.length}) — Selecione os destinatários:
-                                            </label>
-                                            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                                                {sendModal.clientEmails.map((emailItem, idx) => {
-                                                    const lowerItem = emailItem.toLowerCase();
-                                                    const isChecked = sendModal.recipient.toLowerCase().includes(lowerItem);
-                                                    return (
-                                                        <label key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none p-1 hover:bg-white dark:hover:bg-slate-700/50 rounded-lg transition-colors lowercase">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={(e) => {
-                                                                    let current = sendModal.recipient.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-                                                                    if (e.target.checked) {
-                                                                        if (!current.includes(lowerItem)) current.push(lowerItem);
-                                                                    } else {
-                                                                        current = current.filter(x => x !== lowerItem);
-                                                                    }
-                                                                    setSendModal(prev => ({ ...prev, recipient: current.join(', ') }));
-                                                                }}
-                                                                className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            />
-                                                            <span className="truncate lowercase">{lowerItem}</span>
-                                                        </label>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            E-mail(s) do Destinatário (Caixa Baixa)
-                                        </label>
-                                        <textarea
-                                            rows={2}
-                                            value={sendModal.recipient.toLowerCase()}
-                                            onChange={(e) => setSendModal(prev => ({ ...prev, recipient: e.target.value.toLowerCase() }))}
-                                            placeholder="ex: cliente@email.com&#10;financeiro@email.com"
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 lowercase resize-y"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {sendModal.type === 'whatsapp' && (
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            Mensagem a ser enviada
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={handleAiRewrite}
-                                            disabled={isRewriting || !sendModal.message}
-                                            className="flex items-center gap-1 text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50 transition-colors bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded uppercase tracking-wider"
-                                            title="Reescrever mensagem com IA mantendo o contexto"
-                                        >
-                                            <Sparkles className={`h-2.5 w-2.5 ${isRewriting ? 'animate-spin' : ''}`} />
-                                            {isRewriting ? 'Reescrevendo...' : 'IA Mágica'}
-                                        </button>
-                                    </div>
-                                    <textarea
-                                        value={sendModal.message}
-                                        onChange={(e) => setSendModal(prev => ({ ...prev, message: e.target.value }))}
-                                        rows={4}
-                                        className="w-full p-3 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    onClick={() => setSendModal(prev => ({ ...prev, isOpen: false }))}
-                                    variant="ghost"
-                                    className="flex-1 h-11 text-xs font-bold"
-                                >
-                                    Voltar
-                                </Button>
-                                <Button
-                                    onClick={handleSendDocument}
-                                    isLoading={sendModal.isLoading}
-                                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold"
-                                >
-                                    Enviar Documento
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-        </div>
+            </div>
     );
 }
