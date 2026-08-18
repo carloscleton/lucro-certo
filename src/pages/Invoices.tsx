@@ -30,42 +30,56 @@ export function parseFiscalError(error: any): string {
     if (!error) return 'Ocorreu um erro no cancelamento.';
     if (typeof error === 'string') return error;
 
+    console.error('🔍 [parseFiscalError] Status:', error.response?.status, 'Data:', error.response?.data);
+
+    const status = error.response?.status;
     const data = error.response?.data || error.data || error;
 
     if (data) {
         if (typeof data === 'string' && data.trim()) {
-            return data.trim();
+            const cleanText = data.replace(/<[^>]*>?/gm, '').trim();
+            return status ? `[Erro HTTP ${status}] ${cleanText.slice(0, 300)}` : cleanText.slice(0, 300);
         }
 
         if (typeof data === 'object') {
-            if (typeof data.error === 'string' && data.error.trim()) return data.error;
-            if (typeof data.error === 'object' && data.error?.message) return data.error.message;
-            if (typeof data.message === 'string' && data.message.trim() && !data.message.includes('status code')) return data.message;
-            if (typeof data.mensagem === 'string' && data.mensagem.trim()) return data.mensagem;
+            if (typeof data.error === 'string' && data.error.trim()) {
+                return status ? `[Erro HTTP ${status}] ${data.error}` : data.error;
+            }
+            if (typeof data.error === 'object' && data.error?.message) {
+                return status ? `[Erro HTTP ${status}] ${data.error.message}` : data.error.message;
+            }
+            if (typeof data.message === 'string' && data.message.trim() && !data.message.includes('status code')) {
+                return status ? `[Erro HTTP ${status}] ${data.message}` : data.message;
+            }
+            if (typeof data.mensagem === 'string' && data.mensagem.trim()) {
+                return status ? `[Erro HTTP ${status}] ${data.mensagem}` : data.mensagem;
+            }
             
             if (Array.isArray(data.erros) && data.erros.length > 0) {
-                return data.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                const list = data.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                return status ? `[Erro HTTP ${status}] ${list}` : list;
             }
 
             const detail = data.detail;
             if (detail) {
-                if (typeof detail === 'string') return detail;
+                if (typeof detail === 'string') return status ? `[Erro HTTP ${status}] ${detail}` : detail;
                 if (typeof detail === 'object') {
                     if (Array.isArray(detail.erros) && detail.erros.length > 0) {
-                        return detail.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                        const list = detail.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || e.mensagem || JSON.stringify(e)}`).join(' | ');
+                        return status ? `[Erro HTTP ${status}] ${list}` : list;
                     }
-                    if (detail.message) return detail.message;
-                    if (detail.error && typeof detail.error === 'string') return detail.error;
+                    if (detail.message) return status ? `[Erro HTTP ${status}] ${detail.message}` : detail.message;
+                    if (detail.error && typeof detail.error === 'string') return status ? `[Erro HTTP ${status}] ${detail.error}` : detail.error;
                 }
             }
         }
     }
 
     if (error.message && !error.message.includes('status code')) {
-        return error.message;
+        return status ? `[Erro HTTP ${status}] ${error.message}` : error.message;
     }
 
-    return 'Erro na requisição com o Servidor Fiscal (HTTP 400). Verifique se a Nota Fiscal e o Certificado A1 estão configurados corretamente.';
+    return status ? `[Erro HTTP ${status}] Rejeição no cancelamento da Nota Fiscal.` : 'Rejeição no cancelamento da Nota Fiscal.';
 }
 
 export const renderInvoiceRates = (invoice: any) => {

@@ -20,77 +20,31 @@ interface ResultModalProps {
 const humanizeFiscalError = (title: string, message: string, data?: any) => {
     let friendlyTitle = title || 'Erro no Processamento Fiscal';
     let friendlyMessage = message || '';
-    let friendlyHint: string | null = null;
-    let errorCode: string | null = null;
 
     // Se veio um objeto de dados com erro específico, tenta extrair
     if (data && typeof data === 'object') {
         const extracted = data.error || data.message || data.mensagem || (typeof data.detail === 'string' ? data.detail : (data.detail?.error || data.detail?.message));
-        if (extracted && typeof extracted === 'string' && extracted.trim() && !extracted.includes('status code')) {
+        if (extracted && typeof extracted === 'string' && extracted.trim() && !/^Request failed with status code/i.test(extracted.trim())) {
             friendlyMessage = extracted;
         }
     }
 
-    // Se já veio uma mensagem de erro específica e útil, preserva sem sobrescrever com mensagem genérica
+    // Se temos uma mensagem específica, preserva o título e a mensagem exata
     if (friendlyMessage && 
         friendlyMessage !== 'Erro no Teste' && 
         friendlyMessage !== 'Erro interno no servidor proxy' &&
         friendlyMessage !== 'Erro ao cancelar nota' &&
-        !friendlyMessage.includes('Request failed with status code')
+        !/^Request failed with status code/i.test(friendlyMessage.trim())
     ) {
         return { friendlyTitle, friendlyMessage, friendlyHint: null, errorCode: null };
     }
 
-    // Detecta mensagens genéricas do Axios/Express
-    const isGenericMsg = 
-        !friendlyMessage ||
-        friendlyMessage === 'Erro no Teste' || 
-        friendlyMessage === 'Erro interno no servidor proxy' || 
-        friendlyMessage === 'Erro ao cancelar nota' || 
-        friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)' ||
-        friendlyMessage.includes('Request failed with status code') ||
-        friendlyMessage.includes('status code 500');
-
-    const fullStr = (friendlyMessage + ' ' + JSON.stringify(data || {})).toLowerCase();
-
-    if (fullStr.includes('e0014') || fullStr.includes('já existe em uma nfs-e') || fullStr.includes('conjunto de série')) {
-        errorCode = 'E0014';
-        friendlyTitle = '📍 Nota / DPS Já Emitida no Portal Nacional';
-        friendlyMessage = 'Esta Nota Fiscal / DPS (Série 1, Número 1) já foi transmitida e AUTORIZADA com sucesso anteriormente no Portal Nacional da NFS-e.';
-        friendlyHint = '💡 Como testar um novo envio: Clique no botão "Gerar Exemplo" no topo para preencher dados de uma nota inédita e clique em "Emitir Via JSON Manual" novamente.';
-    } else if (fullStr.includes('e0160') || fullStr.includes('simples nacional')) {
-        errorCode = 'E0160';
-        friendlyTitle = '⚠️ Opção do Simples Nacional em Desacordo';
-        friendlyMessage = 'O regime tributário informado na nota (opSimpNac) não coincide com o cadastro real do CNPJ na Receita Federal.';
-        friendlyHint = '💡 Solução: Verifique se sua empresa é Simples Nacional ME/EPP (opSimpNac = 3), MEI (opSimpNac = 2) ou Regime Normal (opSimpNac = 1).';
-    } else if (fullStr.includes('e0166') || fullStr.includes('regime de apuração')) {
-        errorCode = 'E0166';
-        friendlyTitle = '⚠️ Regime de Apuração do Simples Obrigatório';
-        friendlyMessage = 'Para empresas do Simples Nacional ME/EPP, é obrigatório informar o Regime de Apuração (regApTribSN).';
-        friendlyHint = '💡 Solução: Inclua "regApTribSN": 1 no bloco regTrib do prestador no JSON.';
-    } else if (fullStr.includes('e0718') || fullStr.includes('assinatura deve ser feita com o certificado')) {
-        errorCode = 'E0718';
-        friendlyTitle = '🔐 Incompatibilidade no Certificado Digital';
-        friendlyMessage = 'O CNPJ do prestador informado na nota difere do CNPJ do titular do Certificado Digital .pfx enviado.';
-        friendlyHint = '💡 Solução: Certifique-se de que o CNPJ no JSON é idêntico ao CNPJ do titular do arquivo .pfx de certificado A1.';
-    } else if (fullStr.includes('e0120') || fullStr.includes('inscrição municipal')) {
-        errorCode = 'E0120';
-        friendlyTitle = '🏛️ Inscrição Municipal Incompatível';
-        friendlyMessage = 'A Inscrição Municipal informada possui formato diferente do cadastrado na prefeitura.';
-        friendlyHint = '💡 Solução: Mantenha o campo de Inscrição Municipal em branco ou preencha com o número oficial da prefeitura.';
-    } else if (fullStr.includes('certificado digital não encontrado')) {
-        friendlyTitle = '📜 Certificado Digital A1 Não Anexado';
-        friendlyMessage = 'Não encontramos o arquivo do Certificado Digital (.pfx) para o Portal Nacional da NFS-e.';
-        friendlyHint = '💡 Solução: Na aba "Portal Nacional (ADN gov.br)", faça o upload do seu arquivo de certificado .pfx, digite a senha e clique em "Salvar Configurações".';
-    } else if (fullStr.includes('erro interno no servidor proxy') || fullStr.includes('econnrefused') || isGenericMsg) {
-        friendlyTitle = '⚠️ Falha na Comunicação com o Servidor Fiscal';
-        if (friendlyMessage.includes('Request failed with status code') || friendlyMessage === 'Erro interno no servidor proxy') {
-            friendlyMessage = 'O servidor fiscal não conseguiu processar a requisição ou conectar ao Portal Nacional da NFS-e.';
-        }
-        friendlyHint = '💡 Dica: Verifique se o Certificado Digital A1 (.pfx) e a Senha foram informados e salvos corretamente nas configurações da empresa.';
-    }
-
-    return { friendlyTitle, friendlyMessage, friendlyHint, errorCode };
+    return {
+        friendlyTitle: '⚠️ Falha na Comunicação com o Servidor Fiscal',
+        friendlyMessage: friendlyMessage || 'O servidor fiscal não conseguiu processar a requisição ou conectar ao Portal Nacional da NFS-e.',
+        friendlyHint: '💡 Dica: Verifique se o Certificado Digital A1 (.pfx) e a Senha foram informados e salvos corretamente nas configurações da empresa.',
+        errorCode: null
+    };
 };
 const isGovUrl = (url: string) => typeof url === 'string' && (url.includes('nfse.gov.br') || url.includes('consulta.aspx') || url.includes('ConsultarNfse'));
 
