@@ -246,18 +246,36 @@ export function LandingPage() {
 
     const handleClearCache = async () => {
         try {
+            // 1. Apaga Cache Storage API (arquivos JS/CSS/Imagens)
             if ('caches' in window) {
                 const cacheNames = await caches.keys();
                 await Promise.all(cacheNames.map(name => caches.delete(name)));
             }
-            localStorage.clear();
-            sessionStorage.clear();
+
+            // 2. Desregistra Service Workers
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (const registration of registrations) {
                     await registration.unregister();
                 }
             }
+
+            // 3. Preserva tokens de autenticação do Supabase no localStorage para não deslogar o usuário
+            const keysToKeep: { [key: string]: string | null } = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase'))) {
+                    keysToKeep[key] = localStorage.getItem(key);
+                }
+            }
+
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Restaura as chaves da sessão de autenticação ativa
+            Object.entries(keysToKeep).forEach(([k, v]) => {
+                if (v !== null) localStorage.setItem(k, v);
+            });
         } catch (err) {
             console.warn('Erro ao limpar cache:', err);
         } finally {
