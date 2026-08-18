@@ -460,6 +460,7 @@ ${messageWithPlaceholder}`;
             ]);
 
             await refresh();
+            setIsRefreshing(null);
 
             const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'success', 'emitida'];
             const resultStatus = String(statusResult?.status || statusResult?.flowStatus || '').toLowerCase();
