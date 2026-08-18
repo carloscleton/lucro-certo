@@ -4963,9 +4963,48 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         return isNaN(num) ? 'R$ 0,00' : `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
+    const formatCpfCnpj = (val: any) => {
+        if (!val) return '-';
+        const s = String(val).replace(/\D/g, '');
+        if (s.length === 14) return s.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        if (s.length === 11) return s.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+        return val;
+    };
+
+    const formatCep = (val: any) => {
+        if (!val) return '';
+        const s = String(val).replace(/\D/g, '');
+        if (s.length === 8) return s.replace(/^(\d{2})(\d{3})(\d{3})$/, '$1.$2-$3');
+        return val;
+    };
+
+    const formatIbge = (val: any) => {
+        if (!val) return '';
+        const s = String(val).replace(/\D/g, '');
+        if (s.length === 7) return s.replace(/^(\d{2})(\d{5})$/, '$1.$2');
+        return val;
+    };
+
+    const formatCTribNac = (val: any) => {
+        if (!val) return '01.07.01';
+        const s = String(val).replace(/\D/g, '');
+        if (s.length === 6) return `${s.substring(0, 2)}.${s.substring(2, 4)}.${s.substring(4, 6)}`;
+        return val;
+    };
+
+    const formatNbs = (val: any) => {
+        if (!val) return '-';
+        const s = String(val).replace(/\D/g, '');
+        if (s.length === 9) return `${s.substring(0, 1)}.${s.substring(1, 5)}.${s.substring(5, 7)}.${s.substring(7, 9)}`;
+        return val;
+    };
+
     const chave = String(data.chaveAcesso || data.chave || '24081022200893566000190000000000004526087773930690').replace(/\D/g, '');
     const nNfseVal = String(data.nNfse || data.nNFSe || '45');
     const nDpsVal = String(data.nDPS || data.nDps || '44');
+    const prest = data.prestador || {};
+    const toma = data.tomador || {};
+    const serv = data.servico || {};
 
     // 1. TOP HEADER (LOGO, TITLE, AMBIENTE)
     drawBox(margin, y, pageWidth, 18, [255, 255, 255], [0, 0, 0]);
@@ -4994,7 +5033,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text(`Município: Natal - RN`, margin + pageWidth - 3, y + 6, { align: 'right' });
+    const prestCity = prest.cidade || 'Natal';
+    const prestUf = prest.uf || 'RN';
+    doc.text(`Município: ${prestCity} - ${prestUf}`, margin + pageWidth - 3, y + 6, { align: 'right' });
     doc.text(`Ambiente Gerador: ${data.ambiente === 'producao' ? '1' : '2'}`, margin + pageWidth - 3, y + 10, { align: 'right' });
     doc.text(`Tipo de Ambiente: ${data.ambiente === 'producao' ? '1' : '1'}`, margin + pageWidth - 3, y + 14, { align: 'right' });
 
@@ -5018,7 +5059,6 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         const s = String(dateStr).trim();
         if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}$/.test(s)) return s;
 
-        // Se é uma string ISO com o horário local informado (ex: 2026-08-07T16:15:25-03:00)
         const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
         if (isoMatch) {
             const [, year, month, day, hours, minutes, seconds] = isoMatch;
@@ -5107,7 +5147,6 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         const qrImageSize = 17;
         const qrImageX = margin + leftW + (qrW - qrImageSize) / 2;
         doc.addImage(qrDataUrl, 'PNG', qrImageX, y + 1, qrImageSize, qrImageSize);
-        console.log(`✅ [DANFSE-QR] QR Code impresso no PDF da DANFSe para a chave ${chave}`);
     } catch (qrErr: any) {
         console.error('❌ [DANFSE-QR] Erro ao gerar QR Code:', qrErr?.message || qrErr);
     }
@@ -5141,7 +5180,13 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     y += 4.5;
     drawBox(margin, y, pageWidth, 22, [255, 255, 255], [0, 0, 0]);
 
-    const prest = data.prestador || {};
+    const prestName = prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES';
+    const prestCnpjFmt = formatCpfCnpj(prest.cnpj || prest.doc || '00893566000190');
+    const prestImFmt = prest.im || prest.inscricaoMunicipal || '-';
+    const prestEndFmt = prest.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU';
+    const prestCityUf = `${prest.cidade || 'Natal'} / ${prest.uf || 'RN'}`;
+    const prestIbgeCep = `${formatIbge(prest.cMun || '2408102')} / ${formatCep(prest.cep || '59068320')}`;
+
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
     doc.text('CNPJ / CPF / NIF', margin + 95, y + 3.2);
@@ -5149,10 +5194,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Telefone', margin + 170, y + 3.2);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(prest.nome || 'CARLOSCLETON CARVALHO FERNANDES', margin + 2, y + 6.5);
-    doc.text(prest.cnpj || '00.893.566/0001-90', margin + 95, y + 6.5);
-    doc.text(prest.im || '-', margin + 135, y + 6.5);
-    doc.text('-', margin + 170, y + 6.5);
+    doc.text(prestName, margin + 2, y + 6.5);
+    doc.text(prestCnpjFmt, margin + 95, y + 6.5);
+    doc.text(prestImFmt, margin + 135, y + 6.5);
+    doc.text(prest.telefone || '-', margin + 170, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
     doc.text('Endereço', margin + 2, y + 10.5);
@@ -5160,9 +5205,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Código IBGE / CEP', margin + 145, y + 10.5);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(prest.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU', margin + 2, y + 13.8);
-    doc.text('Natal / RN', margin + 95, y + 13.8);
-    doc.text('24.08102 / 59.068-320', margin + 145, y + 13.8);
+    doc.text(prestEndFmt, margin + 2, y + 13.8);
+    doc.text(prestCityUf, margin + 95, y + 13.8);
+    doc.text(prestIbgeCep, margin + 145, y + 13.8);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
     doc.text('Simples Nacional na Data de Competência', margin + 2, y + 17.8);
@@ -5172,7 +5217,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
     doc.text('Optante - Microempresa ou Empresa de ...', margin + 2, y + 21);
     doc.text('Regime de apuração dos tributos federais e municipal pelo Simples Nacional', margin + 65, y + 21);
-    doc.text('-', margin + 145, y + 21);
+    doc.text(prest.email || '-', margin + 145, y + 21);
 
     y += 22;
 
@@ -5181,7 +5226,17 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     y += 4.5;
     drawBox(margin, y, pageWidth, 17, [255, 255, 255], [0, 0, 0]);
 
-    const toma = data.tomador || {};
+    const tomaName = toma.nome || toma.razaoSocial || 'NÃO IDENTIFICADO';
+    const tomaCnpjFmt = formatCpfCnpj(toma.doc || toma.cnpj || toma.cpf || toma.cpfCnpj);
+    const tomaImFmt = toma.im || toma.inscricaoMunicipal || '-';
+    const tomaEndFmt = toma.endereco || '-';
+    const tomaCityName = toma.cidade || toma.xMun || '-';
+    const tomaUfCode = toma.uf || '';
+    const tomaCityUf = tomaCityName !== '-' ? `${tomaCityName}${tomaUfCode ? ' / ' + tomaUfCode : ''}` : '-';
+    const tomaIbgeVal = toma.cMun || toma.codigoCidade || '';
+    const tomaCepVal = toma.cep || '';
+    const tomaIbgeCep = (tomaIbgeVal || tomaCepVal) ? `${formatIbge(tomaIbgeVal)}${tomaIbgeVal && tomaCepVal ? ' / ' : ''}${formatCep(tomaCepVal)}` : '-';
+
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
     doc.text('CNPJ / CPF / NIF', margin + 95, y + 3.2);
@@ -5189,10 +5244,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Telefone', margin + 170, y + 3.2);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(toma.nome || 'NÃO IDENTIFICADO', margin + 2, y + 6.5);
-    doc.text(toma.doc || '-', margin + 95, y + 6.5);
-    doc.text('-', margin + 135, y + 6.5);
-    doc.text('-', margin + 170, y + 6.5);
+    doc.text(tomaName, margin + 2, y + 6.5);
+    doc.text(tomaCnpjFmt, margin + 95, y + 6.5);
+    doc.text(tomaImFmt, margin + 135, y + 6.5);
+    doc.text(toma.telefone || '-', margin + 170, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
     doc.text('Endereço', margin + 2, y + 10.5);
@@ -5201,10 +5256,8 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('E-mail', margin + 165, y + 10.5);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(toma.endereco || '-', margin + 2, y + 13.8);
-    const tomaCityUf = (toma.cidade || toma.cMun || toma.uf) ? `${toma.cidade || toma.cMun || ''}${toma.uf ? ' / ' + toma.uf : ''}` : '-';
+    doc.text(tomaEndFmt, margin + 2, y + 13.8);
     doc.text(tomaCityUf, margin + 95, y + 13.8);
-    const tomaIbgeCep = (toma.cMun || toma.cep) ? `${toma.cMun ? toma.cMun + ' / ' : ''}${toma.cep || ''}` : '-';
     doc.text(tomaIbgeCep, margin + 135, y + 13.8);
     doc.text(toma.email || '-', margin + 165, y + 13.8);
 
@@ -5222,7 +5275,6 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     drawHeaderBox(margin, y, pageWidth, 4.5, 'SERVIÇO PRESTADO');
     y += 4.5;
 
-    const serv = data.servico || {};
     const xTribNacVal = serv.xTribNac || 'Suporte técnico em informática, inclusive instalação, configuração e manutenção de programas de computação e bancos de dados.';
     const splitXTribNac = doc.splitTextToSize(xTribNacVal, pageWidth - 4);
 
@@ -5238,9 +5290,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Local da Prestação / Sigla UF / País', margin + 145, y + 3.2);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(`${serv.cTribNac || '01.07.01'} / -`, margin + 2, y + 6.5);
-    doc.text(serv.cNbs || '1.1501.30.00', margin + 95, y + 6.5);
-    doc.text('Natal / RN / -', margin + 145, y + 6.5);
+    doc.text(`${formatCTribNac(serv.cTribNac || '010701')} / -`, margin + 2, y + 6.5);
+    doc.text(formatNbs(serv.cNbs || '115013000'), margin + 95, y + 6.5);
+    doc.text(`${serv.cidadePrestacao || prestCity} / ${serv.ufPrestacao || prestUf} / -`, margin + 145, y + 6.5);
 
     // Linha do xTribNac (Descrição da tributação nacional do serviço)
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.2); doc.setTextColor(30, 30, 30);
@@ -5267,7 +5319,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text('Operação Tributável', margin + 2, y + 6.5);
-    doc.text('Natal / RN / -', margin + 65, y + 6.5);
+    doc.text(`${serv.cidadePrestacao || prestCity} / ${serv.ufPrestacao || prestUf} / -`, margin + 65, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
     doc.text('BC ISSQN', margin + 2, y + 9.8);
@@ -5321,7 +5373,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text('000 / 000001', margin + 2, y + 6.5);
-    doc.text('100101 / 3550308 / São Paulo / SP', margin + 65, y + 6.5);
+    const incIbge = tomaIbgeVal || '4125506';
+    const incCity = tomaCityName !== '-' ? tomaCityName : 'São José dos Pinhais';
+    const incUf = tomaUfCode || 'PR';
+    doc.text(`100101 / ${incIbge} / ${incCity} / ${incUf}`, margin + 65, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Exclusões e Reduções da Base de Cálculo', margin + 2, y + 9.8);
@@ -5329,7 +5384,11 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Red. Alíquota IBS / Red. Alíquota CBS', margin + 110, y + 9.8);
     doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 9.8);
 
-    const amountVal = serv.valor || 0.09;
+    const amountVal = parseFloat(String(serv.valor || data.valorTotal || data.amount || 0.09));
+    const valIbsEstadual = amountVal * 0.0010; // 0,10%
+    const valCbs = amountVal * 0.0090; // 0,90%
+    const totalIbsCbs = valIbsEstadual + valCbs; // 1,00%
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
     doc.text(formatCurrency(0), margin + 2, y + 12.5);
     doc.text(formatCurrency(amountVal), margin + 55, y + 12.5);
@@ -5346,7 +5405,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('0,00 %', margin + 2, y + 18.2);
     doc.text(formatCurrency(0), margin + 55, y + 18.2);
     doc.text('0,10 %', margin + 110, y + 18.2);
-    doc.text(formatCurrency(0), margin + 155, y + 18.2);
+    doc.text(formatCurrency(valIbsEstadual), margin + 155, y + 18.2);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Valor Total Apurado - IBS', margin + 2, y + 21);
@@ -5355,10 +5414,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Valor Total Apurado - CBS', margin + 155, y + 21);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(formatCurrency(0), margin + 2, y + 23.5);
+    doc.text(formatCurrency(valIbsEstadual), margin + 2, y + 23.5);
     doc.text('0,90 %', margin + 55, y + 23.5);
     doc.text('0,90 %', margin + 110, y + 23.5);
-    doc.text(formatCurrency(0), margin + 155, y + 23.5);
+    doc.text(formatCurrency(valCbs), margin + 155, y + 23.5);
 
     y += 24;
 
@@ -5369,15 +5428,16 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
     doc.text('VALOR TOTAL DA NFS-e', margin + 2, y + 3.2);
-    doc.text('DESCONTOS / RETENÇÕES', margin + 55, y + 3.2);
-    doc.text('Desconto Incondicionado', margin + 95, y + 3.2);
-    doc.text('Desconto Condicionado', margin + 145, y + 3.2);
+    doc.text('VALOR DA OPERAÇÃO / SERVIÇO', margin + 55, y + 3.2);
+    doc.text('Desconto Incondicionado', margin + 110, y + 3.2);
+    doc.text('Desconto Condicionado', margin + 155, y + 3.2);
 
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
     doc.text(formatCurrency(amountVal), margin + 2, y + 6.5);
-    doc.text('R$ 0,00 / R$ 0,00', margin + 55, y + 6.5);
-    doc.text('-', margin + 95, y + 6.5);
-    doc.text('-', margin + 145, y + 6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatCurrency(amountVal), margin + 55, y + 6.5);
+    doc.text('-', margin + 110, y + 6.5);
+    doc.text('-', margin + 155, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Total das Retenções (ISSQN / Federais)', margin + 2, y + 9.8);
@@ -5388,7 +5448,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
     doc.text('-', margin + 2, y + 12.8);
     doc.text(formatCurrency(amountVal), margin + 55, y + 12.8);
-    doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(0), margin + 110, y + 12.8);
+    doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(totalIbsCbs), margin + 110, y + 12.8);
     doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(amountVal), margin + 150, y + 12.8);
 
     y += 14;
@@ -5396,25 +5456,16 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // 11. INFORMAÇÕES COMPLEMENTARES
     drawHeaderBox(margin, y, pageWidth, 4.5, 'INFORMAÇÕES COMPLEMENTARES');
     y += 4.5;
-    drawBox(margin, y, pageWidth, 16, [255, 255, 255], [0, 0, 0]);
+    
+    const customInfComp = data.infComp || data.informacoesComplementares || '';
+    const baseInfComp = `Inf. Cont.: NBS: ${formatNbs(serv.cNbs || '115013000')}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -`;
+    const fullInfCompText = customInfComp ? `${baseInfComp}\n${customInfComp.replace(/\|/g, '\n')}` : baseInfComp;
+    const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
+    
+    const infCompBoxHeight = Math.max(16, 4 + (splitInfComp.length * 3.5));
+    drawBox(margin, y, pageWidth, infCompBoxHeight, [255, 255, 255], [0, 0, 0]);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
-    doc.text('Inf. Cont.: NBS: 115013000', margin + 2, y + 4);
-    doc.text('Totais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -', margin + 2, y + 8);
-
-    // 12. FOOTER RECEIPT
-    const footerY = 276;
-    drawBox(margin, footerY, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
-    const footW1 = 55;
-    const footW2 = 70;
-    const footW3 = 69;
-
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(0, 0, 0);
-    doc.text('DATA CIENTIFICAÇÃO:', margin + 2, footerY + 3.5);
-    doc.text('IDENTIFICAÇÃO E ASSINATURA', margin + footW1 + 2, footerY + 3.5);
-    doc.text('Nº NFS-e / CHAVE NFS-e', margin + footW1 + footW2 + 2, footerY + 3.5);
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(`${nNfseVal} / ${chave}`, margin + footW1 + footW2 + 2, footerY + 8);
+    doc.text(splitInfComp, margin + 2, y + 4);
 
     const arrayBuf = doc.output('arraybuffer');
     return Buffer.from(arrayBuf);
