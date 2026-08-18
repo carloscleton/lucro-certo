@@ -18,15 +18,24 @@ interface ResultModalProps {
 }
 
 const humanizeFiscalError = (title: string, message: string, data?: any) => {
-    let friendlyTitle = title;
-    let friendlyMessage = message;
+    let friendlyTitle = title || 'Erro no Processamento Fiscal';
+    let friendlyMessage = message || '';
     let friendlyHint: string | null = null;
     let errorCode: string | null = null;
 
-    // Se já veio uma mensagem de erro específica do backend ou prefeitura, preserva sem sobrescrever com dica genérica
+    // Se veio um objeto de dados com erro específico, tenta extrair
+    if (data && typeof data === 'object') {
+        const extracted = data.error || data.message || data.mensagem || (typeof data.detail === 'string' ? data.detail : (data.detail?.error || data.detail?.message));
+        if (extracted && typeof extracted === 'string' && extracted.trim() && !extracted.includes('status code')) {
+            friendlyMessage = extracted;
+        }
+    }
+
+    // Se já veio uma mensagem de erro específica e útil, preserva sem sobrescrever com mensagem genérica
     if (friendlyMessage && 
         friendlyMessage !== 'Erro no Teste' && 
         friendlyMessage !== 'Erro interno no servidor proxy' &&
+        friendlyMessage !== 'Erro ao cancelar nota' &&
         !friendlyMessage.includes('Request failed with status code')
     ) {
         return { friendlyTitle, friendlyMessage, friendlyHint: null, errorCode: null };
@@ -37,47 +46,10 @@ const humanizeFiscalError = (title: string, message: string, data?: any) => {
         !friendlyMessage ||
         friendlyMessage === 'Erro no Teste' || 
         friendlyMessage === 'Erro interno no servidor proxy' || 
+        friendlyMessage === 'Erro ao cancelar nota' || 
         friendlyMessage === 'Erro retornado pelo Portal Nacional (ADN gov.br)' ||
         friendlyMessage.includes('Request failed with status code') ||
         friendlyMessage.includes('status code 500');
-
-    if (data) {
-        let realMessage = '';
-
-        // Tenta extrair de data.detail (pode ser JSON serializado da prefeitura)
-        if (data.detail && typeof data.detail === 'string') {
-            try {
-                const parsed = JSON.parse(data.detail);
-                if (parsed?.erros && Array.isArray(parsed.erros) && parsed.erros.length > 0) {
-                    realMessage = parsed.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
-                } else if (parsed?.mensagem || parsed?.message) {
-                    realMessage = parsed.mensagem || parsed.message;
-                }
-            } catch (e) {
-                if (!data.detail.includes('Erro interno no servidor proxy')) {
-                    realMessage = data.detail;
-                }
-            }
-        }
-
-        if (!realMessage && data.erros && Array.isArray(data.erros) && data.erros.length > 0) {
-            realMessage = data.erros.map((e: any) => `[${e.Codigo || e.codigo || 'ERRO'}] ${e.Descricao || e.descricao || ''}`).join(' | ');
-        }
-
-        if (!realMessage && data.error && typeof data.error === 'string' && !data.error.includes('Erro interno no servidor proxy')) {
-            realMessage = data.error;
-        }
-
-        if (!realMessage && data.message && typeof data.message === 'string' && !data.message.includes('Request failed with status code')) {
-            realMessage = data.message;
-        }
-
-        if (realMessage) {
-            if (isGenericMsg) {
-                friendlyMessage = realMessage;
-            }
-        }
-    }
 
     const fullStr = (friendlyMessage + ' ' + JSON.stringify(data || {})).toLowerCase();
 

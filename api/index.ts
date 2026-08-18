@@ -1015,17 +1015,25 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
             res.json(result);
         }
     } catch (error: any) {
-        const detail = error.response?.data || error.message;
-        const targetUrl = error.config?.url || 'URL não capturada';
-        
-        console.error('❌ [FISCAL-CANCEL] Erro Detalhado:', JSON.stringify(detail));
-        console.error('📍 URL tentada:', targetUrl);
+        const rawDetail = error.response?.data || error.message;
+        let finalErrorMsg = '';
 
-        res.status(500).json({ 
-            error: 'Erro ao cancelar nota', 
-            detail: detail,
-            attemptedUrl: targetUrl,
-            version: '1.0.21'
+        if (typeof rawDetail === 'string') {
+            finalErrorMsg = rawDetail;
+        } else if (rawDetail && typeof rawDetail === 'object') {
+            finalErrorMsg = rawDetail.error || rawDetail.message || rawDetail.mensagem || (Array.isArray(rawDetail.erros) ? rawDetail.erros.map((e: any) => e.Descricao || e.descricao || e.mensagem).join(' | ') : '');
+        }
+
+        if (!finalErrorMsg || finalErrorMsg === 'Erro ao cancelar nota') {
+            finalErrorMsg = error.message || 'Falha ao processar o cancelamento da Nota Fiscal.';
+        }
+
+        console.error('❌ [FISCAL-CANCEL] Erro Detalhado:', JSON.stringify(rawDetail));
+
+        return res.status(error.response?.status || 500).json({ 
+            error: finalErrorMsg, 
+            detail: rawDetail,
+            attemptedUrl: error.config?.url || 'URL não capturada'
         });
     }
 });
