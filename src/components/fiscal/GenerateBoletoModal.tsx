@@ -574,7 +574,14 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                 label="Valor do Boleto (R$)"
                                 value={amount}
                                 onChange={(num) => setAmount(num)}
+                                disabled={!!invoice}
+                                className={clsx(invoice && "bg-gray-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80")}
                             />
+                            {invoice && (
+                                <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                    <span>🔒</span> Valor travado no montante oficial da Nota Fiscal
+                                </p>
+                            )}
                         </div>
                     </div>
 
