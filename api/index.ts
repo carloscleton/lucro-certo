@@ -5388,15 +5388,23 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 10.2);
 
     const amountVal = parseFloat(String(serv.valor || data.valorTotal || data.amount || 0.09));
-    const valIbsEstadual = amountVal * 0.0010; // 0,10%
-    const valCbs = amountVal * 0.0090; // 0,90%
-    const totalIbsCbs = valIbsEstadual + valCbs; // 1,00%
+        
+    // Alíquotas dinâmicas configuradas pela empresa (pIBS / pCBS)
+    const rateIbs = parseFloat(String(data.pIBS ?? data.aliquotaIbs ?? data.reforma_tributaria_ibs_aliquota ?? 0.10));
+    const rateCbs = parseFloat(String(data.pCBS ?? data.aliquotaCbs ?? data.reforma_tributaria_cbs_aliquota ?? 0.90));
+    
+    const valIbsEstadual = (amountVal * rateIbs) / 100;
+    const valCbs = (amountVal * rateCbs) / 100;
+    const totalIbsCbs = valIbsEstadual + valCbs;
+
+    const rateIbsFmt = `${rateIbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+    const rateCbsFmt = `${rateCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
     doc.text(formatCurrency(0), margin + 2, y + 13.7);
     doc.text(formatCurrency(amountVal), margin + 55, y + 13.7);
     doc.text('- / - / -', margin + 110, y + 13.7);
-    doc.text('0,10 % / 0,00 %', margin + 155, y + 13.7);
+    doc.text(`${rateIbsFmt} / 0,00 %`, margin + 155, y + 13.7);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Aliq. Efetiva Municipal - IBS', margin + 2, y + 17.4);
