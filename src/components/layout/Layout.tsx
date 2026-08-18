@@ -28,7 +28,8 @@ import {
     Maximize2,
     Minimize2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    RotateCcw
 } from 'lucide-react';
 import { useRef } from 'react';
 import logoFull from '../../assets/logo-full.png';
@@ -131,6 +132,27 @@ export function Layout() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleClearCache = async () => {
+        try {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+        } catch (err) {
+            console.warn('Erro ao limpar cache:', err);
+        } finally {
+            window.location.href = window.location.pathname + '?clearCache=' + Date.now();
+        }
+    };
     
     // Checkout states
     const [loadingCheckout, setLoadingCheckout] = useState(false);
@@ -827,6 +849,16 @@ export function Layout() {
                             )}
                         </div>
 
+                        <Tooltip content="Limpar Cache do Navegador e Recarregar" position="bottom">
+                            <button
+                                onClick={handleClearCache}
+                                className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                                title="Limpar Cache do Navegador e Recarregar"
+                            >
+                                <RotateCcw size={19} className="hover:-rotate-180 transition-transform duration-300" />
+                            </button>
+                        </Tooltip>
+
                         <Tooltip content={t('layout.toggle_theme')} position="bottom">
                             <button
                                 onClick={toggleTheme}
@@ -839,6 +871,13 @@ export function Layout() {
 
                     {/* Mobile Header Actions */}
                     <div className={styles.mobileHeaderActions}>
+                        <button
+                            onClick={handleClearCache}
+                            className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors"
+                            title="Limpar Cache do Navegador"
+                        >
+                            <RotateCcw size={17} />
+                        </button>
                         <button
                             onClick={toggleTheme}
                             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-300 transition-colors"
