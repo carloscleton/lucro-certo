@@ -218,18 +218,18 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
         if (!dateStr) return 'Não informado';
         try {
             const raw = String(dateStr).trim();
-            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-                const [y, m, d] = raw.split('-');
-                return `${d}/${m}/${y}`;
-            }
-            const cleanStr = raw.replace(' ', 'T');
-            const parsed = new Date(cleanStr);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleDateString('pt-BR');
-            }
-            const match = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+            // Captura os dígitos de data YYYY-MM-DD ignorando hora e fuso horário
+            const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
             if (match) {
-                return `${match[3]}/${match[2]}/${match[1]}`;
+                const [, year, month, day] = match;
+                return `${day}/${month}/${year}`;
+            }
+            const parsed = new Date(raw);
+            if (!isNaN(parsed.getTime())) {
+                const day = String(parsed.getUTCDate()).padStart(2, '0');
+                const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+                const year = parsed.getUTCFullYear();
+                return `${day}/${month}/${year}`;
             }
             return raw;
         } catch {
