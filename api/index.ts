@@ -528,7 +528,7 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
                 const adnAmbiente = nat.ambiente || settings?.ambiente || config?.ambiente || 'homologacao';
                 let tpAmb = (adnAmbiente === 'producao') ? 1 : 2;
-                const sefinCancelUrl = tpAmb === 1
+                let sefinCancelUrl = tpAmb === 1
                     ? 'https://sefin.nfse.gov.br/SefinNacional'
                     : 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional';
 
