@@ -5214,10 +5214,15 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Regime de Apuração Tributária pelo SN', margin + 65, y + 17.8);
     doc.text('E-mail', margin + 145, y + 17.8);
 
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    const prestEmail = prest.email || '-';
+    let prestEmailFontSize = 6;
+    if (prestEmail.length > 32) prestEmailFontSize = 4.6;
+    else if (prestEmail.length > 25) prestEmailFontSize = 5.2;
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(prestEmailFontSize);
     doc.text('Optante - Microempresa ou Empresa de ...', margin + 2, y + 21);
     doc.text('Regime de apuração dos tributos federais e municipal pelo Simples Nacional', margin + 65, y + 21);
-    doc.text(prest.email || '-', margin + 145, y + 21);
+    doc.text(prestEmail, margin + 145, y + 21);
 
     y += 22;
 
@@ -5239,27 +5244,34 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
-    doc.text('CNPJ / CPF / NIF', margin + 95, y + 3.2);
-    doc.text('Indicador Municipal (Inscrição)', margin + 135, y + 3.2);
+    doc.text('CNPJ / CPF / NIF', margin + 90, y + 3.2);
+    doc.text('Indicador Municipal (Inscrição)', margin + 128, y + 3.2);
     doc.text('Telefone', margin + 170, y + 3.2);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text(tomaName, margin + 2, y + 6.5);
-    doc.text(tomaCnpjFmt, margin + 95, y + 6.5);
-    doc.text(tomaImFmt, margin + 135, y + 6.5);
+    doc.text(tomaCnpjFmt, margin + 90, y + 6.5);
+    doc.text(tomaImFmt, margin + 128, y + 6.5);
     doc.text(toma.telefone || '-', margin + 170, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
     doc.text('Endereço', margin + 2, y + 10.5);
-    doc.text('Município / Sigla UF', margin + 95, y + 10.5);
-    doc.text('Código IBGE / CEP', margin + 135, y + 10.5);
-    doc.text('E-mail', margin + 165, y + 10.5);
+    doc.text('Município / Sigla UF', margin + 90, y + 10.5);
+    doc.text('Código IBGE / CEP', margin + 128, y + 10.5);
+    doc.text('E-mail', margin + 158, y + 10.5);
+
+    const tomaEmail = toma.email || '-';
+    let tomaEmailFontSize = 6.5;
+    if (tomaEmail.length > 32) tomaEmailFontSize = 4.5;
+    else if (tomaEmail.length > 25) tomaEmailFontSize = 5.0;
+    else if (tomaEmail.length > 20) tomaEmailFontSize = 5.6;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text(tomaEndFmt, margin + 2, y + 13.8);
-    doc.text(tomaCityUf, margin + 95, y + 13.8);
-    doc.text(tomaIbgeCep, margin + 135, y + 13.8);
-    doc.text(toma.email || '-', margin + 165, y + 13.8);
+    doc.text(tomaCityUf, margin + 90, y + 13.8);
+    doc.text(tomaIbgeCep, margin + 128, y + 13.8);
+    doc.setFontSize(tomaEmailFontSize);
+    doc.text(tomaEmail, margin + 158, y + 13.8);
 
     y += 17;
 
@@ -5478,7 +5490,7 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('IDENTIFICAÇÃO E ASSINATURA', margin + footW1 + 2, footerY + 3.5);
     doc.text('Nº NFS-e / CHAVE NFS-e', margin + footW1 + footW2 + 2, footerY + 3.5);
 
-    doc.setFont('courier', 'bold'); doc.setFontSize(6.5);
+    doc.setFont('courier', 'bold'); doc.setFontSize(4.8);
     doc.text(`${nNfseVal} / ${chave}`, margin + footW1 + footW2 + 2, footerY + 8.5);
 
     const arrayBuf = doc.output('arraybuffer');
