@@ -9007,7 +9007,7 @@ app.get(['/instances/:name/details', '/api/instances/:name/details'], authentica
 
     try {
         const authHeader = req.headers.authorization;
-        const targetName = await resolveTargetName(name, token as string, company_id as string, authHeader);
+        const targetName = await resolveTargetName(name as string, token as string, company_id as string, authHeader);
         const config = await getEvolutionConfig({ instanceName: targetName, token: token as string, companyId: company_id as string, userToken: authHeader });
         console.log(`🔌 Fetching details for "${targetName}" (Token: ${token || 'N/A'}, Go: ${config.isGo})...`);
 
@@ -9099,7 +9099,7 @@ app.get(['/instances/:name/details', '/api/instances/:name/details'], authentica
                     : (authHeader || `Bearer ${supabaseKey}`);
 
                 if (SUPABASE_URL && name) {
-                    let queryUrl = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}`;
+                    let queryUrl = `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name as string)}`;
                     if (company_id) {
                         queryUrl += `&company_id=eq.${encodeURIComponent(company_id as string)}`;
                     }
@@ -9157,7 +9157,7 @@ app.get(['/instances/:name/details', '/api/instances/:name/details'], authentica
                     : (authHeader || `Bearer ${supabaseKey}`);
 
                 const { data: dbInsts } = await axios.get(
-                    `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name)}&select=instance_name,status,evolution_instance_id,whatsapp_name&order=created_at.desc&limit=1`,
+                    `${SUPABASE_URL}/rest/v1/instances?instance_name=ilike.${encodeURIComponent(name as string)}&select=instance_name,status,evolution_instance_id,whatsapp_name&order=created_at.desc&limit=1`,
                     { headers: { 'apikey': supabaseKey, 'Authorization': dbAuthHeader } }
                 );
 
@@ -10357,7 +10357,7 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
         if (charge?.id && result.status) {
             await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, {
                 status: result.status,
-                paid_at: (result.status === 'approved' || result.status === 'paid') ? new Date().toISOString() : null
+                paid_at: ((result.status as any) === 'approved' || (result.status as any) === 'paid') ? new Date().toISOString() : null
             }, {
                 headers: {
                     'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
@@ -10573,7 +10573,8 @@ app.post('/payments/asaas/create-key', authenticate, async (req, res) => {
     const { config, is_sandbox } = req.body;
 
     try {
-        const { AsaasAdapter } = await import('./services/payments/adapters/AsaasAdapter.js');
+        // @ts-ignore
+        const { AsaasAdapter } = await import('./_services/payments/adapters/AsaasAdapter.js');
         const adapter = new AsaasAdapter(config, is_sandbox ?? true);
         const result = await adapter.createRandomPixKey();
         res.json(result);
