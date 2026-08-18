@@ -481,17 +481,16 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
 
         const invoiceProvider = dbInvoiceRecord?.provider || dbInvoiceRecord?.payload?.provider || activeProvider;
 
-        const isDpsId = String(id || '').startsWith('DPS') || 
-                        String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
-                        String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
+        const rawKeyCheck = String(id || dbInvoiceRecord?.access_key || dbInvoiceRecord?.external_id || '').trim().replace(/^DPS/i, '').replace(/\D/g, '');
+        const is50Key = rawKeyCheck.length === 50 || rawKeyCheck.length === 44;
 
-        // Um cancelamento só deve ir para o mTLS do Portal Nacional SE a nota/empresa for do tipo Nacional
-        // E NUNCA quando for um provedor de mercado (PlugNotas, TecnoSpeed, FocusNFe, NFe.io)
-        const isNacionalCancel = (isDpsId || finalType === 'national' || finalType === 'nfsenac' || invoiceProvider === 'national') && 
-                                 invoiceProvider !== 'nfeio' && 
-                                 invoiceProvider !== 'focusnfe' && 
-                                 invoiceProvider !== 'tecnospeed' && 
-                                 invoiceProvider !== 'plugnotas';
+        // Um cancelamento deve ir para o mTLS do Portal Nacional se for chave nacional (50 digitos), DPS ID ou tipo Nacional
+        const isNacionalCancel = is50Key || 
+                                 isDpsId || 
+                                 finalType === 'national' || 
+                                 finalType === 'nfsenac' || 
+                                 activeProvider === 'national' || 
+                                 (invoiceProvider === 'national' && invoiceProvider !== 'plugnotas' && invoiceProvider !== 'tecnospeed');
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
@@ -750,9 +749,17 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     justificativaFinal = 'Cancelamento solicitado pelo prestador';
                 }
 
-                // Determina o cMotivo (1: Erro na emissão, 2: Serviço não prestado, 9: Outros)
-                let cMotivo = reqCMotivo || req.body.motivo || '2';
-                if (!reqCMotivo && !req.body.motivo) {
+                // Determina o cMotivo obrigatoriamente numérico conforme XSD do SEFIN (1: Erro na emissão, 2: Serviço não prestado, 9: Outros)
+                let rawMotivo = String(reqCMotivo || req.body.motivo || '').trim();
+                let cMotivo = '2';
+
+                if (rawMotivo === '1' || rawMotivo.toLowerCase().includes('erro')) {
+                    cMotivo = '1';
+                } else if (rawMotivo === '9' || rawMotivo.toLowerCase().includes('outro')) {
+                    cMotivo = '9';
+                } else if (rawMotivo === '2' || rawMotivo.toLowerCase().includes('serv')) {
+                    cMotivo = '2';
+                } else {
                     const justLower = justificativaFinal.toLowerCase();
                     if (justLower.includes('erro') || justLower.includes('dados incorretos') || justLower.includes('corrigir')) {
                         cMotivo = '1';
