@@ -544,8 +544,9 @@ ${messageWithPlaceholder}`;
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
+            const targetId = cancelModal.invoice.external_id || cancelModal.invoice.access_key || cancelModal.invoice.id;
             await fiscalService.cancelarNota(
-                cancelModal.invoice.external_id,
+                targetId,
                 cancelModal.invoice.type,
                 currentEntity.id,
                 cancelReason,

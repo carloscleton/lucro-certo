@@ -451,8 +451,9 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
 
+            const targetId = invoice.external_id || invoice.access_key || invoice.id;
             await fiscalService.cancelarNota(
-                invoice.external_id,
+                targetId,
                 invoice.type,
                 invoice.company_id,
                 cancelReason,

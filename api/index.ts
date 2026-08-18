@@ -479,22 +479,19 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
         const finalType = resolvedType || (activeProvider === 'nfeio' ? 'nfeio' : (activeProvider === 'national' ? 'national' : 'nfse'));
         type = finalType; // Sincroniza a variável 'type' para o fluxo subsequente
 
+        const invoiceProvider = dbInvoiceRecord?.provider || dbInvoiceRecord?.payload?.provider || activeProvider;
+
         const isDpsId = String(id || '').startsWith('DPS') || 
                         String(dbInvoiceRecord?.external_id || '').startsWith('DPS') || 
                         String(dbInvoiceRecord?.access_key || '').startsWith('DPS');
 
-        const hasNationalCert = !!(
-            settings?.national_config?.certificado_pfx_base64 || 
-            settings?.certificado_pfx_base64 || 
-            settings?.nfeio_config?.certificado_pfx_base64 ||
-            config?.certificado_pfx_base64
-        );
-
-        const isNacionalCancel = isDpsId || 
-                                 finalType === 'national' || 
-                                 finalType === 'nfsenac' || 
-                                 activeProvider === 'national' || 
-                                 hasNationalCert;
+        // Um cancelamento só deve ir para o mTLS do Portal Nacional SE a nota/empresa for do tipo Nacional
+        // E NUNCA quando for um provedor de mercado (PlugNotas, TecnoSpeed, FocusNFe, NFe.io)
+        const isNacionalCancel = (isDpsId || finalType === 'national' || finalType === 'nfsenac' || invoiceProvider === 'national') && 
+                                 invoiceProvider !== 'nfeio' && 
+                                 invoiceProvider !== 'focusnfe' && 
+                                 invoiceProvider !== 'tecnospeed' && 
+                                 invoiceProvider !== 'plugnotas';
 
         // --- ROTEAMENTO PORTAL NACIONAL (ADN/SEFIN) ---
         if (isNacionalCancel) {
