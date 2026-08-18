@@ -836,10 +836,14 @@ app.post(['/fiscal-module/cancelar', '/api/fiscal-module/cancelar'], authenticat
                     digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256'
                 });
                 
-                // Adiciona o certificado na assinatura
-                const certB64 = certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\r?\n/g, '');
+                // Adiciona unicamente o Certificado Folha (Leaf) na assinatura XML DSIG
+                const certToUse = leafCertificatePem || certPem;
+                const leafCertB64 = certToUse.split('-----END CERTIFICATE-----')[0]
+                    .replace(/-----BEGIN CERTIFICATE-----|\r?\n/g, '')
+                    .trim();
+
                 (sig as any).keyInfoProvider = {
-                    getKeyInfo: () => `<X509Data><X509Certificate>${certB64}</X509Certificate></X509Data>`
+                    getKeyInfo: () => `<X509Data><X509Certificate>${leafCertB64}</X509Certificate></X509Data>`
                 };
                 sig.computeSignature(cancelXml);
                 const signedCancelXml = sig.getSignedXml();

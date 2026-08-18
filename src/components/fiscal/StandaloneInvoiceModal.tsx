@@ -838,7 +838,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 setLoading(false);
                 return;
             }
-            console.log('✅ [handleSubmit] Certificado do Portal Nacional verificado:', { cnpj: natConfig?.cnpj, status: natConfig?.certificado_status || 'ok' });
+            console.log('✅ [handleSubmit] Certificado do Portal Nacional verificado:', { status: natConfig?.certificado_status || 'ok' });
         } else {
             if (!currentCompany.tecnospeed_config) {
                 console.warn('⚠️ [handleSubmit] Configurações TecnoSpeed ausentes.');
