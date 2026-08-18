@@ -515,7 +515,11 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                         <select
                             value={selectedContactId}
                             onChange={(e) => handleSelectContact(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                            disabled={!!invoice}
+                            className={clsx(
+                                "w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500",
+                                invoice && "cursor-not-allowed opacity-80 bg-gray-100 dark:bg-slate-800/80"
+                            )}
                         >
                             <option value="">Selecione um cliente cadastrado...</option>
                             {contacts.map(c => (
@@ -524,6 +528,11 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                 </option>
                             ))}
                         </select>
+                        {invoice && (
+                            <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                                <span>🔒</span> Cliente travado de acordo com o tomador da Nota Fiscal
+                            </p>
+                        )}
 
                         {!selectedContactId && (
                             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 rounded-xl flex items-start gap-2.5">
@@ -542,6 +551,8 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                         placeholder="Nome do Pagador"
                                         value={customName}
                                         onChange={(e) => setCustomName(e.target.value)}
+                                        disabled={!!invoice}
+                                        className={clsx(invoice && "cursor-not-allowed opacity-80 bg-gray-100 dark:bg-slate-800/80")}
                                     />
                                 </div>
                                 <div>
@@ -550,6 +561,8 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                         placeholder="000.000.000-00 ou 00.000.000/0001-00"
                                         value={customTaxId}
                                         onChange={(e) => setCustomTaxId(e.target.value)}
+                                        disabled={!!invoice}
+                                        className={clsx(invoice && "cursor-not-allowed opacity-80 bg-gray-100 dark:bg-slate-800/80")}
                                     />
                                 </div>
                             </div>
