@@ -64,25 +64,30 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
 
       {/* MOLDURA ÚNICA CONTÍNUA DO DOCUMENTO */}
       <div className="danfse-main-border">
-        {/* CABEÇALHO SUPERIOR (FUNDO #EFEFEF IDÊNTICO AO OFICIAL) */}
+        {/* CABEÇALHO SUPERIOR (FUNDO #EFEFEF IDÊNTICO À IMAGEM) */}
         <div className="danfse-header-row">
           <div className="danfse-logo-area">
-            <svg width="150" height="34" viewBox="0 0 160 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* N com detalhes da bandeira do Brasil */}
-              <path d="M4 34V8H11.5L23.5 28V8H29.5V34H22.5L10.5 14V34H4Z" fill="#10B981"/>
-              <polygon points="11.5,8 17.5,4 23.5,8 17.5,12" fill="#FBBF24"/>
-              <circle cx="17.5" cy="8" r="1.8" fill="#1E3A8A"/>
+            <svg width="170" height="38" viewBox="0 0 170 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* N em verde #2E8B57 */}
+              <path d="M 4 34 L 4 8 L 10.5 8 L 22.5 28 L 22.5 8 L 28.5 8 L 28.5 34 L 22 34 L 10 14 L 10 34 Z" fill="#2E8B57"/>
+              {/* Triângulo amarelo no N */}
+              <path d="M 4 8 L 10 8 L 10 20 L 4 20 Z" fill="#F1C40F"/>
+              {/* Quarto de círculo azul escuro no N */}
+              <path d="M 10 8 A 6 6 0 0 1 16 14 L 10 14 Z" fill="#23458B"/>
 
-              {/* FS */}
-              <path d="M33 8H45V13H38.5V18H44V23H38.5V34H33V8Z" fill="#1E3A8A"/>
-              <path d="M47 30C47 33 49.5 35 53.5 35C57.5 35 60 33 60 30C60 25.5 53.5 25 53.5 22.5C53.5 21.3 54.8 20.5 56.5 20.5C58 20.5 59.5 21.3 60 22.3L64 19C62.5 17 59.8 16 56.5 16C52 16 48.5 18 48.5 22.3C48.5 27 55 27.5 55 29.7C55 30.7 53.5 31.5 52 31.5C50.2 31.5 48.8 30.5 48 29L47 30Z" fill="#1E3A8A"/>
+              {/* F em verde #2E8B57 */}
+              <path d="M 31 8 L 43 8 L 43 13 L 36.5 13 L 36.5 18 L 42 18 L 42 23 L 36.5 23 L 36.5 34 L 31 34 Z" fill="#2E8B57"/>
 
-              {/* e */}
-              <path d="M62 25.5C62 19.5 66.5 16 72.5 16C78.5 16 82.5 20 82.5 26V27H67.5C67.8 30 69.8 31.5 72.5 31.5C74.5 31.5 76.2 30.7 77 29.3L81.2 31C79.5 33.7 76.5 35 72.5 35C66.5 35 62 31 62 25.5ZM77.2 23.3C76.8 21.3 75 20 72.5 20C70 20 68.2 21.3 67.6 23.3H77.2Z" fill="#1E3A8A"/>
+              {/* S em verde #2E8B57 */}
+              <path d="M 45 30 C 45 33 47.5 35 51.5 35 C 55.5 35 58 33 58 30 C 58 25.5 51.5 25 51.5 22.5 C 51.5 21.3 52.8 20.5 54.5 20.5 C 56 20.5 57.5 21.3 58 22.3 L 62 19 C 60.5 17 57.8 16 54.5 16 C 50 16 46.5 18 46.5 22.3 C 46.5 27 53 27.5 53 29.7 C 53 30.7 51.5 31.5 50 31.5 C 48.2 31.5 46.8 30.5 46 29 Z" fill="#2E8B57"/>
 
-              {/* Subtexto "Nota Fiscal de Serviço eletrônica" */}
-              <text x="88" y="18" fontFamily="Arial, Helvetica, sans-serif" fontSize="8" fill="#555555" fontWeight="normal">Nota Fiscal de</text>
-              <text x="88" y="28" fontFamily="Arial, Helvetica, sans-serif" fontSize="8" fill="#555555" fontWeight="normal">Serviço eletrônica</text>
+              {/* e minúsculo em azul escuro #23458B */}
+              <path d="M 60 25.5 C 60 19.5 64.5 16 70.5 16 C 76.5 16 80.5 20 80.5 26 V 27 H 65.5 C 65.8 30 67.8 31.5 70.5 31.5 C 72.5 31.5 74.2 30.7 75 29.3 L 79.2 31 C 77.5 33.7 74.5 35 70.5 35 C 64.5 35 60 31 60 25.5 Z M 75.2 23.3 C 74.8 21.3 73 20 70.5 20 C 68 20 66.2 21.3 65.6 23.3 Z" fill="#23458B"/>
+              <circle cx="80" cy="31" r="2.2" fill="#23458B"/>
+
+              {/* Subtexto */}
+              <text x="86" y="18" fontFamily="Arial, Helvetica, sans-serif" fontSize="8.5" fill="#666666" fontWeight="normal">Nota Fiscal de</text>
+              <text x="86" y="29" fontFamily="Arial, Helvetica, sans-serif" fontSize="8.5" fill="#666666" fontWeight="normal">Serviço eletrônica</text>
             </svg>
           </div>
 
