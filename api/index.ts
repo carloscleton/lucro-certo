@@ -5772,7 +5772,14 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                                   invPayload.servicesAmount ||
                                   dbInvoiceRecord?.amount || 
                                   '1160.00';
-                const amountVal = parseFloat(String(rawAmount).replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 1160.00;
+                const parseBrlFloat = (valStr: any): number => {
+                    const clean = String(valStr).replace('R$', '').trim();
+                    if (clean.includes(',')) {
+                        return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
+                    }
+                    return parseFloat(clean) || 0;
+                };
+                const amountVal = parseBrlFloat(rawAmount) || 1160.00;
 
                 // Prestador extraído do XML assinado ou payload
                 const prestCnpj = getXmlVal(emitBlock, 'CNPJ') || prest.CNPJ || prest.cnpj || nat.cnpj || '00893566000190';
