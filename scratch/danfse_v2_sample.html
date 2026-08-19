@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DANFSe v2.0 - Documento Auxiliar da NFS-e (Réplica Oficial)</title>
+  <title>DANFSe v2.0 - Documento Auxiliar da NFS-e (Réplica Oficial Unificada)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
@@ -29,19 +29,21 @@
       line-height: 1.1;
     }
 
-    /* Moldura e Grids */
-    .danfse-box {
+    /* Moldura Única do Documento */
+    .danfse-main-border {
       border: 1px solid #000000;
-      margin-bottom: -1px;
       width: 100%;
       box-sizing: border-box;
+      background-color: #ffffff;
     }
 
+    /* Linhas e Colunas Contínuas */
     .danfse-row {
       display: flex;
       flex-direction: row;
       width: 100%;
       border-bottom: 1px solid #000000;
+      box-sizing: border-box;
     }
 
     .danfse-row:last-child {
@@ -65,7 +67,7 @@
     /* Rótulos e Valores */
     .danfse-label {
       font-weight: bold;
-      font-size: 6pt;
+      font-size: 5.8pt;
       text-transform: uppercase;
       color: #000000;
       line-height: 1;
@@ -73,10 +75,10 @@
     }
 
     .danfse-value {
-      font-size: 7.5pt;
+      font-size: 7.2pt;
       color: #000000;
       font-weight: normal;
-      min-height: 8.5pt;
+      min-height: 8pt;
       line-height: 1.1;
     }
 
@@ -85,15 +87,14 @@
     }
 
     /* Cabeçalho Topo */
-    .danfse-header {
+    .danfse-header-row {
       display: flex;
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
-      border: 1px solid #000000;
-      border-bottom: none;
       padding: 3px 6px;
       background: #ffffff;
+      border-bottom: 1px solid #000000;
     }
 
     .danfse-logo-area {
@@ -104,7 +105,7 @@
     }
 
     .danfse-logo-title {
-      font-size: 16pt;
+      font-size: 15pt;
       font-weight: bold;
       color: #0b3b60;
       line-height: 1;
@@ -114,7 +115,7 @@
     }
 
     .danfse-logo-sub {
-      font-size: 6pt;
+      font-size: 5.8pt;
       color: #333333;
       line-height: 1;
       margin-top: 1px;
@@ -131,22 +132,22 @@
     }
 
     .danfse-title-sub {
-      font-size: 8pt;
+      font-size: 7.8pt;
       font-weight: bold;
     }
 
     .danfse-meta-area {
       width: 30%;
-      font-size: 6.5pt;
+      font-size: 6.2pt;
       text-align: right;
       line-height: 1.15;
     }
 
-    /* Seções */
+    /* Cabeçalhos de Seções */
     .danfse-section-header {
       background-color: #ffffff;
       font-weight: bold;
-      font-size: 6.5pt;
+      font-size: 6.2pt;
       text-transform: uppercase;
       padding: 1px 3px;
       border-bottom: 1px solid #000000;
@@ -155,19 +156,19 @@
     .danfse-sub-header {
       text-align: center;
       font-weight: bold;
-      font-size: 6pt;
+      font-size: 5.8pt;
       text-transform: uppercase;
       background-color: #ffffff;
       padding: 1px 3px;
       border-bottom: 1px solid #000000;
     }
 
-    /* Top Block with QR Code side-by-side */
+    /* Estrutura Superior Lado a Lado */
     .danfse-top-layout {
       display: flex;
       flex-direction: row;
-      border: 1px solid #000000;
-      margin-bottom: -1px;
+      width: 100%;
+      border-bottom: 1px solid #000000;
     }
 
     .danfse-top-left {
@@ -177,9 +178,9 @@
     }
 
     .danfse-top-right {
-      width: 140px;
+      width: 135px;
       border-left: 1px solid #000000;
-      padding: 3px;
+      padding: 2px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -189,12 +190,12 @@
     }
 
     .danfse-qr-img {
-      width: 68px;
-      height: 68px;
+      width: 64px;
+      height: 64px;
     }
 
     .danfse-qr-text {
-      font-size: 5pt;
+      font-size: 4.8pt;
       line-height: 1.05;
       margin-top: 2px;
     }
@@ -215,10 +216,13 @@
     .w-75 { width: 75%; }
     .w-100 { width: 100%; }
 
-    /* Rodapé Final de Página */
-    .danfse-footer-box {
-      border: 1px solid #000000;
-      margin-top: 15px;
+    /* Rodapé Ajustado (Sem Quebra da Chave) */
+    .danfse-footer-key {
+      font-size: 6.2pt !important;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .btn-print {
@@ -262,96 +266,96 @@
   <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir DANFSe v2.0 (PDF)</button>
 
   <div class="danfse-container">
-    <!-- CABEÇALHO SUPERIOR -->
-    <div class="danfse-header">
-      <div class="danfse-logo-area">
-        <div>
-          <div class="danfse-logo-title">NFS-<span class="danfse-logo-green">e</span></div>
-          <div class="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
+    <div class="danfse-main-border">
+      <!-- CABEÇALHO SUPERIOR -->
+      <div class="danfse-header-row">
+        <div class="danfse-logo-area">
+          <div>
+            <div class="danfse-logo-title">NFS-<span class="danfse-logo-green">e</span></div>
+            <div class="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
+          </div>
+        </div>
+
+        <div class="danfse-title-area">
+          <div class="danfse-title-main">DANFSe v2.0</div>
+          <div class="danfse-title-sub">Documento Auxiliar da NFS-e</div>
+        </div>
+
+        <div class="danfse-meta-area">
+          <div><strong>Município:</strong> Natal - RN</div>
+          <div><strong>Ambiente Gerador:</strong> 2</div>
+          <div><strong>Tipo de Ambiente:</strong> 1</div>
         </div>
       </div>
 
-      <div class="danfse-title-area">
-        <div class="danfse-title-main">DANFSe v2.0</div>
-        <div class="danfse-title-sub">Documento Auxiliar da NFS-e</div>
-      </div>
+      <!-- LAYOUT DE TOPO LADO A LADO -->
+      <div class="danfse-top-layout">
+        <div class="danfse-top-left">
+          <!-- CHAVE DE ACESSO -->
+          <div class="danfse-row">
+            <div class="danfse-col w-100">
+              <span class="danfse-label">CHAVE DE ACESSO DA NFS-e</span>
+              <span class="danfse-value danfse-value-bold" style="font-size: 7.8pt;">24081022200893566000190000000000006226083642112359</span>
+            </div>
+          </div>
 
-      <div class="danfse-meta-area">
-        <div><strong>Município:</strong> Natal - RN</div>
-        <div><strong>Ambiente Gerador:</strong> 2</div>
-        <div><strong>Tipo de Ambiente:</strong> 1</div>
-      </div>
-    </div>
+          <!-- DADOS CABEÇALHO -->
+          <div class="danfse-row">
+            <div class="danfse-col w-30">
+              <span class="danfse-label">NÚMERO DA NFS-e</span>
+              <span class="danfse-value danfse-value-bold">62</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">COMPETÊNCIA DA NFS-e</span>
+              <span class="danfse-value">08/08/2026</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
+              <span class="danfse-value">08/08/2026 11:32:14</span>
+            </div>
+          </div>
 
-    <!-- LAYOUT DE TOPO LADO A LADO -->
-    <div class="danfse-top-layout">
-      <div class="danfse-top-left">
-        <!-- CHAVE DE ACESSO -->
-        <div class="danfse-row">
-          <div class="danfse-col w-100">
-            <span class="danfse-label">CHAVE DE ACESSO DA NFS-e</span>
-            <span class="danfse-value danfse-value-bold" style="font-size: 8pt;">24081022200893566000190000000000006226083642112359</span>
+          <div class="danfse-row">
+            <div class="danfse-col w-30">
+              <span class="danfse-label">NÚMERO DA DPS</span>
+              <span class="danfse-value">58</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">SÉRIE DA DPS</span>
+              <span class="danfse-value">1</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
+              <span class="danfse-value">08/08/2026 11:17:12</span>
+            </div>
+          </div>
+
+          <div class="danfse-row" style="border-bottom: none;">
+            <div class="danfse-col w-30">
+              <span class="danfse-label">EMITENTE DA NFS-e</span>
+              <span class="danfse-value">Prestador</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">SITUAÇÃO DA NFS-e</span>
+              <span class="danfse-value">NFS-e Gerada</span>
+            </div>
+            <div class="danfse-col w-35">
+              <span class="danfse-label">FINALIDADE</span>
+              <span class="danfse-value">NFS-e regular</span>
+            </div>
           </div>
         </div>
 
-        <!-- DADOS CABEÇALHO -->
-        <div class="danfse-row">
-          <div class="danfse-col w-30">
-            <span class="danfse-label">NÚMERO DA NFS-e</span>
-            <span class="danfse-value danfse-value-bold">62</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">COMPETÊNCIA DA NFS-e</span>
-            <span class="danfse-value">08/08/2026</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
-            <span class="danfse-value">08/08/2026 11:32:14</span>
-          </div>
-        </div>
-
-        <div class="danfse-row">
-          <div class="danfse-col w-30">
-            <span class="danfse-label">NÚMERO DA DPS</span>
-            <span class="danfse-value">58</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">SÉRIE DA DPS</span>
-            <span class="danfse-value">1</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
-            <span class="danfse-value">08/08/2026 11:17:12</span>
-          </div>
-        </div>
-
-        <div class="danfse-row">
-          <div class="danfse-col w-30">
-            <span class="danfse-label">EMITENTE DA NFS-e</span>
-            <span class="danfse-value">Prestador</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">SITUAÇÃO DA NFS-e</span>
-            <span class="danfse-value">NFS-e Gerada</span>
-          </div>
-          <div class="danfse-col w-35">
-            <span class="danfse-label">FINALIDADE</span>
-            <span class="danfse-value">NFS-e regular</span>
+        <!-- QR CODE À DIREITA -->
+        <div class="danfse-top-right">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://www.nfse.gov.br/consultapublica/qr?chave=24081022200893566000190000000000006226083642112359" alt="QR Code" class="danfse-qr-img">
+          <div class="danfse-qr-text">
+            A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e
           </div>
         </div>
       </div>
 
-      <!-- QR CODE À DIREITA -->
-      <div class="danfse-top-right">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://www.nfse.gov.br/consultapublica/qr?chave=24081022200893566000190000000000006226083642112359" alt="QR Code" class="danfse-qr-img">
-        <div class="danfse-qr-text">
-          A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e
-        </div>
-      </div>
-    </div>
-
-    <!-- PRESTADOR / FORNECEDOR -->
-    <div class="danfse-box">
+      <!-- PRESTADOR / FORNECEDOR -->
       <div class="danfse-section-header">PRESTADOR / FORNECEDOR</div>
       <div class="danfse-row">
         <div class="danfse-col w-40">
@@ -401,10 +405,8 @@
           <span class="danfse-value">Regime de apuração dos tributos federais e municipal pelo Simples Nacional</span>
         </div>
       </div>
-    </div>
 
-    <!-- TOMADOR / ADQUIRENTE -->
-    <div class="danfse-box">
+      <!-- TOMADOR / ADQUIRENTE -->
       <div class="danfse-section-header">TOMADOR / ADQUIRENTE</div>
       <div class="danfse-row">
         <div class="danfse-col w-40">
@@ -444,16 +446,12 @@
           <span class="danfse-value">pagamentosti@afip.com.br</span>
         </div>
       </div>
-    </div>
 
-    <!-- INTERMEDIÁRIO / DESTINATÁRIO -->
-    <div class="danfse-box">
+      <!-- INTERMEDIÁRIO / DESTINATÁRIO -->
       <div class="danfse-sub-header">DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
-      <div class="danfse-sub-header" style="border-bottom: none;">INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
-    </div>
+      <div class="danfse-sub-header">INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
 
-    <!-- SERVIÇO PRESTADO -->
-    <div class="danfse-box">
+      <!-- SERVIÇO PRESTADO -->
       <div class="danfse-section-header">SERVIÇO PRESTADO</div>
       <div class="danfse-row">
         <div class="danfse-col w-35">
@@ -484,10 +482,8 @@
 04 - LAB FARIAS PREMIUM POSTO DE COLETA - 24.195.257/0001-04</span>
         </div>
       </div>
-    </div>
 
-    <!-- TRIBUTAÇÃO MUNICIPAL (ISSQN) -->
-    <div class="danfse-box">
+      <!-- TRIBUTAÇÃO MUNICIPAL (ISSQN) -->
       <div class="danfse-section-header">TRIBUTAÇÃO MUNICIPAL (ISSQN)</div>
       <div class="danfse-row">
         <div class="danfse-col w-50">
@@ -517,10 +513,8 @@
           <span class="danfse-value">-</span>
         </div>
       </div>
-    </div>
 
-    <!-- TRIBUTAÇÃO FEDERAL (EXCETO CBS) -->
-    <div class="danfse-box">
+      <!-- TRIBUTAÇÃO FEDERAL (EXCETO CBS) -->
       <div class="danfse-section-header">TRIBUTAÇÃO FEDERAL (EXCETO CBS)</div>
       <div class="danfse-row">
         <div class="danfse-col w-33">
@@ -550,10 +544,8 @@
           <span class="danfse-value">-</span>
         </div>
       </div>
-    </div>
 
-    <!-- TRIBUTAÇÃO IBS/CBS -->
-    <div class="danfse-box">
+      <!-- TRIBUTAÇÃO IBS/CBS -->
       <div class="danfse-section-header">TRIBUTAÇÃO IBS/CBS</div>
       <div class="danfse-row">
         <div class="danfse-col w-35">
@@ -619,10 +611,8 @@
           <span class="danfse-value danfse-value-bold">R$ 10,44</span>
         </div>
       </div>
-    </div>
 
-    <!-- VALOR TOTAL DA NFS-E -->
-    <div class="danfse-box">
+      <!-- VALOR TOTAL DA NFS-E -->
       <div class="danfse-row">
         <div class="danfse-col w-25">
           <span class="danfse-label">VALOR TOTAL DA NFS-e</span>
@@ -659,31 +649,27 @@
           <span class="danfse-value danfse-value-bold">R$ 1.160,00</span>
         </div>
       </div>
-    </div>
 
-    <!-- INFORMAÇÕES COMPLEMENTARES -->
-    <div class="danfse-box">
+      <!-- INFORMAÇÕES COMPLEMENTARES -->
       <div class="danfse-section-header">INFORMAÇÕES COMPLEMENTARES</div>
       <div class="danfse-row">
-        <div class="danfse-col w-100" style="min-height: 30px;">
+        <div class="danfse-col w-100" style="min-height: 26px;">
           <span class="danfse-value">Inf. Cont.: NBS: 115013000</span>
-          <span class="danfse-value" style="margin-top: 2px;">Totais aproximados dos Tributos cfe. Lei n° 12.741/2012: Federais: -; Estaduais: -; Municipais: -;</span>
+          <span class="danfse-value" style="margin-top: 1px;">Totais aproximados dos Tributos cfe. Lei n° 12.741/2012: Federais: -; Estaduais: -; Municipais: -;</span>
         </div>
       </div>
-    </div>
 
-    <!-- RODAPÉ FINAL DE PÁGINA -->
-    <div class="danfse-footer-box">
-      <div class="danfse-row" style="height: 32px;">
-        <div class="danfse-col w-30">
+      <!-- RODAPÉ FINAL DE PÁGINA -->
+      <div class="danfse-row" style="height: 30px;">
+        <div class="danfse-col w-25">
           <span class="danfse-label">DATA CIENTIFICAÇÃO:</span>
         </div>
-        <div class="danfse-col w-35">
+        <div class="danfse-col w-40">
           <span class="danfse-label">IDENTIFICAÇÃO E ASSINATURA</span>
         </div>
         <div class="danfse-col w-35">
           <span class="danfse-label">N° NFS-e / CHAVE NFS-e</span>
-          <span class="danfse-value danfse-value-bold">62 / 24081022200893566000190000000000006226083642112359</span>
+          <span class="danfse-value danfse-value-bold danfse-footer-key">62 / 24081022200893566000190000000000006226083642112359</span>
         </div>
       </div>
     </div>

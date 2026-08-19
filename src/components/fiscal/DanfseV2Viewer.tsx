@@ -62,100 +62,101 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </button>
       </div>
 
-      {/* CABEÇALHO SUPERIOR */}
-      <div className="danfse-header">
-        <div className="danfse-logo-area">
-          <div>
-            <div className="danfse-logo-title">NFS-<span className="danfse-logo-green">e</span></div>
-            <div className="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
+      {/* MOLDURA ÚNICA CONTÍNUA DO DOCUMENTO */}
+      <div className="danfse-main-border">
+        {/* CABEÇALHO SUPERIOR */}
+        <div className="danfse-header-row">
+          <div className="danfse-logo-area">
+            <div>
+              <div className="danfse-logo-title">NFS-<span className="danfse-logo-green">e</span></div>
+              <div className="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
+            </div>
+          </div>
+
+          <div className="danfse-title-area">
+            <div className="danfse-title-main">DANFSe v2.0</div>
+            <div className="danfse-title-sub">Documento Auxiliar da NFS-e</div>
+          </div>
+
+          <div className="danfse-meta-area">
+            <div><strong>Município:</strong> {data.municipioEmissao}</div>
+            <div><strong>Ambiente Gerador:</strong> {data.ambienteGerador}</div>
+            <div><strong>Tipo de Ambiente:</strong> {data.tipoAmbiente}</div>
           </div>
         </div>
 
-        <div className="danfse-title-area">
-          <div className="danfse-title-main">DANFSe v2.0</div>
-          <div className="danfse-title-sub">Documento Auxiliar da NFS-e</div>
-        </div>
+        {/* LAYOUT DE TOPO: CHAVE E DADOS CABEÇALHO LADO A LADO COM QR CODE */}
+        <div className="danfse-top-layout">
+          <div className="danfse-top-left">
+            {/* CHAVE DE ACESSO */}
+            <div className="danfse-row">
+              <div className="danfse-col w-100">
+                <span className="danfse-label">CHAVE DE ACESSO DA NFS-e</span>
+                <span className="danfse-value danfse-value-bold" style={{ fontSize: '7.8pt' }}>{data.chaveAcesso}</span>
+              </div>
+            </div>
 
-        <div className="danfse-meta-area">
-          <div><strong>Município:</strong> {data.municipioEmissao}</div>
-          <div><strong>Ambiente Gerador:</strong> {data.ambienteGerador}</div>
-          <div><strong>Tipo de Ambiente:</strong> {data.tipoAmbiente}</div>
-        </div>
-      </div>
+            {/* DADOS DE IDENTIFICAÇÃO NFS-E / DPS */}
+            <div className="danfse-row">
+              <div className="danfse-col w-30">
+                <span className="danfse-label">NÚMERO DA NFS-e</span>
+                <span className="danfse-value danfse-value-bold">{data.nNFSe}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">COMPETÊNCIA DA NFS-e</span>
+                <span className="danfse-value">{data.competencia}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
+                <span className="danfse-value">{data.dhEmiNFSe}</span>
+              </div>
+            </div>
 
-      {/* LAYOUT DE TOPO: CHAVE E DADOS CABEÇALHO LADO A LADO COM QR CODE */}
-      <div className="danfse-top-layout">
-        <div className="danfse-top-left">
-          {/* CHAVE DE ACESSO */}
-          <div className="danfse-row">
-            <div className="danfse-col w-100">
-              <span className="danfse-label">CHAVE DE ACESSO DA NFS-e</span>
-              <span className="danfse-value danfse-value-bold" style={{ fontSize: '8pt' }}>{data.chaveAcesso}</span>
+            <div className="danfse-row">
+              <div className="danfse-col w-30">
+                <span className="danfse-label">NÚMERO DA DPS</span>
+                <span className="danfse-value">{data.nDPS}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">SÉRIE DA DPS</span>
+                <span className="danfse-value">{data.serieDPS}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
+                <span className="danfse-value">{data.dhEmiDPS}</span>
+              </div>
+            </div>
+
+            <div className="danfse-row" style={{ borderBottom: 'none' }}>
+              <div className="danfse-col w-30">
+                <span className="danfse-label">EMITENTE DA NFS-e</span>
+                <span className="danfse-value">{data.emitenteTipo}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">SITUAÇÃO DA NFS-e</span>
+                <span className="danfse-value">{data.situacaoNFSe}</span>
+              </div>
+              <div className="danfse-col w-35">
+                <span className="danfse-label">FINALIDADE</span>
+                <span className="danfse-value">{data.finalidade}</span>
+              </div>
             </div>
           </div>
 
-          {/* DADOS DE IDENTIFICAÇÃO NFS-E / DPS */}
-          <div className="danfse-row">
-            <div className="danfse-col w-30">
-              <span className="danfse-label">NÚMERO DA NFS-e</span>
-              <span className="danfse-value danfse-value-bold">{data.nNFSe}</span>
+          {/* QR CODE A DIREITA */}
+          <div className="danfse-top-right">
+            {qrCodeUrl ? (
+              <img src={qrCodeUrl} alt="QR Code NFS-e" className="danfse-qr-img" />
+            ) : (
+              <div className="w-16 h-16 bg-gray-200" />
+            )}
+            <div className="danfse-qr-text">
+              A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e
             </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">COMPETÊNCIA DA NFS-e</span>
-              <span className="danfse-value">{data.competencia}</span>
-            </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
-              <span className="danfse-value">{data.dhEmiNFSe}</span>
-            </div>
-          </div>
-
-          <div className="danfse-row">
-            <div className="danfse-col w-30">
-              <span className="danfse-label">NÚMERO DA DPS</span>
-              <span className="danfse-value">{data.nDPS}</span>
-            </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">SÉRIE DA DPS</span>
-              <span className="danfse-value">{data.serieDPS}</span>
-            </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
-              <span className="danfse-value">{data.dhEmiDPS}</span>
-            </div>
-          </div>
-
-          <div className="danfse-row">
-            <div className="danfse-col w-30">
-              <span className="danfse-label">EMITENTE DA NFS-e</span>
-              <span className="danfse-value">{data.emitenteTipo}</span>
-            </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">SITUAÇÃO DA NFS-e</span>
-              <span className="danfse-value">{data.situacaoNFSe}</span>
-            </div>
-            <div className="danfse-col w-35">
-              <span className="danfse-label">FINALIDADE</span>
-              <span className="danfse-value">{data.finalidade}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* QR CODE A DIREITA */}
-        <div className="danfse-top-right">
-          {qrCodeUrl ? (
-            <img src={qrCodeUrl} alt="QR Code NFS-e" className="danfse-qr-img" />
-          ) : (
-            <div className="w-16 h-16 bg-gray-200" />
-          )}
-          <div className="danfse-qr-text">
-            A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: PRESTADOR / FORNECEDOR */}
-      <div className="danfse-box">
+        {/* BLOCO: PRESTADOR / FORNECEDOR */}
         <div className="danfse-section-header">PRESTADOR / FORNECEDOR</div>
         <div className="danfse-row">
           <div className="danfse-col w-40">
@@ -205,10 +206,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value">{data.prestador.regimeApuracao}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: TOMADOR / ADQUIRENTE */}
-      <div className="danfse-box">
+        {/* BLOCO: TOMADOR / ADQUIRENTE */}
         <div className="danfse-section-header">TOMADOR / ADQUIRENTE</div>
         <div className="danfse-row">
           <div className="danfse-col w-40">
@@ -248,16 +247,12 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value">{data.tomador.email}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: INTERMEDIÁRIO / DESTINATÁRIO */}
-      <div className="danfse-box">
+        {/* BLOCO: INTERMEDIÁRIO / DESTINATÁRIO */}
         <div className="danfse-sub-header">DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
-        <div className="danfse-sub-header" style={{ borderBottom: 'none' }}>INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
-      </div>
+        <div className="danfse-sub-header">INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
 
-      {/* BLOCO: SERVIÇO PRESTADO */}
-      <div className="danfse-box">
+        {/* BLOCO: SERVIÇO PRESTADO */}
         <div className="danfse-section-header">SERVIÇO PRESTADO</div>
         <div className="danfse-row">
           <div className="danfse-col w-35">
@@ -284,10 +279,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value" style={{ whiteSpace: 'pre-line' }}>{data.servico.descricaoServico}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: TRIBUTAÇÃO MUNICIPAL (ISSQN) */}
-      <div className="danfse-box">
+        {/* BLOCO: TRIBUTAÇÃO MUNICIPAL (ISSQN) */}
         <div className="danfse-section-header">TRIBUTAÇÃO MUNICIPAL (ISSQN)</div>
         <div className="danfse-row">
           <div className="danfse-col w-50">
@@ -317,10 +310,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value">{data.tributacaoMunicipal.issqnApurado}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: TRIBUTAÇÃO FEDERAL (EXCETO CBS) */}
-      <div className="danfse-box">
+        {/* BLOCO: TRIBUTAÇÃO FEDERAL (EXCETO CBS) */}
         <div className="danfse-section-header">TRIBUTAÇÃO FEDERAL (EXCETO CBS)</div>
         <div className="danfse-row">
           <div className="danfse-col w-33">
@@ -350,10 +341,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value">{data.tributacaoFederal.descricaoContribSociais}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: TRIBUTAÇÃO IBS/CBS */}
-      <div className="danfse-box">
+        {/* BLOCO: TRIBUTAÇÃO IBS/CBS */}
         <div className="danfse-section-header">TRIBUTAÇÃO IBS/CBS</div>
         <div className="danfse-row">
           <div className="danfse-col w-35">
@@ -419,10 +408,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value danfse-value-bold">{data.tributacaoIbsCbs.valorTotalApuradoCbs}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: VALOR TOTAL DA NFS-E */}
-      <div className="danfse-box">
+        {/* BLOCO: VALOR TOTAL DA NFS-E */}
         <div className="danfse-row">
           <div className="danfse-col w-25">
             <span className="danfse-label">VALOR TOTAL DA NFS-e</span>
@@ -459,31 +446,27 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-value danfse-value-bold">{data.valores.valorLiquidoMaisIbsCbs}</span>
           </div>
         </div>
-      </div>
 
-      {/* BLOCO: INFORMAÇÕES COMPLEMENTARES */}
-      <div className="danfse-box">
+        {/* BLOCO: INFORMAÇÕES COMPLEMENTARES */}
         <div className="danfse-section-header">INFORMAÇÕES COMPLEMENTARES</div>
         <div className="danfse-row">
-          <div className="danfse-col w-100" style={{ minHeight: '30px' }}>
+          <div className="danfse-col w-100" style={{ minHeight: '26px' }}>
             <span className="danfse-value">{data.informacoesComplementares.infCont}</span>
-            <span className="danfse-value" style={{ marginTop: '2px' }}>{data.informacoesComplementares.tributosAproximados}</span>
+            <span className="danfse-value" style={{ marginTop: '1px' }}>{data.informacoesComplementares.tributosAproximados}</span>
           </div>
         </div>
-      </div>
 
-      {/* RODAPÉ FINAL DE PÁGINA */}
-      <div className="danfse-footer-box">
-        <div className="danfse-row" style={{ height: '32px' }}>
-          <div className="danfse-col w-30">
+        {/* RODAPÉ FINAL DE PÁGINA */}
+        <div className="danfse-row" style={{ height: '30px' }}>
+          <div className="danfse-col w-25">
             <span className="danfse-label">DATA CIENTIFICAÇÃO:</span>
           </div>
-          <div className="danfse-col w-35">
+          <div className="danfse-col w-40">
             <span className="danfse-label">IDENTIFICAÇÃO E ASSINATURA</span>
           </div>
           <div className="danfse-col w-35">
             <span className="danfse-label">N° NFS-e / CHAVE NFS-e</span>
-            <span className="danfse-value danfse-value-bold">{data.rodape.chaveResumidaRodape}</span>
+            <span className="danfse-value danfse-value-bold danfse-footer-key">{data.rodape.chaveResumidaRodape}</span>
           </div>
         </div>
       </div>
