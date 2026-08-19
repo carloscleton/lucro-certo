@@ -14,6 +14,7 @@ import { API_BASE_URL } from '../../lib/constants';
 import { parseFiscalError } from '../../pages/Invoices';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
+import { DanfseV2Viewer } from './DanfseV2Viewer';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
@@ -117,7 +118,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
     // Buscar XML real descompactado quando a aba XML for selecionada
     useEffect(() => {
-        if (activeTab === 'xml' && !xmlText && invoice?.external_id) {
+        if ((activeTab === 'xml' || activeTab === 'pdf') && !xmlText && invoice?.external_id) {
             setLoadingXml(true);
             const fetchXml = async () => {
                 try {
@@ -135,7 +136,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
             };
             fetchXml();
         }
-    }, [activeTab, invoice?.external_id]);
+    }, [activeTab, invoice?.external_id, xmlText]);
 
     // Buscar linha do tempo de eventos
     const fetchEvents = async () => {
@@ -728,11 +729,22 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                 </Button>
                             </div>
                         </div>
-                        <iframe
-                            src={pdfUrl}
-                            className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white block"
-                            title="Visualizador de PDF DANFSe"
-                        />
+                        <div className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 overflow-y-auto p-4 flex justify-center scrollbar-thin">
+                            {loadingXml ? (
+                                <div className="flex items-center justify-center h-full text-slate-500 gap-2">
+                                    <RefreshCw size={20} className="animate-spin text-blue-500" />
+                                    Carregando modelo DANFSe v2.0...
+                                </div>
+                            ) : xmlText && !xmlText.includes('Não foi possível') ? (
+                                <DanfseV2Viewer xmlString={xmlText} />
+                            ) : (
+                                <iframe
+                                    src={pdfUrl}
+                                    className="w-full h-full rounded-2xl border border-gray-200 dark:border-slate-800 bg-white block"
+                                    title="Visualizador de PDF DANFSe"
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
 
