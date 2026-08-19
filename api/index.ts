@@ -5000,47 +5000,23 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     // 1. TOP HEADER (FUNDO CINZA #EFEFEF IDÊNTICO À IMAGEM)
     drawBox(margin, y, pageWidth, 18, [239, 239, 239], [0, 0, 0]);
 
-    // Logotipo Oficial Sefin Nacional NFS-e com acento da bandeira do Brasil
-    // N em Verde #2E8B57
-    doc.setFillColor(46, 139, 87);
-    doc.rect(margin + 3, y + 4, 2.2, 10, 'F'); // haste esquerda N
-    doc.rect(margin + 9.5, y + 4, 2.2, 10, 'F'); // haste direita N
-    doc.triangle(margin + 4.8, y + 4, margin + 4.8, y + 6.8, margin + 9.5, y + 14, 'F');
-    doc.triangle(margin + 4.8, y + 4, margin + 9.5, y + 11.2, margin + 9.5, y + 14, 'F');
-
-    // Triângulo Amarelo no N (#F1C40F)
-    doc.setFillColor(241, 196, 15);
-    doc.rect(margin + 3, y + 4, 2.2, 4.5, 'F');
-
-    // Quarto de Círculo Azul Escuro no topo do N (#23458B)
-    doc.setFillColor(35, 69, 139);
-    doc.circle(margin + 5.2, y + 5.2, 1.4, 'F');
-
-    // F em Verde #2E8B57
-    doc.setFillColor(46, 139, 87);
-    doc.rect(margin + 13, y + 4, 2.2, 10, 'F');
-    doc.rect(margin + 13, y + 4, 5.2, 2, 'F');
-    doc.rect(margin + 13, y + 8, 4.2, 1.8, 'F');
-
-    // S em Verde #2E8B57
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(46, 139, 87);
-    doc.text('S', margin + 19.5, y + 12.8);
-
-    // e minúsculo em Azul Escuro #23458B
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.setTextColor(35, 69, 139);
-    doc.text('e', margin + 25.5, y + 12.8);
-    doc.setFillColor(35, 69, 139);
-    doc.circle(margin + 29.5, y + 11.6, 0.7, 'F');
-
-    // Subtexto "Nota Fiscal de / Serviço eletrônica"
-    doc.setFontSize(6.8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(102, 102, 102);
-    doc.text('Nota Fiscal de\nServiço eletrônica', margin + 31.5, y + 7.5);
+    // Logotipo Oficial Sefin Nacional NFS-e (Imagem PNG de alta resolução enviada pelo usuário)
+    try {
+        let b64Logo = '';
+        const logoPath = path.join(process.cwd(), 'public', 'nfse-logo.png');
+        if (fs.existsSync(logoPath)) {
+            b64Logo = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
+        }
+        if (b64Logo) {
+            doc.addImage(b64Logo, 'PNG', margin + 3, y + 2.5, 46, 13);
+        } else {
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(46, 139, 87);
+            doc.text('NFS-e', margin + 3, y + 11);
+        }
+    } catch (imgErr: any) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(46, 139, 87);
+        doc.text('NFS-e', margin + 3, y + 11);
+    }
 
     // Title Center
     doc.setFont('helvetica', 'bold');
