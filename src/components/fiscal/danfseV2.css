@@ -1,24 +1,22 @@
-/* DANFSe v2.0 - Layout Oficial Padrão Nacional */
-
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+/* DANFSe v2.0 - Layout Oficial Padrão Nacional (Réplica 1:1) */
 
 .danfse-container {
   width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  padding: 8mm 6mm;
+  max-width: 210mm;
   box-sizing: border-box;
   background-color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   color: #000000;
-  font-size: 8pt;
-  line-height: 1.15;
+  font-size: 7.5pt;
+  line-height: 1.1;
+  padding: 4mm;
+  margin: 0 auto;
 }
 
-/* Tabelas e Caixas */
+/* Moldura e Grids */
 .danfse-box {
   border: 1px solid #000000;
-  margin-bottom: -1px; /* sobreposição de bordas */
+  margin-bottom: -1px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -36,7 +34,7 @@
 
 .danfse-col {
   border-right: 1px solid #000000;
-  padding: 2px 4px;
+  padding: 1px 3px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -51,18 +49,19 @@
 /* Rótulos e Valores */
 .danfse-label {
   font-weight: bold;
-  font-size: 6.5pt;
+  font-size: 6pt;
   text-transform: uppercase;
   color: #000000;
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .danfse-value {
   font-size: 7.5pt;
   color: #000000;
   font-weight: normal;
-  min-height: 9pt;
+  min-height: 8.5pt;
+  line-height: 1.1;
 }
 
 .danfse-value-bold {
@@ -75,116 +74,117 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
+  border: 1px solid #000000;
+  border-bottom: none;
+  padding: 3px 6px;
+  background: #ffffff;
 }
 
 .danfse-logo-area {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 35%;
+  gap: 6px;
+  width: 32%;
 }
 
-.danfse-logo-text {
+.danfse-logo-title {
   font-size: 16pt;
   font-weight: bold;
-  color: #008855;
-  display: flex;
-  align-items: center;
+  color: #0b3b60;
+  line-height: 1;
+}
+.danfse-logo-green {
+  color: #10b981;
+}
+
+.danfse-logo-sub {
+  font-size: 6pt;
+  color: #333333;
+  line-height: 1;
+  margin-top: 1px;
 }
 
 .danfse-title-area {
   text-align: center;
-  width: 40%;
+  width: 38%;
 }
 
 .danfse-title-main {
-  font-size: 13pt;
+  font-size: 10pt;
   font-weight: bold;
 }
 
 .danfse-title-sub {
-  font-size: 9.5pt;
+  font-size: 8pt;
   font-weight: bold;
 }
 
 .danfse-meta-area {
-  width: 25%;
-  font-size: 7pt;
+  width: 30%;
+  font-size: 6.5pt;
   text-align: right;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-/* Chave de Acesso e QR Code */
-.danfse-chave-box {
-  display: flex;
-  flex-direction: row;
-  border: 1px solid #000000;
-  margin-bottom: 4px;
-}
-
-.danfse-chave-info {
-  flex: 1;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.danfse-chave-num {
-  font-size: 9pt;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  margin-top: 3px;
-}
-
-.danfse-qr-info {
-  width: 140px;
-  border-left: 1px solid #000000;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.danfse-qr-img {
-  width: 70px;
-  height: 70px;
-}
-
-.danfse-qr-text {
-  font-size: 5.5pt;
-  line-height: 1.1;
-  margin-top: 3px;
-}
-
-/* Titulos de Seções */
+/* Seções */
 .danfse-section-header {
   background-color: #ffffff;
   font-weight: bold;
-  font-size: 7pt;
+  font-size: 6.5pt;
   text-transform: uppercase;
-  padding: 2px 4px;
+  padding: 1px 3px;
   border-bottom: 1px solid #000000;
 }
 
 .danfse-sub-header {
   text-align: center;
   font-weight: bold;
-  font-size: 6.5pt;
+  font-size: 6pt;
   text-transform: uppercase;
-  background-color: #f2f2f2;
-  padding: 1px 4px;
+  background-color: #ffffff;
+  padding: 1px 3px;
   border-bottom: 1px solid #000000;
 }
 
-/* Ajustes de Largura de Colunas */
+/* Top Block with QR Code side-by-side */
+.danfse-top-layout {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #000000;
+  margin-bottom: -1px;
+}
+
+.danfse-top-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.danfse-top-right {
+  width: 140px;
+  border-left: 1px solid #000000;
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.danfse-qr-img {
+  width: 68px;
+  height: 68px;
+}
+
+.danfse-qr-text {
+  font-size: 5pt;
+  line-height: 1.05;
+  margin-top: 2px;
+}
+
+/* Colunas pré-definidas */
 .w-10 { width: 10%; }
-.w-12 { width: 12.5%; }
 .w-15 { width: 15%; }
 .w-20 { width: 20%; }
 .w-25 { width: 25%; }
@@ -194,24 +194,34 @@
 .w-40 { width: 40%; }
 .w-50 { width: 50%; }
 .w-60 { width: 60%; }
+.w-65 { width: 65%; }
 .w-70 { width: 70%; }
+.w-75 { width: 75%; }
 .w-100 { width: 100%; }
 
-/* Suporte para Impressão */
+/* Rodapé Final de Página */
+.danfse-footer-box {
+  border: 1px solid #000000;
+  margin-top: 15px;
+}
+
+/* Impressão Sem Quebra de Página */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm;
+    margin: 4mm 3mm;
   }
-  body {
+  html, body {
     background-color: #ffffff !important;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .danfse-container {
     width: 100% !important;
+    max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    box-shadow: none !important;
   }
   .no-print {
     display: none !important;

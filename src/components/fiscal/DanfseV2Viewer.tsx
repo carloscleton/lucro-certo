@@ -50,7 +50,7 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
   return (
     <div className="danfse-container">
       {/* Botão de impressão (somente tela) */}
-      <div className="no-print mb-4 flex justify-end">
+      <div className="no-print mb-3 flex justify-end">
         <button
           onClick={onPrint || (() => window.print())}
           className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 shadow-sm flex items-center gap-2 cursor-pointer"
@@ -58,20 +58,16 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
-          Imprimir DANFSe v2.0
+          Imprimir DANFSe v2.0 (PDF)
         </button>
       </div>
 
-      {/* CABEÇALHO DA NFS-E */}
+      {/* CABEÇALHO SUPERIOR */}
       <div className="danfse-header">
         <div className="danfse-logo-area">
-          <svg className="w-10 h-10 text-emerald-600" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="8" fill="#008855" />
-            <path d="M12 20L18 26L28 14" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
           <div>
-            <div className="danfse-logo-text">NFS-e</div>
-            <div style={{ fontSize: '6.5pt', color: '#555', marginTop: '-2px' }}>Nota Fiscal de Serviço eletrônica</div>
+            <div className="danfse-logo-title">NFS-<span className="danfse-logo-green">e</span></div>
+            <div className="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
           </div>
         </div>
 
@@ -87,13 +83,66 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* CHAVE DE ACESSO E QR CODE */}
-      <div className="danfse-chave-box">
-        <div className="danfse-chave-info">
-          <div className="danfse-label">CHAVE DE ACESSO DA NFS-e</div>
-          <div className="danfse-chave-num">{data.chaveAcesso}</div>
+      {/* LAYOUT DE TOPO: CHAVE E DADOS CABEÇALHO LADO A LADO COM QR CODE */}
+      <div className="danfse-top-layout">
+        <div className="danfse-top-left">
+          {/* CHAVE DE ACESSO */}
+          <div className="danfse-row">
+            <div className="danfse-col w-100">
+              <span className="danfse-label">CHAVE DE ACESSO DA NFS-e</span>
+              <span className="danfse-value danfse-value-bold" style={{ fontSize: '8pt' }}>{data.chaveAcesso}</span>
+            </div>
+          </div>
+
+          {/* DADOS DE IDENTIFICAÇÃO NFS-E / DPS */}
+          <div className="danfse-row">
+            <div className="danfse-col w-30">
+              <span className="danfse-label">NÚMERO DA NFS-e</span>
+              <span className="danfse-value danfse-value-bold">{data.nNFSe}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">COMPETÊNCIA DA NFS-e</span>
+              <span className="danfse-value">{data.competencia}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
+              <span className="danfse-value">{data.dhEmiNFSe}</span>
+            </div>
+          </div>
+
+          <div className="danfse-row">
+            <div className="danfse-col w-30">
+              <span className="danfse-label">NÚMERO DA DPS</span>
+              <span className="danfse-value">{data.nDPS}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">SÉRIE DA DPS</span>
+              <span className="danfse-value">{data.serieDPS}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
+              <span className="danfse-value">{data.dhEmiDPS}</span>
+            </div>
+          </div>
+
+          <div className="danfse-row">
+            <div className="danfse-col w-30">
+              <span className="danfse-label">EMITENTE DA NFS-e</span>
+              <span className="danfse-value">{data.emitenteTipo}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">SITUAÇÃO DA NFS-e</span>
+              <span className="danfse-value">{data.situacaoNFSe}</span>
+            </div>
+            <div className="danfse-col w-35">
+              <span className="danfse-label">FINALIDADE</span>
+              <span className="danfse-value">{data.finalidade}</span>
+            </div>
+          </div>
         </div>
-        <div className="danfse-qr-info">
+
+        {/* QR CODE A DIREITA */}
+        <div className="danfse-top-right">
           {qrCodeUrl ? (
             <img src={qrCodeUrl} alt="QR Code NFS-e" className="danfse-qr-img" />
           ) : (
@@ -105,54 +154,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 1: DADOS CABEÇALHO */}
+      {/* BLOCO: PRESTADOR / FORNECEDOR */}
       <div className="danfse-box">
-        <div className="danfse-row">
-          <div className="danfse-col w-20">
-            <span className="danfse-label">NÚMERO DA NFS-e</span>
-            <span className="danfse-value danfse-value-bold">{data.nNFSe}</span>
-          </div>
-          <div className="danfse-col w-20">
-            <span className="danfse-label">COMPETÊNCIA DA NFS-e</span>
-            <span className="danfse-value">{data.competencia}</span>
-          </div>
-          <div className="danfse-col w-60">
-            <span className="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
-            <span className="danfse-value">{data.dhEmiNFSe}</span>
-          </div>
-        </div>
-        <div className="danfse-row">
-          <div className="danfse-col w-20">
-            <span className="danfse-label">NÚMERO DA DPS</span>
-            <span className="danfse-value">{data.nDPS}</span>
-          </div>
-          <div className="danfse-col w-20">
-            <span className="danfse-label">SÉRIE DA DPS</span>
-            <span className="danfse-value">{data.serieDPS}</span>
-          </div>
-          <div className="danfse-col w-60">
-            <span className="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
-            <span className="danfse-value">{data.dhEmiDPS}</span>
-          </div>
-        </div>
-        <div className="danfse-row">
-          <div className="danfse-col w-33">
-            <span className="danfse-label">EMITENTE DA NFS-e</span>
-            <span className="danfse-value">{data.emitenteTipo}</span>
-          </div>
-          <div className="danfse-col w-33">
-            <span className="danfse-label">SITUAÇÃO DA NFS-e</span>
-            <span className="danfse-value">{data.situacaoNFSe}</span>
-          </div>
-          <div className="danfse-col w-33">
-            <span className="danfse-label">FINALIDADE</span>
-            <span className="danfse-value">{data.finalidade}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* BLOCO 2: PRESTADOR / FORNECEDOR */}
-      <div className="danfse-box mt-1">
         <div className="danfse-section-header">PRESTADOR / FORNECEDOR</div>
         <div className="danfse-row">
           <div className="danfse-col w-40">
@@ -204,8 +207,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 3: TOMADOR / ADQUIRENTE */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: TOMADOR / ADQUIRENTE */}
+      <div className="danfse-box">
         <div className="danfse-section-header">TOMADOR / ADQUIRENTE</div>
         <div className="danfse-row">
           <div className="danfse-col w-40">
@@ -247,14 +250,14 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 4: INTERMEDIÁRIO / DESTINATÁRIO */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: INTERMEDIÁRIO / DESTINATÁRIO */}
+      <div className="danfse-box">
         <div className="danfse-sub-header">DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
         <div className="danfse-sub-header" style={{ borderBottom: 'none' }}>INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
       </div>
 
-      {/* BLOCO 5: SERVIÇO PRESTADO */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: SERVIÇO PRESTADO */}
+      <div className="danfse-box">
         <div className="danfse-section-header">SERVIÇO PRESTADO</div>
         <div className="danfse-row">
           <div className="danfse-col w-35">
@@ -283,8 +286,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 6: TRIBUTAÇÃO MUNICIPAL (ISSQN) */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: TRIBUTAÇÃO MUNICIPAL (ISSQN) */}
+      <div className="danfse-box">
         <div className="danfse-section-header">TRIBUTAÇÃO MUNICIPAL (ISSQN)</div>
         <div className="danfse-row">
           <div className="danfse-col w-50">
@@ -316,8 +319,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 7: TRIBUTAÇÃO FEDERAL (EXCETO CBS) */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: TRIBUTAÇÃO FEDERAL (EXCETO CBS) */}
+      <div className="danfse-box">
         <div className="danfse-section-header">TRIBUTAÇÃO FEDERAL (EXCETO CBS)</div>
         <div className="danfse-row">
           <div className="danfse-col w-33">
@@ -349,8 +352,8 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
         </div>
       </div>
 
-      {/* BLOCO 8: TRIBUTAÇÃO IBS/CBS */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: TRIBUTAÇÃO IBS/CBS */}
+      <div className="danfse-box">
         <div className="danfse-section-header">TRIBUTAÇÃO IBS/CBS</div>
         <div className="danfse-row">
           <div className="danfse-col w-35">
@@ -363,24 +366,24 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
           </div>
         </div>
         <div className="danfse-row">
-          <div className="danfse-col w-30">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Exclusões e Reduções da Base de Cálculo</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.exclusoesReducoesBC}</span>
           </div>
-          <div className="danfse-col w-35">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Base de Cálculo Após Exclusões e Reduções</span>
             <span className="danfse-value danfse-value-bold">{data.tributacaoIbsCbs.baseCalculoAposExclusoes}</span>
           </div>
-          <div className="danfse-col w-35">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Red. Alíquota IBS / Red. Alíquota CBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.redAliquotaIbsCbs}</span>
           </div>
-        </div>
-        <div className="danfse-row">
-          <div className="danfse-col w-30">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Alíquota - IBS UF / IBS Mun</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.aliquotaIbsUfMun}</span>
           </div>
+        </div>
+        <div className="danfse-row">
           <div className="danfse-col w-25">
             <span className="danfse-label">Alíq. Efetiva Municipal - IBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.aliqEfetivaMunicipalIbs}</span>
@@ -389,85 +392,89 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
             <span className="danfse-label">Valor Apurado Municipal - IBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.valorApuradoMunicipalIbs}</span>
           </div>
-          <div className="danfse-col w-20">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Alíq. Efetiva Estadual - IBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.aliqEfetivaEstadualIbs}</span>
           </div>
-        </div>
-        <div className="danfse-row">
-          <div className="danfse-col w-30">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Valor Apurado Estadual - IBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.valorApuradoEstadualIbs}</span>
           </div>
+        </div>
+        <div className="danfse-row">
           <div className="danfse-col w-25">
             <span className="danfse-label">Valor Total Apurado - IBS</span>
             <span className="danfse-value danfse-value-bold">{data.tributacaoIbsCbs.valorTotalApuradoIbs}</span>
           </div>
           <div className="danfse-col w-25">
-            <span className="danfse-label">Alíquota - CBS / Alíq. Efetiva</span>
+            <span className="danfse-label">Alíquota - CBS</span>
             <span className="danfse-value">{data.tributacaoIbsCbs.aliquotaCbs}</span>
           </div>
-          <div className="danfse-col w-20">
+          <div className="danfse-col w-25">
+            <span className="danfse-label">Alíquota Efetiva - CBS</span>
+            <span className="danfse-value">{data.tributacaoIbsCbs.aliquotaEfetivaCbs}</span>
+          </div>
+          <div className="danfse-col w-25">
             <span className="danfse-label">Valor Total Apurado - CBS</span>
             <span className="danfse-value danfse-value-bold">{data.tributacaoIbsCbs.valorTotalApuradoCbs}</span>
           </div>
         </div>
       </div>
 
-      {/* BLOCO 9: VALOR TOTAL DA NFS-E */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: VALOR TOTAL DA NFS-E */}
+      <div className="danfse-box">
         <div className="danfse-row">
-          <div className="danfse-col w-30">
+          <div className="danfse-col w-25">
             <span className="danfse-label">VALOR TOTAL DA NFS-e</span>
-            <span className="danfse-value danfse-value-bold" style={{ fontSize: '9pt' }}>{data.valores.valorTotalNFSe}</span>
+            <span className="danfse-value danfse-value-bold">{data.valores.valorTotalNFSe}</span>
           </div>
-          <div className="danfse-col w-35">
+          <div className="danfse-col w-25">
             <span className="danfse-label">VALOR DA OPERAÇÃO / SERVIÇO</span>
             <span className="danfse-value">{data.valores.valorOperacaoServico}</span>
           </div>
-          <div className="danfse-col w-20">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Desconto Incondicionado</span>
             <span className="danfse-value">{data.valores.descontoIncondicionado}</span>
           </div>
-          <div className="danfse-col w-15">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Desconto Condicionado</span>
             <span className="danfse-value">{data.valores.descontoCondicionado}</span>
           </div>
         </div>
         <div className="danfse-row">
-          <div className="danfse-col w-30">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Total das Retenções (ISSQN / Federais)</span>
             <span className="danfse-value">{data.valores.totalRetencoes}</span>
           </div>
-          <div className="danfse-col w-35">
+          <div className="danfse-col w-25">
             <span className="danfse-label">VALOR LÍQUIDO DA NFS-e</span>
             <span className="danfse-value danfse-value-bold">{data.valores.valorLiquidoNFSe}</span>
           </div>
-          <div className="danfse-col w-15">
+          <div className="danfse-col w-25">
             <span className="danfse-label">Total do IBS/CBS</span>
             <span className="danfse-value">{data.valores.totalIbsCbs}</span>
           </div>
-          <div className="danfse-col w-20">
+          <div className="danfse-col w-25">
             <span className="danfse-label">VALOR LÍQUIDO DA NFS-e + IBS/CBS</span>
             <span className="danfse-value danfse-value-bold">{data.valores.valorLiquidoMaisIbsCbs}</span>
           </div>
         </div>
       </div>
 
-      {/* BLOCO 10: INFORMAÇÕES COMPLEMENTARES */}
-      <div className="danfse-box mt-1">
+      {/* BLOCO: INFORMAÇÕES COMPLEMENTARES */}
+      <div className="danfse-box">
         <div className="danfse-section-header">INFORMAÇÕES COMPLEMENTARES</div>
         <div className="danfse-row">
-          <div className="danfse-col w-100" style={{ minHeight: '35px' }}>
+          <div className="danfse-col w-100" style={{ minHeight: '30px' }}>
             <span className="danfse-value">{data.informacoesComplementares.infCont}</span>
-            <span className="danfse-value" style={{ marginTop: '4px' }}>{data.informacoesComplementares.tributosAproximados}</span>
+            <span className="danfse-value" style={{ marginTop: '2px' }}>{data.informacoesComplementares.tributosAproximados}</span>
           </div>
         </div>
       </div>
 
-      {/* RODAPÉ: ASSINATURA E CANHOTO */}
-      <div className="danfse-box mt-1" style={{ marginTop: '12px' }}>
-        <div className="danfse-row" style={{ height: '35px' }}>
+      {/* RODAPÉ FINAL DE PÁGINA */}
+      <div className="danfse-footer-box">
+        <div className="danfse-row" style={{ height: '32px' }}>
           <div className="danfse-col w-30">
             <span className="danfse-label">DATA CIENTIFICAÇÃO:</span>
           </div>
