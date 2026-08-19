@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, Copy, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -607,30 +607,30 @@ ${messageWithPlaceholder}`;
         }
     };
 
-    const handleDuplicateInvoice = (invoice: any) => {
-        const payload = invoice.payload;
-        if (!payload) return;
-
-        // Tentar extrair dados do payload (NFSe ou NFe)
-        const items = (payload.servico || payload.itens || []).map((i: any) => ({
-            id: crypto.randomUUID(),
-            description: i.discriminacao || i.descricao || '',
-            amount: new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(i.valor?.servico || i.valorUnitario?.comercial || 0),
-            quantity: i.quantidade?.comercial || i.quantidade || 1,
-            taxCode: i.codigo || '',
-            taxationCode: i.codigoTributacao || i.ncm || '',
-            codigoTributacaoNacional: i.codigoTributacaoNacional || ''
-        }));
-
-        setDuplicateData({
-            items,
-            type: invoice.type,
-            contactId: invoice.quote?.contact?.id || '', // Pode estar faltando se não veio via orçamento
-            cityCode: payload.tomador?.endereco?.codigoCidade || payload.destinatario?.endereco?.codigoCidade || '',
-            notes: payload.informacoesComplementares?.replace(/\|/g, '\n') || ''
-        });
-        setShowNewModal(true);
-    };
+    // const handleDuplicateInvoice = (invoice: any) => {
+    //     const payload = invoice.payload;
+    //     if (!payload) return;
+    // 
+    //     // Tentar extrair dados do payload (NFSe ou NFe)
+    //     const items = (payload.servico || payload.itens || []).map((i: any) => ({
+    //         id: crypto.randomUUID(),
+    //         description: i.discriminacao || i.descricao || '',
+    //         amount: new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(i.valor?.servico || i.valorUnitario?.comercial || 0),
+    //         quantity: i.quantidade?.comercial || i.quantidade || 1,
+    //         taxCode: i.codigo || '',
+    //         taxationCode: i.codigoTributacao || i.ncm || '',
+    //         codigoTributacaoNacional: i.codigoTributacaoNacional || ''
+    //     }));
+    // 
+    //     setDuplicateData({
+    //         items,
+    //         type: invoice.type,
+    //         contactId: invoice.quote?.contact?.id || '', // Pode estar faltando se não veio via orçamento
+    //         cityCode: payload.tomador?.endereco?.codigoCidade || payload.destinatario?.endereco?.codigoCidade || '',
+    //         notes: payload.informacoesComplementares?.replace(/\|/g, '\n') || ''
+    //     });
+    //     setShowNewModal(true);
+    // };
 
     const handleViewInternal = (invoice: any) => {
         setSelectedInvoiceDetail(invoice);
@@ -1647,15 +1647,6 @@ ${messageWithPlaceholder}`;
                                         </td>
                                         <td className="py-3 px-6 text-right">
                                             <div className="flex justify-end items-center gap-1.5">
-                                                {/* Duplicar / Editar */}
-                                                <Tooltip content="Duplicar / Corrigir">
-                                                    <button
-                                                        onClick={() => handleDuplicateInvoice(invoice)}
-                                                        className="h-10 w-10 flex items-center justify-center glass-morphism text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm"
-                                                    >
-                                                        <Copy size={18} />
-                                                    </button>
-                                                </Tooltip>
 
                                                 {/* Gerar / Gerenciar Boleto / Cobrança */}
                                                 {(() => {
