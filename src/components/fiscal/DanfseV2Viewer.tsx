@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { DanfseV2Data, parseDanfseXml } from '../../utils/danfseV2Parser';
+import type { DanfseV2Data } from '../../utils/danfseV2Parser';
+import { parseDanfseXml } from '../../utils/danfseV2Parser';
 import QRCode from 'qrcode';
 import './danfseV2.css';
 

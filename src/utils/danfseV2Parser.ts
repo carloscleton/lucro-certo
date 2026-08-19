@@ -115,7 +115,9 @@ export interface DanfseV2Data {
   };
 
   // Rodapé
-  chaveResumidaRodape: string;
+  rodape: {
+    chaveResumidaRodape: string;
+  };
 }
 
 // Helpers de formatação
