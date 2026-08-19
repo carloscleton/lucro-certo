@@ -284,7 +284,12 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
     if (idMatch) idAttr = idMatch[1];
   }
 
+  const rawExtId = String(payloadObj.external_id || '').replace(/\D/g, '');
+  const rawAccKey = String(payloadObj.access_key || payloadObj.chaveAcesso || '').replace(/\D/g, '');
+
   const chaveAcesso = idAttr.replace(/^(NFS|DPS)/i, '') || 
+                      ((rawExtId.length === 50 || rawExtId.length === 51) ? rawExtId : null) ||
+                      ((rawAccKey.length === 50 || rawAccKey.length === 51) ? rawAccKey : null) ||
                       payloadObj.chaveAcesso || 
                       payloadObj.access_key || 
                       payloadObj.external_id || 

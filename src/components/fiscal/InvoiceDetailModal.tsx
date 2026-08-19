@@ -719,7 +719,13 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     Baixar PDF
                                 </Button>
                                 {(() => {
-                                    const key = invoice.access_key || (invoice.external_id?.length >= 44 && invoice.external_id?.length <= 55 ? invoice.external_id : null);
+                                    const rawExtId = String(invoice.external_id || '').replace(/\D/g, '');
+                                    const rawAccKey = String(invoice.access_key || '').replace(/\D/g, '');
+                                    
+                                    const key = (rawExtId.length === 50 || rawExtId.length === 51) ? rawExtId :
+                                                ((rawAccKey.length === 50 || rawAccKey.length === 51) ? rawAccKey : 
+                                                (rawAccKey || rawExtId));
+                                                
                                     if (!key || key.length < 44 || key.length > 55) return null;
                                     
                                     const isTest = 
