@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DANFSe v2.0 - Documento Auxiliar da NFS-e (Réplica Oficial Unificada)</title>
+  <title>DANFSe v2.0 - Documento Auxiliar da NFS-e (Com Tarjas Destacadas)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
@@ -67,7 +67,7 @@
     /* Rótulos e Valores */
     .danfse-label {
       font-weight: bold;
-      font-size: 5.8pt;
+      font-size: 6pt;
       text-transform: uppercase;
       color: #000000;
       line-height: 1;
@@ -143,14 +143,15 @@
       line-height: 1.15;
     }
 
-    /* Cabeçalhos de Seções */
+    /* Cabeçalhos de Seções com Tarjas Destacadas */
     .danfse-section-header {
-      background-color: #ffffff;
+      background-color: #efefef;
       font-weight: bold;
-      font-size: 6.2pt;
+      font-size: 6.5pt;
       text-transform: uppercase;
-      padding: 1px 3px;
+      padding: 2px 4px;
       border-bottom: 1px solid #000000;
+      color: #000000;
     }
 
     .danfse-sub-header {
@@ -158,9 +159,10 @@
       font-weight: bold;
       font-size: 5.8pt;
       text-transform: uppercase;
-      background-color: #ffffff;
+      background-color: #f7f7f7;
       padding: 1px 3px;
       border-bottom: 1px solid #000000;
+      color: #000000;
     }
 
     /* Estrutura Superior Lado a Lado */
@@ -254,6 +256,11 @@
         box-shadow: none;
         width: 100%;
         padding: 0;
+      }
+      .danfse-section-header, .danfse-sub-header {
+        background-color: #efefef !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .no-print {
         display: none !important;
