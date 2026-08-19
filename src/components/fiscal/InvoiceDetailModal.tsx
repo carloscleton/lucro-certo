@@ -414,19 +414,20 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const netValue = totalAmount - totalRetenções; // Retenções Federais reduzem o recebido
     const formattedNetValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValue);
 
-    // Resolver Links de Documentos
+    // Resolver Links de Documentos (Força uso do nosso gerador DANFSe v2.0 no servidor)
     const getDocUrl = (format: 'pdf' | 'xml'): string => {
+        let apiBase = API_BASE_URL.replace(/\/$/, '');
+        if (apiBase.startsWith('/')) {
+            apiBase = window.location.origin + apiBase;
+        }
+
         let base = '';
-        if (format === 'pdf' && invoice.pdf_url && invoice.pdf_url.startsWith('http')) {
-            base = invoice.pdf_url;
-        } else if (format === 'xml' && invoice.xml_url && invoice.xml_url.startsWith('http')) {
+        if (format === 'xml' && invoice.xml_url && invoice.xml_url.startsWith('http') && !invoice.xml_url.includes('/fiscal-module/')) {
             base = invoice.xml_url;
         } else {
-            let apiBase = API_BASE_URL.replace(/\/$/, '');
-            if (apiBase.startsWith('/')) {
-                apiBase = window.location.origin + apiBase;
-            }
-            base = `${apiBase}/fiscal-module/${invoice.type}/${invoice.external_id}/${format}?companyId=${invoice.company_id}`;
+            const invType = invoice.type || 'national';
+            const invId = invoice.external_id || invoice.access_key || invoice.id;
+            base = `${apiBase}/fiscal-module/${invType}/${invId}/${format}?companyId=${invoice.company_id}`;
         }
 
         // Se for uma URL do nosso backend, anexa o token do usuário para passar pelo RLS do Supabase
