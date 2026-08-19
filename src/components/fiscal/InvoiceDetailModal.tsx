@@ -718,6 +718,21 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     <FileText size={14} className="mr-1" />
                                     Baixar PDF
                                 </Button>
+                                {(() => {
+                                    const key = invoice.access_key || (invoice.external_id?.length === 50 ? invoice.external_id : null);
+                                    if (!key || key.length !== 50) return null;
+                                    return (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => window.open(`https://www.nfse.gov.br/consultapublica/qr?chave=${key}`, '_blank')}
+                                            className="text-xs py-1.5 border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                        >
+                                            <ExternalLink size={14} className="mr-1" />
+                                            Consultar no Portal
+                                        </Button>
+                                    );
+                                })()}
                                 <Button
                                     size="sm"
                                     variant="outline"
