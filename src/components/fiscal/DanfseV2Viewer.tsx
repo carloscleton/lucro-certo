@@ -64,13 +64,26 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
 
       {/* MOLDURA ÚNICA CONTÍNUA DO DOCUMENTO */}
       <div className="danfse-main-border">
-        {/* CABEÇALHO SUPERIOR */}
+        {/* CABEÇALHO SUPERIOR (FUNDO #EFEFEF IDÊNTICO AO OFICIAL) */}
         <div className="danfse-header-row">
           <div className="danfse-logo-area">
-            <div>
-              <div className="danfse-logo-title">NFS-<span className="danfse-logo-green">e</span></div>
-              <div className="danfse-logo-sub">Nota Fiscal de Serviço eletrônica</div>
-            </div>
+            <svg width="150" height="34" viewBox="0 0 160 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* N com detalhes da bandeira do Brasil */}
+              <path d="M4 34V8H11.5L23.5 28V8H29.5V34H22.5L10.5 14V34H4Z" fill="#10B981"/>
+              <polygon points="11.5,8 17.5,4 23.5,8 17.5,12" fill="#FBBF24"/>
+              <circle cx="17.5" cy="8" r="1.8" fill="#1E3A8A"/>
+
+              {/* FS */}
+              <path d="M33 8H45V13H38.5V18H44V23H38.5V34H33V8Z" fill="#1E3A8A"/>
+              <path d="M47 30C47 33 49.5 35 53.5 35C57.5 35 60 33 60 30C60 25.5 53.5 25 53.5 22.5C53.5 21.3 54.8 20.5 56.5 20.5C58 20.5 59.5 21.3 60 22.3L64 19C62.5 17 59.8 16 56.5 16C52 16 48.5 18 48.5 22.3C48.5 27 55 27.5 55 29.7C55 30.7 53.5 31.5 52 31.5C50.2 31.5 48.8 30.5 48 29L47 30Z" fill="#1E3A8A"/>
+
+              {/* e */}
+              <path d="M62 25.5C62 19.5 66.5 16 72.5 16C78.5 16 82.5 20 82.5 26V27H67.5C67.8 30 69.8 31.5 72.5 31.5C74.5 31.5 76.2 30.7 77 29.3L81.2 31C79.5 33.7 76.5 35 72.5 35C66.5 35 62 31 62 25.5ZM77.2 23.3C76.8 21.3 75 20 72.5 20C70 20 68.2 21.3 67.6 23.3H77.2Z" fill="#1E3A8A"/>
+
+              {/* Subtexto "Nota Fiscal de Serviço eletrônica" */}
+              <text x="88" y="18" fontFamily="Arial, Helvetica, sans-serif" fontSize="8" fill="#555555" fontWeight="normal">Nota Fiscal de</text>
+              <text x="88" y="28" fontFamily="Arial, Helvetica, sans-serif" fontSize="8" fill="#555555" fontWeight="normal">Serviço eletrônica</text>
+            </svg>
           </div>
 
           <div className="danfse-title-area">

@@ -1,4 +1,4 @@
-/* DANFSe v2.0 - Layout Oficial Padrão Nacional (Com Tarjas Destacadas e Negritos) */
+/* DANFSe v2.0 - Layout Oficial Padrão Nacional (Réplica Exata do Cabeçalho Oficial) */
 
 .danfse-container {
   width: 210mm;
@@ -70,39 +70,22 @@
   font-weight: bold;
 }
 
-/* Cabeçalho Topo */
+/* Cabeçalho Topo com Tarja Cinza Claro */
 .danfse-header-row {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 3px 6px;
-  background: #ffffff;
+  padding: 4px 6px;
+  background-color: #efefef;
   border-bottom: 1px solid #000000;
+  box-sizing: border-box;
 }
 
 .danfse-logo-area {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 32%;
-}
-
-.danfse-logo-title {
-  font-size: 15pt;
-  font-weight: bold;
-  color: #0b3b60;
-  line-height: 1;
-}
-.danfse-logo-green {
-  color: #10b981;
-}
-
-.danfse-logo-sub {
-  font-size: 5.8pt;
-  color: #333333;
-  line-height: 1;
-  margin-top: 1px;
+  width: 35%;
 }
 
 .danfse-title-area {
@@ -113,18 +96,20 @@
 .danfse-title-main {
   font-size: 10pt;
   font-weight: bold;
+  line-height: 1.1;
 }
 
 .danfse-title-sub {
-  font-size: 7.8pt;
+  font-size: 8.5pt;
   font-weight: bold;
+  line-height: 1.1;
 }
 
 .danfse-meta-area {
-  width: 30%;
-  font-size: 6.2pt;
+  width: 27%;
+  font-size: 6.5pt;
   text-align: right;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 /* Cabeçalhos de Seções com Tarjas Destacadas */
@@ -229,7 +214,7 @@
     margin: 0 !important;
     box-shadow: none !important;
   }
-  .danfse-section-header, .danfse-sub-header {
+  .danfse-header-row, .danfse-section-header, .danfse-sub-header {
     background-color: #efefef !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
