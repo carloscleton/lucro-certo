@@ -27,7 +27,9 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
   // Gera o QR Code Data URL para a chave de acesso
   const qrCodeUrl = useMemo(() => {
     if (!data?.chaveAcesso) return '';
-    const portalUrl = `https://www.nfse.gov.br/consultapublica/qr?chave=${data.chaveAcesso}`;
+    const isTest = data.ambienteGerador === '2' || data.chaveAcesso.startsWith('240810222008') || data.chaveAcesso.includes('000000000000000000');
+    const domain = isTest ? 'www.producaorestrita.nfse.gov.br' : 'www.nfse.gov.br';
+    const portalUrl = `https://${domain}/ConsultaPublica?tpc=1&chave=${data.chaveAcesso}`;
     try {
       let url = '';
       QRCode.toDataURL(portalUrl, { margin: 1, width: 100 }, (err, res) => {

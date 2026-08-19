@@ -719,13 +719,23 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     Baixar PDF
                                 </Button>
                                 {(() => {
-                                    const key = invoice.access_key || (invoice.external_id?.length === 50 ? invoice.external_id : null);
-                                    if (!key || key.length !== 50) return null;
+                                    const key = invoice.access_key || (invoice.external_id?.length >= 44 && invoice.external_id?.length <= 55 ? invoice.external_id : null);
+                                    if (!key || key.length < 44 || key.length > 55) return null;
+                                    
+                                    const isTest = 
+                                        invoice.payload?.ambiente === 'homologacao' || 
+                                        company?.tecnospeed_config?.ambiente === 'homologacao' ||
+                                        (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<ambGer>2</ambGer>')) ||
+                                        (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<tpAmb>2</tpAmb>')) ||
+                                        key.includes('000000000000000000') ||
+                                        key.startsWith('240810222008');
+
+                                    const domain = isTest ? 'www.producaorestrita.nfse.gov.br' : 'www.nfse.gov.br';
                                     return (
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => window.open(`https://www.nfse.gov.br/consultapublica/qr?chave=${key}`, '_blank')}
+                                            onClick={() => window.open(`https://${domain}/ConsultaPublica?tpc=1&chave=${key}`, '_blank')}
                                             className="text-xs py-1.5 border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                                         >
                                             <ExternalLink size={14} className="mr-1" />
