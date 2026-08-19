@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DANFSe v2.0 - Documento Auxiliar da NFS-e</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    body {
+      background-color: #e2e8f0;
+      margin: 0;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .danfse-container {
+      width: 210mm;
+      min-height: 297mm;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      background-color: #ffffff;
+      padding: 8mm 6mm;
+      box-sizing: border-box;
+      color: #000000;
+      font-size: 8pt;
+      line-height: 1.15;
+    }
+
+    /* Tabelas e Caixas */
+    .danfse-box {
+      border: 1px solid #000000;
+      margin-bottom: -1px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .danfse-row {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      border-bottom: 1px solid #000000;
+    }
+
+    .danfse-row:last-child {
+      border-bottom: none;
+    }
+
+    .danfse-col {
+      border-right: 1px solid #000000;
+      padding: 2px 4px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      word-break: break-word;
+    }
+
+    .danfse-col:last-child {
+      border-right: none;
+    }
+
+    /* Rótulos e Valores */
+    .danfse-label {
+      font-weight: bold;
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      color: #000000;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .danfse-value {
+      font-size: 7.5pt;
+      color: #000000;
+      font-weight: normal;
+      min-height: 9pt;
+    }
+
+    .danfse-value-bold {
+      font-weight: bold;
+    }
+
+    /* Cabeçalho Topo */
+    .danfse-header {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .danfse-logo-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 35%;
+    }
+
+    .danfse-logo-text {
+      font-size: 16pt;
+      font-weight: bold;
+      color: #008855;
+      display: flex;
+      align-items: center;
+    }
+
+    .danfse-title-area {
+      text-align: center;
+      width: 40%;
+    }
+
+    .danfse-title-main {
+      font-size: 13pt;
+      font-weight: bold;
+    }
+
+    .danfse-title-sub {
+      font-size: 9.5pt;
+      font-weight: bold;
+    }
+
+    .danfse-meta-area {
+      width: 25%;
+      font-size: 7pt;
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    /* Chave de Acesso e QR Code */
+    .danfse-chave-box {
+      display: flex;
+      flex-direction: row;
+      border: 1px solid #000000;
+      margin-bottom: 4px;
+    }
+
+    .danfse-chave-info {
+      flex: 1;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .danfse-chave-num {
+      font-size: 8.5pt;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      margin-top: 3px;
+    }
+
+    .danfse-qr-info {
+      width: 140px;
+      border-left: 1px solid #000000;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .danfse-qr-img {
+      width: 70px;
+      height: 70px;
+    }
+
+    .danfse-qr-text {
+      font-size: 5.5pt;
+      line-height: 1.1;
+      margin-top: 3px;
+    }
+
+    /* Titulos de Seções */
+    .danfse-section-header {
+      background-color: #ffffff;
+      font-weight: bold;
+      font-size: 7pt;
+      text-transform: uppercase;
+      padding: 2px 4px;
+      border-bottom: 1px solid #000000;
+    }
+
+    .danfse-sub-header {
+      text-align: center;
+      font-weight: bold;
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      background-color: #ffffff;
+      padding: 2px 4px;
+      border-bottom: 1px solid #000000;
+    }
+
+    /* Larguras */
+    .w-10 { width: 10%; }
+    .w-15 { width: 15%; }
+    .w-20 { width: 20%; }
+    .w-25 { width: 25%; }
+    .w-30 { width: 30%; }
+    .w-33 { width: 33.33%; }
+    .w-35 { width: 35%; }
+    .w-40 { width: 40%; }
+    .w-50 { width: 50%; }
+    .w-60 { width: 60%; }
+    .w-65 { width: 65%; }
+    .w-70 { width: 70%; }
+    .w-75 { width: 75%; }
+    .w-100 { width: 100%; }
+
+    .mt-1 { margin-top: 4px; }
+
+    .btn-print {
+      margin-bottom: 16px;
+      padding: 10px 20px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .btn-print:hover {
+      background-color: #1d4ed8;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 5mm;
+      }
+      body {
+        background-color: #ffffff;
+        padding: 0;
+      }
+      .danfse-container {
+        box-shadow: none;
+        width: 100%;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimir DANFSe v2.0 (PDF)</button>
+
+  <div class="danfse-container">
+    <!-- CABEÇALHO -->
+    <div class="danfse-header">
+      <div class="danfse-logo-area">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="8" fill="#008855"/>
+          <path d="M12 20L18 26L28 14" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <div class="danfse-logo-text">NFS-e</div>
+          <div style="font-size: 6.5pt; color: #555; margin-top: -2px;">Nota Fiscal de Serviço eletrônica</div>
+        </div>
+      </div>
+
+      <div class="danfse-title-area">
+        <div class="danfse-title-main">DANFSe v2.0</div>
+        <div class="danfse-title-sub">Documento Auxiliar da NFS-e</div>
+      </div>
+
+      <div class="danfse-meta-area">
+        <div><strong>Município:</strong> Natal - RN</div>
+        <div><strong>Ambiente Gerador:</strong> 2</div>
+        <div><strong>Tipo de Ambiente:</strong> 1</div>
+      </div>
+    </div>
+
+    <!-- CHAVE DE ACESSO E QR CODE -->
+    <div class="danfse-chave-box">
+      <div class="danfse-chave-info">
+        <div class="danfse-label">CHAVE DE ACESSO DA NFS-e</div>
+        <div class="danfse-chave-num">24081022200893566000190000000000006226083642112359</div>
+      </div>
+      <div class="danfse-qr-info">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://www.nfse.gov.br/consultapublica/qr?chave=24081022200893566000190000000000006226083642112359" alt="QR Code" class="danfse-qr-img">
+        <div class="danfse-qr-text">
+          A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 1: DADOS CABEÇALHO -->
+    <div class="danfse-box">
+      <div class="danfse-row">
+        <div class="danfse-col w-20">
+          <span class="danfse-label">NÚMERO DA NFS-e</span>
+          <span class="danfse-value danfse-value-bold">62</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">COMPETÊNCIA DA NFS-e</span>
+          <span class="danfse-value">08/08/2026</span>
+        </div>
+        <div class="danfse-col w-60">
+          <span class="danfse-label">DATA E HORA DA EMISSÃO DA NFS-e</span>
+          <span class="danfse-value">08/08/2026 11:32:14</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-20">
+          <span class="danfse-label">NÚMERO DA DPS</span>
+          <span class="danfse-value">58</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">SÉRIE DA DPS</span>
+          <span class="danfse-value">1</span>
+        </div>
+        <div class="danfse-col w-60">
+          <span class="danfse-label">DATA E HORA DA EMISSÃO DA DPS</span>
+          <span class="danfse-value">08/08/2026 11:17:12</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-33">
+          <span class="danfse-label">EMITENTE DA NFS-e</span>
+          <span class="danfse-value">Prestador</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">SITUAÇÃO DA NFS-e</span>
+          <span class="danfse-value">NFS-e Gerada</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">FINALIDADE</span>
+          <span class="danfse-value">NFS-e regular</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 2: PRESTADOR / FORNECEDOR -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">PRESTADOR / FORNECEDOR</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-40">
+          <span class="danfse-label">CNPJ / CPF / NIF</span>
+          <span class="danfse-value">00.893.566/0001-90</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Indicador Municipal (Inscrição)</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Telefone</span>
+          <span class="danfse-value">8430845723</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-40">
+          <span class="danfse-label">Nome / Nome Empresarial</span>
+          <span class="danfse-value danfse-value-bold">CARLOSCLETON CARVALHO FERNANDES</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Município / Sigla UF</span>
+          <span class="danfse-value">Natal / RN</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Código IBGE / CEP</span>
+          <span class="danfse-value">24.08102 / 59068-320</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-75">
+          <span class="danfse-label">Endereço</span>
+          <span class="danfse-value">RUA RIO SUASSUI, 7710, PITIMBU</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">E-mail</span>
+          <span class="danfse-value">CARLOSCLETON.NAT@GMAIL.COM</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-50">
+          <span class="danfse-label">Simples Nacional na Data de Competência</span>
+          <span class="danfse-value">Optante - Microempresa ou Empresa de Pequeno Porte</span>
+        </div>
+        <div class="danfse-col w-50">
+          <span class="danfse-label">Regime de Apuração Tributária pelo SN</span>
+          <span class="danfse-value">Regime de apuração dos tributos federais e municipal pelo Simples Nacional</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 3: TOMADOR / ADQUIRENTE -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">TOMADOR / ADQUIRENTE</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-40">
+          <span class="danfse-label">CNPJ / CPF / NIF</span>
+          <span class="danfse-value">47.673.793/0102-17</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Indicador Municipal (Inscrição)</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Telefone</span>
+          <span class="danfse-value">-</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-40">
+          <span class="danfse-label">Nome / Nome Empresarial</span>
+          <span class="danfse-value danfse-value-bold">AFIP - ASSOCIACAO FUNDO DE INCENTIVO A PESQUISA</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Município / Sigla UF</span>
+          <span class="danfse-value">São Paulo / SP</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Código IBGE / CEP</span>
+          <span class="danfse-value">35.50308 / 04127-001</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-60">
+          <span class="danfse-label">Endereço</span>
+          <span class="danfse-value">Rua Padre Machado, 1040, Bosque da Saúde</span>
+        </div>
+        <div class="danfse-col w-40">
+          <span class="danfse-label">E-mail</span>
+          <span class="danfse-value">pagamentosti@afip.com.br</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 4: INTERMEDIÁRIO / DESTINATÁRIO -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-sub-header">DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
+      <div class="danfse-sub-header" style="border-bottom: none;">INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e</div>
+    </div>
+
+    <!-- BLOCO 5: SERVIÇO PRESTADO -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">SERVIÇO PRESTADO</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Código de Tributação Nacional/Municipal</span>
+          <span class="danfse-value">010701 / -</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Código da NBS</span>
+          <span class="danfse-value">115013000</span>
+        </div>
+        <div class="danfse-col w-40">
+          <span class="danfse-label">Local da Prestação / Sigla UF / País</span>
+          <span class="danfse-value">Natal / RN / -</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-100">
+          <span class="danfse-value">Suporte técnico em informática, inclusive instalação, configuração e manutenção de programas de computação e bancos de dados.</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-100">
+          <span class="danfse-label">Descrição do Serviço</span>
+          <span class="danfse-value" style="white-space: pre-line;">SUPORTE TÉCNICO EM TI / INFORMÁTICA
+01 - SANTOS & CAVALCANTE LTDA – CNPJ - 317634300001-99
+02 - BIOLAB - VALDERES MOREIRA ANALISES CLINICAS LTDA - TOUROS RN – CNPJ 18.737.227/0001-80
+03 - FARIAS & CIA CLINICA LABORATORIO DE ANALISES LTDA - NATAL RN – CNPJ 24.195.257/0001-04
+04 - LAB FARIAS PREMIUM POSTO DE COLETA - 24.195.257/0001-04</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 6: TRIBUTAÇÃO MUNICIPAL (ISSQN) -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">TRIBUTAÇÃO MUNICIPAL (ISSQN)</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-50">
+          <span class="danfse-label">Tipo de Tributação do ISSQN</span>
+          <span class="danfse-value">Operação Tributável</span>
+        </div>
+        <div class="danfse-col w-50">
+          <span class="danfse-label">Município / Sigla UF / País de Incidência do ISSQN</span>
+          <span class="danfse-value">Natal / RN / -</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-25">
+          <span class="danfse-label">BC ISSQN</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Alíquota Aplicada</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Retenção do ISSQN</span>
+          <span class="danfse-value">Não Retido</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">ISSQN Apurado</span>
+          <span class="danfse-value">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 7: TRIBUTAÇÃO FEDERAL (EXCETO CBS) -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">TRIBUTAÇÃO FEDERAL (EXCETO CBS)</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-33">
+          <span class="danfse-label">IRRF</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">Contribuição Previdenciária - Retida</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">Contribuições Sociais - Retidas</span>
+          <span class="danfse-value">-</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-33">
+          <span class="danfse-label">PIS - Débito Apuração Própria</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">COFINS - Débito Apuração Própria</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-33">
+          <span class="danfse-label">Descrição Contrib. Sociais - Retidas</span>
+          <span class="danfse-value">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 8: TRIBUTAÇÃO IBS/CBS -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">TRIBUTAÇÃO IBS/CBS</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-35">
+          <span class="danfse-label">CST / cClassTrib</span>
+          <span class="danfse-value">000 / 000001</span>
+        </div>
+        <div class="danfse-col w-65">
+          <span class="danfse-label">Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF</span>
+          <span class="danfse-value">100101 / 3550308 / São Paulo / SP</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">Exclusões e Reduções da Base de Cálculo</span>
+          <span class="danfse-value">R$ 0,00</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Base de Cálculo Após Exclusões e Reduções</span>
+          <span class="danfse-value danfse-value-bold">R$ 1.160,00</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">Red. Alíquota IBS / Red. Alíquota CBS</span>
+          <span class="danfse-value">- / - / -</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">Alíquota - IBS UF / IBS Mun</span>
+          <span class="danfse-value">0,10 % / 0,00 %</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Alíq. Efetiva Municipal - IBS</span>
+          <span class="danfse-value">0,00 %</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Valor Apurado Municipal - IBS</span>
+          <span class="danfse-value">R$ 0,00</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">Alíq. Efetiva Estadual - IBS</span>
+          <span class="danfse-value">0,10 %</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">Valor Apurado Estadual - IBS</span>
+          <span class="danfse-value">R$ 1,16</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Valor Total Apurado - IBS</span>
+          <span class="danfse-value danfse-value-bold">R$ 1,16</span>
+        </div>
+        <div class="danfse-col w-25">
+          <span class="danfse-label">Alíquota - CBS / Alíq. Efetiva</span>
+          <span class="danfse-value">0,90 % / 0,90 %</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">Valor Total Apurado - CBS</span>
+          <span class="danfse-value danfse-value-bold">R$ 10,44</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 9: VALOR TOTAL DA NFS-E -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-row">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">VALOR TOTAL DA NFS-e</span>
+          <span class="danfse-value danfse-value-bold" style="font-size: 9pt;">R$ 1.160,00</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">VALOR DA OPERAÇÃO / SERVIÇO</span>
+          <span class="danfse-value">R$ 1.160,00</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">Desconto Incondicionado</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-15">
+          <span class="danfse-label">Desconto Condicionado</span>
+          <span class="danfse-value">-</span>
+        </div>
+      </div>
+      <div class="danfse-row">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">Total das Retenções (ISSQN / Federais)</span>
+          <span class="danfse-value">-</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">VALOR LÍQUIDO DA NFS-e</span>
+          <span class="danfse-value danfse-value-bold">R$ 1.160,00</span>
+        </div>
+        <div class="danfse-col w-15">
+          <span class="danfse-label">Total do IBS/CBS</span>
+          <span class="danfse-value">R$ 11,60</span>
+        </div>
+        <div class="danfse-col w-20">
+          <span class="danfse-label">VALOR LÍQUIDO DA NFS-e + IBS/CBS</span>
+          <span class="danfse-value danfse-value-bold">R$ 1.160,00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 10: INFORMAÇÕES COMPLEMENTARES -->
+    <div class="danfse-box mt-1">
+      <div class="danfse-section-header">INFORMAÇÕES COMPLEMENTARES</div>
+      <div class="danfse-row">
+        <div class="danfse-col w-100" style="min-height: 35px;">
+          <span class="danfse-value">Inf. Cont.: NBS: 115013000</span>
+          <span class="danfse-value" style="margin-top: 4px;">Totais aproximados dos Tributos cfe. Lei n° 12.741/2012: Federais: -; Estaduais: -; Municipais: -;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RODAPÉ: ASSINATURA E CANHOTO -->
+    <div class="danfse-box mt-1" style="margin-top: 12px;">
+      <div class="danfse-row" style="height: 35px;">
+        <div class="danfse-col w-30">
+          <span class="danfse-label">DATA CIENTIFICAÇÃO:</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">IDENTIFICAÇÃO E ASSINATURA</span>
+        </div>
+        <div class="danfse-col w-35">
+          <span class="danfse-label">N° NFS-e / CHAVE NFS-e</span>
+          <span class="danfse-value danfse-value-bold">62 / 24081022200893566000190000000000006226083642112359</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
