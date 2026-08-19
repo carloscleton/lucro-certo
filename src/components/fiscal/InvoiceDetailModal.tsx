@@ -734,7 +734,8 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                         (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<ambGer>2</ambGer>')) ||
                                         (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<tpAmb>2</tpAmb>')) ||
                                         key.includes('000000000000000000') ||
-                                        key.startsWith('240810222008');
+                                        key === '24081022200893566000190000000000006226083642112359' ||
+                                        key === '24081022200893566000190000000000004526087773930690';
 
                                     const domain = isTest ? 'www.producaorestrita.nfse.gov.br' : 'www.nfse.gov.br';
                                     return (
