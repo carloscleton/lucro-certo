@@ -14,7 +14,6 @@ import { API_BASE_URL } from '../../lib/constants';
 import { parseFiscalError } from '../../pages/Invoices';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
-import { DanfseV2Viewer } from './DanfseV2Viewer';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
@@ -730,15 +729,12 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                 </Button>
                             </div>
                         </div>
-                        <div className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 overflow-y-auto p-4 flex justify-center scrollbar-thin">
-                            {loadingXml ? (
-                                <div className="flex items-center justify-center h-full text-slate-500 gap-2">
-                                    <RefreshCw size={20} className="animate-spin text-blue-500" />
-                                    Carregando modelo DANFSe v2.0...
-                                </div>
-                            ) : (
-                                <DanfseV2Viewer xmlString={xmlText} invoice={invoice} />
-                            )}
+                        <div className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 overflow-hidden p-0 flex justify-center">
+                            <iframe
+                                src={pdfUrl}
+                                className="w-full h-full rounded-2xl border-0 bg-white block"
+                                title="Visualizador de PDF DANFSe v2.0"
+                            />
                         </div>
                     </div>
                 )}
