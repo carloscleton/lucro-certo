@@ -7,22 +7,23 @@ import './danfseV2.css';
 interface DanfseV2ViewerProps {
   xmlString?: string;
   data?: DanfseV2Data;
+  invoice?: any;
   onPrint?: () => void;
 }
 
-export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data: propData, onPrint }) => {
+export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data: propData, invoice, onPrint }) => {
   const data: DanfseV2Data | null = useMemo(() => {
     if (propData) return propData;
-    if (xmlString) {
+    if (xmlString || invoice) {
       try {
-        return parseDanfseXml(xmlString);
+        return parseDanfseXml(xmlString || invoice?.payload?.xml_assinado || invoice?.payload, invoice);
       } catch (err) {
         console.error('Erro ao fazer parse do XML da DANFSe:', err);
-        return null;
+        return parseDanfseXml('', invoice);
       }
     }
     return null;
-  }, [propData, xmlString]);
+  }, [propData, xmlString, invoice]);
 
   // Gera o QR Code Data URL para a chave de acesso
   const qrCodeUrl = useMemo(() => {

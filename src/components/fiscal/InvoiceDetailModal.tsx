@@ -736,14 +736,8 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     <RefreshCw size={20} className="animate-spin text-blue-500" />
                                     Carregando modelo DANFSe v2.0...
                                 </div>
-                            ) : xmlText && !xmlText.includes('Não foi possível') ? (
-                                <DanfseV2Viewer xmlString={xmlText} />
                             ) : (
-                                <iframe
-                                    src={pdfUrl}
-                                    className="w-full h-full rounded-2xl border border-gray-200 dark:border-slate-800 bg-white block"
-                                    title="Visualizador de PDF DANFSe"
-                                />
+                                <DanfseV2Viewer xmlString={xmlText} invoice={invoice} />
                             )}
                         </div>
                     </div>
