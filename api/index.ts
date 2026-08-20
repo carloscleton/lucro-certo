@@ -11295,3 +11295,5 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 }
 
 export default app;
+
+// Force Vercel rebuild: stable 9c02df4
