@@ -423,8 +423,10 @@ export class PDFService {
         const prestCity = prest.cidade || prest.municipio || 'Natal';
         const prestUf = prest.uf || 'RN';
         doc.text(`Município: ${prestCity} - ${prestUf}`, margin + pageWidth - 3, y + 6, { align: 'right' });
-        doc.text(`Ambiente Gerador: ${data.ambiente === 'producao' ? '1' : '2'}`, margin + pageWidth - 3, y + 10, { align: 'right' });
-        doc.text(`Tipo de Ambiente: ${data.ambiente === 'producao' ? '1' : '1'}`, margin + pageWidth - 3, y + 14, { align: 'right' });
+        const ambGerVal = data.ambienteGerador || (data.ambiente === 'producao' ? '1' : '2');
+        const tpAmbVal = data.tipoAmbiente || (data.ambiente === 'producao' ? '1' : '2');
+        doc.text(`Ambiente Gerador: ${ambGerVal}`, margin + pageWidth - 3, y + 10, { align: 'right' });
+        doc.text(`Tipo de Ambiente: ${tpAmbVal}`, margin + pageWidth - 3, y + 14, { align: 'right' });
 
         y += 18;
 

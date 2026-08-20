@@ -732,7 +732,9 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                         invoice.payload?.ambiente === 'homologacao' || 
                                         company?.tecnospeed_config?.ambiente === 'homologacao' ||
                                         (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<ambGer>2</ambGer>')) ||
+                                        (invoice.payload?.xmlAssinado && invoice.payload.xmlAssinado.includes('<ambGer>2</ambGer>')) ||
                                         (invoice.payload?.xml_assinado && invoice.payload.xml_assinado.includes('<tpAmb>2</tpAmb>')) ||
+                                        (invoice.payload?.xmlAssinado && invoice.payload.xmlAssinado.includes('<tpAmb>2</tpAmb>')) ||
                                         key.includes('000000000000000000') ||
                                         key === '24081022200893566000190000000000006226083642112359' ||
                                         key === '24081022200893566000190000000000004526087773930690';

@@ -232,7 +232,9 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
                     ibs: Number(val.trib?.reformaTributaria?.vIBS || 0),
                     cbs: Number(val.trib?.reformaTributaria?.vCBS || 0)
                 },
-                ambiente: (data?.tipoAmbiente === 1 || inf.tpAmb === 1) ? 'producao' : 'homologacao'
+                ambiente: (String(data?.tipoAmbiente) === '1' || String(inf.tpAmb) === '1') ? 'producao' : 'homologacao',
+                ambienteGerador: String(inf.ambGer || data?.ambienteGerador || parsedDetail?.infDPS?.ambGer || parsedDetail?.ambienteGerador || ((String(data?.tipoAmbiente) === '1' || String(inf.tpAmb) === '1') ? '1' : '2')),
+                tipoAmbiente: String(inf.tpAmb || data?.tipoAmbiente || parsedDetail?.infDPS?.tpAmb || parsedDetail?.tipoAmbiente || ((String(data?.tipoAmbiente) === '1' || String(inf.tpAmb) === '1') ? '1' : '2'))
             });
             const newUrl = window.URL.createObjectURL(pdfBlob);
             setGeneratedPdfUrl(newUrl);
@@ -267,7 +269,8 @@ export function ResultModal({ isOpen, onClose, title, message, type = 'info', da
         setShowXml(true);
 
         let xmlFound: string | null = null;
-        if (typeof data?.xml_assinado === 'string' && data.xml_assinado.trim()) xmlFound = data.xml_assinado;
+        if (typeof data?.xmlAssinado === 'string' && data.xmlAssinado.trim()) xmlFound = data.xmlAssinado;
+        else if (typeof data?.xml_assinado === 'string' && data.xml_assinado.trim()) xmlFound = data.xml_assinado;
         else if (typeof data?.signedXml === 'string' && data.signedXml.trim()) xmlFound = data.signedXml;
         else if (typeof data?.xml_gerado === 'string' && data.xml_gerado.trim()) xmlFound = data.xml_gerado;
         else if (typeof data?.xml === 'string' && (data.xml.includes('<?xml') || data.xml.includes('<DPS'))) xmlFound = data.xml;

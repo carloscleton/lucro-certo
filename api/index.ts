@@ -5029,8 +5029,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const prestCity = prest.cidade || 'Natal';
     const prestUf = prest.uf || 'RN';
     doc.text(`Município: ${prestCity} - ${prestUf}`, margin + pageWidth - 3, y + 6, { align: 'right' });
-    doc.text(`Ambiente Gerador: ${data.ambiente === 'producao' ? '1' : '2'}`, margin + pageWidth - 3, y + 10, { align: 'right' });
-    doc.text(`Tipo de Ambiente: ${data.ambiente === 'producao' ? '1' : '1'}`, margin + pageWidth - 3, y + 14, { align: 'right' });
+    const ambGerVal = data.ambienteGerador || (data.ambiente === 'producao' ? '1' : '2');
+    const tpAmbVal = data.tipoAmbiente || (data.ambiente === 'producao' ? '1' : '2');
+    doc.text(`Ambiente Gerador: ${ambGerVal}`, margin + pageWidth - 3, y + 10, { align: 'right' });
+    doc.text(`Tipo de Ambiente: ${tpAmbVal}`, margin + pageWidth - 3, y + 14, { align: 'right' });
 
     y += 18;
 
@@ -5714,7 +5716,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
 
             const buildDanfsePdfBuffer = async (xmlInputStr?: string) => {
                 const invPayload = dbInvoiceRecord?.payload || {};
-                let savedXml = xmlInputStr || invPayload.xml_assinado || invPayload.retorno?.xml_assinado || invPayload.xml || '';
+                let savedXml = xmlInputStr || invPayload.xmlAssinado || invPayload.xml_assinado || invPayload.retorno?.xml_assinado || invPayload.xml || '';
                 if (!savedXml && invPayload.retorno?.nfseXmlGZipB64) {
                     try {
                         savedXml = zlib.gunzipSync(Buffer.from(invPayload.retorno.nfseXmlGZipB64, 'base64')).toString('utf-8');
@@ -5756,6 +5758,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlDesc = getXmlVal(servBlock, 'xDescServ') || getXmlVal(savedXml, 'xDescServ');
                 const xmlNbs = getXmlVal(servBlock, 'cNBS') || getXmlVal(savedXml, 'cNBS');
                 const xmlVServ = getXmlVal(valBlock, 'vServ') || getXmlVal(savedXml, 'vServ') || getXmlVal(savedXml, 'vServPrest') || getXmlVal(savedXml, 'vLiq');
+                const xmlAmbGer = getXmlVal(savedXml, 'ambGer');
+                const xmlTpAmb = getXmlVal(savedXml, 'tpAmb');
 
                 const inf = invPayload.infDPS || invPayload.payload?.infDPS || invPayload.retorno?.infDPS || {};
                 const prest = inf.prest || invPayload.prestador || {};
@@ -5837,13 +5841,15 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         pis: Number(val.trib?.tribFed?.vPIS || 0),
                         cofins: Number(val.trib?.tribFed?.vCOFINS || 0)
                     },
-                    ambiente: adnAmbienteDl
+                    ambiente: adnAmbienteDl,
+                    ambienteGerador: xmlAmbGer || (adnAmbienteDl === 'producao' ? '1' : '2'),
+                    tipoAmbiente: xmlTpAmb || (adnAmbienteDl === 'producao' ? '1' : '2')
                 });
             };
 
             // Se for XML e tiver o XML assinado salvo no banco, pode servi-lo diretamente
             const invPayloadObj = dbInvoiceRecord?.payload || {};
-            let savedXml = invPayloadObj.xml_assinado || invPayloadObj.retorno?.xml_assinado || invPayloadObj.xml;
+            let savedXml = invPayloadObj.xmlAssinado || invPayloadObj.xml_assinado || invPayloadObj.retorno?.xml_assinado || invPayloadObj.xml;
 
             if (!savedXml && invPayloadObj.retorno?.nfseXmlGZipB64) {
                 try {

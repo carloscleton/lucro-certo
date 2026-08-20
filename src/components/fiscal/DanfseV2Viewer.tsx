@@ -15,7 +15,7 @@ export const DanfseV2Viewer: React.FC<DanfseV2ViewerProps> = ({ xmlString, data:
     if (propData) return propData;
     if (xmlString || invoice) {
       try {
-        return parseDanfseXml(xmlString || invoice?.payload?.xml_assinado || invoice?.payload, invoice);
+        return parseDanfseXml(xmlString || invoice?.payload?.xmlAssinado || invoice?.payload?.xml_assinado || invoice?.payload, invoice);
       } catch (err) {
         console.error('Erro ao fazer parse do XML da DANFSe:', err);
         return parseDanfseXml('', invoice);
