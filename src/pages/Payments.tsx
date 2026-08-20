@@ -542,38 +542,42 @@ export function Payments() {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Tooltip content="Ver Detalhes">
-                                                        <button
-                                                            onClick={() => setViewingCharge(charge)}
-                                                            className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
-                                                        >
-                                                            <Search size={16} />
-                                                        </button>
-                                                    </Tooltip>
-                                                    {charge.payment_link && (
-                                                        <Tooltip content="Abrir Link">
-                                                            <a
-                                                                href={charge.payment_link}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-all shadow-sm"
-                                                            >
-                                                                <ExternalLink size={16} />
-                                                            </a>
-                                                        </Tooltip>
+                                                    {(charge.status === 'approved' || charge.status === 'pending') && (
+                                                        <>
+                                                            <Tooltip content="Ver Detalhes">
+                                                                <button
+                                                                    onClick={() => setViewingCharge(charge)}
+                                                                    className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
+                                                                >
+                                                                    <Search size={16} />
+                                                                </button>
+                                                            </Tooltip>
+                                                            {charge.payment_link && (
+                                                                <Tooltip content="Abrir Link">
+                                                                    <a
+                                                                        href={charge.payment_link}
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-all shadow-sm"
+                                                                    >
+                                                                        <ExternalLink size={16} />
+                                                                    </a>
+                                                                </Tooltip>
+                                                            )}
+                                                            <Tooltip content="Copiar Link/PIX">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const key = charge.qr_code || charge.payment_link || '';
+                                                                        navigator.clipboard.writeText(key);
+                                                                        notify('success', 'Copiado', charge.qr_code ? 'Código PIX copiado!' : 'Link de pagamento copiado!');
+                                                                    }}
+                                                                    className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"
+                                                                >
+                                                                    <Copy size={16} />
+                                                                </button>
+                                                            </Tooltip>
+                                                        </>
                                                     )}
-                                                    <Tooltip content="Copiar Link/PIX">
-                                                        <button
-                                                            onClick={() => {
-                                                                const key = charge.qr_code || charge.payment_link || '';
-                                                                navigator.clipboard.writeText(key);
-                                                                notify('success', 'Copiado', charge.qr_code ? 'Código PIX copiado!' : 'Link de pagamento copiado!');
-                                                            }}
-                                                            className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"
-                                                        >
-                                                            <Copy size={16} />
-                                                        </button>
-                                                    </Tooltip>
                                                     <Tooltip content="Excluir">
                                                         <button
                                                             onClick={() => handleDelete(charge)}
