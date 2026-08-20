@@ -3056,8 +3056,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 cClassTribRegVal = '000003';
             }
 
-            // Para CST 410 (Não incidência / período anterior a 2027), gTribRegular NÃO é permitido/necessário
-            const gTribRegularXml = isReformaAtiva 
+            // Para CST 410 (Não incidência / período anterior a 2027), Simples Nacional ou tributação integral (000001), gTribRegular NÃO é permitido/necessário (rejeição E0964)
+            const shouldOmitGTribRegular = (opSimpNac === 2 || opSimpNac === 3) || cClassTribVal === '000001' || cstVal === '410';
+            const gTribRegularXml = (isReformaAtiva && !shouldOmitGTribRegular) 
                 ? `<gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg></gTribRegular>`
                 : '';
 
@@ -3071,7 +3072,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         gIBSCBS: {
                             CST: cstVal,
                             cClassTrib: cClassTribVal,
-                            ...(isReformaAtiva ? {
+                            ...((isReformaAtiva && !shouldOmitGTribRegular) ? {
                                 gTribRegular: {
                                     CSTReg: cstRegVal,
                                     cClassTribReg: cClassTribRegVal
