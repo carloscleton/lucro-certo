@@ -226,8 +226,8 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     if (dbProvider !== 'waha' && (nameToMatch || tokenToMatch)) {
         try {
             const [goListRes, stdListRes] = await Promise.allSettled([
-                axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 1500 }),
-                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 1500 })
+                axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 5000 }),
+                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 5000 })
             ]);
 
             let foundInGo = false;
@@ -10986,6 +10986,8 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                     timeout: 15000
                 });
             } catch (stdErr: any) {
+                const stdErrDetail = stdErr.response?.data || stdErr.message;
+                console.error(`❌ Standard Evolution sendText falhou para "${targetName}". Status: ${stdErr.response?.status}. Detalhes:`, JSON.stringify(stdErrDetail));
                 console.warn(`⚠️ Standard Evolution sendText falhou para "${targetName}" (${stdErr.message}). Tentando auto-recuperação por outras instâncias conectadas...`);
                 let success = false;
 
