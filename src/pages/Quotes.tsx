@@ -101,8 +101,10 @@ export function Quotes() {
 
             await whatsappService.sendMessage({
                 instanceName: instance.instance_name,
+                token: instance.evolution_instance_id,
                 number: phone,
-                text: message
+                text: message,
+                companyId: instance.company_id || undefined
             });
 
             notify('success', 'Mensagem enviada via WhatsApp!', 'Sucesso');
@@ -198,13 +200,17 @@ export function Quotes() {
     const processSendProposal = async (quote: Quote) => {
         try {
             setSendingProposal(quote.id);
+            console.log('🚀 [SEND PROPOSAL] Iniciando envio para quote:', quote.id, 'status:', quote.status);
 
             // Only update status if it's draft
             if (quote.status === 'draft') {
+                console.log('📝 [SEND PROPOSAL] Atualizando status para sent...');
                 await updateQuoteStatus(quote.id, 'sent');
+                console.log('✅ [SEND PROPOSAL] Status atualizado!');
             }
 
             // Fetch complete quote data with items and customer
+            console.log('🔍 [SEND PROPOSAL] Buscando dados completos do quote...');
             const { data: fullQuote, error: quoteError } = await supabase
                 .from('quotes')
                 .select(`
@@ -215,14 +221,25 @@ export function Quotes() {
                 .eq('id', quote.id)
                 .single();
 
-            if (quoteError) throw quoteError;
+            if (quoteError) {
+                console.error('❌ [SEND PROPOSAL] Erro ao buscar quote:', quoteError);
+                throw quoteError;
+            }
+            console.log('✅ [SEND PROPOSAL] Quote carregado. Contato:', fullQuote.contact?.name, '| Items:', fullQuote.items?.length);
 
             // Get company data
-            const { data: companyData } = await supabase
+            console.log('🏢 [SEND PROPOSAL] Buscando dados da empresa. Entity ID:', currentEntity.id);
+            const { data: companyData, error: companyError } = await supabase
                 .from('companies')
                 .select('*')
                 .eq('id', currentEntity.id)
                 .single();
+
+            if (companyError) {
+                console.warn('⚠️ [SEND PROPOSAL] Empresa não encontrada:', companyError.message);
+            } else {
+                console.log('✅ [SEND PROPOSAL] Empresa carregada:', companyData?.name);
+            }
 
             // Calculate totals
             const subtotal = fullQuote.items?.reduce((sum: number, item: any) =>
@@ -233,112 +250,133 @@ export function Quotes() {
                 : fullQuote.discount;
 
             const total = subtotal - discountAmount;
+            console.log('💰 [SEND PROPOSAL] Totais: subtotal=', subtotal, 'total=', total);
 
             // Generate and upload PDF
-            console.log('📄 Generating PDF for quote:', quote.id);
-
-            const pdfUrl = await PDFService.generateAndUploadQuotePDF({
-                quote: {
-                    id: fullQuote.id,
-                    title: fullQuote.title,
-                    created_at: fullQuote.created_at,
-                    valid_until: fullQuote.valid_until,
-                    status: fullQuote.status,
-                    discount: fullQuote.discount || 0,
-                    discount_type: fullQuote.discount_type || 'amount',
-                    notes: fullQuote.notes
-                },
-                customer: {
-                    name: fullQuote.contact?.name || 'Cliente',
-                    email: fullQuote.contact?.email,
-                    phone: fullQuote.contact?.phone,
-                    address: fullQuote.contact?.address
-                },
-                items: fullQuote.items || [],
-                company: {
-                    name: companyData?.name || 'Empresa',
-                    legal_name: companyData?.legal_name,
-                    cnpj: companyData?.cnpj,
-                    cpf: companyData?.cpf,
-                    entity_type: companyData?.entity_type || 'PJ',
-                    email: companyData?.email,
-                    phone: companyData?.phone,
-                    address: companyData?.address
-                },
-                subtotal,
-                total
-            }, currentEntity.id || '');
-
-            // Update quote with PDF URL
-            await supabase
-                .from('quotes')
-                .update({ pdf_url: pdfUrl })
-                .eq('id', quote.id);
-
-            console.log('✅ PDF generated and saved:', pdfUrl);
-
-            // 📱 Native WhatsApp Send (Priority: Direct send if instance connected)
-            const instance = waInstances[0];
-            const phone = fullQuote.contact?.phone?.replace(/\D/g, '');
-
-            if (instance && phone) {
-                console.log('📱 Sending native WhatsApp message...');
-                const message = `Olá, ${fullQuote.contact?.name || 'cliente'}! Segue o link para visualizar sua proposta:\n\n🔗 ${window.location.origin}/p/${fullQuote.id}\n\nObrigado pela confiança!`;
-                
-                try {
-                    await whatsappService.sendMessage({
-                        instanceName: instance.instance_name,
-                        number: phone,
-                        text: message
-                    });
-                    console.log('✅ Native WhatsApp message sent!');
-                } catch (waError) {
-                    console.error('❌ Failed to send native WA message:', waError);
-                    // Don't throw, we'll still notify that PDF was generated
-                }
-            }
-
-            // Trigger webhook with complete data
-            await webhookService.triggerWebhooks({
-                eventType: 'QUOTE_SENT',
-                payload: {
+            console.log('📄 [SEND PROPOSAL] Gerando PDF...');
+            let pdfUrl = '';
+            try {
+                pdfUrl = await PDFService.generateAndUploadQuotePDF({
                     quote: {
                         id: fullQuote.id,
-                        quote_number: fullQuote.quote_number,
+                        title: fullQuote.title,
+                        created_at: fullQuote.created_at,
+                        valid_until: fullQuote.valid_until,
                         status: fullQuote.status,
-                        total,
-                        subtotal,
                         discount: fullQuote.discount || 0,
                         discount_type: fullQuote.discount_type || 'amount',
-                        valid_until: fullQuote.valid_until,
-                        notes: fullQuote.notes,
-                        created_at: fullQuote.created_at,
-                        pdf_url: pdfUrl
+                        notes: fullQuote.notes
                     },
                     customer: {
-                        id: fullQuote.contact?.id,
-                        name: fullQuote.contact?.name,
+                        name: fullQuote.contact?.name || 'Cliente',
                         email: fullQuote.contact?.email,
                         phone: fullQuote.contact?.phone,
                         address: fullQuote.contact?.address
                     },
                     items: fullQuote.items || [],
                     company: {
-                        name: companyData?.name,
+                        name: companyData?.name || 'Empresa',
+                        legal_name: companyData?.legal_name,
+                        cnpj: companyData?.cnpj,
+                        cpf: companyData?.cpf,
+                        entity_type: companyData?.entity_type || 'PJ',
                         email: companyData?.email,
                         phone: companyData?.phone,
                         address: companyData?.address
-                    }
-                },
-                companyId: fullQuote.company_id || undefined, // Use quote's own company_id
-                userId: user!.id
-            });
+                    },
+                    subtotal,
+                    total
+                }, currentEntity.id || '');
+                console.log('✅ [SEND PROPOSAL] PDF gerado:', pdfUrl);
+            } catch (pdfError) {
+                console.error('❌ [SEND PROPOSAL] ERRO AO GERAR/UPLOAD PDF:', pdfError);
+                throw pdfError;
+            }
 
-            console.log('✅ Proposta enviada com sucesso!');
+            // Update quote with PDF URL
+            console.log('💾 [SEND PROPOSAL] Salvando URL do PDF...');
+            const { error: updatePdfError } = await supabase
+                .from('quotes')
+                .update({ pdf_url: pdfUrl })
+                .eq('id', quote.id);
+
+            if (updatePdfError) {
+                console.error('❌ [SEND PROPOSAL] Erro ao salvar URL do PDF:', updatePdfError);
+            } else {
+                console.log('✅ [SEND PROPOSAL] PDF URL salva!');
+            }
+
+            // 📱 Native WhatsApp Send (Priority: Direct send if instance connected)
+            const instance = waInstances[0];
+            const phone = fullQuote.contact?.phone?.replace(/\D/g, '');
+            console.log('📱 [SEND PROPOSAL] WA instance:', instance?.instance_name || 'nenhuma', '| Phone:', phone || 'sem telefone');
+
+            if (instance && phone) {
+                console.log('📱 [SEND PROPOSAL] Enviando WhatsApp...');
+                const message = `Olá, ${fullQuote.contact?.name || 'cliente'}! Segue o link para visualizar sua proposta:\n\n🔗 ${window.location.origin}/p/${fullQuote.id}\n\nObrigado pela confiança!`;
+                
+                try {
+                    await whatsappService.sendMessage({
+                        instanceName: instance.instance_name,
+                        token: instance.evolution_instance_id,
+                        number: phone,
+                        text: message,
+                        companyId: instance.company_id || undefined
+                    });
+                    console.log('✅ [SEND PROPOSAL] WhatsApp enviado!');
+                } catch (waError) {
+                    console.error('❌ [SEND PROPOSAL] Falha WhatsApp (não crítico):', waError);
+                    // Don't throw, we'll still notify that PDF was generated
+                }
+            }
+
+            // Trigger webhook with complete data
+            console.log('🔔 [SEND PROPOSAL] Disparando webhooks...');
+            try {
+                await webhookService.triggerWebhooks({
+                    eventType: 'QUOTE_SENT',
+                    payload: {
+                        quote: {
+                            id: fullQuote.id,
+                            quote_number: fullQuote.quote_number,
+                            status: fullQuote.status,
+                            total,
+                            subtotal,
+                            discount: fullQuote.discount || 0,
+                            discount_type: fullQuote.discount_type || 'amount',
+                            valid_until: fullQuote.valid_until,
+                            notes: fullQuote.notes,
+                            created_at: fullQuote.created_at,
+                            pdf_url: pdfUrl
+                        },
+                        customer: {
+                            id: fullQuote.contact?.id,
+                            name: fullQuote.contact?.name,
+                            email: fullQuote.contact?.email,
+                            phone: fullQuote.contact?.phone,
+                            address: fullQuote.contact?.address
+                        },
+                        items: fullQuote.items || [],
+                        company: {
+                            name: companyData?.name,
+                            email: companyData?.email,
+                            phone: companyData?.phone,
+                            address: companyData?.address
+                        }
+                    },
+                    companyId: fullQuote.company_id || undefined,
+                    userId: user!.id
+                });
+                console.log('✅ [SEND PROPOSAL] Webhooks ok!');
+            } catch (webhookError) {
+                console.error('❌ [SEND PROPOSAL] Erro nos webhooks (não crítico):', webhookError);
+            }
+
+            console.log('✅ [SEND PROPOSAL] Proposta enviada com sucesso!');
             notify('success', 'Sucesso', 'Proposta enviada!');
             refreshQuotes();
         } catch (error) {
-            console.error('❌ Error:', error);
+            console.error('❌ [SEND PROPOSAL] ERRO CRÍTICO:', error);
             notify('error', 'Erro', 'Erro ao enviar proposta.');
         } finally {
             setSendingProposal(null);
