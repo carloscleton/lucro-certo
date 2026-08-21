@@ -6539,7 +6539,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 fileName: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`
                             }, {
                                 headers: {
-                                    'apikey': instanceToken || config.apiKey,
+                                    'apikey': config.isGo ? (instanceToken || config.apiKey) : config.apiKey,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 15000
@@ -6551,7 +6551,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 linkPreview: true
                             }, {
                                 headers: {
-                                    'apikey': instanceToken || config.apiKey,
+                                    'apikey': config.isGo ? (instanceToken || config.apiKey) : config.apiKey,
                                     'Content-Type': 'application/json'
                                 }
                             });
@@ -10891,7 +10891,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         },
                         timeout: 15000
                     });
-                } else {
                     response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                         number: number,
                         mediatype: mediaType || 'document',
@@ -10901,7 +10900,7 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         fileName: fileName || 'NotaFiscal.pdf'
                     }, {
                         headers: {
-                            'apikey': instanceToken || config.apiKey,
+                            'apikey': config.isGo ? (instanceToken || config.apiKey) : config.apiKey,
                             'Content-Type': 'application/json'
                         },
                         timeout: 15000
@@ -10972,7 +10971,7 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
 
             console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
             const apiHeaders = {
-                'apikey': instanceToken || config.apiKey,
+                'apikey': config.isGo ? (instanceToken || config.apiKey) : config.apiKey,
                 'Content-Type': 'application/json'
             };
 
