@@ -321,6 +321,10 @@ export function Quotes() {
                         token: instance.evolution_instance_id,
                         number: phone,
                         text: message,
+                        mediaUrl: pdfUrl?.startsWith('http') ? pdfUrl : undefined,
+                        mediaType: 'document',
+                        mimetype: 'application/pdf',
+                        fileName: `Proposta-${fullQuote.quote_number || 'comercial'}.pdf`,
                         companyId: instance.company_id || undefined
                     });
                     console.log('✅ [SEND PROPOSAL] WhatsApp enviado!');
