@@ -318,8 +318,7 @@ async function sendWhatsAppTextMessage(instanceName: string, phone: string, text
             headers: wahaHeaders
         });
     } else if (config.isGo) {
-        await axios.post(`${config.url}/send/text`, {
-            id: targetName,
+        await axios.post(`${config.url}/message/sendText/${encodedName}`, {
             number: phone,
             text: text
         }, {
@@ -6501,57 +6500,6 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 headers: wahaHeaders
                             });
                         }
-                    } else if (config.isGo) {
-                        try {
-                            await axios.post(`${config.url}/send/media`, {
-                                id: targetName,
-                                number: recipientPhone,
-                                url: isBase64 ? base64Media : finalPdfUrl,
-                                type: 'document',
-                                filename: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`,
-                                caption: waMsg
-                            }, {
-                                headers: {
-                                    'apikey': instanceToken || config.apiKey,
-                                    'Content-Type': 'application/json'
-                                },
-                                timeout: 10000
-                            });
-                        } catch (errGo: any) {
-                            try {
-                                await axios.post(`${config.url}/send/button`, {
-                                    id: targetName,
-                                    number: recipientPhone,
-                                    title: `Nota Fiscal ${invoiceNumber || ''}`.trim(),
-                                    description: waMsg,
-                                    footer: 'Lucro Certo',
-                                    buttons: [
-                                        {
-                                            type: 'url',
-                                            displayText: 'Visualizar PDF',
-                                            url: finalPdfUrl
-                                        }
-                                    ]
-                                }, {
-                                    headers: {
-                                        'apikey': instanceToken || config.apiKey,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    timeout: 10000
-                                });
-                            } catch (btnErr: any) {
-                                await axios.post(`${config.url}/send/text`, {
-                                    id: targetName,
-                                    number: recipientPhone,
-                                    text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
-                                }, {
-                                    headers: {
-                                        'apikey': instanceToken || config.apiKey,
-                                        'Content-Type': 'application/json'
-                                    }
-                                });
-                            }
-                        }
                     } else {
                         try {
                             await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
@@ -6563,7 +6511,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 fileName: `NotaFiscal-${invoiceNumber || invoice.id}.pdf`
                             }, {
                                 headers: {
-                                    'apikey': config.apiKey,
+                                    'apikey': instanceToken || config.apiKey,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 15000
@@ -6575,7 +6523,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                                 linkPreview: true
                             }, {
                                 headers: {
-                                    'apikey': config.apiKey,
+                                    'apikey': instanceToken || config.apiKey,
                                     'Content-Type': 'application/json'
                                 }
                             });
@@ -10900,21 +10848,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         headers: wahaHeaders,
                         timeout: 20000
                     });
-                } else if (config.isGo) {
-                    response = await axios.post(`${config.url}/send/media`, {
-                        id: targetName,
-                        number: number,
-                        url: isBase64 ? base64Media : finalMediaUrl,
-                        type: mediaType || 'document',
-                        filename: fileName || 'NotaFiscal.pdf',
-                        caption: text || ''
-                    }, {
-                        headers: {
-                            'apikey': instanceToken || config.apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 10000
-                    });
                 } else {
                     response = await axios.post(`${config.url}/message/sendMedia/${encodedName}`, {
                         number: number,
@@ -10925,7 +10858,7 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                         fileName: fileName || 'NotaFiscal.pdf'
                     }, {
                         headers: {
-                            'apikey': config.apiKey,
+                            'apikey': instanceToken || config.apiKey,
                             'Content-Type': 'application/json'
                         },
                         timeout: 15000
@@ -10964,92 +10897,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                 headers: wahaHeaders,
                 timeout: 15000
             });
-        } else if (config.isGo) {
-            let buttonSent = false;
-            if (finalMediaUrl) {
-                try {
-                    console.log(`✉️ [Button] Tentando enviar link como botão interativo via Evolution GO...`);
-                    response = await axios.post(`${config.url}/send/button`, {
-                        id: targetName,
-                        number: number,
-                        title: fileName ? fileName.replace(/\.pdf$/i, '') : 'Visualizar Documento',
-                        description: text || 'Sua nota fiscal eletrônica foi gerada com sucesso. Clique no botão abaixo para visualizá-la.',
-                        footer: 'Lucro Certo',
-                        buttons: [
-                            {
-                                type: 'url',
-                                displayText: 'Visualizar PDF',
-                                url: finalMediaUrl
-                            }
-                        ]
-                    }, {
-                        headers: {
-                            'apikey': instanceToken || config.apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 10000
-                    });
-                    buttonSent = true;
-                    console.log(`✅ Botão interativo enviado com sucesso!`);
-                } catch (btnErr: any) {
-                    console.warn(`⚠️ Falha ao enviar como botão (${btnErr.message}). Fazendo fallback para texto simples...`);
-                }
-            }
-
-            if (!buttonSent) {
-                let textToSend = text || '';
-                if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
-                    textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
-                }
-                if (!textToSend) {
-                    return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
-                }
-
-                console.log(`✉️ [Text] Enviando mensagem de texto WhatsApp via "${targetName}" para ${number}...`);
-                try {
-                    response = await axios.post(`${config.url}/send/text`, {
-                        id: targetName,
-                        number: number,
-                        text: textToSend
-                    }, {
-                        headers: {
-                            'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 15000
-                    });
-                } catch (goErr: any) {
-                    console.warn(`⚠️ Evolution GO send/text falhou para "${targetName}" (${goErr.message}). Tentando com instanceToken ou Evolution API padrão...`);
-                    try {
-                        if (instanceToken && instanceToken !== EVOLUTION_GO_API_KEY) {
-                            response = await axios.post(`${config.url}/send/text`, {
-                                id: targetName,
-                                number: number,
-                                text: textToSend
-                            }, {
-                                headers: { 'apikey': instanceToken, 'Content-Type': 'application/json' },
-                                timeout: 15000
-                            });
-                        } else {
-                            throw goErr;
-                        }
-                    } catch (goTokErr: any) {
-                        try {
-                            response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${encodedName}`, {
-                                number: number,
-                                text: textToSend,
-                                linkPreview: true
-                            }, {
-                                headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-                                timeout: 15000
-                            });
-                        } catch (stdFbErr: any) {
-                            console.warn(`⚠️ Fallback via Evolution API padrão também falhou (${stdFbErr.message}). Re-lançando erro original.`);
-                            throw goErr;
-                        }
-                    }
-                }
-            }
         } else {
             let textToSend = text || '';
             if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
@@ -11091,8 +10938,8 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                                     console.log(`🔄 [whatsapp/send Fallback] Tentando enviar pela instância conectada "${altInst.instance_name}"...`);
                                     const altToken = altInst.evolution_instance_id || config.apiKey;
                                     const altConfig = await getEvolutionConfig({ instanceName: altInst.instance_name, token: altToken });
-                                    const altUrl = altConfig.isGo ? `${altConfig.url}/send/text` : `${altConfig.url}/message/sendText/${encodeURIComponent(altInst.instance_name)}`;
-                                    const altBody = altConfig.isGo ? { id: altInst.instance_name, number, text: textToSend } : { number, text: textToSend, linkPreview: true };
+                                    const altUrl = `${altConfig.url}/message/sendText/${encodeURIComponent(altInst.instance_name)}`;
+                                    const altBody = { number, text: textToSend, linkPreview: true };
                                     
                                     response = await axios.post(altUrl, altBody, {
                                         headers: { 'apikey': altToken || altConfig.apiKey, 'Content-Type': 'application/json' },
@@ -11113,10 +10960,10 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
 
                 if (!success) {
                     try {
-                        response = await axios.post(`${config.url}/send/text`, {
-                            id: targetName,
+                        response = await axios.post(`${config.url}/message/sendText/${encodedName}`, {
                             number: number,
-                            text: textToSend
+                            text: textToSend,
+                            linkPreview: true
                         }, {
                             headers: apiHeaders,
                             timeout: 15000
@@ -11124,10 +10971,10 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
                     } catch (goErr: any) {
                         if (EVOLUTION_GO_API_URL && config.url !== EVOLUTION_GO_API_URL) {
                             console.warn(`⚠️ Tentando fallback para Evolution GO API URL (${EVOLUTION_GO_API_URL})...`);
-                            response = await axios.post(`${EVOLUTION_GO_API_URL}/send/text`, {
-                                id: targetName,
+                            response = await axios.post(`${EVOLUTION_GO_API_URL}/message/sendText/${encodedName}`, {
                                 number: number,
-                                text: textToSend
+                                text: textToSend,
+                                linkPreview: true
                             }, {
                                 headers: { 'apikey': EVOLUTION_GO_API_KEY || instanceToken || config.apiKey, 'Content-Type': 'application/json' },
                                 timeout: 15000
