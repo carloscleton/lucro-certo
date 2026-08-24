@@ -242,40 +242,40 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     };
 
     return (
-        <div className="bg-gradient-to-r from-blue-50/40 via-indigo-50/10 to-transparent dark:from-slate-850 dark:via-slate-850/60 dark:to-transparent border border-blue-100/50 dark:border-slate-800 rounded-3xl p-5 mb-6 animate-in fade-in duration-300 shadow-sm">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-start gap-3">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
-                        <Award size={20} />
+        <div className="bg-gradient-to-r from-blue-50/30 via-indigo-50/5 to-transparent dark:from-slate-850 dark:via-slate-850/40 dark:to-transparent border border-blue-100/40 dark:border-slate-800/80 rounded-2xl p-3.5 mb-4 animate-in fade-in duration-300 shadow-sm select-none">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
+                        <Award size={18} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                            <h4 className="font-extrabold text-gray-900 dark:text-white text-xs">
                                 Acompanhamento de Custos de Emissão
                             </h4>
-                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full">
+                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[9px] font-bold rounded-full border border-blue-100/30 dark:border-blue-900/10">
                                 {activeProvider === 'tecnospeed' ? 'TecnoSpeed' : 
                                  activeProvider === 'nfeio' ? 'NFe.io' : 
                                  activeProvider === 'national' ? 'Portal Nacional' : 'Outro'}
                             </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-[11px] text-gray-500 mt-0.5">
                             {getSummaryText()}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white dark:bg-slate-900/40 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 self-stretch md:self-auto justify-between md:justify-start">
+                <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-200/50 dark:border-slate-800/80 self-stretch md:self-auto justify-between md:justify-start">
                     <div className="text-right">
-                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block">Valor Estimado</span>
-                        <span className="text-lg font-black text-blue-600 dark:text-blue-400">{fmt(totalCostAllProviders)}</span>
+                        <span className="text-[9px] text-gray-400 uppercase tracking-wider font-bold block">Valor Estimado</span>
+                        <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">{fmt(totalCostAllProviders)}</span>
                     </div>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1"
+                        className="p-1 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-lg text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                        <span className="text-xs font-bold hidden sm:inline">{isExpanded ? 'Ocultar Detalhes' : 'Ver Detalhes'}</span>
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        <span className="text-[10px] font-bold hidden sm:inline">{isExpanded ? 'Ocultar Detalhes' : 'Ver Detalhes'}</span>
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                 </div>
             </div>

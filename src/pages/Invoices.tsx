@@ -1198,66 +1198,66 @@ ${messageWithPlaceholder}`;
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-150 max-w-full overflow-x-hidden">
+        <div className="flex flex-col h-[calc(100vh-135px)] max-w-full overflow-hidden gap-4 animate-in fade-in duration-150">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                            <Receipt size={24} className="text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="flex flex-col">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-1 select-none">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100/50 dark:border-blue-900/30 shadow-sm">
+                        <Receipt size={22} />
+                    </div>
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
                                 Notas Fiscais
                             </h1>
-                            <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-[0.2em] mt-0.5">
-                                v1.2.2 • Estável
+                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full border border-blue-100/30 dark:border-blue-900/20">
+                                v1.2.2
                             </span>
                         </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Histórico de NF-e e NFS-e emitidas pela sua empresa
+                        </p>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
-                        Histórico de NF-e e NFS-e emitidas pela sua empresa
-                    </p>
                 </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <Button 
                         variant="ghost" 
                         onClick={refresh} 
-                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs"
+                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
                     >
-                        <RefreshCw size={16} className={clsx("mr-2", isLoading && "animate-spin")} />
+                        <RefreshCw size={14} className={clsx("mr-1.5", isLoading && "animate-spin")} />
                         Atualizar Lista
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowConsultaModal(true)} 
-                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
                     >
-                        <Search size={16} className="mr-2" />
+                        <Search size={14} className="mr-1.5" />
                         Consultar Notas
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowBillingModal(true)} 
-                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
                     >
-                        <BarChart3 size={16} className="mr-2 text-blue-500" />
+                        <BarChart3 size={14} className="mr-1.5 text-blue-500" />
                         Relatório de Cobrança
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowBatchModal(true)} 
-                        className="flex-1 md:flex-none h-11 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700"
+                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
                     >
-                        <RefreshCw size={16} className="mr-2 text-violet-500" />
+                        <RefreshCw size={14} className="mr-1.5 text-violet-500" />
                         Faturamento Recorrente
                     </Button>
                     <Button 
                         variant="primary" 
                         onClick={() => setShowNewModal(true)} 
-                        className="flex-1 md:flex-none h-11 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 font-bold text-xs"
+                        className="flex-1 md:flex-none h-9 px-3.5 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/10 font-bold text-xs rounded-xl"
                     >
-                        <Plus size={18} className="mr-2" />
+                        <Plus size={16} className="mr-1.5" />
                         Nova Nota Avulsa
                     </Button>
                 </div>
@@ -1275,63 +1275,63 @@ ${messageWithPlaceholder}`;
             {!isLoading && invoices.length > 0 && (() => {
                 const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
                 return (
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-500 select-none">
                         {/* Autorizadas */}
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-emerald-100/70 dark:border-emerald-950/30 shadow-sm hover:shadow-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-2xl ring-4 ring-emerald-50/50 dark:ring-emerald-950/10">
-                                <CheckCircle2 size={24} />
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-emerald-100/70 dark:border-emerald-950/30 shadow-sm hover:shadow-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
+                            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl ring-2 ring-emerald-50/50 dark:ring-emerald-950/10">
+                                <CheckCircle2 size={18} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Autorizadas</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Autorizadas</p>
+                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
                                     {invoicesForStats.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length}
                                 </p>
                             </div>
                         </div>
                         {/* Processando */}
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-blue-100/70 dark:border-blue-950/30 shadow-sm hover:shadow-blue-500/5 hover:border-blue-200 dark:hover:border-blue-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
-                            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-2xl ring-4 ring-blue-50/50 dark:ring-blue-950/10">
-                                <Clock3 size={24} />
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-blue-100/70 dark:border-blue-950/30 shadow-sm hover:shadow-blue-500/5 hover:border-blue-200 dark:hover:border-blue-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-xl ring-2 ring-blue-50/50 dark:ring-blue-950/10">
+                                <Clock3 size={18} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Processando</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Processando</p>
+                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
                                     {invoicesForStats.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
                                 </p>
                             </div>
                         </div>
                         {/* Canceladas */}
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100/70 dark:border-slate-950/30 shadow-sm hover:shadow-slate-500/5 hover:border-slate-200 dark:hover:border-slate-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
-                            <div className="p-3 bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 rounded-2xl ring-4 ring-slate-50/50 dark:ring-slate-950/10">
-                                <XCircle size={24} />
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100/70 dark:border-slate-950/30 shadow-sm hover:shadow-slate-500/5 hover:border-slate-200 dark:hover:border-slate-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
+                            <div className="p-2 bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 rounded-xl ring-2 ring-slate-50/50 dark:ring-slate-950/10">
+                                <XCircle size={18} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Canceladas</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Canceladas</p>
+                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
                                     {invoicesForStats.filter(i => i.status?.toLowerCase() === 'cancelado').length}
                                 </p>
                             </div>
                         </div>
                         {/* Rejeitadas */}
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100/70 dark:border-rose-950/30 shadow-sm hover:shadow-rose-500/5 hover:border-rose-200 dark:hover:border-rose-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
-                            <div className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-2xl ring-4 ring-rose-50/50 dark:ring-rose-950/10">
-                                <XCircle size={24} />
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-rose-100/70 dark:border-rose-950/30 shadow-sm hover:shadow-rose-500/5 hover:border-rose-200 dark:hover:border-rose-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
+                            <div className="p-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl ring-2 ring-rose-50/50 dark:ring-rose-950/10">
+                                <XCircle size={18} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rejeitadas</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white">
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Rejeitadas</p>
+                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
                                     {invoicesForStats.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length}
                                 </p>
                             </div>
                         </div>
                         {/* Total Geral */}
-                        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-indigo-100/70 dark:border-indigo-950/30 shadow-sm hover:shadow-indigo-500/5 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-4">
-                            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl ring-4 ring-indigo-50/50 dark:ring-indigo-950/10">
-                                <Receipt size={24} />
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-indigo-100/70 dark:border-indigo-950/30 shadow-sm hover:shadow-indigo-500/5 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
+                            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl ring-2 ring-indigo-50/50 dark:ring-indigo-950/10">
+                                <Receipt size={18} />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Geral</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white">{invoicesForStats.length}</p>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Total Geral</p>
+                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">{invoicesForStats.length}</p>
                             </div>
                         </div>
                     </div>
@@ -1339,37 +1339,37 @@ ${messageWithPlaceholder}`;
             })()}
 
             {/* Search and List Header */}
-            <div className="flex flex-row items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm w-full">
+            <div className="flex flex-row items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm w-full select-none">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={18} />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={16} />
                     <input 
                         type="text" 
                         placeholder="Buscar nota por cliente, número ou status..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                        className="w-full pl-10 pr-4 py-1.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-lg text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
                     />
                 </div>
                 <button
                     type="button"
                     onClick={() => setShowDeleted(!showDeleted)}
                     className={clsx(
-                        "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer select-none shrink-0",
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all duration-200 cursor-pointer select-none shrink-0",
                         showDeleted 
                             ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-sm" 
                             : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
                     )}
                 >
-                    <Trash2 size={14} className={clsx(showDeleted ? "animate-pulse text-rose-500" : "text-gray-400")} />
+                    <Trash2 size={12} className={clsx(showDeleted ? "animate-pulse text-rose-500" : "text-gray-400")} />
                     <span className="hidden sm:inline">{showDeleted ? "Exibindo Excluídas" : "Ocultando Excluídas"}</span>
                 </button>
                 <div className={clsx(
-                    "flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors shrink-0",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors shrink-0",
                     searchQuery 
                         ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400"
                         : "bg-gray-50 border-gray-100 text-gray-500 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400"
                 )}>
-                    <Receipt size={14} />
+                    <Receipt size={12} />
                     <span className="hidden md:inline uppercase tracking-wider">
                         {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Nota' : 'Notas'}
                     </span>
@@ -1379,9 +1379,8 @@ ${messageWithPlaceholder}`;
                 </div>
             </div>
 
-            {/* List */}
-            <div className="w-full max-w-full bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="w-full overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar">
+            <div className="flex-1 min-h-0 w-full max-w-full bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col">
+                <div className="w-full overflow-x-auto overflow-y-auto flex-1 custom-scrollbar min-h-0">
                     <table className="w-full min-w-[1100px] text-left text-sm text-gray-600 dark:text-gray-300">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="border-b border-gray-100 dark:border-slate-800">
