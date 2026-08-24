@@ -1381,17 +1381,17 @@ ${messageWithPlaceholder}`;
 
             {/* List */}
             <div className="w-full max-w-full bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
-                <div className="w-full overflow-x-auto custom-scrollbar">
+                <div className="w-full overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar">
                     <table className="w-full min-w-[1100px] text-left text-sm text-gray-600 dark:text-gray-300">
-                        <thead>
-                            <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Data e Hora</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Tipo</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Cliente / Beneficiário</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Identificação</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Valor / Descrição</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Status da Emissão</th>
-                                <th className="py-5 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400">Ações</th>
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="border-b border-gray-100 dark:border-slate-800">
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Data e Hora</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Tipo</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Cliente / Beneficiário</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Identificação</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Valor / Descrição</th>
+                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Status da Emissão</th>
+                                <th className="py-5 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
