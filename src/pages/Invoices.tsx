@@ -1138,40 +1138,40 @@ ${messageWithPlaceholder}`;
         const s = status?.toLowerCase();
         if (s === 'concluido' || s === 'autorizado' || s === 'issued') {
             return (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
-                    <CheckCircle2 size={14} className="animate-in zoom-in duration-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Autorizada</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                    <CheckCircle2 size={11} className="animate-in zoom-in duration-500" />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Autorizada</span>
                 </div>
             );
         }
         if (s === 'processando' || s === 'em_processamento') {
             return (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-500/20 shadow-sm shadow-blue-500/5">
-                    <RefreshCw size={14} className="animate-spin" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Processando</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-500/20 shadow-sm shadow-blue-500/5">
+                    <RefreshCw size={11} className="animate-spin" />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Processando</span>
                 </div>
             );
         }
         if (s === 'erro' || s === 'rejeitado') {
             return (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-500/20 shadow-sm shadow-rose-500/5">
-                    <XCircle size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Rejeitada</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-500/20 shadow-sm shadow-rose-500/5">
+                    <XCircle size={11} />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Rejeitada</span>
                 </div>
             );
         }
         if (s === 'cancelado') {
             return (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-500/20">
-                    <XCircle size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Cancelada</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-500/20">
+                    <XCircle size={11} />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Cancelada</span>
                 </div>
             );
         }
         return (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-500/10 text-gray-500 rounded-xl border border-gray-500/20">
-                <Clock3 size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{status || 'Pendente'}</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-500/10 text-gray-500 rounded-lg border border-gray-500/20">
+                <Clock3 size={11} />
+                <span className="text-[9px] font-black uppercase tracking-wider">{status || 'Pendente'}</span>
             </div>
         );
     };
@@ -1465,63 +1465,30 @@ ${messageWithPlaceholder}`;
                                                 {(() => {
                                                     const p = invoice.payload;
                                                     
-                                                    // Prioriza as novas colunas físicas do banco, fazendo fallback pro payload antigo
                                                     const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
                                                     const chaveAcesso = invoice.access_key || p?.retorno?.chaveAcesso || p?.chaveAcesso || '';
                                                     const dpsNumero = invoice.dps_number || p?.retorno?.dps?.numero || p?.dps?.numero || p?.nacional?.dps?.numero || p?.DPS?.infDPS?.nDPS || p?.nDPS || p?.retorno?.rps?.numero || p?.rps?.numero;
                                                     const dpsSerie = invoice.dps_serie || p?.retorno?.dps?.serie || p?.dps?.serie || p?.nacional?.dps?.serie || p?.DPS?.infDPS?.serie || p?.serie || p?.retorno?.rps?.serie || p?.rps?.serie;
-                                                    
                                                     const idIntegracao = invoice.payload?.idIntegracao || invoice.external_id || '';
                                                     
-                                                    if (num) {
-                                                        return (
-                                                            <>
-                                                                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">
-                                                                    Número da Nota: <span className="text-blue-600 dark:text-blue-400 font-extrabold">Nº {num}</span>
-                                                                </span>
-                                                                {chaveAcesso && (
-                                                                    <div className="mt-1">
-                                                                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-semibold break-all leading-relaxed bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/60 inline-block max-w-full select-all">
-                                                                            Chave: {chaveAcesso}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {(dpsNumero || dpsSerie) && (
-                                                                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1.5 flex items-center gap-1">
-                                                                        {dpsNumero ? `DPS: ${dpsNumero}` : ''}
-                                                                        {dpsNumero && dpsSerie ? ' - ' : ''}
-                                                                        {dpsSerie ? `Série: ${dpsSerie}` : ''}
-                                                                    </span>
-                                                                )}
-                                                                {idIntegracao && idIntegracao !== chaveAcesso && (
-                                                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all mt-1">
-                                                                        ID: {idIntegracao}
-                                                                    </span>
-                                                                )}
-                                                            </>
-                                                        );
-                                                    }
-                                                    
                                                     return (
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-gray-900 dark:text-gray-100 text-base break-all leading-tight">
-                                                                {idIntegracao}
-                                                            </span>
-                                                            {chaveAcesso && (
-                                                                <div className="mt-1">
-                                                                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono font-semibold break-all leading-relaxed bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/60 inline-block max-w-full select-all">
-                                                                        Chave: {chaveAcesso}
+                                                        <>
+                                                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                                    Número da Nota: <span className="text-blue-600 dark:text-blue-400 font-extrabold">Nº {num || idIntegracao}</span>
+                                                                </span>
+                                                                {(dpsNumero || dpsSerie) && (
+                                                                    <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap">
+                                                                        {" - "}DPS: {dpsNumero || '-'} - Série: {dpsSerie || '-'}
                                                                     </span>
-                                                                </div>
-                                                            )}
-                                                            {(dpsNumero || dpsSerie) && (
-                                                                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1.5">
-                                                                    {dpsNumero ? `DPS: ${dpsNumero}` : ''}
-                                                                    {dpsNumero && dpsSerie ? ' - ' : ''}
-                                                                    {dpsSerie ? `Série: ${dpsSerie}` : ''}
+                                                                )}
+                                                            </div>
+                                                            {chaveAcesso && (
+                                                                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold bg-emerald-50/50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/30 select-all max-w-[340px] truncate block mt-0.5" title={chaveAcesso}>
+                                                                    Chave: {chaveAcesso}
                                                                 </span>
                                                             )}
-                                                        </div>
+                                                        </>
                                                     );
                                                 })()}
                                             </div>
@@ -1555,24 +1522,29 @@ ${messageWithPlaceholder}`;
                                                         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
                                                     })()}
                                                 </span>
-                                                <div className="flex flex-col gap-1 items-start mt-0.5">
+                                                <div className="flex flex-row items-center gap-1.5 mt-0.5 flex-wrap">
                                                     <Tooltip content={(() => {
                                                         const p = invoice.payload;
                                                         const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
                                                         const servico = servicos[0];
                                                         return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
                                                     })()}>
-                                                        <span className="text-[10px] text-blue-500 font-medium cursor-help flex items-center gap-1 hover:underline">
+                                                        <span className="text-[10px] text-blue-500 font-bold cursor-help flex items-center gap-1 hover:underline whitespace-nowrap bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/30 dark:border-blue-900/10">
                                                             <Search size={10} />
                                                             Ver Descrição
                                                         </span>
                                                     </Tooltip>
-                                                    {renderInvoiceRates(invoice)}
+                                                    {renderInvoiceRates(invoice) && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-300 dark:text-slate-700 text-[10px] font-bold hidden sm:inline">-</span>
+                                                            {renderInvoiceRates(invoice)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-3 px-6">
-                                            <div className="flex flex-col gap-1.5 items-start">
+                                            <div className="flex flex-row items-center gap-1.5 flex-wrap">
                                                 {getStatusBadge(invoice.status)}
 
                                                 {/* Badge Visual da Cobrança Criada (Pix, Cartão ou Boleto) */}
