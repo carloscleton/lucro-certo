@@ -8,6 +8,7 @@ import { useCompanies } from '../hooks/useCompanies';
 import { fiscalService } from '../services/fiscalService';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/constants';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
@@ -22,6 +23,7 @@ import { DeleteProtectionModal } from '../components/transactions/DeleteProtecti
 import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 import { formatPhoneWhatsapp } from '../utils/phoneUtils';
+import { getTabPermission } from '../config/permissions';
 import { usePaymentGateways } from '../hooks/usePaymentGateways';
 import { useCharges } from '../hooks/useCharges';
 
@@ -187,9 +189,20 @@ export function Invoices() {
     const { companies } = useCompanies();
     const { gateways } = usePaymentGateways();
     const { charges, fetchCharges } = useCharges();
+    const navigate = useNavigate();
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+
+    const userRole = currentEntity.type === 'company' ? (currentEntity.role || 'member') : 'admin';
+    const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
+    const hasEmailTabPermission = currentEntity.type === 'personal' || getTabPermission('email', roleForMatrix as any, currentEntity.settings || {});
+
+    const resendConfig = currentCompany?.settings?.resend_config || {};
+    const isEmailConfigured = !!(
+        (resendConfig.provider === 'smtp' && resendConfig.smtp_host && resendConfig.smtp_user) ||
+        (resendConfig.provider !== 'smtp' && resendConfig.apiKey)
+    );
 
     const getInvoiceCharge = (invoice: any) => {
         if (!invoice || !charges || charges.length === 0) return null;
@@ -1778,10 +1791,28 @@ ${messageWithPlaceholder}`;
                                                                 <MessageCircle size={18} />
                                                             </button>
                                                         </Tooltip>
-                                                        <Tooltip content="Enviar por E-mail">
+                                                        <Tooltip content={
+                                                            !hasEmailTabPermission 
+                                                                ? "E-mail indisponível: Você não tem permissão para este serviço." 
+                                                                : !isEmailConfigured 
+                                                                    ? "E-mail indisponível: Servidor de e-mail não configurado. Clique para ir em Configurações > E-mail." 
+                                                                    : "Enviar por E-mail"
+                                                        }>
                                                             <button
-                                                                onClick={() => handleOpenSendEmail(invoice)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all shadow-sm"
+                                                                disabled={!hasEmailTabPermission}
+                                                                onClick={() => {
+                                                                    if (!hasEmailTabPermission) return;
+                                                                    if (!isEmailConfigured) {
+                                                                        navigate('/dashboard/settings?tab=email');
+                                                                        return;
+                                                                    }
+                                                                    handleOpenSendEmail(invoice);
+                                                                }}
+                                                                className={clsx(
+                                                                    "h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl transition-all shadow-sm",
+                                                                    !hasEmailTabPermission && "opacity-40 cursor-not-allowed hover:text-sky-600 dark:hover:text-sky-400",
+                                                                    hasEmailTabPermission && !isEmailConfigured && "border-2 border-dashed border-sky-400/50 hover:bg-sky-50 dark:hover:bg-sky-900/30 animate-pulse"
+                                                                )}
                                                             >
                                                                 <Mail size={18} />
                                                             </button>
