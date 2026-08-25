@@ -16,7 +16,8 @@ import {
     Link as LinkIcon,
     Star,
     Percent,
-    Calendar
+    Calendar,
+    Receipt
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -542,38 +543,54 @@ export function Payments() {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {(charge.status === 'approved' || charge.status === 'pending') && (
-                                                        <>
-                                                            <Tooltip content="Ver Detalhes">
-                                                                <button
-                                                                    onClick={() => setViewingCharge(charge)}
-                                                                    className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
-                                                                >
-                                                                    <Search size={16} />
-                                                                </button>
-                                                            </Tooltip>
-                                                            {charge.payment_link && (
-                                                                <Tooltip content="Abrir Link">
-                                                                    <a
-                                                                        href={charge.payment_link}
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-all shadow-sm"
+                                                    {(() => {
+                                                        const isPaid = charge.status === 'approved' || charge.status === 'paid';
+                                                        return (
+                                                            <>
+                                                                {(charge.status === 'approved' || charge.status === 'pending') && (
+                                                                    <>
+                                                                        <Tooltip content="Ver Detalhes">
+                                                                            <button
+                                                                                onClick={() => setViewingCharge(charge)}
+                                                                                className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
+                                                                            >
+                                                                                <Search size={16} />
+                                                                            </button>
+                                                                        </Tooltip>
+                                                                        {charge.payment_link && (
+                                                                            <Tooltip content={isPaid ? "Ver Pagamento" : "Abrir Link"}>
+                                                                                <a
+                                                                                    href={charge.payment_link}
+                                                                                    target="_blank"
+                                                                                    rel="noreferrer"
+                                                                                    className={`p-2.5 rounded-xl transition-all shadow-sm ${
+                                                                                        isPaid 
+                                                                                            ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-100" 
+                                                                                            : "bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100"
+                                                                                    }`}
+                                                                                >
+                                                                                    {isPaid ? <Receipt size={16} /> : <ExternalLink size={16} />}
+                                                                                </a>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                                <Tooltip content={isPaid ? "Cobranças pagas não podem ser excluídas" : "Excluir"}>
+                                                                    <button
+                                                                        disabled={isPaid}
+                                                                        onClick={() => !isPaid && handleDelete(charge)}
+                                                                        className={`p-2.5 rounded-xl transition-all shadow-sm ${
+                                                                            isPaid 
+                                                                                ? "bg-gray-100 dark:bg-slate-800 text-gray-300 dark:text-slate-600 cursor-not-allowed opacity-50" 
+                                                                                : "bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600"
+                                                                        }`}
                                                                     >
-                                                                        <ExternalLink size={16} />
-                                                                    </a>
+                                                                        <Trash2 size={16} />
+                                                                    </button>
                                                                 </Tooltip>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                    <Tooltip content="Excluir">
-                                                        <button
-                                                            onClick={() => handleDelete(charge)}
-                                                            className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </Tooltip>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </td>
                                         </tr>
