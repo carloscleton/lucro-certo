@@ -249,6 +249,28 @@ export function Invoices() {
     const [activeInstances, setActiveInstances] = useState<any[]>([]);
     const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
     const [goInstancesList, setGoInstancesList] = useState<string[]>([]);
+    const [hasConnectedWhatsApp, setHasConnectedWhatsApp] = useState<boolean>(false);
+
+    useEffect(() => {
+        const checkWhatsAppConnection = async () => {
+            if (!currentEntity?.id) return;
+            try {
+                const { data } = await supabase
+                    .from('instances')
+                    .select('id')
+                    .eq('status', 'connected')
+                    .neq('is_active', false)
+                    .eq('company_id', currentEntity.id)
+                    .limit(1);
+                setHasConnectedWhatsApp(!!(data && data.length > 0));
+            } catch (err) {
+                console.warn('Erro ao verificar conexao do WhatsApp:', err);
+                setHasConnectedWhatsApp(false);
+            }
+        };
+
+        checkWhatsAppConnection();
+    }, [currentEntity?.id]);
 
     useEffect(() => {
         if (!invoices || invoices.length === 0 || !currentEntity?.id) return;
@@ -1744,10 +1766,14 @@ ${messageWithPlaceholder}`;
                                                 )}
                                                 {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <>
-                                                        <Tooltip content="Enviar por WhatsApp">
+                                                        <Tooltip content={hasConnectedWhatsApp ? "Enviar por WhatsApp" : "WhatsApp indisponível: Nenhuma instância conectada e ativa. Acesse a aba WhatsApp para conectar."}>
                                                             <button
+                                                                disabled={!hasConnectedWhatsApp}
                                                                 onClick={() => handleOpenSendWhatsApp(invoice)}
-                                                                className="h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
+                                                                className={clsx(
+                                                                    "h-10 w-10 flex items-center justify-center glass-morphism text-teal-600 dark:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all shadow-sm",
+                                                                    !hasConnectedWhatsApp && "opacity-40 cursor-not-allowed hover:text-teal-600 dark:hover:text-teal-400"
+                                                                )}
                                                             >
                                                                 <MessageCircle size={18} />
                                                             </button>
