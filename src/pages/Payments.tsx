@@ -564,18 +564,6 @@ export function Payments() {
                                                                     </a>
                                                                 </Tooltip>
                                                             )}
-                                                            <Tooltip content="Copiar Link/PIX">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const key = charge.qr_code || charge.payment_link || '';
-                                                                        navigator.clipboard.writeText(key);
-                                                                        notify('success', 'Copiado', charge.qr_code ? 'Código PIX copiado!' : 'Link de pagamento copiado!');
-                                                                    }}
-                                                                    className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"
-                                                                >
-                                                                    <Copy size={16} />
-                                                                </button>
-                                                            </Tooltip>
                                                         </>
                                                     )}
                                                     <Tooltip content="Excluir">
