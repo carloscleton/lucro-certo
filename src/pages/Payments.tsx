@@ -564,9 +564,20 @@ export function Payments() {
                                                             const currencyCode = charge.currency || 'BRL';
                                                             const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
                                                             const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+                                                            
+                                                            const paidDaysDelay = (() => {
+                                                                if (!charge.due_date || !charge.paid_at) return 0;
+                                                                const due = getStrictlyDueDate(charge.due_date);
+                                                                const paid = getStrictlyDueDate(charge.paid_at);
+                                                                if (paid.getTime() <= due.getTime()) return 0;
+                                                                const diffTime = Math.abs(paid.getTime() - due.getTime());
+                                                                return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                            })();
+
                                                             return (
-                                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium leading-none mt-0.5">
-                                                                    Original: {formatter.format(charge.amount)} (+ {formatter.format(charge.interest_amount)} juros)
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-1 leading-normal">
+                                                                    Original: {formatter.format(charge.amount)} | Juros: {formatter.format(charge.interest_amount)}
+                                                                    {paidDaysDelay > 0 && ` (${paidDaysDelay} ${paidDaysDelay === 1 ? 'dia' : 'dias'} de atraso)`}
                                                                 </span>
                                                             );
                                                         }
@@ -1083,9 +1094,20 @@ export function Payments() {
                                     const currencyCode = viewingCharge.currency || 'BRL';
                                     const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
                                     const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+                                    
+                                    const paidDaysDelay = (() => {
+                                        if (!viewingCharge.due_date || !viewingCharge.paid_at) return 0;
+                                        const due = getStrictlyDueDate(viewingCharge.due_date);
+                                        const paid = getStrictlyDueDate(viewingCharge.paid_at);
+                                        if (paid.getTime() <= due.getTime()) return 0;
+                                        const diffTime = Math.abs(paid.getTime() - due.getTime());
+                                        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                    })();
+
                                     return (
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-bold leading-none mt-1">
-                                            Original: {formatter.format(viewingCharge.amount)} (+ {formatter.format(viewingCharge.interest_amount)} juros)
+                                        <span className="text-sm text-gray-500 dark:text-gray-400 font-bold leading-normal mt-2">
+                                            Original: {formatter.format(viewingCharge.amount)} | Juros: {formatter.format(viewingCharge.interest_amount)}
+                                            {paidDaysDelay > 0 && ` (${paidDaysDelay} ${paidDaysDelay === 1 ? 'dia' : 'dias'} de atraso)`}
                                         </span>
                                     );
                                 }

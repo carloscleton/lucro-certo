@@ -10366,9 +10366,10 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
                 paid_at: isApproved ? (result.paid_at || new Date().toISOString()) : null
             };
 
-            if (isApproved && result.paid_amount) {
-                patchData.paid_amount = result.paid_amount;
-                if (charge.amount && result.paid_amount > Number(charge.amount)) {
+            if (isApproved) {
+                if (result.paid_amount) patchData.paid_amount = result.paid_amount;
+                if (result.receipt_url) patchData.payment_link = result.receipt_url;
+                if (charge.amount && result.paid_amount && result.paid_amount > Number(charge.amount)) {
                     patchData.interest_amount = Number((result.paid_amount - Number(charge.amount)).toFixed(2));
                 } else {
                     patchData.interest_amount = 0;
@@ -10524,7 +10525,7 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
         }
 
         const adapter = PaymentFactory.getAdapter(provider, config, is_sandbox);
-        const { external_reference, status, paid_amount } = await adapter.handleNotification(notification);
+        const { external_reference, status, paid_amount, receipt_url } = await adapter.handleNotification(notification);
 
         console.log(`✅ Pagamento ${external_reference} atualizado para: ${status} ${paid_amount ? `(Valor Pago: ${paid_amount})` : ''}`);
 
@@ -10539,9 +10540,10 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
             status: status,
             paid_at: status === 'approved' ? new Date().toISOString() : null
         };
-        if (status === 'approved' && paid_amount) {
-            patchData.paid_amount = paid_amount;
-            if (originalCharge && paid_amount > Number(originalCharge.amount)) {
+        if (status === 'approved') {
+            if (paid_amount) patchData.paid_amount = paid_amount;
+            if (receipt_url) patchData.payment_link = receipt_url;
+            if (paid_amount && originalCharge && paid_amount > Number(originalCharge.amount)) {
                 patchData.interest_amount = Number((paid_amount - Number(originalCharge.amount)).toFixed(2));
             } else {
                 patchData.interest_amount = 0;

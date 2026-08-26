@@ -9,6 +9,7 @@ export interface PaymentResponse {
     status: 'pending' | 'approved' | 'rejected' | 'cancelled';
     paid_amount?: number;
     paid_at?: string;
+    receipt_url?: string;
     error?: string;
 }
 
@@ -45,6 +46,6 @@ export interface ChargeRequest {
 export interface PaymentAdapter {
     createCharge(request: ChargeRequest): Promise<PaymentResponse>;
     getPaymentStatus(payment_id: string): Promise<PaymentResponse>;
-    handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }>;
+    handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number; receipt_url?: string }>;
     testConnection(): Promise<{ success: boolean; message: string }>;
 }

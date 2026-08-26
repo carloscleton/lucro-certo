@@ -105,7 +105,8 @@ export class AsaasAdapter implements PaymentAdapter {
                 payment_id: payment.id,
                 status: mappedStatus,
                 paid_amount: (mappedStatus === 'approved' || mappedStatus === 'paid') ? (payment.confirmedValue || payment.value) : undefined,
-                paid_at: payment.clientPaymentDate || payment.paymentDate || undefined
+                paid_at: payment.clientPaymentDate || payment.paymentDate || undefined,
+                receipt_url: payment.transactionReceiptUrl || undefined
             };
         } catch (error: any) {
             console.error('Asaas status check error:', error.message);
@@ -135,7 +136,7 @@ export class AsaasAdapter implements PaymentAdapter {
         }
     }
 
-    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }> {
+    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number; receipt_url?: string }> {
         // Asaas Webhook payload contains the payment object
         const payment = payload.payment;
         if (!payment) throw new Error('Invalid Asaas notification payload');
@@ -144,7 +145,8 @@ export class AsaasAdapter implements PaymentAdapter {
             external_reference: payment.externalReference,
             status: this.mapStatus(payment.status),
             paid_amount: payment.confirmedValue || payment.value,
-            fee: payment.netValue ? (payment.value - payment.netValue) : undefined
+            fee: payment.netValue ? (payment.value - payment.netValue) : undefined,
+            receipt_url: payment.transactionReceiptUrl || undefined
         };
     }
 
