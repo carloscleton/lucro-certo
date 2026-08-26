@@ -1386,24 +1386,13 @@ export function Payments() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-3 pt-2">
+                        <div className="pt-2">
                             <Button
-                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white rounded-2xl py-3 font-bold uppercase tracking-wider text-xs"
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white rounded-2xl py-3 font-bold uppercase tracking-wider text-xs"
                                 onClick={() => setViewingReceipt(null)}
                             >
                                 Fechar
                             </Button>
-                            {viewingReceipt.payment_link && viewingReceipt.payment_link.startsWith('http') && (
-                                <a
-                                    href={viewingReceipt.payment_link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3 font-bold uppercase tracking-wider text-xs text-center flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/10"
-                                >
-                                    <ExternalLink size={14} />
-                                    Ver PDF Externo
-                                </a>
-                            )}
                         </div>
                     </div>
                 )}
