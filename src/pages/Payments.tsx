@@ -203,6 +203,7 @@ export function Payments() {
                         provider: 'unified',
                         amount: Number(amount),
                         description,
+                        due_date: dueDate || getDefaultDueDate(),
                         currency: selectedCurrency,
                         external_reference: `VINX_${Date.now()}`,
                         payment_method: selectedMethods.length === 3 ? 'all' : selectedMethods.join(','),
