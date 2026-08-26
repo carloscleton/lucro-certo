@@ -65,6 +65,7 @@ export function Payments() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [syncingChargeId, setSyncingChargeId] = useState<string | null>(null);
+    const [viewingReceipt, setViewingReceipt] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
 
@@ -681,21 +682,28 @@ export function Payments() {
                                                                                 <Search size={16} />
                                                                             </button>
                                                                         </Tooltip>
-                                                                        {charge.payment_link && (
-                                                                            <Tooltip content={isPaid ? "Ver Pagamento" : "Abrir Link"}>
-                                                                                <a
-                                                                                    href={charge.payment_link}
-                                                                                    target="_blank"
-                                                                                    rel="noreferrer"
-                                                                                    className={`p-2.5 rounded-xl transition-all shadow-sm ${
-                                                                                        isPaid 
-                                                                                            ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-100" 
-                                                                                            : "bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100"
-                                                                                    }`}
+                                                                        {isPaid ? (
+                                                                            <Tooltip content="Ver Comprovante">
+                                                                                <button
+                                                                                    onClick={() => setViewingReceipt(charge)}
+                                                                                    className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all shadow-sm"
                                                                                 >
-                                                                                    {isPaid ? <Receipt size={16} /> : <ExternalLink size={16} />}
-                                                                                </a>
+                                                                                    <Receipt size={16} />
+                                                                                </button>
                                                                             </Tooltip>
+                                                                        ) : (
+                                                                            charge.payment_link && (
+                                                                                <Tooltip content="Abrir Link">
+                                                                                    <a
+                                                                                        href={charge.payment_link}
+                                                                                        target="_blank"
+                                                                                        rel="noreferrer"
+                                                                                        className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100 rounded-xl transition-all shadow-sm"
+                                                                                    >
+                                                                                        <ExternalLink size={16} />
+                                                                                    </a>
+                                                                                </Tooltip>
+                                                                            )
                                                                         )}
                                                                     </>
                                                                 )}
@@ -1262,6 +1270,141 @@ export function Payments() {
                             <Button variant="ghost" className="w-full font-bold uppercase tracking-widest text-[10px] text-gray-400 hover:text-gray-600 pt-4" onClick={() => setViewingCharge(null)}>
                                 Fechar Detalhes
                             </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* COMPROVANTE DE PAGAMENTO MODAL */}
+            <Modal
+                isOpen={!!viewingReceipt}
+                onClose={() => setViewingReceipt(null)}
+                title="Comprovante de Pagamento"
+                icon={Receipt}
+                maxWidth="max-w-md"
+            >
+                {viewingReceipt && (
+                    <div className="py-6 text-center space-y-6 animate-in fade-in duration-300">
+                        {/* Status Icon */}
+                        <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                                <CheckCircle2 size={36} className="text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                                Pagamento Confirmado
+                            </h3>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                                Ref: {viewingReceipt.external_reference}
+                            </span>
+                        </div>
+
+                        {/* Amount Box */}
+                        <div className="bg-emerald-50/50 dark:bg-slate-900/50 border border-emerald-100/30 dark:border-slate-800 rounded-3xl p-6">
+                            <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 italic tracking-tighter tabular-nums">
+                                {(() => {
+                                    const currencyCode = viewingReceipt.currency || 'BRL';
+                                    const locale = currencyCode === 'BRL' ? 'pt-BR' : 'en-US';
+                                    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingReceipt.paid_amount || viewingReceipt.amount);
+                                })()}
+                            </span>
+                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mt-1">Valor Total Pago</p>
+                        </div>
+
+                        {/* Details Table */}
+                        <div className="bg-gray-50 dark:bg-slate-900 rounded-3xl p-6 text-left space-y-4 border border-gray-100 dark:border-slate-800">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</label>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{viewingReceipt.customer?.name || 'Cliente Geral'}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Original</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                        {(() => {
+                                            const currencyCode = viewingReceipt.currency || 'BRL';
+                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : 'en-US';
+                                            return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingReceipt.amount);
+                                        })()}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Juros Pago</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                        {(() => {
+                                            const currencyCode = viewingReceipt.currency || 'BRL';
+                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : 'en-US';
+                                            return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingReceipt.interest_amount || 0);
+                                        })()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vencimento</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{formatUTCDate(viewingReceipt.due_date)}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pagamento</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                        {viewingReceipt.paid_at ? formatUTCDate(viewingReceipt.paid_at) : 'Confirmado'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                if (!viewingReceipt.due_date || !viewingReceipt.paid_at) return null;
+                                const due = getStrictlyDueDate(viewingReceipt.due_date);
+                                const paid = getStrictlyDueDate(viewingReceipt.paid_at);
+                                if (paid.getTime() <= due.getTime()) return null;
+                                const diffTime = Math.abs(paid.getTime() - due.getTime());
+                                const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                if (days === 0) return null;
+
+                                return (
+                                    <div>
+                                        <label className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Atraso no Pagamento</label>
+                                        <p className="text-sm font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">
+                                            {days} {days === 1 ? 'dia' : 'dias'} de atraso
+                                        </p>
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gateway</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 capitalize">{viewingReceipt.provider?.replace('_', ' ')}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Modo</label>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
+                                        {viewingReceipt.is_sandbox ? 'Homologação' : 'Produção'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white rounded-2xl py-3 font-bold uppercase tracking-wider text-xs"
+                                onClick={() => setViewingReceipt(null)}
+                            >
+                                Fechar
+                            </Button>
+                            {viewingReceipt.payment_link && viewingReceipt.payment_link.startsWith('http') && (
+                                <a
+                                    href={viewingReceipt.payment_link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3 font-bold uppercase tracking-wider text-xs text-center flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/10"
+                                >
+                                    <ExternalLink size={14} />
+                                    Ver PDF Externo
+                                </a>
+                            )}
                         </div>
                     </div>
                 )}
