@@ -36,6 +36,7 @@ import { formatCurrency } from '../utils/currencyUtils';
 import { supabase } from '../lib/supabase';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
+import axios from 'axios';
 
 import { API_BASE_URL } from '../lib/constants';
 
