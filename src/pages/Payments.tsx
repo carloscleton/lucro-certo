@@ -18,7 +18,8 @@ import {
     Star,
     Percent,
     Calendar,
-    Receipt
+    Receipt,
+    RefreshCw
 } from 'lucide-react';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Button } from '../components/ui/Button';
@@ -35,6 +36,8 @@ import { formatCurrency } from '../utils/currencyUtils';
 import { supabase } from '../lib/supabase';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
+
+import { API_BASE_URL } from '../lib/constants';
 
 const formatUTCDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -60,6 +63,7 @@ export function Payments() {
     const { notify } = useNotification();
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [syncingChargeId, setSyncingChargeId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
 
@@ -1159,6 +1163,44 @@ export function Payments() {
                         </div>
 
                         <div className="space-y-4 pt-4">
+                            {viewingCharge.status === 'pending' && (
+                                <Button
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 shadow-xl shadow-indigo-500/20 font-black uppercase tracking-widest text-xs"
+                                    disabled={syncingChargeId === viewingCharge.id}
+                                    onClick={async () => {
+                                        setSyncingChargeId(viewingCharge.id);
+                                        try {
+                                            const { data: sessionData } = await supabase.auth.getSession();
+                                            const token = sessionData.session?.access_token;
+                                            
+                                            const res = await axios.get(`${API_BASE_URL}/payments/status/${viewingCharge.id}`, {
+                                                params: {
+                                                    companyId: viewingCharge.company_id,
+                                                    provider: viewingCharge.provider
+                                                },
+                                                headers: {
+                                                    'Authorization': `Bearer ${token || ''}`
+                                                }
+                                            });
+                                            if (res.data?.status === 'approved' || res.data?.status === 'paid') {
+                                                notify('success', 'Pago', 'O pagamento foi confirmado e a baixa foi dada com sucesso!');
+                                                setViewingCharge(null);
+                                            } else {
+                                                notify('info', 'Pendente', 'O gateway ainda informa que este pagamento está pendente.');
+                                            }
+                                        } catch (err: any) {
+                                            console.error('Error syncing payment:', err);
+                                            notify('error', 'Erro', 'Falha ao sincronizar pagamento: ' + (err.response?.data?.error || err.message));
+                                        } finally {
+                                            setSyncingChargeId(null);
+                                        }
+                                    }}
+                                >
+                                    <RefreshCw size={18} className={`mr-2 ${syncingChargeId === viewingCharge.id ? 'animate-spin' : ''}`} />
+                                    {syncingChargeId === viewingCharge.id ? 'Sincronizando...' : 'Sincronizar com Gateway'}
+                                </Button>
+                            )}
+
                             {viewingCharge.qr_code && (
                                 <Button
                                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-4 shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs"
