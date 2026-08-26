@@ -150,9 +150,17 @@ export function Payments() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const approved = charges
+        const approvedPaidTotal = charges
+            .filter(c => c.status === 'approved' || c.status === 'paid')
+            .reduce((acc, curr) => acc + Number(curr.paid_amount || curr.amount), 0);
+
+        const approvedOriginalTotal = charges
             .filter(c => c.status === 'approved' || c.status === 'paid')
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+        const approvedInterestTotal = charges
+            .filter(c => c.status === 'approved' || c.status === 'paid')
+            .reduce((acc, curr) => acc + Number(curr.interest_amount || 0), 0);
 
         const overdueCharges = charges.filter(c => {
             if (c.status !== 'pending' || !c.due_date) return false;
@@ -173,10 +181,20 @@ export function Payments() {
 
         const activeLinks = charges.filter(c => c.status === 'pending').length;
 
+        const currencyCode = window.__CURRENCY_CODE__ || 'BRL';
+        const locale = window.__CURRENCY_LOCALE__ || 'pt-BR';
+        const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+
         return [
-            { label: 'Total Recebido', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(approved), color: 'emerald', icon: ArrowDownLeft },
-            { label: 'Pendente (A Vencer)', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(pending), color: 'amber', icon: Clock },
-            { label: 'Em Atraso', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(overdue), color: 'rose', icon: AlertTriangle },
+            { 
+                label: 'Total Recebido', 
+                value: formatter.format(approvedPaidTotal), 
+                subValue: approvedInterestTotal > 0 ? `Original: ${formatter.format(approvedOriginalTotal)} | Juros: ${formatter.format(approvedInterestTotal)}` : undefined,
+                color: 'emerald', 
+                icon: ArrowDownLeft 
+            },
+            { label: 'Pendente (A Vencer)', value: formatter.format(pending), color: 'amber', icon: Clock },
+            { label: 'Em Atraso', value: formatter.format(overdue), color: 'rose', icon: AlertTriangle },
             { label: 'Links Ativos', value: activeLinks.toString(), color: 'blue', icon: CreditCard },
         ];
     }, [charges]);
@@ -455,6 +473,11 @@ export function Payments() {
                         </div>
                         <h3 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">{stat.label}</h3>
                         <p className="text-3xl font-black text-gray-900 dark:text-white mt-1 tabular-nums italic tracking-tighter">{stat.value}</p>
+                        {stat.subValue && (
+                            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mt-1.5 leading-normal">
+                                {stat.subValue}
+                            </p>
+                        )}
                     </div>
                 ))}
             </div>
