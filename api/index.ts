@@ -10493,15 +10493,20 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
         }
 
         const adapter = PaymentFactory.getAdapter(provider, config, is_sandbox);
-        const { external_reference, status } = await adapter.handleNotification(notification);
+        const { external_reference, status, paid_amount } = await adapter.handleNotification(notification);
 
-        console.log(`✅ Pagamento ${external_reference} atualizado para: ${status}`);
+        console.log(`✅ Pagamento ${external_reference} atualizado para: ${status} ${paid_amount ? `(Valor Pago: ${paid_amount})` : ''}`);
 
         // 2. Atualizar o registro na tabela company_charges
-        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id,description,amount`, {
+        const patchData: any = {
             status: status,
             paid_at: status === 'approved' ? new Date().toISOString() : null
-        }, {
+        };
+        if (status === 'approved' && paid_amount) {
+            patchData.amount = paid_amount;
+        }
+
+        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id,description,amount`, patchData, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Content-Type': 'application/json',
@@ -10521,10 +10526,15 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
                     payment_status: 'paid'
                 }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
 
-                await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${chargeData.quote_id}`, {
+                const patchTransaction: any = {
                     status: 'received',
                     payment_date: new Date().toISOString().split('T')[0]
-                }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
+                };
+                if (paid_amount) {
+                    patchTransaction.amount = paid_amount;
+                }
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${chargeData.quote_id}`, patchTransaction, { headers: { 'apikey': SUPABASE_ANON_KEY } });
             }
 
             // B) Sincronizar com Assinatura da Plataforma (se a cobrança for do plano "Lucro Certo")

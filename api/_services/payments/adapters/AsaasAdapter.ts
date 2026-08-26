@@ -130,14 +130,16 @@ export class AsaasAdapter implements PaymentAdapter {
         }
     }
 
-    async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
+    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }> {
         // Asaas Webhook payload contains the payment object
         const payment = payload.payment;
         if (!payment) throw new Error('Invalid Asaas notification payload');
 
         return {
             external_reference: payment.externalReference,
-            status: this.mapStatus(payment.status)
+            status: this.mapStatus(payment.status),
+            paid_amount: payment.confirmedValue || payment.value,
+            fee: payment.netValue ? (payment.value - payment.netValue) : undefined
         };
     }
 

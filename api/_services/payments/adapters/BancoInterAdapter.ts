@@ -334,7 +334,7 @@ export class BancoInterAdapter implements PaymentAdapter {
         return Buffer.from(pdfBase64);
     }
 
-    async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
+    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }> {
         const item = Array.isArray(payload) ? payload[0] : payload;
         const nossoNumero = item?.nossoNumero || item?.pix?.[0]?.txid || '';
         
@@ -346,7 +346,8 @@ export class BancoInterAdapter implements PaymentAdapter {
 
         return {
             external_reference: nossoNumero,
-            status: this.mapStatus(situacao)
+            status: this.mapStatus(situacao),
+            paid_amount: item?.valorPago ? Number(item.valorPago) : undefined
         };
     }
 

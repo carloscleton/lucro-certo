@@ -43,6 +43,6 @@ export interface ChargeRequest {
 export interface PaymentAdapter {
     createCharge(request: ChargeRequest): Promise<PaymentResponse>;
     getPaymentStatus(payment_id: string): Promise<PaymentResponse>;
-    handleNotification(payload: any): Promise<{ external_reference: string; status: string }>;
+    handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }>;
     testConnection(): Promise<{ success: boolean; message: string }>;
 }

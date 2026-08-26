@@ -88,7 +88,7 @@ export class StripeAdapter implements PaymentAdapter {
         }
     }
 
-    async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
+    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }> {
         // Stripe webhooks send Event objects. We usually look for checkout.session.completed
         const event = payload as Stripe.Event;
 
@@ -96,7 +96,8 @@ export class StripeAdapter implements PaymentAdapter {
             const session = event.data.object as Stripe.Checkout.Session;
             return {
                 external_reference: session.metadata?.external_reference || '',
-                status: 'approved'
+                status: 'approved',
+                paid_amount: session.amount_total ? (session.amount_total / 100) : undefined
             };
         }
 

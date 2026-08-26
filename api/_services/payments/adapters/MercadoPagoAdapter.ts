@@ -152,7 +152,7 @@ export class MercadoPagoAdapter implements PaymentAdapter {
         }
     }
 
-    async handleNotification(payload: any): Promise<{ external_reference: string; status: string }> {
+    async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number }> {
         // Mercado Pago sends ID in different places depending on event
         const id = payload.data?.id || payload.id;
         const type = payload.type || payload.topic;
@@ -164,7 +164,8 @@ export class MercadoPagoAdapter implements PaymentAdapter {
 
             return {
                 external_reference: response.data.external_reference,
-                status: this.mapStatus(response.data.status)
+                status: this.mapStatus(response.data.status),
+                paid_amount: response.data.transaction_details?.total_paid_amount || response.data.transaction_amount
             };
         }
 
