@@ -36,6 +36,21 @@ import { supabase } from '../lib/supabase';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { ResultModal } from '../components/ui/ResultModal';
 
+const formatUTCDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${day}/${month}/${year}`;
+};
+
+const getStrictlyDueDate = (dateString?: string) => {
+    if (!dateString) return new Date();
+    const d = new Date(dateString);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+};
+
 export function Payments() {
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
@@ -135,9 +150,8 @@ export function Payments() {
 
         const overdueCharges = charges.filter(c => {
             if (c.status !== 'pending' || !c.due_date) return false;
-            const dueDate = new Date(c.due_date);
-            dueDate.setHours(0, 0, 0, 0);
-            return today.getTime() > dueDate.getTime();
+            const strictlyDueDate = getStrictlyDueDate(c.due_date);
+            return today.getTime() > strictlyDueDate.getTime();
         });
 
         const overdue = overdueCharges.reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -146,9 +160,8 @@ export function Payments() {
             .filter(c => {
                 if (c.status !== 'pending') return false;
                 if (!c.due_date) return true;
-                const dueDate = new Date(c.due_date);
-                dueDate.setHours(0, 0, 0, 0);
-                return today.getTime() <= dueDate.getTime();
+                const strictlyDueDate = getStrictlyDueDate(c.due_date);
+                return today.getTime() <= strictlyDueDate.getTime();
             })
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
@@ -553,9 +566,8 @@ export function Payments() {
 
                                                     const isOverdue = (() => {
                                                         if (charge.status !== 'pending' || !charge.due_date) return false;
-                                                        const dueDate = new Date(charge.due_date);
-                                                        dueDate.setHours(0, 0, 0, 0);
-                                                        return today.getTime() > dueDate.getTime();
+                                                        const strictlyDueDate = getStrictlyDueDate(charge.due_date);
+                                                        return today.getTime() > strictlyDueDate.getTime();
                                                     })();
 
                                                     return (
@@ -567,7 +579,7 @@ export function Payments() {
                                                                 <span className={`text-[10px] font-medium mt-0.5 ${
                                                                     isOverdue ? "text-rose-600 dark:text-rose-400 font-bold" : "text-gray-400"
                                                                 }`}>
-                                                                    Vence: {new Date(charge.due_date).toLocaleDateString('pt-BR')}
+                                                                    Vence: {formatUTCDate(charge.due_date)}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -581,16 +593,14 @@ export function Payments() {
 
                                                     const isOverdue = (() => {
                                                         if (charge.status !== 'pending' || !charge.due_date) return false;
-                                                        const dueDate = new Date(charge.due_date);
-                                                        dueDate.setHours(0, 0, 0, 0);
-                                                        return today.getTime() > dueDate.getTime();
+                                                        const strictlyDueDate = getStrictlyDueDate(charge.due_date);
+                                                        return today.getTime() > strictlyDueDate.getTime();
                                                     })();
 
                                                     const daysOverdue = (() => {
                                                         if (!isOverdue || !charge.due_date) return 0;
-                                                        const dueDate = new Date(charge.due_date);
-                                                        dueDate.setHours(0, 0, 0, 0);
-                                                        const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+                                                        const strictlyDueDate = getStrictlyDueDate(charge.due_date);
+                                                        const diffTime = Math.abs(today.getTime() - strictlyDueDate.getTime());
                                                         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
                                                     })();
 
@@ -1050,16 +1060,14 @@ export function Payments() {
 
                                     const isOverdue = (() => {
                                         if (viewingCharge.status !== 'pending' || !viewingCharge.due_date) return false;
-                                        const dueDate = new Date(viewingCharge.due_date);
-                                        dueDate.setHours(0, 0, 0, 0);
-                                        return today.getTime() > dueDate.getTime();
+                                        const strictlyDueDate = getStrictlyDueDate(viewingCharge.due_date);
+                                        return today.getTime() > strictlyDueDate.getTime();
                                     })();
 
                                     const daysOverdue = (() => {
                                         if (!isOverdue || !viewingCharge.due_date) return 0;
-                                        const dueDate = new Date(viewingCharge.due_date);
-                                        dueDate.setHours(0, 0, 0, 0);
-                                        const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+                                        const strictlyDueDate = getStrictlyDueDate(viewingCharge.due_date);
+                                        const diffTime = Math.abs(today.getTime() - strictlyDueDate.getTime());
                                         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
                                     })();
 
@@ -1086,7 +1094,7 @@ export function Payments() {
                                                 <span>Criado em: {new Date(viewingCharge.created_at).toLocaleDateString('pt-BR')}</span>
                                                 {viewingCharge.due_date && (
                                                     <span className={isOverdue ? "text-rose-600 dark:text-rose-400 font-bold mt-0.5" : "mt-0.5"}>
-                                                        Vencimento: {new Date(viewingCharge.due_date).toLocaleDateString('pt-BR')}
+                                                        Vencimento: {formatUTCDate(viewingCharge.due_date)}
                                                     </span>
                                                 )}
                                             </div>
