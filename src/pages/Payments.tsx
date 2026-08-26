@@ -674,14 +674,16 @@ export function Payments() {
                                                             <>
                                                                 {(charge.status === 'approved' || charge.status === 'pending') && (
                                                                     <>
-                                                                        <Tooltip content="Ver Detalhes">
-                                                                            <button
-                                                                                onClick={() => setViewingCharge(charge)}
-                                                                                className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
-                                                                            >
-                                                                                <Search size={16} />
-                                                                            </button>
-                                                                        </Tooltip>
+                                                                        {!isPaid && (
+                                                                            <Tooltip content="Ver Detalhes">
+                                                                                <button
+                                                                                    onClick={() => setViewingCharge(charge)}
+                                                                                    className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-emerald-600 rounded-xl transition-all shadow-sm"
+                                                                                >
+                                                                                    <Search size={16} />
+                                                                                </button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                         {isPaid ? (
                                                                             <Tooltip content="Ver Comprovante">
                                                                                 <button
@@ -707,19 +709,16 @@ export function Payments() {
                                                                         )}
                                                                     </>
                                                                 )}
-                                                                <Tooltip content={isPaid ? "Cobranças pagas não podem ser excluídas" : "Excluir"}>
-                                                                    <button
-                                                                        disabled={isPaid}
-                                                                        onClick={() => !isPaid && handleDelete(charge)}
-                                                                        className={`p-2.5 rounded-xl transition-all shadow-sm ${
-                                                                            isPaid 
-                                                                                ? "bg-gray-100 dark:bg-slate-800 text-gray-300 dark:text-slate-600 cursor-not-allowed opacity-50" 
-                                                                                : "bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600"
-                                                                        }`}
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                </Tooltip>
+                                                                {!isPaid && (
+                                                                    <Tooltip content="Excluir">
+                                                                        <button
+                                                                            onClick={() => handleDelete(charge)}
+                                                                            className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </Tooltip>
+                                                                )}
                                                             </>
                                                         );
                                                     })()}
