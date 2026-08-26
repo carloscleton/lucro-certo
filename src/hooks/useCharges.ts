@@ -23,6 +23,8 @@ export interface Charge {
     currency?: string;
     paid_at?: string;
     due_date?: string;
+    paid_amount?: number;
+    interest_amount?: number;
     created_at: string;
     customer?: {
         name: string;

@@ -543,13 +543,31 @@ export function Payments() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter italic">
+                                                <div className="flex flex-col">
+                                                    <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter italic">
+                                                        {(() => {
+                                                            const currencyCode = charge.currency || 'BRL';
+                                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
+                                                            const isPaid = charge.status === 'approved' || charge.status === 'paid';
+                                                            const displayAmt = (isPaid && charge.paid_amount) ? charge.paid_amount : charge.amount;
+                                                            return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(displayAmt);
+                                                        })()}
+                                                    </span>
                                                     {(() => {
-                                                        const currencyCode = charge.currency || 'BRL';
-                                                        const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
-                                                        return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(charge.amount);
+                                                        const isPaid = charge.status === 'approved' || charge.status === 'paid';
+                                                        if (isPaid && charge.paid_amount && charge.interest_amount && charge.interest_amount > 0) {
+                                                            const currencyCode = charge.currency || 'BRL';
+                                                            const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
+                                                            const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+                                                            return (
+                                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium leading-none mt-0.5">
+                                                                    Original: {formatter.format(charge.amount)} (+ {formatter.format(charge.interest_amount)} juros)
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
                                                     })()}
-                                                </span>
+                                                </div>
                                             </td>
                                             <td className="px-8 py-5 text-center">
                                                 <span className={`text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg border ${charge.is_sandbox
@@ -1049,9 +1067,25 @@ export function Payments() {
                                 {(() => {
                                     const currencyCode = viewingCharge.currency || 'BRL';
                                     const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
-                                    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingCharge.amount);
+                                    const isPaid = viewingCharge.status === 'approved' || viewingCharge.status === 'paid';
+                                    const displayAmt = (isPaid && viewingCharge.paid_amount) ? viewingCharge.paid_amount : viewingCharge.amount;
+                                    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(displayAmt);
                                 })()}
                             </span>
+                            {(() => {
+                                const isPaid = viewingCharge.status === 'approved' || viewingCharge.status === 'paid';
+                                if (isPaid && viewingCharge.paid_amount && viewingCharge.interest_amount && viewingCharge.interest_amount > 0) {
+                                    const currencyCode = viewingCharge.currency || 'BRL';
+                                    const locale = currencyCode === 'BRL' ? 'pt-BR' : (currencyCode === 'USD' ? 'en-US' : (currencyCode === 'PYG' ? 'es-PY' : (currencyCode === 'GBP' ? 'en-GB' : 'pt-BR')));
+                                    const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+                                    return (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-bold leading-none mt-1">
+                                            Original: {formatter.format(viewingCharge.amount)} (+ {formatter.format(viewingCharge.interest_amount)} juros)
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
                             <div className="flex flex-col items-center gap-1 mt-2">
                                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{viewingCharge.customer?.name || 'Cliente Geral'}</span>
                                 {(() => {
