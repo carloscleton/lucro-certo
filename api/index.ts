@@ -10360,16 +10360,47 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
         const result = await adapter.getPaymentStatus(targetCode);
 
         if (charge?.id && result.status) {
-            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, {
+            const isApproved = result.status === 'approved' || result.status === 'paid';
+            const patchData: any = {
                 status: result.status,
-                paid_at: ((result.status as any) === 'approved' || (result.status as any) === 'paid') ? new Date().toISOString() : null
-            }, {
+                paid_at: isApproved ? (result.paid_at || new Date().toISOString()) : null
+            };
+
+            if (isApproved && result.paid_amount) {
+                patchData.paid_amount = result.paid_amount;
+                if (charge.amount && result.paid_amount > Number(charge.amount)) {
+                    patchData.interest_amount = Number((result.paid_amount - Number(charge.amount)).toFixed(2));
+                } else {
+                    patchData.interest_amount = 0;
+                }
+            }
+
+            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, patchData, {
                 headers: {
                     'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
                     'Content-Type': 'application/json'
                 }
             });
+
+            // Sync with Quotes and Transactions
+            if (isApproved && charge.quote_id) {
+                console.log(`🔗 Sincronizando aprovação (via Status Check) com Orçamento: ${charge.quote_id}`);
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${charge.quote_id}`, {
+                    payment_status: 'paid'
+                }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
+
+                const patchTransaction: any = {
+                    status: 'received',
+                    payment_date: new Date().toISOString().split('T')[0]
+                };
+                if (result.paid_amount) {
+                    patchTransaction.amount = result.paid_amount;
+                }
+
+                await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${charge.quote_id}`, patchTransaction, { headers: { 'apikey': SUPABASE_ANON_KEY } });
+            }
         }
 
         res.json(result);
@@ -10497,13 +10528,24 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
 
         console.log(`✅ Pagamento ${external_reference} atualizado para: ${status} ${paid_amount ? `(Valor Pago: ${paid_amount})` : ''}`);
 
+        // 1.5. Buscar o registro de cobrança original para obter o valor base (original)
+        const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=id,amount,quote_id`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY }
+        });
+        const originalCharge = chargeRes.data?.[0];
+
         // 2. Atualizar o registro na tabela company_charges
         const patchData: any = {
             status: status,
             paid_at: status === 'approved' ? new Date().toISOString() : null
         };
         if (status === 'approved' && paid_amount) {
-            patchData.amount = paid_amount;
+            patchData.paid_amount = paid_amount;
+            if (originalCharge && paid_amount > Number(originalCharge.amount)) {
+                patchData.interest_amount = Number((paid_amount - Number(originalCharge.amount)).toFixed(2));
+            } else {
+                patchData.interest_amount = 0;
+            }
         }
 
         const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id,description,amount`, patchData, {

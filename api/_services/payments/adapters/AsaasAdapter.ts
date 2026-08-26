@@ -97,10 +97,15 @@ export class AsaasAdapter implements PaymentAdapter {
                 headers: { 'access_token': this.apiKey }
             });
 
+            const payment = response.data;
+            const mappedStatus = this.mapStatus(payment.status);
+
             return {
                 success: true,
-                payment_id: response.data.id,
-                status: this.mapStatus(response.data.status)
+                payment_id: payment.id,
+                status: mappedStatus,
+                paid_amount: (mappedStatus === 'approved' || mappedStatus === 'paid') ? (payment.confirmedValue || payment.value) : undefined,
+                paid_at: payment.clientPaymentDate || payment.paymentDate || undefined
             };
         } catch (error: any) {
             console.error('Asaas status check error:', error.message);

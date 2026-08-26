@@ -7,6 +7,8 @@ export interface PaymentResponse {
     due_date?: string;
     bank_slip_code?: string;
     status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+    paid_amount?: number;
+    paid_at?: string;
     error?: string;
 }
 
