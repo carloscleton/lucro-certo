@@ -10,6 +10,7 @@ import {
     Copy,
     ExternalLink,
     AlertCircle,
+    AlertTriangle,
     Trash2,
     QrCode,
     FileText,
@@ -125,19 +126,38 @@ export function Payments() {
     }, [quotes]);
 
     const stats = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const approved = charges
-            .filter(c => c.status === 'approved')
+            .filter(c => c.status === 'approved' || c.status === 'paid')
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
+        const overdueCharges = charges.filter(c => {
+            if (c.status !== 'pending' || !c.due_date) return false;
+            const dueDate = new Date(c.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return today.getTime() > dueDate.getTime();
+        });
+
+        const overdue = overdueCharges.reduce((acc, curr) => acc + Number(curr.amount), 0);
+
         const pending = charges
-            .filter(c => c.status === 'pending')
+            .filter(c => {
+                if (c.status !== 'pending') return false;
+                if (!c.due_date) return true;
+                const dueDate = new Date(c.due_date);
+                dueDate.setHours(0, 0, 0, 0);
+                return today.getTime() <= dueDate.getTime();
+            })
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
         const activeLinks = charges.filter(c => c.status === 'pending').length;
 
         return [
             { label: 'Total Recebido', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(approved), color: 'emerald', icon: ArrowDownLeft },
-            { label: 'Pendente', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(pending), color: 'amber', icon: Clock },
+            { label: 'Pendente (A Vencer)', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(pending), color: 'amber', icon: Clock },
+            { label: 'Em Atraso', value: new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(overdue), color: 'rose', icon: AlertTriangle },
             { label: 'Links Ativos', value: activeLinks.toString(), color: 'blue', icon: CreditCard },
         ];
     }, [charges]);
@@ -405,7 +425,7 @@ export function Payments() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, idx) => (
                     <div key={idx} className="group bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all duration-500 hover:shadow-2xl">
                         <div className="flex items-center justify-between mb-6">
@@ -525,21 +545,80 @@ export function Payments() {
                                                     {charge.is_sandbox ? 'Teste' : 'Prod'}
                                                 </span>
                                             </td>
-                                            <td className="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                                {new Date(charge.created_at).toLocaleDateString('pt-BR')}
+                                            <td className="px-8 py-5">
+                                                {(() => {
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+
+                                                    const isOverdue = (() => {
+                                                        if (charge.status !== 'pending' || !charge.due_date) return false;
+                                                        const dueDate = new Date(charge.due_date);
+                                                        dueDate.setHours(0, 0, 0, 0);
+                                                        return today.getTime() > dueDate.getTime();
+                                                    })();
+
+                                                    return (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                                Criado: {new Date(charge.created_at).toLocaleDateString('pt-BR')}
+                                                            </span>
+                                                            {charge.due_date && (
+                                                                <span className={`text-[10px] font-medium mt-0.5 ${
+                                                                    isOverdue ? "text-rose-600 dark:text-rose-400 font-bold" : "text-gray-400"
+                                                                }`}>
+                                                                    Vence: {new Date(charge.due_date).toLocaleDateString('pt-BR')}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-8 py-5">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
-                                                    charge.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30' :
-                                                    charge.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
-                                                    'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30'
-                                                }`}>
-                                                    {charge.status === 'approved' ? <CheckCircle2 size={12} /> :
-                                                     charge.status === 'pending' ? <Clock size={12} /> :
-                                                     <XCircle size={12} />}
-                                                    {charge.status === 'approved' ? 'Pago' :
-                                                     charge.status === 'pending' ? 'Pendente' : 'Cancelado'}
-                                                </span>
+                                                {(() => {
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+
+                                                    const isOverdue = (() => {
+                                                        if (charge.status !== 'pending' || !charge.due_date) return false;
+                                                        const dueDate = new Date(charge.due_date);
+                                                        dueDate.setHours(0, 0, 0, 0);
+                                                        return today.getTime() > dueDate.getTime();
+                                                    })();
+
+                                                    const daysOverdue = (() => {
+                                                        if (!isOverdue || !charge.due_date) return 0;
+                                                        const dueDate = new Date(charge.due_date);
+                                                        dueDate.setHours(0, 0, 0, 0);
+                                                        const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+                                                        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                    })();
+
+                                                    const isPaid = charge.status === 'approved' || charge.status === 'paid';
+
+                                                    return (
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                            isPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30' :
+                                                            charge.status === 'pending'
+                                                                ? isOverdue
+                                                                    ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30 animate-pulse'
+                                                                    : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30'
+                                                                : 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30'
+                                                        }`}>
+                                                            {isPaid ? <CheckCircle2 size={12} /> :
+                                                             charge.status === 'pending'
+                                                                 ? isOverdue
+                                                                     ? <AlertTriangle size={12} />
+                                                                     : <Clock size={12} />
+                                                                 : <XCircle size={12} />}
+                                                            {isPaid ? 'Pago' :
+                                                             charge.status === 'pending'
+                                                                 ? isOverdue
+                                                                     ? `Atrasado (${daysOverdue} ${daysOverdue === 1 ? 'dia' : 'dias'})`
+                                                                     : 'Pendente'
+                                                                 : 'Cancelado'}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <div className="flex items-center justify-end gap-2">
@@ -962,15 +1041,57 @@ export function Payments() {
                                     return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(viewingCharge.amount);
                                 })()}
                             </span>
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex flex-col items-center gap-1 mt-2">
                                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{viewingCharge.customer?.name || 'Cliente Geral'}</span>
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${
-                                    viewingCharge.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                    viewingCharge.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                    'bg-rose-50 text-rose-600 border-rose-100'
-                                }`}>
-                                    {viewingCharge.status === 'approved' ? 'Pago' : viewingCharge.status === 'pending' ? 'Pendente' : 'Cancelado'}
-                                </span>
+                                {(() => {
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+
+                                    const isOverdue = (() => {
+                                        if (viewingCharge.status !== 'pending' || !viewingCharge.due_date) return false;
+                                        const dueDate = new Date(viewingCharge.due_date);
+                                        dueDate.setHours(0, 0, 0, 0);
+                                        return today.getTime() > dueDate.getTime();
+                                    })();
+
+                                    const daysOverdue = (() => {
+                                        if (!isOverdue || !viewingCharge.due_date) return 0;
+                                        const dueDate = new Date(viewingCharge.due_date);
+                                        dueDate.setHours(0, 0, 0, 0);
+                                        const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+                                        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                    })();
+
+                                    const isPaid = viewingCharge.status === 'approved' || viewingCharge.status === 'paid';
+
+                                    return (
+                                        <>
+                                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${
+                                                isPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                viewingCharge.status === 'pending'
+                                                    ? isOverdue
+                                                        ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                                        : 'bg-amber-50 text-amber-600 border-amber-100'
+                                                    : 'bg-rose-50 text-rose-600 border-rose-100'
+                                            }`}>
+                                                {isPaid ? 'Pago' :
+                                                 viewingCharge.status === 'pending'
+                                                     ? isOverdue
+                                                         ? `Atrasado (${daysOverdue} ${daysOverdue === 1 ? 'dia' : 'dias'})`
+                                                         : 'Pendente'
+                                                     : 'Cancelado'}
+                                            </span>
+                                            <div className="flex flex-col items-center mt-2 text-[10px] text-gray-400">
+                                                <span>Criado em: {new Date(viewingCharge.created_at).toLocaleDateString('pt-BR')}</span>
+                                                {viewingCharge.due_date && (
+                                                    <span className={isOverdue ? "text-rose-600 dark:text-rose-400 font-bold mt-0.5" : "mt-0.5"}>
+                                                        Vencimento: {new Date(viewingCharge.due_date).toLocaleDateString('pt-BR')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
 

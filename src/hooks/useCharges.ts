@@ -22,6 +22,7 @@ export interface Charge {
     quote_id?: string;
     currency?: string;
     paid_at?: string;
+    due_date?: string;
     created_at: string;
     customer?: {
         name: string;
