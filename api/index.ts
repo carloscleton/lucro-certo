@@ -401,6 +401,47 @@ app.get(['/exchange-rates', '/api/exchange-rates', '/fiscal-module/exchange-rate
     }
 });
 
+// Proxy para consulta de CNPJ com múltiplos fallbacks (BrasilAPI -> ReceitaWS) contra falhas de CORS/Bloqueadores
+app.get(['/cnpj/:cnpj', '/api/cnpj/:cnpj'], async (req, res) => {
+    const { cnpj } = req.params;
+    const clean = String(cnpj).replace(/\D/g, '');
+    if (clean.length !== 14) {
+        return res.status(400).json({ error: 'CNPJ inválido' });
+    }
+
+    try {
+        // 1. Tentar BrasilAPI
+        const response = await axios.get(`https://brasilapi.com.br/api/cnpj/v1/${clean}`, {
+            timeout: 7000
+        });
+        if (response.data) {
+            return res.json({
+                razao_social: response.data.razao_social,
+                nome_fantasia: response.data.nome_fantasia || response.data.razao_social
+            });
+        }
+    } catch (err: any) {
+        console.warn(`[Proxy CNPJ] Falha ao consultar BrasilAPI para o CNPJ ${clean}: ${err.message}. Tentando fallback...`);
+    }
+
+    try {
+        // 2. Fallback para ReceitaWS
+        const response = await axios.get(`https://receitaws.com.br/v1/cnpj/${clean}`, {
+            timeout: 7000
+        });
+        if (response.data) {
+            return res.json({
+                razao_social: response.data.nome,
+                nome_fantasia: response.data.fantasia || response.data.nome
+            });
+        }
+    } catch (err: any) {
+        console.error(`[Proxy CNPJ] Falha ao consultar ReceitaWS para o CNPJ ${clean}: ${err.message}`);
+    }
+
+    return res.status(502).json({ error: 'Não foi possível consultar as informações do CNPJ' });
+});
+
 // Middleware de autenticação (Simples para agora)
 const authenticate = (req: any, res: any, next: any) => {
     // Aqui validaremos o JWT do Supabase no futuro

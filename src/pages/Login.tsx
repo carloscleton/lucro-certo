@@ -14,6 +14,7 @@ import loginHero4 from '../assets/login-hero-4.png';
 import logoFull from '../assets/logo-full.png';
 import gridPattern from '../assets/grid-pattern.png';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../lib/constants';
 import { captureReferralFromURL, getStoredReferralCode, clearStoredReferralCode } from '../lib/affiliateTracking';
 import { affiliateService } from '../services/affiliateService';
 
@@ -675,6 +676,24 @@ export function Login() {
 
         setIsFetchingCNPJ(true);
         try {
+            // 1. Tenta usar o proxy do backend para evitar bloqueios de CORS e AdBlockers no navegador
+            const response = await fetch(`${API_BASE_URL}/cnpj/${clean}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.razao_social || data.nome_fantasia) {
+                    const name = data.nome_fantasia || data.razao_social;
+                    setCompanyName(name);
+                    if (!fullName) setFullName(name);
+                    setIsFetchingCNPJ(false);
+                    return; // Sucesso!
+                }
+            }
+        } catch (err) {
+            console.warn('[CNPJ Proxy] Falha na consulta via backend, tentando fallback direto:', err);
+        }
+
+        // 2. Fallback: tenta consultar a BrasilAPI diretamente caso o proxy falhe
+        try {
             const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
             if (response.ok) {
                 const data = await response.json();
@@ -685,7 +704,7 @@ export function Login() {
                 }
             }
         } catch (err) {
-            console.error('Error fetching CNPJ:', err);
+            console.error('Error fetching CNPJ direct:', err);
         } finally {
             setIsFetchingCNPJ(false);
         }
