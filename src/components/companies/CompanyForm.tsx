@@ -9,6 +9,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../../utils/phoneUtils';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useAdmin } from '../../hooks/useAdmin';
+import { API_BASE_URL } from '../../lib/constants';
 
 interface CompanyFormProps {
     isOpen: boolean;
@@ -60,6 +61,35 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
 
         setIsFetchingCNPJ(true);
         try {
+            // 1. Tenta usar o proxy do backend
+            const response = await fetch(`${API_BASE_URL}/cnpj/${clean}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.razao_social || data.nome_fantasia) {
+                    setTradeName(data.nome_fantasia || data.razao_social);
+                    setLegalName(data.razao_social || data.nome_fantasia);
+                    
+                    if (!slug) {
+                        const name = data.nome_fantasia || data.razao_social;
+                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                    }
+                }
+                if (data.cep) setZipCode(data.cep);
+                if (data.logradouro) setStreet(data.logradouro);
+                if (data.bairro) setNeighborhood(data.bairro);
+                if (data.municipio) setCity(data.municipio);
+                if (data.uf) setState(data.uf);
+                if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                if (data.complemento) setComplement(data.complemento);
+                setIsFetchingCNPJ(false);
+                return; // Sucesso!
+            }
+        } catch (err) {
+            console.warn('[CNPJ Proxy] Falha ao consultar CNPJ via backend, tentando fallback direto:', err);
+        }
+
+        // 2. Fallback direto pelo navegador
+        try {
             const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
             if (response.ok) {
                 const data = await response.json();
@@ -81,7 +111,7 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 if (data.complemento) setComplement(data.complemento);
             }
         } catch (err) {
-            console.error('Error fetching CNPJ:', err);
+            console.error('Error fetching CNPJ direct:', err);
         } finally {
             setIsFetchingCNPJ(false);
         }

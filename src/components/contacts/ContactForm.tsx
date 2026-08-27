@@ -126,28 +126,60 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 return;
             }
 
-            // 2. For PJ, if not found locally, fetch from BrasilAPI
+            // 2. For PJ, if not found locally, fetch from BrasilAPI/Proxy
             if (entityType === 'PJ') {
-                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.razao_social || data.nome_fantasia) {
-                        setName(data.razao_social || data.nome_fantasia || '');
+                let success = false;
+                try {
+                    // 2a. Tenta pelo proxy do backend
+                    const response = await fetch(`${API_BASE_URL}/cnpj/${clean}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.razao_social || data.nome_fantasia) {
+                            setName(data.razao_social || data.nome_fantasia || '');
+                        }
+                        if (data.email) setEmail(data.email);
+                        if (data.telefone) {
+                            const cleanTel = formatPhoneFromDB(data.telefone);
+                            setPhone(cleanTel);
+                            setWhatsapp(cleanTel);
+                        }
+                        if (data.cep) setZipCode(data.cep);
+                        if (data.logradouro) setStreet(data.logradouro);
+                        if (data.bairro) setNeighborhood(data.bairro);
+                        if (data.municipio) setCity(data.municipio);
+                        if (data.uf) setState(data.uf);
+                        if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                        if (data.complemento) setComplement(data.complemento);
+                        notify('success', 'CNPJ Encontrado', 'Dados cadastrais importados com sucesso.');
+                        success = true;
                     }
-                    if (data.email) setEmail(data.email);
-                    if (data.telefone) {
-                        const cleanTel = formatPhoneFromDB(data.telefone);
-                        setPhone(cleanTel);
-                        setWhatsapp(cleanTel);
+                } catch (proxyErr) {
+                    console.warn('[CNPJ Proxy] Falha ao consultar CNPJ via backend, tentando fallback direto:', proxyErr);
+                }
+
+                if (!success) {
+                    // 2b. Fallback direto pelo navegador
+                    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.razao_social || data.nome_fantasia) {
+                            setName(data.razao_social || data.nome_fantasia || '');
+                        }
+                        if (data.email) setEmail(data.email);
+                        if (data.telefone) {
+                            const cleanTel = formatPhoneFromDB(data.telefone);
+                            setPhone(cleanTel);
+                            setWhatsapp(cleanTel);
+                        }
+                        if (data.cep) setZipCode(data.cep);
+                        if (data.logradouro) setStreet(data.logradouro);
+                        if (data.bairro) setNeighborhood(data.bairro);
+                        if (data.municipio) setCity(data.municipio);
+                        if (data.uf) setState(data.uf);
+                        if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
+                        if (data.complemento) setComplement(data.complemento);
+                        notify('success', 'CNPJ Encontrado', 'Dados cadastrais importados com sucesso.');
                     }
-                    if (data.cep) setZipCode(data.cep);
-                    if (data.logradouro) setStreet(data.logradouro);
-                    if (data.bairro) setNeighborhood(data.bairro);
-                    if (data.municipio) setCity(data.municipio);
-                    if (data.uf) setState(data.uf);
-                    if (data.numero && data.numero !== 'S/N') setNumber(data.numero);
-                    if (data.complemento) setComplement(data.complemento);
-                    notify('success', 'CNPJ Encontrado', 'Dados cadastrais importados com sucesso.');
                 }
             }
         } catch (err) {
