@@ -5679,6 +5679,39 @@ export function FiscalSettings() {
                                                 </span>
                                             </div>
                                         </div>
+
+                                        {/* Botão de definir como cidade ativa no Portal Nacional */}
+                                        {!cityNotHomologatedMessage && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const activeIbge = String(tecnoSpeedCityInfo.id || tecnoSpeedCityInfo.codigoIbge || selectedSearchCity?.id);
+                                                    const activeName = tecnoSpeedCityInfo.nome || tecnoSpeedCityInfo.name || selectedSearchCity?.nome;
+                                                    const activeUf = tecnoSpeedCityInfo.uf || tecnoSpeedCityInfo.state || searchUf;
+                                                    
+                                                    setConfig(prev => ({
+                                                        ...prev,
+                                                        endereco: {
+                                                            ...prev.endereco,
+                                                            codigoCidade: activeIbge,
+                                                            cidade: activeName,
+                                                            uf: activeUf
+                                                        }
+                                                    }));
+                                                    
+                                                    setResultModal({
+                                                        isOpen: true,
+                                                        title: 'Cidade Selecionada!',
+                                                        message: `A cidade ${activeName} - ${activeUf} (IBGE: ${activeIbge}) foi definida como ativa nas configurações fiscais do emitente. Clique em "Salvar Configurações do Portal Nacional" para persistir as alterações.`,
+                                                        type: 'success'
+                                                    });
+                                                }}
+                                                className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-955/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 active:scale-95 transition-all shrink-0 ml-2"
+                                            >
+                                                <Check size={12} />
+                                                Definir como Cidade Ativa
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3">

@@ -1985,10 +1985,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         <Input
                             label="Código IBGE da Cidade (Onde o serviço/venda ocorre)"
                             value={cityCode}
-                            onChange={(e: any) => setCityCode(e.target.value)}
                             placeholder="Ex: 3106200"
                             required
-                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm"
+                            disabled
+                            helpText="Para alterar a cidade, acesse as Configurações Fiscais da Empresa."
+                            className="bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 rounded-2xl border-2 border-transparent shadow-sm cursor-not-allowed"
                         />
                     </div>
                 </div>
