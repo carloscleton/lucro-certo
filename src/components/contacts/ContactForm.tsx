@@ -93,6 +93,14 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [isFetchingTaxId, setIsFetchingTaxId] = useState(false);
     const loadedCepRef = useRef<string>('');
 
+    const cleanMeiName = (name: string): string => {
+        if (!name) return '';
+        let cleanName = name.replace(/^\d{2}\.\d{3}\.\d{3}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{3}\.\d{3}\.\d{3}-\d{2}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{8,11}\s*[-–—]?\s*/g, '');
+        return cleanName.trim();
+    };
+
     const handleTaxIdLookup = async (value: string) => {
         if (!user) return;
         const clean = value.replace(/\D/g, '');
@@ -135,7 +143,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     if (response.ok) {
                         const data = await response.json();
                         if (data.razao_social || data.nome_fantasia) {
-                            setName(data.razao_social || data.nome_fantasia || '');
+                            const rawName = data.razao_social || data.nome_fantasia || '';
+                            setName(cleanMeiName(rawName));
                         }
                         if (data.email) setEmail(data.email);
                         if (data.telefone) {
@@ -163,7 +172,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                     if (response.ok) {
                         const data = await response.json();
                         if (data.razao_social || data.nome_fantasia) {
-                            setName(data.razao_social || data.nome_fantasia || '');
+                            const rawName = data.razao_social || data.nome_fantasia || '';
+                            setName(cleanMeiName(rawName));
                         }
                         if (data.email) setEmail(data.email);
                         if (data.telefone) {

@@ -55,6 +55,14 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     const [loadingSearch, setLoadingSearch] = useState(false);
     const loadedCepRef = useRef<string>('');
 
+    const cleanMeiName = (name: string): string => {
+        if (!name) return '';
+        let cleanName = name.replace(/^\d{2}\.\d{3}\.\d{3}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{3}\.\d{3}\.\d{3}-\d{2}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{8,11}\s*[-–—]?\s*/g, '');
+        return cleanName.trim();
+    };
+
     const handleCNPJLookup = async (cnpjValue: string) => {
         const clean = cnpjValue.replace(/\D/g, '');
         if (clean.length !== 14) return;
@@ -66,12 +74,17 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             if (response.ok) {
                 const data = await response.json();
                 if (data.razao_social || data.nome_fantasia) {
-                    setTradeName(data.nome_fantasia || data.razao_social);
-                    setLegalName(data.razao_social || data.nome_fantasia);
+                    const rawFantasia = data.nome_fantasia || data.razao_social;
+                    const rawRazao = data.razao_social || data.nome_fantasia;
+                    
+                    const cleanFantasia = cleanMeiName(rawFantasia);
+                    const cleanRazao = cleanMeiName(rawRazao);
+                    
+                    setTradeName(cleanFantasia);
+                    setLegalName(cleanRazao);
                     
                     if (!slug) {
-                        const name = data.nome_fantasia || data.razao_social;
-                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                        setSlug(cleanFantasia.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                     }
                 }
                 if (data.cep) setZipCode(data.cep);
@@ -94,12 +107,17 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
             if (response.ok) {
                 const data = await response.json();
                 if (data.razao_social || data.nome_fantasia) {
-                    setTradeName(data.nome_fantasia || data.razao_social);
-                    setLegalName(data.razao_social || data.nome_fantasia);
+                    const rawFantasia = data.nome_fantasia || data.razao_social;
+                    const rawRazao = data.razao_social || data.nome_fantasia;
+                    
+                    const cleanFantasia = cleanMeiName(rawFantasia);
+                    const cleanRazao = cleanMeiName(rawRazao);
+                    
+                    setTradeName(cleanFantasia);
+                    setLegalName(cleanRazao);
                     
                     if (!slug) {
-                        const name = data.nome_fantasia || data.razao_social;
-                        setSlug(name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                        setSlug(cleanFantasia.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                     }
                 }
                 if (data.cep) setZipCode(data.cep);

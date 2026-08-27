@@ -670,6 +670,14 @@ export function Login() {
         }
     };
 
+    const cleanMeiName = (name: string): string => {
+        if (!name) return '';
+        let cleanName = name.replace(/^\d{2}\.\d{3}\.\d{3}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{3}\.\d{3}\.\d{3}-\d{2}\s*[-–—]?\s*/g, '');
+        cleanName = cleanName.replace(/^\d{8,11}\s*[-–—]?\s*/g, '');
+        return cleanName.trim();
+    };
+
     const handleCNPJLookup = async (cnpj: string) => {
         const clean = cnpj.replace(/\D/g, '');
         if (clean.length !== 14) return;
@@ -682,8 +690,9 @@ export function Login() {
                 const data = await response.json();
                 if (data.razao_social || data.nome_fantasia) {
                     const name = data.nome_fantasia || data.razao_social;
-                    setCompanyName(name);
-                    if (!fullName) setFullName(name);
+                    const cleanName = cleanMeiName(name);
+                    setCompanyName(cleanName);
+                    if (!fullName) setFullName(cleanName);
                     setIsFetchingCNPJ(false);
                     return; // Sucesso!
                 }
@@ -699,8 +708,9 @@ export function Login() {
                 const data = await response.json();
                 if (data.razao_social || data.nome_fantasia) {
                     const name = data.nome_fantasia || data.razao_social;
-                    setCompanyName(name);
-                    if (!fullName) setFullName(name);
+                    const cleanName = cleanMeiName(name);
+                    setCompanyName(cleanName);
+                    if (!fullName) setFullName(cleanName);
                 }
             }
         } catch (err) {
