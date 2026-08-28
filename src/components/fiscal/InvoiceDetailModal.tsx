@@ -11,7 +11,6 @@ import { fiscalService } from '../../services/fiscalService';
 import { Button } from '../ui/Button';
 import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
-import { parseFiscalError } from '../../pages/Invoices';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
 
@@ -481,26 +480,31 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
     const executeCancelInvoice = async () => {
         setIsCancelling(true);
         try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-            if (!token) throw new Error('Sessão expirada.');
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
 
-            const targetId = invoice.external_id || invoice.access_key || invoice.id;
-            await fiscalService.cancelarNota(
-                targetId,
-                invoice.type,
-                invoice.company_id,
-                cancelReason,
-                token
-            );
+            const { error } = await supabase
+                .from('fiscal_invoices')
+                .update({
+                    status: 'cancelado',
+                    deleted: true,
+                    cancelled_at: new Date().toISOString(),
+                    cancelled_by: userId || null,
+                    cancellation_reason: cancelReason || 'Cancelamento manual pelo usuário'
+                })
+                .eq('id', invoice.id);
+
+            if (error) throw error;
 
             setShowCancelModal(false);
             setCancelReason('');
             await fetchEvents();
             onRefresh();
-            alert('Cancelamento solicitado com sucesso!');
+            alert('Nota fiscal marcada como cancelada e ocultada no banco de dados com sucesso!');
+            onClose();
         } catch (error: any) {
             console.error('Erro ao cancelar nota:', error);
-            alert('Erro no cancelamento: ' + parseFiscalError(error));
+            alert('Erro no cancelamento: ' + error.message);
             throw error;
         } finally {
             setIsCancelling(false);
