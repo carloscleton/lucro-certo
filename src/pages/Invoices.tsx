@@ -608,15 +608,48 @@ ${messageWithPlaceholder}`;
 
     const executeCancelInvoice = async () => {
         setIsCancelling(true);
-        setResultModal({
-            isOpen: true,
-            title: 'Funcionalidade Desabilitada',
-            message: 'O cancelamento de notas fiscais está desabilitado temporariamente.',
-            type: 'error'
-        });
-        setCancelModal({ isOpen: false, invoice: null });
-        setPendingCancelInvoice(null);
-        setIsCancelling(false);
+        try {
+            const invoice = cancelModal.invoice || pendingCancelInvoice;
+            if (!invoice) throw new Error('Nota fiscal não encontrada.');
+
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+
+            const { error } = await supabase
+                .from('fiscal_invoices')
+                .update({
+                    status: 'cancelado',
+                    deleted: true,
+                    cancelled_at: new Date().toISOString(),
+                    cancelled_by: userId || null,
+                    cancellation_reason: cancelReason || 'Cancelamento manual pelo usuário'
+                })
+                .eq('id', invoice.id);
+
+            if (error) throw error;
+
+            setResultModal({
+                isOpen: true,
+                title: 'Nota Cancelada',
+                message: 'A nota fiscal foi marcada como CANCELADA e OCULTADA no banco de dados com sucesso.',
+                type: 'success'
+            });
+
+            setCancelModal({ isOpen: false, invoice: null });
+            setPendingCancelInvoice(null);
+            setCancelReason('');
+            refresh();
+        } catch (err: any) {
+            console.error('Erro ao cancelar nota:', err);
+            setResultModal({
+                isOpen: true,
+                title: 'Erro ao Cancelar',
+                message: err.message || 'Ocorreu um erro ao cancelar a nota no banco de dados.',
+                type: 'error'
+            });
+        } finally {
+            setIsCancelling(false);
+        }
     };
 
     const handleCancelInvoice = async () => {
@@ -1748,14 +1781,17 @@ ${messageWithPlaceholder}`;
                                                     </Tooltip>
                                                 )}
                                                 {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
-                                                    <Tooltip content="Cancelamento Temporariamente Desabilitado">
-                                                        <button
-                                                            disabled={true}
-                                                            className="h-10 w-10 flex items-center justify-center glass-morphism text-gray-400 dark:text-gray-600 opacity-40 cursor-not-allowed rounded-xl transition-all shadow-sm"
-                                                        >
-                                                            <XCircle size={18} />
-                                                        </button>
-                                                    </Tooltip>
+                                                    <Tooltip content="Cancelar Nota">
+                                                         <button
+                                                             onClick={() => {
+                                                                 setPendingCancelInvoice(invoice);
+                                                                 setIsProtectedModalOpen(true);
+                                                             }}
+                                                             className="h-10 w-10 flex items-center justify-center glass-morphism text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all shadow-sm"
+                                                         >
+                                                             <XCircle size={18} />
+                                                         </button>
+                                                     </Tooltip>
                                                 )}
                                                 {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar PDF">
