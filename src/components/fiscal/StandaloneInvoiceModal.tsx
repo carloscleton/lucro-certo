@@ -2039,10 +2039,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                     onClick={async () => {
                                                         // Salva temporariamente como 'sem retenção' (iss_retencao_ativa = false)
                                                         try {
+                                                            const { loyalty_subscriptions, ...cleanContact } = selectedContact as any;
                                                             const updated = {
-                                                                ...selectedContact,
+                                                                ...cleanContact,
                                                                 metadata: {
-                                                                    ...((selectedContact as any).metadata || {}),
+                                                                    ...(cleanContact.metadata || {}),
                                                                     iss_retencao_ativa: false,
                                                                     iss_retencao_tipo: 1
                                                                 }
