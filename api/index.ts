@@ -2752,6 +2752,60 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 // 2. FORMATO PLUGNOTAS (SISTEMA): O payload vem do formulário padrão do lucro-certo
                 console.log(`🏛️ [ADN-NACIONAL] Mapeando payload do padrão PlugNotas para o padrão nacional ADN.`);
 
+                // Mapeamento dinâmico de PIS/COFINS/CSLL para o JSON conforme as configurações da empresa (NT 007/2026)
+                const cstPISCOFINS = nat.pis_cofins_situacao_tributaria && nat.pis_cofins_situacao_tributaria !== '00' 
+                    ? String(nat.pis_cofins_situacao_tributaria) 
+                    : '';
+                
+                const rawRetTipo = nat.pis_cofins_csll_retencao_tipo || '1';
+                let tpRetPisCofins = 0; // 0 = Não Retidos
+                if (rawRetTipo === '2') tpRetPisCofins = 3;
+                else if (rawRetTipo === '3') tpRetPisCofins = 4;
+                else if (rawRetTipo === '4') tpRetPisCofins = 5;
+                else if (rawRetTipo === '5') tpRetPisCofins = 6;
+
+                const pPISVal = nat.default_pis_aliquota ? parseFloat(nat.default_pis_aliquota) : 0;
+                const pCOFINSVal = nat.default_cofins_aliquota ? parseFloat(nat.default_cofins_aliquota) : 0;
+                const pCSLLVal = nat.default_csll_aliquota ? parseFloat(nat.default_csll_aliquota) : 0;
+                const pIRRFVal = nat.default_irrf_aliquota ? parseFloat(nat.default_irrf_aliquota) : 0;
+
+                const vPISVal = valorTotal * (pPISVal / 100);
+                const vCOFINSVal = valorTotal * (pCOFINSVal / 100);
+                const vCSLLVal = valorTotal * (pCSLLVal / 100);
+
+                let vRetCSLL = 0;
+                if (tpRetPisCofins === 3) {
+                    vRetCSLL = vPISVal + vCOFINSVal + vCSLLVal;
+                } else if (tpRetPisCofins === 4) {
+                    vRetCSLL = vPISVal + vCOFINSVal;
+                } else if (tpRetPisCofins === 5) {
+                    vRetCSLL = vPISVal;
+                } else if (tpRetPisCofins === 6) {
+                    vRetCSLL = vCOFINSVal;
+                }
+
+                let adnTribFed: any = null;
+                if (simplesNacional === 1) {
+                    adnTribFed = {
+                        tpRetPisCofins,
+                        ...(cstPISCOFINS ? { cstPISCOFINS } : {}),
+                        ...(vRetCSLL > 0 ? { vRetCSLL: parseFloat(vRetCSLL.toFixed(2)) } : {}),
+                        ...(pIRRFVal > 0 ? { pIRRF: pIRRFVal, vIRRF: parseFloat((valorTotal * pIRRFVal / 100).toFixed(2)) } : {})
+                    };
+
+                    if (pPISVal > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 5) {
+                        adnTribFed.pPIS = pPISVal;
+                        adnTribFed.vPIS = parseFloat(vPISVal.toFixed(2));
+                    }
+                    if (pCOFINSVal > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 6) {
+                        adnTribFed.pCOFINS = pCOFINSVal;
+                        adnTribFed.vCOFINS = parseFloat(vCOFINSVal.toFixed(2));
+                    }
+                    if (pCSLLVal > 0 && tpRetPisCofins !== 3) {
+                        adnTribFed.pCSLL = pCSLLVal;
+                        adnTribFed.vCSLL = parseFloat(vCSLLVal.toFixed(2));
+                    }
+                }
 
                 adnPayload = {
                     infDPS: {
@@ -2798,6 +2852,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     // E0625: NÃO enviar pAliq para Simples Nacional sem retenção (tpRetISSQN=1)
                                     ...(finalPAliq > 0 ? { pAliq: finalPAliq } : {})
                                 },
+                                ...(adnTribFed ? { tribFed: adnTribFed } : {}),
                                 totTrib: {
                                     pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0
                                 }
@@ -3022,7 +3077,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const shouldSendPAliq = isSimplesNac ? (tpRetISSQN === 2) : (pAliqVal > 0);
             const pAliqXml = shouldSendPAliq ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
-            // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal)
+            // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal com regras de CST/Retenção NT 007/2026)
             let tribFedXml = '';
             const tribFed = trib.tribFed || {};
             const pPIS = tribFed.pPIS !== undefined ? Number(tribFed.pPIS) : (nat.default_pis_aliquota ? Number(nat.default_pis_aliquota) : 0);
@@ -3031,13 +3086,71 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const pIRRF = tribFed.pIRRF !== undefined ? Number(tribFed.pIRRF) : (nat.default_irrf_aliquota ? Number(nat.default_irrf_aliquota) : 0);
 
             const vServ = Number(inf.valores?.vServPrest?.vServ || 0);
-            if (opSimpNac === 1 && (pPIS > 0 || pCOFINS > 0 || pCSLL > 0 || pIRRF > 0 || tribFed.vPIS !== undefined || tribFed.vIRRF !== undefined)) {
-                const vPIS = tribFed.vPIS !== undefined ? Number(tribFed.vPIS).toFixed(2) : (vServ * (pPIS / 100)).toFixed(2);
-                const vCOFINS = tribFed.vCOFINS !== undefined ? Number(tribFed.vCOFINS).toFixed(2) : (vServ * (pCOFINS / 100)).toFixed(2);
-                const vCSLL = tribFed.vCSLL !== undefined ? Number(tribFed.vCSLL).toFixed(2) : (vServ * (pCSLL / 100)).toFixed(2);
-                const vIRRF = tribFed.vIRRF !== undefined ? Number(tribFed.vIRRF).toFixed(2) : (vServ * (pIRRF / 100)).toFixed(2);
+            if (opSimpNac === 1) {
+                // Obter CST e Tipo de Retenção das configurações da empresa
+                const cstPISCOFINS = nat.pis_cofins_situacao_tributaria && nat.pis_cofins_situacao_tributaria !== '00' 
+                    ? String(nat.pis_cofins_situacao_tributaria) 
+                    : '';
+                
+                const rawRetTipo = nat.pis_cofins_csll_retencao_tipo || '1';
+                let tpRetPisCofins = 0; // 0 = Não Retidos
+                if (rawRetTipo === '2') tpRetPisCofins = 3;
+                else if (rawRetTipo === '3') tpRetPisCofins = 4;
+                else if (rawRetTipo === '4') tpRetPisCofins = 5;
+                else if (rawRetTipo === '5') tpRetPisCofins = 6;
 
-                tribFedXml = `<tribFed>${pPIS > 0 ? `<pPIS>${pPIS.toFixed(2)}</pPIS><vPIS>${vPIS}</vPIS>` : ''}${pCOFINS > 0 ? `<pCOFINS>${pCOFINS.toFixed(2)}</pCOFINS><vCOFINS>${vCOFINS}</vCOFINS>` : ''}${pCSLL > 0 ? `<pCSLL>${pCSLL.toFixed(2)}</pCSLL><vCSLL>${vCSLL}</vCSLL>` : ''}${pIRRF > 0 ? `<pIRRF>${pIRRF.toFixed(2)}</pIRRF><vIRRF>${vIRRF}</vIRRF>` : ''}</tribFed>`;
+                const vPISVal = vServ * (pPIS / 100);
+                const vCOFINSVal = vServ * (pCOFINS / 100);
+                const vCSLLVal = vServ * (pCSLL / 100);
+
+                let vRetCSLL = 0;
+                if (tpRetPisCofins === 3) {
+                    vRetCSLL = vPISVal + vCOFINSVal + vCSLLVal;
+                } else if (tpRetPisCofins === 4) {
+                    vRetCSLL = vPISVal + vCOFINSVal;
+                } else if (tpRetPisCofins === 5) {
+                    vRetCSLL = vPISVal;
+                } else if (tpRetPisCofins === 6) {
+                    vRetCSLL = vCOFINSVal;
+                }
+
+                let innerXml = '';
+                
+                if (cstPISCOFINS) {
+                    innerXml += `<cstPISCOFINS>${cstPISCOFINS}</cstPISCOFINS>`;
+                }
+                
+                innerXml += `<tpRetPisCofins>${tpRetPisCofins}</tpRetPisCofins>`;
+
+                // Se houver retenção consolidada, envia vRetCSLL
+                if (vRetCSLL > 0) {
+                    innerXml += `<vRetCSLL>${vRetCSLL.toFixed(2)}</vRetCSLL>`;
+                }
+
+                // Envia PIS se não estiver retido
+                if (pPIS > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 5) {
+                    innerXml += `<pPIS>${pPIS.toFixed(2)}</pPIS><vPIS>${vPISVal.toFixed(2)}</vPIS>`;
+                }
+
+                // Envia COFINS se não estiver retido
+                if (pCOFINS > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 6) {
+                    innerXml += `<pCOFINS>${pCOFINS.toFixed(2)}</pCOFINS><vCOFINS>${vCOFINSVal.toFixed(2)}</vCOFINS>`;
+                }
+
+                // Envia CSLL se não estiver retida (só está retida no tipo 3)
+                if (pCSLL > 0 && tpRetPisCofins !== 3) {
+                    innerXml += `<pCSLL>${pCSLL.toFixed(2)}</pCSLL><vCSLL>${vCSLLVal.toFixed(2)}</vCSLL>`;
+                }
+
+                // Envia IRRF
+                if (pIRRF > 0) {
+                    const vIRRFVal = vServ * (pIRRF / 100);
+                    innerXml += `<pIRRF>${pIRRF.toFixed(2)}</pIRRF><vIRRF>${vIRRFVal.toFixed(2)}</vIRRF>`;
+                }
+
+                if (innerXml) {
+                    tribFedXml = `<tribFed>${innerXml}</tribFed>`;
+                }
             }
 
             // totTrib: dependendo de opSimpNac
@@ -3099,7 +3212,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Para CST 410 (Não incidência / período anterior a 2027), Simples Nacional ou tributação integral (000001), gTribRegular NÃO é permitido/necessário (rejeição E0964)
             const shouldOmitGTribRegular = (opSimpNac === 2 || opSimpNac === 3) || cClassTribVal === '000001' || cstVal === '410';
             const gTribRegularXml = (isReformaAtiva && !shouldOmitGTribRegular) 
-                ? `<gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg></gTribRegular>`
+                ? `<gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg><pIBS>${pIbsVal.toFixed(2)}</pIBS><vIBS>${vIbsVal.toFixed(2)}</vIBS><pCBS>${pCbsVal.toFixed(2)}</pCBS><vCBS>${vCbsVal.toFixed(2)}</vCBS></gTribRegular>`
                 : '';
 
             // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
@@ -3115,7 +3228,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             ...((isReformaAtiva && !shouldOmitGTribRegular) ? {
                                 gTribRegular: {
                                     CSTReg: cstRegVal,
-                                    cClassTribReg: cClassTribRegVal
+                                    cClassTribReg: cClassTribRegVal,
+                                    pIBS: pIbsVal,
+                                    vIBS: parseFloat(vIbsVal.toFixed(2)),
+                                    pCBS: pCbsVal,
+                                    vCBS: parseFloat(vCbsVal.toFixed(2))
                                 }
                             } : {})
                         }

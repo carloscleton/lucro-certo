@@ -26,6 +26,13 @@ serve(async (req) => {
                 return new Response('OK, but ignored (no external ref)', { status: 200 })
             }
 
+            // Se for cobrança de cliente (começa com CHG-) ou não for um UUID válido, ignora com status 200 OK
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (companyId.startsWith('CHG-') || !uuidRegex.test(companyId)) {
+                console.log(`[Asaas Webhook] Ignored customer charge or invalid company ID: ${companyId}`);
+                return new Response('OK, ignored (not a platform company reference)', { status: 200 })
+            }
+
             console.log(`[Asaas Webhook] Processing confirmation for Company: ${companyId}`);
 
             // 1. Fetch Company
@@ -36,8 +43,8 @@ serve(async (req) => {
                 .single()
 
             if (companyError || !company) {
-                console.error(`Company not found for ID: ${companyId}`);
-                return new Response('Company not found', { status: 404 })
+                console.warn(`Company not found for ID: ${companyId}. Ignoring with 200 OK to prevent webhook suspension.`);
+                return new Response('OK, but company not found', { status: 200 })
             }
 
             // 2. Add 30 Days to Current Period End or current Date if trial/expired

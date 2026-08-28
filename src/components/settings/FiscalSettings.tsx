@@ -5177,8 +5177,12 @@ export function FiscalSettings() {
                                 >
                                     <option value="1">1 - Não Retido</option>
                                     <option value="2">2 - Retido pelo Tomador</option>
+                                    <option value="3">3 - Retido pelo Intermediário</option>
+                                    <option value="4">4 - Retido pelo Substituto Tributário</option>
+                                    <option value="5">5 - Retido por outro responsável</option>
                                 </select>
                             </div>
+
 
                             {(() => {
                                 const isRegimeNormal = Number(nationalConfig.op_simp_nac) === 1;
