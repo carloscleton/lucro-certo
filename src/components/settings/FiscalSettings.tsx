@@ -5240,6 +5240,43 @@ export function FiscalSettings() {
 
                                             {isRegimeNormal && (
                                                 <>
+                                                    <div className="space-y-1">
+                                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                                            Situação Tributária do PIS/COFINS
+                                                        </label>
+                                                        <select
+                                                            value={nationalConfig.pis_cofins_situacao_tributaria || '00'}
+                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, pis_cofins_situacao_tributaria: e.target.value }))}
+                                                            className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                                        >
+                                                            <option value="00">00 - Nenhum / Não Informado</option>
+                                                            <option value="01">01 - Operação Tributável com Alíquota Básica</option>
+                                                            <option value="02">02 - Operação Tributável com Alíquota Diferenciada</option>
+                                                            <option value="03">03 - Operação Tributável com Alíquota por Unidade de Medida de Produto</option>
+                                                            <option value="04">04 - Operação Tributável monofásica - Revenda a Alíquota Zero</option>
+                                                            <option value="05">05 - Operação Tributável por Substituição Tributária</option>
+                                                            <option value="06">06 - Operação Tributável a Alíquota Zero</option>
+                                                            <option value="07">07 - Operação Isenta da Contribuição</option>
+                                                            <option value="08">08 - Operação sem Incidência da Contribuição</option>
+                                                            <option value="09">09 - Operação com Suspensão da Contribuição</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                                            Tipo de retenção do PIS/COFINS/CSLL
+                                                        </label>
+                                                        <select
+                                                            value={nationalConfig.pis_cofins_csll_retencao_tipo || '1'}
+                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, pis_cofins_csll_retencao_tipo: e.target.value }))}
+                                                            className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                                        >
+                                                            <option value="1">PIS/COFINS/CSLL Não Retidos</option>
+                                                            <option value="2">PIS/COFINS/CSLL Retidos</option>
+                                                            <option value="3">PIS/COFINS Retidos, CSLL Não Retido</option>
+                                                            <option value="4">PIS Retido, COFINS/CSLL Não Retido</option>
+                                                            <option value="5">COFINS Retido, PIS/CSLL Não Retido</option>
+                                                        </select>
+                                                    </div>
                                                     <div>
                                                         <Input
                                                             label="Alíquota PIS (%)"
