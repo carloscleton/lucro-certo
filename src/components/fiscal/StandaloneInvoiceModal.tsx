@@ -241,7 +241,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     neighborhood: contactData.neighborhood || '',
                     city: contactData.city || '',
                     state: contactData.state || '',
-                    birthday: contactData.birthday || null
+                    birthday: contactData.birthday || null,
+                    metadata: contactData.metadata || null
                 });
             } else {
                 contactResult = await addContact({
@@ -259,7 +260,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     neighborhood: contactData.neighborhood || '',
                     city: contactData.city || '',
                     state: contactData.state || '',
-                    birthday: contactData.birthday || null
+                    birthday: contactData.birthday || null,
+                    metadata: contactData.metadata || null
                 });
             }
             
