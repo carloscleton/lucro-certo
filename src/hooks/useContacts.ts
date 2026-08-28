@@ -23,6 +23,11 @@ export interface Contact {
     birthday?: string | null;
     user_id: string;
     company_id?: string | null;
+    metadata?: {
+        iss_retencao_ativa?: boolean;
+        iss_retencao_tipo?: number;
+        [key: string]: any;
+    };
     loyalty_subscriptions?: {
         status: string;
         started_at?: string;
