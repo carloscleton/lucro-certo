@@ -61,6 +61,10 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [cnpj, setCnpj] = useState('');
     const [birthday, setBirthday] = useState('');
 
+    // ISS Retention (Portal Nacional — por cliente PJ)
+    const [issRetencaoAtiva, setIssRetencaoAtiva] = useState(false);
+    const [issRetencaoTipo, setIssRetencaoTipo] = useState(1); // 1=Não Retido, 2=Tomador, 3=Intermediário, 4=Substituto, 5=Outro
+
     // Address fields
     const [zipCode, setZipCode] = useState('');
     const [street, setStreet] = useState('');
@@ -218,6 +222,11 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             }
 
             setBirthday(initialData.birthday || '');
+
+            // Load ISS retention from metadata (Portal Nacional)
+            const meta = (initialData as any).metadata || {};
+            setIssRetencaoAtiva(!!meta.iss_retencao_ativa);
+            setIssRetencaoTipo(meta.iss_retencao_tipo ?? 1);
             const initCep = initialData.zip_code || '';
             setZipCode(initCep);
             loadedCepRef.current = initCep.replace(/\D/g, '');
@@ -294,6 +303,8 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setNextDueAt('');
             setGenerateGatewayLink(false);
             setCheckoutUrl('');
+            setIssRetencaoAtiva(false);
+            setIssRetencaoTipo(1);
         }
     }, [initialData, isOpen, currentEntity.id]);
 
@@ -418,6 +429,14 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 city: city || null,
                 state: state || null,
                 birthday: birthday || null,
+                // ISS Retention configuration (Portal Nacional — per PJ client)
+                metadata: {
+                    ...((initialData as any)?.metadata || {}),
+                    ...(entityType === 'PJ' ? {
+                        iss_retencao_ativa: issRetencaoAtiva,
+                        iss_retencao_tipo: issRetencaoAtiva ? issRetencaoTipo : 1,
+                    } : {}),
+                },
             });
 
             const contactId = initialData?.id || savedContact?.id;
@@ -959,6 +978,76 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         )}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* === ISS Retention Config — Portal Nacional (PJ only) === */}
+                {entityType === 'PJ' && cnpj.replace(/\D/g, '').length === 14 && (
+                    <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            🧾 Configuração Fiscal (Portal Nacional)
+                        </h3>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-4">
+                            <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                Configure a retenção de ISSQN para este cliente — será usada automaticamente ao emitir NFS-e pelo Portal Nacional.
+                            </p>
+                            {/* Sim/Não */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    Há retenção do ISSQN pelo Tomador ou pelo Intermediário?
+                                </label>
+                                <div className="flex gap-6">
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                            type="radio"
+                                            name="iss_retencao_ativa"
+                                            checked={!issRetencaoAtiva}
+                                            onChange={() => { setIssRetencaoAtiva(false); setIssRetencaoTipo(1); }}
+                                            className="accent-blue-600"
+                                        />
+                                        Não
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                            type="radio"
+                                            name="iss_retencao_ativa"
+                                            checked={issRetencaoAtiva}
+                                            onChange={() => { setIssRetencaoAtiva(true); setIssRetencaoTipo(2); }}
+                                            className="accent-blue-600"
+                                        />
+                                        Sim
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Who retains — shown only when Sim */}
+                            {issRetencaoAtiva && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        Informe por quem o imposto será retido:
+                                    </label>
+                                    <div className="space-y-2">
+                                        {[
+                                            { value: 2, label: 'Retido pelo Tomador' },
+                                            { value: 3, label: 'Retido pelo Intermediário' },
+                                            { value: 4, label: 'Retido pelo Substituto Tributário' },
+                                            { value: 5, label: 'Retido por outro responsável' },
+                                        ].map(opt => (
+                                            <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="radio"
+                                                    name="iss_retencao_tipo"
+                                                    checked={issRetencaoTipo === opt.value}
+                                                    onChange={() => setIssRetencaoTipo(opt.value)}
+                                                    className="accent-blue-600"
+                                                />
+                                                {opt.label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 

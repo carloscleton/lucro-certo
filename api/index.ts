@@ -2591,7 +2591,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const pAliqValDefault = parseFloat(String(servItem?.issAliquota || nat.default_iss_aliquota || '0').replace(',', '.'));
             const pTotTribSNValDefault = parseFloat(String(nat.default_tot_trib_sn || '6.00').replace(',', '.'));
-            const tpRetISSQNDefault = nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1;
+            
+            // Prioriza a retenção do tomador configurada em seu cadastro
+            const customerRetTipo = firstItem?.tomador?.iss_retencao_ativa 
+                ? Number(firstItem?.tomador?.iss_retencao_tipo || 2) 
+                : (firstItem?.tomador?.iss_retencao_ativa === false ? 1 : undefined);
+
+            const tpRetISSQNDefault = customerRetTipo !== undefined
+                ? customerRetTipo
+                : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1);
             const simplesNacionalDefault = nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
             const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
             // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
@@ -3064,10 +3072,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tribISSQN = tribMun.tribISSQN !== undefined
                 ? Number(tribMun.tribISSQN)
                 : (nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1);
-            // tpRetISSQN: 1 = Não Retido, 2 = Retido
-            const tpRetISSQN = tribMun.tpRetISSQN !== undefined
-                ? Number(tribMun.tpRetISSQN)
-                : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1));
+            // tpRetISSQN: 1 = Não Retido, 2 = Retido pelo Tomador, 3 = Retido pelo Intermediário, 4 = Retido pelo Substituto, 5 = Retido por outro
+            // Prioriza a retenção do tomador configurada em seu cadastro
+            const customerRetTipoXml = firstItem?.tomador?.iss_retencao_ativa 
+                ? Number(firstItem?.tomador?.iss_retencao_tipo || 2) 
+                : (firstItem?.tomador?.iss_retencao_ativa === false ? 1 : undefined);
+
+            const tpRetISSQN = customerRetTipoXml !== undefined
+                ? customerRetTipoXml
+                : (tribMun.tpRetISSQN !== undefined
+                    ? Number(tribMun.tpRetISSQN)
+                    : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : (firstItem?.servico?.[0]?.iss?.retido ? 2 : 1)));
 
             // pAliq (Alíquota ISSQN / Simples Nacional)
             // Para optantes do Simples Nacional (opSimpNac = 2 ou 3), a alíquota de ISS só é informada se houver retenção (tpRetISSQN = 2).

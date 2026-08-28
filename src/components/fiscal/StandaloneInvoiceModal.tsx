@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal';
 import { useEntity } from '../../context/EntityContext';
 import { useContacts } from '../../hooks/useContacts';
 import { ContactForm } from '../contacts/ContactForm';
+import { useNotification } from '../../context/NotificationContext';
 import { fiscalService } from '../../services/fiscalService';
 import { whatsappService } from '../../services/whatsappService';
 import { supabase } from '../../lib/supabase';
@@ -142,6 +143,7 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
 
 export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initialType, initialNotes }: StandaloneInvoiceModalProps) {
     const { currentEntity, availableEntities, switchEntity } = useEntity();
+    const { notify } = useNotification();
     const { contacts, addContact, updateContact } = useContacts();
     const { companies, updateCompany } = useCompanies();
     const { services } = useServices();
@@ -1968,6 +1970,94 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <Award size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
                                 <span>{recurringNotice}</span>
                             </div>
+                        )}
+
+                        {!noTomador && selectedContact && selectedContact.entity_type === 'PJ' && (
+                            (() => {
+                                const meta = (selectedContact as any).metadata || {};
+                                const hasConfig = meta.iss_retencao_ativa !== undefined;
+                                const isRetido = !!meta.iss_retencao_ativa;
+                                const retTipo = meta.iss_retencao_tipo || 1;
+
+                                if (hasConfig) {
+                                    if (isRetido) {
+                                        const tipoLabels: Record<number, string> = {
+                                            2: 'Retido pelo Tomador',
+                                            3: 'Retido pelo Intermediário',
+                                            4: 'Retido pelo Substituto Tributário',
+                                            5: 'Retido por outro responsável'
+                                        };
+                                        return (
+                                            <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-100 dark:border-emerald-950/10 text-xs mt-1.5 animate-fadeIn font-bold">
+                                                <span className="shrink-0 text-emerald-600 dark:text-emerald-400">✅</span>
+                                                <span>Retenção de ISS Ativa: {tipoLabels[retTipo] || 'Retido pelo Tomador'} (Configurado para este cliente)</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setEditingContact(selectedContact); setShowContactModal(true); }}
+                                                    className="ml-auto text-emerald-600 hover:text-emerald-700 underline text-[10px]"
+                                                >
+                                                    Alterar
+                                                </button>
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-slate-700 text-xs mt-1.5 animate-fadeIn">
+                                                <span>ℹ️ Este cliente está configurado como <strong>Sem Retenção de ISS</strong>.</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setEditingContact(selectedContact); setShowContactModal(true); }}
+                                                    className="ml-auto text-violet-600 hover:text-violet-700 underline text-[10px] font-bold"
+                                                >
+                                                    Alterar
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                } else {
+                                    return (
+                                        <div className="flex flex-col gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-100 dark:border-amber-950/10 text-xs mt-1.5 animate-fadeIn">
+                                            <div className="flex items-start gap-2">
+                                                <span className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5">⚠️</span>
+                                                <div>
+                                                    <p className="font-bold">Este cliente é Pessoa Jurídica (CNPJ), mas a retenção de ISSQN ainda não foi configurada para ele.</p>
+                                                    <p className="text-[10px] opacity-80 mt-0.5">Deseja definir se há ou não retenção de ISS para evitar rejeição no Portal Nacional?</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 mt-1.5 pl-6">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setEditingContact(selectedContact); setShowContactModal(true); }}
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-3 rounded-lg text-[10px] transition-colors"
+                                                >
+                                                    ⚙️ Configurar Retenção Agora
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        // Salva temporariamente como 'sem retenção' (iss_retencao_ativa = false)
+                                                        try {
+                                                            const updated = {
+                                                                ...selectedContact,
+                                                                metadata: {
+                                                                    ...((selectedContact as any).metadata || {}),
+                                                                    iss_retencao_ativa: false,
+                                                                    iss_retencao_tipo: 1
+                                                                }
+                                                            };
+                                                            await updateContact(selectedContact.id, updated);
+                                                            notify('success', 'Configurado', 'Definido como Sem Retenção para este cliente.');
+                                                        } catch (err) {}
+                                                    }}
+                                                    className="text-amber-700 dark:text-amber-400 hover:underline text-[10px] font-medium"
+                                                >
+                                                    Definir como "Não Retido"
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                            })()
                         )}
 
                         {!noTomador && contactValidation && !contactValidation.isValid && (
