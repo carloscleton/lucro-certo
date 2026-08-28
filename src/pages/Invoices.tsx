@@ -1855,8 +1855,8 @@ ${messageWithPlaceholder}`;
                                                         </Tooltip>
                                                     </>
                                                 )}
-                                                {/* Excluir do Histórico apenas se estiver cancelada ou com erro e ainda não excluída */}
-                                                {(['cancelado', 'erro', 'rejeitado'].includes(invoice.status?.toLowerCase())) && !invoice.deleted && (
+                                                {/* Excluir do Histórico: disponível para qualquer nota não excluída */}
+                                                {!invoice.deleted && (
                                                     <Tooltip content="Excluir do Histórico">
                                                         <button
                                                             onClick={() => setDeleteModal({ isOpen: true, invoiceId: invoice.id })}
