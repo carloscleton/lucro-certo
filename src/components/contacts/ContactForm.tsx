@@ -1064,7 +1064,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         value={observacaoNota}
                         onChange={(e) => setObservacaoNota(e.target.value)}
                         placeholder="Ex: - CNPJ 18.737.227/0001-80&#10;03 - FARIAS & CIA CLINICA..."
-                        className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                        className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none resize-y"
                     />
                     <p className="text-[11px] text-gray-400 mt-1">
                         Este texto será preenchido automaticamente no Corpo da Nota / Informações Complementares ao emitir notas avulsas para este cliente.

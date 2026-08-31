@@ -1519,7 +1519,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     title="Observações da Nota Fiscal"
                     subtitle={`Defina informações complementares para a nota de ${charges.find(c => c.id === editingNotesChargeId)?.contact.name}`}
                     icon={MessageSquare}
-                    maxWidth="max-w-xl"
+                    maxWidth="max-w-3xl"
                     variant="primary"
                 >
                     <div className="flex flex-col gap-4 text-sm text-gray-900 dark:text-gray-100">
@@ -1531,8 +1531,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 value={tempNotesText}
                                 onChange={(e) => setTempNotesText(e.target.value)}
                                 placeholder="Detalhes adicionais, observações fiscais, número do contrato..."
-                                rows={5}
-                                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none text-gray-800 dark:text-gray-200"
+                                rows={8}
+                                className="w-full bg-slate-50/80 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 transition-all resize-y min-h-[140px] text-gray-800 dark:text-gray-200 font-semibold"
                             />
                         </div>
 

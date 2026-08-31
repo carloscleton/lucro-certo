@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -280,6 +280,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [noTomador, setNoTomador] = useState(false);
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [notes, setNotes] = useState(initialNotes || '');
+    const [isExpandedNotes, setIsExpandedNotes] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Reset contact selection when switching companies
@@ -1699,7 +1700,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     };
 
     return (
-        <Modal isOpen={true} onClose={onClose} title="Nova Nota Fiscal Avulsa" icon={Receipt} maxWidth="max-w-3xl">
+        <Modal isOpen={true} onClose={onClose} title="Nova Nota Fiscal Avulsa" icon={Receipt} maxWidth={isExpandedNotes ? 'max-w-5xl' : 'max-w-3xl'}>
             <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                     <div className="bg-rose-50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/30 animate-in fade-in duration-300 space-y-3">
@@ -2154,15 +2155,25 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
-                                        Corpo da Nota / Informações Complementares (Detalhamento do Serviço)
-                                    </label>
+                                    <div className="flex items-center justify-between ml-1">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            Corpo da Nota / Informações Complementares (Detalhamento do Serviço)
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsExpandedNotes(!isExpandedNotes)}
+                                            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:underline flex items-center gap-1.5 cursor-pointer transition-all"
+                                        >
+                                            {isExpandedNotes ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                            <span>{isExpandedNotes ? 'Reduzir Campo' : 'Ampliar Campo / Modal'}</span>
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Detalhamento do serviço, observações adicionais, condições de pagamento..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-semibold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none resize-none"
+                                        rows={isExpandedNotes ? 10 : 4}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-semibold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none resize-y min-h-[100px]"
                                     />
                                 </div>
 
