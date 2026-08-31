@@ -969,7 +969,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
                                 disabled={isProcessing}
-                                className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 rounded-xl px-3 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer transition-all"
                             >
                                 {monthOptions.map(o => (
                                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -984,7 +984,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 value={globalServiceId}
                                 onChange={(e) => handleApplyGlobalService(e.target.value)}
                                 disabled={isProcessing}
-                                className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500 max-w-xs md:max-w-md"
+                                className="bg-amber-50/60 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-700/70 hover:border-amber-400 rounded-xl px-3 py-1.5 text-sm font-bold text-amber-900 dark:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 max-w-xs md:max-w-md cursor-pointer transition-all"
                             >
                                 <option value="">Definir serviço para todos...</option>
                                 {services.map(s => (
@@ -1003,7 +1003,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 disabled={isProcessing}
-                                className="pl-9 pr-4 py-1.5 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                className="pl-9 pr-4 py-1.5 w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
                             />
                         </div>
 
@@ -1011,7 +1011,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                             value={statusFilter}
                             onChange={(e: any) => setStatusFilter(e.target.value)}
                             disabled={isProcessing}
-                            className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 rounded-xl px-3 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer transition-all"
                         >
                             <option value="all">Todos</option>
                             <option value="pending">Pendentes</option>

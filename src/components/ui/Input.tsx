@@ -30,7 +30,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     <input
                         ref={ref}
                         className={clsx(
-                            'flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50',
+                            'flex h-10 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/80 px-3.5 py-2 text-sm font-semibold text-[var(--color-text-main)] placeholder:text-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 hover:border-violet-400 disabled:cursor-not-allowed disabled:opacity-50 transition-all',
                             error && 'border-red-500 focus:ring-red-500 dark:border-red-500',
                             !['password', 'email', 'date', 'number', 'time', 'datetime-local'].includes(props.type || 'text') && !preserveCase && 'uppercase',
                             leftElement && 'pl-10',

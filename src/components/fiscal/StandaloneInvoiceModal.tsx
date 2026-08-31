@@ -95,7 +95,7 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
                     onFocus={() => setIsOpen(true)}
                     placeholder={placeholder || "Ex: Consultoria Técnica Mensal"}
                     required
-                    className="w-full h-11 px-4 pr-10 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                    className="w-full h-11 px-4 pr-10 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none"
                 />
                 <button
                     type="button"
@@ -1894,7 +1894,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         switchEntity(targetEntity);
                                     }
                                 }}
-                                className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none cursor-pointer"
                                 required
                             >
                                 {companyEntities.map(c => (
@@ -1909,7 +1909,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value as any)}
-                            className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                            className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none cursor-pointer"
                             required
                             disabled={activeProvider === 'nfeio'}
                         >
@@ -1971,7 +1971,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             <select
                                 value={contactId}
                                 onChange={(e) => setContactId(e.target.value)}
-                                className="w-full h-12 px-4 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none cursor-pointer"
                                 required={!noTomador}
                             >
                                 <option value="">Selecione um cliente...</option>
@@ -2096,7 +2096,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             required
                             disabled
                             helpText="Para alterar a cidade, acesse as Configurações Fiscais da Empresa."
-                            className="bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 rounded-2xl border-2 border-transparent shadow-sm cursor-not-allowed"
+                            className="bg-slate-100 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm cursor-not-allowed font-mono font-bold"
                         />
                     </div>
                 </div>
@@ -2162,7 +2162,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Detalhamento do serviço, observações adicionais, condições de pagamento..."
                                         rows={3}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-xs font-semibold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none resize-none"
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-semibold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none resize-none"
                                     />
                                 </div>
 
@@ -2177,7 +2177,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                             placeholder={type === 'nfse' ? (isNacional ? 'Ex: 010701' : 'Ex: 01.01') : '84713019'}
                                             list={isNacional ? "ctribnac-list" : undefined}
                                             required
-                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                            className="bg-slate-50/80 dark:bg-slate-900/90 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-11 font-bold text-gray-900 dark:text-white transition-all"
                                         />
                                         {isNacional && (
                                             <datalist id="ctribnac-list">
@@ -2201,7 +2201,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                 value={item.codigoTributacaoNacional}
                                                 onChange={(e: any) => updateItem(item.id, 'codigoTributacaoNacional', e.target.value)}
                                                 placeholder="Ex: 115013000"
-                                                className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-indigo-500/20 shadow-sm h-11"
+                                                className="bg-slate-50/80 dark:bg-slate-900/90 rounded-2xl border-2 border-indigo-400/40 dark:border-indigo-600/50 hover:border-indigo-500 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-11 font-bold text-gray-900 dark:text-white transition-all"
                                             />
                                         </div>
                                     )}
@@ -2214,7 +2214,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                             value={item.quantity}
                                             onChange={(e: any) => updateItem(item.id, 'quantity', parseInt(e.target.value))}
                                             required
-                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                            className="bg-slate-50/80 dark:bg-slate-900/90 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-11 font-bold text-gray-900 dark:text-white transition-all"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
@@ -2225,7 +2225,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                             onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
                                             placeholder="0,00"
                                             required
-                                            className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-transparent shadow-sm h-11"
+                                            className="bg-slate-50/80 dark:bg-slate-900/90 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-11 font-bold text-gray-900 dark:text-white transition-all"
                                         />
                                     </div>
                                 </div>
@@ -2242,7 +2242,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                         value={item.pisAliquota}
                                                         onChange={(e: any) => updateItem(item.id, 'pisAliquota', e.target.value)}
                                                         placeholder="0.65"
-                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                        className="bg-slate-50/80 dark:bg-slate-900/90 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-10 text-xs font-bold text-gray-900 dark:text-white transition-all"
                                                     />
                                                     <Input
                                                         label="COFINS"
@@ -2251,7 +2251,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                         value={item.cofinsAliquota}
                                                         onChange={(e: any) => updateItem(item.id, 'cofinsAliquota', e.target.value)}
                                                         placeholder="3.00"
-                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                        className="bg-slate-50/80 dark:bg-slate-900/90 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-10 text-xs font-bold text-gray-900 dark:text-white transition-all"
                                                     />
                                                     <Input
                                                         label="CSLL"
@@ -2260,7 +2260,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                         value={item.csllAliquota}
                                                         onChange={(e: any) => updateItem(item.id, 'csllAliquota', e.target.value)}
                                                         placeholder="1.00"
-                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                        className="bg-slate-50/80 dark:bg-slate-900/90 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-10 text-xs font-bold text-gray-900 dark:text-white transition-all"
                                                     />
                                                     <Input
                                                         label="IRRF"
@@ -2269,7 +2269,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                                         value={item.irrfAliquota}
                                                         onChange={(e: any) => updateItem(item.id, 'irrfAliquota', e.target.value)}
                                                         placeholder="1.50"
-                                                        className="bg-white dark:bg-slate-900 h-9 text-xs"
+                                                        className="bg-slate-50/80 dark:bg-slate-900/90 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 shadow-sm h-10 text-xs font-bold text-gray-900 dark:text-white transition-all"
                                                     />
                                                 </div>
                                             </div>
