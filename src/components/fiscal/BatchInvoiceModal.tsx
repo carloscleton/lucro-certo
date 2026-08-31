@@ -267,7 +267,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         complement,
                         neighborhood,
                         city,
-                        state
+                        state,
+                        metadata
                     ),
                     plan:loyalty_plans (
                         id,
