@@ -1033,10 +1033,23 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 )}
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total de Assinantes</span>
                         <span className="text-2xl font-black mt-1">{charges.length}</span>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
+                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Valor Selecionado</span>
+                        <span className="text-2xl font-black text-violet-600 dark:text-violet-400 mt-1">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                charges.filter(c => selectedIds.has(c.id)).reduce((acc, c) => acc + (c.amount || 0), 0)
+                            )}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-semibold mt-1">
+                            Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                charges.reduce((acc, c) => acc + (c.amount || 0), 0)
+                            )}
+                        </span>
                     </div>
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Prontos p/ Emitir</span>
