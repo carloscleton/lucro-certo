@@ -332,7 +332,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 let chargeAmount = s.custom_price || serviceObj?.price || planObj?.price || 0;
 
                 // If invoice was ALREADY emitted, preserve the exact historical emitted amount from payload
-                let chargeNotes = contactObj?.metadata?.observacao_nota || '';
+                let chargeNotes = (contactObj as any)?.metadata?.observacao_nota || '';
                 if (existingInvoice) {
                     const invPayload = (existingInvoice.payload || {}) as any;
                     const servicoObj = Array.isArray(invPayload?.servico) ? invPayload?.servico[0] : invPayload?.servico;
