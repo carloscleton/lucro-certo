@@ -288,6 +288,20 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         setRecurringNotice(null);
     }, [currentEntity.id]);
 
+    // Auto-populate default invoice observations when contact changes
+    useEffect(() => {
+        if (selectedContact) {
+            const meta = (selectedContact as any).metadata || {};
+            if (meta.observacao_nota) {
+                setNotes(meta.observacao_nota);
+            } else {
+                setNotes('');
+            }
+        } else {
+            setNotes('');
+        }
+    }, [selectedContact]);
+
     const [recurringNotice, setRecurringNotice] = useState<string | null>(null);
 
     // Auto-fill value and details when selecting a customer with recurring billing (Plano, Serviço, ou Personalizado)

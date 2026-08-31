@@ -83,6 +83,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
     const [emailSent, setEmailSent] = useState(false);
     const [nextDueAt, setNextDueAt] = useState('');
     const [customPrice, setCustomPrice] = useState<number>(0);
+    const [observacaoNota, setObservacaoNota] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [loadingCep, setLoadingCep] = useState(false);
@@ -227,6 +228,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             const meta = (initialData as any).metadata || {};
             setIssRetencaoAtiva(!!meta.iss_retencao_ativa);
             setIssRetencaoTipo(meta.iss_retencao_tipo ?? 1);
+            setObservacaoNota(meta.observacao_nota || '');
             const initCep = initialData.zip_code || '';
             setZipCode(initCep);
             loadedCepRef.current = initCep.replace(/\D/g, '');
@@ -305,17 +307,18 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
             setCheckoutUrl('');
             setIssRetencaoAtiva(false);
             setIssRetencaoTipo(1);
+            setObservacaoNota('');
         }
     }, [initialData, isOpen, currentEntity.id]);
 
     const { clearCache } = useAutoSave(
         'contact_form',
-        { name, type, entityType, email, phone, whatsapp, cpf, cnpj, birthday, zipCode, street, number, complement, neighborhood, city, state },
+        { name, type, entityType, email, phone, whatsapp, cpf, cnpj, birthday, zipCode, street, number, complement, neighborhood, city, state, observacaoNota },
         {
             name: setName, type: setType as any, entityType: setEntityType as any, email: setEmail, phone: setPhone, whatsapp: setWhatsapp,
             cpf: setCpf, cnpj: setCnpj, birthday: setBirthday, zipCode: setZipCode, street: setStreet,
             number: setNumber, complement: setComplement, neighborhood: setNeighborhood,
-            city: setCity, state: setState
+            city: setCity, state: setState, observacaoNota: setObservacaoNota
         },
         !initialData,
         isOpen
@@ -432,6 +435,7 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                 // ISS Retention configuration (Portal Nacional — per PJ client)
                 metadata: {
                     ...((initialData as any)?.metadata || {}),
+                    observacao_nota: observacaoNota || null,
                     ...(entityType === 'PJ' ? {
                         iss_retencao_ativa: issRetencaoAtiva,
                         iss_retencao_tipo: issRetencaoAtiva ? issRetencaoTipo : 1,
@@ -1050,6 +1054,22 @@ export function ContactForm({ isOpen, onClose, onSubmit, initialData }: ContactF
                         </div>
                     </div>
                 )}
+
+                {/* Campo de Observação Padrão da Nota Fiscal */}
+                <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Observação Padrão da Nota Fiscal (NFS-e)
+                    </label>
+                    <textarea
+                        value={observacaoNota}
+                        onChange={(e) => setObservacaoNota(e.target.value)}
+                        placeholder="Ex: - CNPJ 18.737.227/0001-80&#10;03 - FARIAS & CIA CLINICA..."
+                        className="w-full min-h-[100px] p-3 rounded-2xl border-2 border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-bold shadow-sm focus:border-blue-500 focus:ring-0 transition-all outline-none"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                        Este texto será preenchido automaticamente no Corpo da Nota / Informações Complementares ao emitir notas avulsas para este cliente.
+                    </p>
+                </div>
 
                 <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
