@@ -633,8 +633,18 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const serviceTaxCode = serviceObj?.codigo_servico_municipal || serviceObj?.item_lista_servico;
                 const serviceNatCode = serviceObj?.codigo_tributacao_nacional;
 
-                const finalTaxCode = serviceTaxCode ? serviceTaxCode.replace(/\D/g, '') : (isNacional ? natCode : (config?.default_taxation_code || '01.01'));
-                const finalNatCode = serviceNatCode ? serviceNatCode.replace(/\D/g, '').substring(0, 9) : natCode;
+                const cleanTaxCode = String(serviceTaxCode || config?.default_taxation_code || '').replace(/\D/g, '').trim();
+                const cleanNatCode = String(serviceNatCode || natCode || '').replace(/\D/g, '').trim();
+
+                const cTribNac6 = (cleanTaxCode.length === 6)
+                    ? cleanTaxCode
+                    : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
+
+                const cNBS9 = (cleanNatCode.length === 9)
+                    ? cleanNatCode
+                    : ((cleanTaxCode.length === 9) ? cleanTaxCode : undefined);
+
+                const finalTaxCode = cleanTaxCode || cTribNac6;
 
                 // Combine service description with charge notes (same as individual)
                 const chargeNotes = charge.notes?.trim() || '';
@@ -642,10 +652,6 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const fullDescription = chargeNotes
                     ? (cleanServiceDesc && !cleanServiceDesc.includes(chargeNotes) ? `${cleanServiceDesc}\n${chargeNotes}` : chargeNotes)
                     : cleanServiceDesc;
-
-                const cleanTaxCodeStr = String(finalNatCode || finalTaxCode || '').replace(/\D/g, '');
-                const cTribNac6 = cleanTaxCodeStr.length >= 6 ? cleanTaxCodeStr.substring(0, 6) : '010701';
-                const cNBS9 = cleanTaxCodeStr.length === 9 ? cleanTaxCodeStr : undefined;
 
                 let payload: any;
 
