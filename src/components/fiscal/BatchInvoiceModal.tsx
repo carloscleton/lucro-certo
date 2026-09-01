@@ -585,7 +585,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
         const defaultCityCode = isHomolog ? '4115200' : (config?.endereco?.codigoCidade || '3106200');
 
         let processedCount = 0;
-        const concurrencyLimit = 3;
+        const concurrencyLimit = 1; // Sequential execution to prevent DPS sequence collision on SEFIN Portal Nacional
         const queue = [...idsToProcess];
         const activePromises: Promise<void>[] = [];
 
