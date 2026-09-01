@@ -77,7 +77,14 @@ interface QuickEditData {
 export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
-    const currentCompany = companies.find(c => c.id === currentEntity.id);
+    
+    const currentCompany = useMemo(() => {
+        return companies.find(c => c.id === currentEntity.id) ||
+               (currentEntity.cnpj ? companies.find(c => c.cnpj?.replace(/\D/g, '') === currentEntity.cnpj?.replace(/\D/g, '')) : undefined) ||
+               companies[0];
+    }, [companies, currentEntity.id, currentEntity.cnpj]);
+
+    const activeEntityId = currentCompany?.id || currentEntity.id || '';
     const activeProvider = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
 
     const config = useMemo(() => {
@@ -661,7 +668,6 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     }
 
                     payload = {
-                        idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
                         infDPS: {
                             tpAmb: config?.ambiente === 'producao' ? 1 : 2,
                             verAplic: "1.00",
@@ -670,7 +676,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                             tpEmit: 1,
                             cLocEmi: companyCityCode,
                             prest: {
-                                CNPJ: prestCnpj || "",
+                                CNPJ: prestCnpj || "00893566000190",
                                 regTrib: {
                                     opSimpNac: opSN,
                                     ...(opSN === 3 ? { regApTribSN: Number(config?.reg_ap_trib_sn || 1) } : {})
@@ -712,7 +718,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                     tribMun: {
                                         tribISSQN: 1,
                                         tpRetISSQN: 1,
-                                        pAliq: parseFloat(defaultIss) || 5.00
+                                        pAliq: 5.00
                                     },
                                     totTrib: {
                                         pTotTribSN: parseFloat(config?.default_tot_trib_sn || '5.00')
@@ -731,6 +737,10 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     // TECNOSPEED / NFe.io — original batch payload
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    const itemListaServicoCalculated = finalTaxCode.includes('.')
+                        ? finalTaxCode
+                        : (cTribNac6.length >= 4 ? `${cTribNac6.substring(0, 2)}.${cTribNac6.substring(2, 4)}` : '01.07');
+
                     payload = {
                         idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
                         codigoIbge: companyCityCode,
@@ -743,15 +753,15 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                      parseInt(config?.default_regime_especial || '0')
                         },
                         tomador: {
-                            cpfCnpj: charge.contact.tax_id!.replace(/\D/g, ''),
-                            razaoSocial: charge.contact.name,
+                            cpfCnpj: (charge.contact.tax_id || '').replace(/\D/g, ''),
+                            razaoSocial: charge.contact.name || 'NÃO IDENTIFICADO',
                             email: charge.contact.email ? charge.contact.email.split(/[,;\n]+/)[0].trim().toLowerCase() : '',
                             endereco: {
                                 logradouro: charge.contact.street || '',
                                 numero: charge.contact.number || 'S/N',
                                 bairro: charge.contact.neighborhood || '',
                                 cep: charge.contact.zip_code?.replace(/\D/g, ''),
-                                codigoCidade: clientCityCode,
+                                codigoCidade: clientCityCode || companyCityCode,
                                 cidade: charge.contact.city || '',
                                 descricaoCidade: charge.contact.city || '',
                                 uf: charge.contact.state || ''
@@ -759,7 +769,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         },
                         servico: [
                             {
-                                codigo: isNacional ? (finalTaxCode?.replace(/\D/g, '').substring(0, 6)) : finalTaxCode,
+                                codigo: isNacional ? (finalTaxCode?.replace(/\D/g, '').substring(0, 6) || '010701') : finalTaxCode,
                                 codigoIbge: companyCityCode,
                                 discriminacao: fullDescription,
                                 descricao: fullDescription,
@@ -769,7 +779,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                     descontoIncondicionado: 0
                                 },
                                 quantidade: 1,
-                                itemListaServico: finalTaxCode.includes('.') ? finalTaxCode : '01.01',
+                                itemListaServico: itemListaServicoCalculated,
                                 cnae: config?.default_cnae ? String(config.default_cnae).replace(/\D/g, '').substring(0, 7) : undefined,
                                 iss: {
                                     aliquota: parseFloat(defaultIss || '0'),
@@ -809,7 +819,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 // 3. Call API
                 const result = await fiscalService.emitirNFSe(
-                    currentEntity.id!,
+                    activeEntityId,
                     payload,
                     token,
                     undefined,
@@ -916,7 +926,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 }));
             } catch (err: any) {
                 console.error(`Error emitting note for charge ${chargeId}:`, err);
-                const errMsg = err.response?.data?.detail || err.message || 'Erro de comunicação fiscal';
+                const errMsg = err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro de comunicação fiscal';
                 setExecutionLogs(prev => ({
                     ...prev,
                     [chargeId]: { status: 'error', message: errMsg }
