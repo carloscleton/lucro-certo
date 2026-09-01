@@ -742,7 +742,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                         : (cTribNac6.length >= 4 ? `${cTribNac6.substring(0, 2)}.${cTribNac6.substring(2, 4)}` : '01.07');
 
                     payload = {
-                        idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}`,
+                        idIntegracao: `RECORRENTE_${chargeId}_${selectedMonth}_${Date.now()}`,
                         codigoIbge: companyCityCode,
                         prestador: {
                             cpfCnpj: currentCompany?.cnpj?.replace(/\D/g, '') || config?.cnpj?.replace(/\D/g, ''),
@@ -925,8 +925,28 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     [chargeId]: { status: 'success', pdfUrl: `https://dummy-link-pdf` } // status ok
                 }));
             } catch (err: any) {
-                console.error(`Error emitting note for charge ${chargeId}:`, err);
-                const errMsg = err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro de comunicação fiscal';
+                console.error(`Error emitting note for charge ${chargeId}:`, err.response?.data || err);
+                let errMsg = 'Erro de comunicação fiscal';
+                if (err.response?.data) {
+                    const d = err.response.data;
+                    if (typeof d === 'string') {
+                        errMsg = d;
+                    } else if (d.error && typeof d.error === 'string') {
+                        errMsg = d.error;
+                    } else if (d.detail && typeof d.detail === 'string') {
+                        errMsg = d.detail;
+                    } else if (d.message && typeof d.message === 'string') {
+                        errMsg = d.message;
+                    } else if (Array.isArray(d.erros) && d.erros.length > 0) {
+                        errMsg = d.erros.map((e: any) => e.mensagem || e.descricao || JSON.stringify(e)).join(' | ');
+                    } else if (d.error && typeof d.error === 'object') {
+                        errMsg = d.error.message || d.error.detail || JSON.stringify(d.error);
+                    } else {
+                        errMsg = JSON.stringify(d);
+                    }
+                } else if (err.message) {
+                    errMsg = err.message;
+                }
                 setExecutionLogs(prev => ({
                     ...prev,
                     [chargeId]: { status: 'error', message: errMsg }
