@@ -505,10 +505,9 @@ ${messageWithPlaceholder}`;
                         .update({ status: 'concluido' })
                         .eq('id', invoice.id);
                 } catch (e) {}
-            }
 
-            await refresh();
-            setIsRefreshing(null);
+                await refresh();
+
                 if (!wasAlreadyAuthorized) {
                     setResultModal({
                         isOpen: true,
