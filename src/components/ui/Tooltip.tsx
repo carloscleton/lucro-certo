@@ -27,14 +27,14 @@ export function Tooltip({ content, children, position = 'top', className = '' }:
             {children}
             <div className={`
                 absolute ${positionClasses[position]}
-                px-3.5 py-2.5 
+                px-4 py-3 
                 bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md
                 text-white text-xs font-medium leading-relaxed
                 rounded-xl shadow-2xl border border-slate-700/50
                 opacity-0 invisible
                 group-hover/tooltip:opacity-100 group-hover/tooltip:visible
                 transition-all duration-200 ease-in-out
-                max-w-xs sm:max-w-sm md:max-w-md whitespace-pre-line break-words text-left
+                w-[550px] max-w-[90vw] min-w-[320px] whitespace-pre-line break-words text-left
                 z-50
                 pointer-events-none
             `}>

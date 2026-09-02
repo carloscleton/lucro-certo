@@ -1597,33 +1597,49 @@ ${messageWithPlaceholder}`;
                                                     })()}
                                                 </span>
                                                 <div className="flex flex-row items-center gap-1.5 mt-0.5 flex-wrap">
-                                                    <Tooltip content={(() => {
-                                                        const p = invoice.payload;
-                                                        const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
-                                                        const servico = servicos[0];
-                                                        const desc = p?.infDPS?.serv?.cServ?.xDescServ ||
-                                                                     p?.retorno?.infDPS?.serv?.cServ?.xDescServ ||
-                                                                     p?.infDPS?.infComp?.xInfComp ||
-                                                                     servico?.discriminacao ||
-                                                                     servico?.descricao ||
-                                                                     p?.discriminacao ||
-                                                                     p?.descricao ||
-                                                                     p?.discriminacaoServico ||
-                                                                     p?.itens?.[0]?.descricao ||
-                                                                     p?.itens?.[0]?.discriminacao ||
-                                                                     (invoice as any).notes;
-                                                        if (!desc) return 'Sem descrição';
-                                                        return String(desc)
+                                                {(() => {
+                                                    const p = invoice.payload;
+                                                    const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+                                                    const servico = servicos[0];
+                                                    const rawDesc = p?.infDPS?.serv?.cServ?.xDescServ ||
+                                                                    p?.retorno?.infDPS?.serv?.cServ?.xDescServ ||
+                                                                    p?.infDPS?.infComp?.xInfComp ||
+                                                                    servico?.discriminacao ||
+                                                                    servico?.descricao ||
+                                                                    p?.discriminacao ||
+                                                                    p?.descricao ||
+                                                                    p?.discriminacaoServico ||
+                                                                    p?.itens?.[0]?.descricao ||
+                                                                    p?.itens?.[0]?.discriminacao ||
+                                                                    (invoice as any).notes;
+                                                    const formattedDesc = rawDesc
+                                                        ? String(rawDesc)
                                                             .replace(/\|/g, '\n')
                                                             .replace(/(?<!^)(\d{2}\s*-\s*)/g, '\n$1')
                                                             .replace(/\n\s*\n/g, '\n')
-                                                            .trim();
-                                                    })()}>
-                                                        <span className="text-[10px] text-blue-500 font-bold cursor-help flex items-center gap-1 hover:underline whitespace-nowrap bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/30 dark:border-blue-900/10">
-                                                            <Search size={10} />
-                                                            Ver Descrição
-                                                        </span>
-                                                    </Tooltip>
+                                                            .trim()
+                                                        : 'Sem descrição';
+
+                                                    return (
+                                                        <Tooltip position="bottom" content={formattedDesc}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setResultModal({
+                                                                        isOpen: true,
+                                                                        title: 'Descrição do Serviço',
+                                                                        message: formattedDesc,
+                                                                        type: 'info'
+                                                                    });
+                                                                }}
+                                                                className="text-[10px] text-blue-500 font-bold cursor-pointer flex items-center gap-1 hover:underline whitespace-nowrap bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/30 dark:border-blue-900/10 transition-all hover:bg-blue-100/60 dark:hover:bg-blue-900/40"
+                                                            >
+                                                                <Search size={10} />
+                                                                Ver Descrição
+                                                            </button>
+                                                        </Tooltip>
+                                                    );
+                                                })()}
                                                     {renderInvoiceRates(invoice) && (
                                                         <div className="flex items-center gap-1">
                                                             <span className="text-gray-300 dark:text-slate-700 text-[10px] font-bold hidden sm:inline">-</span>
