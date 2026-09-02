@@ -835,11 +835,20 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 const externalId = result.data?.id || result.id || result.documents?.[0]?.id;
                 let finalPayload = result.data || result;
-                const statusStr = String(finalPayload.status || finalPayload.situacao || 'processando').toLowerCase();
+                const rawStatus = String(finalPayload.status || finalPayload.situacao || 'processando').toLowerCase();
 
                 if (!externalId) {
                     throw new Error(result.message || 'ID da nota não retornado pela API.');
                 }
+
+                // Extract fields required to activate icons on InvoicesTable
+                const returnedKey = String(result.chaveAcesso || result.access_key || result.documents?.[0]?.chaveAcesso || externalId || '').trim();
+                const returnedNum = String(result.nNFSe || result.invoice_number || result.nDPS || result.dps_number || result.documents?.[0]?.nNFSe || '1').trim();
+                const pdfUrlProxy = result.pdf_url || result.pdf || result.documents?.[0]?.pdf_url || null;
+                const xmlUrlProxy = result.xml_url || result.xml || result.documents?.[0]?.xml_url || null;
+
+                const isSuccess = ['concluido', 'autorizada', 'autorizado', 'emitida', 'sucesso', '100'].includes(rawStatus);
+                const finalStatus = isSuccess ? 'concluido' : rawStatus;
 
                 // 4. Save/Update in DB (Check if backend proxy already created the row)
                 let dbInvoiceId = '';
@@ -847,7 +856,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const { data: existingInv } = await supabase
                     .from('fiscal_invoices')
                     .select('id')
-                    .eq('external_id', externalId)
+                    .or(`external_id.eq.${externalId},access_key.eq.${externalId}`)
                     .maybeSingle();
 
                 if (existingInv) {
@@ -855,7 +864,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     const { data: updatedInv, error: dbError } = await supabase
                         .from('fiscal_invoices')
                         .update({
-                            status: statusStr,
+                            company_id: activeEntityId,
+                            status: finalStatus,
+                            access_key: returnedKey || externalId,
+                            invoice_number: returnedNum || '1',
+                            dps_number: result.nDPS || result.dps_number || returnedNum || '1',
+                            pdf_url: pdfUrlProxy,
+                            xml_url: xmlUrlProxy,
                             payload: {
                                 ...payload,
                                 retorno: finalPayload,
@@ -873,10 +888,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     const { data: newInv, error: dbError } = await supabase
                         .from('fiscal_invoices')
                         .insert({
-                            company_id: currentEntity.id,
+                            company_id: activeEntityId,
                             external_id: externalId,
+                            access_key: returnedKey || externalId,
+                            invoice_number: returnedNum || '1',
+                            dps_number: result.nDPS || result.dps_number || returnedNum || '1',
+                            dps_serie: '1',
                             type: activeProvider === 'nfeio' ? 'nfeio' : (isNacional ? 'nfsenac' : 'nfse'),
-                            status: statusStr,
+                            status: finalStatus,
+                            pdf_url: pdfUrlProxy,
+                            xml_url: xmlUrlProxy,
                             payload: {
                                 ...payload,
                                 retorno: finalPayload,
@@ -979,15 +1000,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
         await Promise.all(activePromises);
 
         setIsProcessing(false);
-        fetchCharges(); // Reload data
+        await fetchCharges(); // Reload data
+        setTimeout(() => {
+            onClose();
+        }, 1200);
     };
 
     return (
         <Modal
             isOpen={isOpen}
-            onClose={() => {
-                if (!isProcessing) onClose();
-            }}
+            onClose={onClose}
             title="Faturamento Recorrente em Lote"
             subtitle="Emissão simplificada das Notas Fiscais dos seus assinantes fidelidade"
             icon={RefreshCw}
