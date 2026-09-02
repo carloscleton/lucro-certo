@@ -497,11 +497,17 @@ ${messageWithPlaceholder}`;
             await refresh();
             setIsRefreshing(null);
 
-            const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'success', 'emitida'];
+            const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'autorizada', 'success', 'emitida', 'emitido'];
             const resultStatus = String(statusResult?.status || statusResult?.flowStatus || '').toLowerCase();
-            const wasAlreadyAuthorized = ['issued', 'concluido', 'autorizado'].includes(String(invoice.status || '').toLowerCase());
+            const wasAlreadyAuthorized = ['issued', 'concluido', 'autorizado', 'autorizada'].includes(String(invoice.status || '').toLowerCase());
 
             if (authorizedStatuses.includes(resultStatus)) {
+                try {
+                    await supabase
+                        .from('fiscal_invoices')
+                        .update({ status: 'concluido' })
+                        .eq('id', invoice.id);
+                } catch (e) {}
                 if (!wasAlreadyAuthorized) {
                     setResultModal({
                         isOpen: true,
@@ -1204,7 +1210,7 @@ ${messageWithPlaceholder}`;
 
     const getStatusBadge = (status: string) => {
         const s = status?.toLowerCase();
-        if (s === 'concluido' || s === 'autorizado' || s === 'issued') {
+        if (s === 'concluido' || s === 'autorizado' || s === 'autorizada' || s === 'issued' || s === 'emitida' || s === 'emitido' || s === 'sucesso') {
             return (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
                     <CheckCircle2 size={11} className="animate-in zoom-in duration-500" />
@@ -1754,7 +1760,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'autorizada', 'issued', 'emitida', 'emitido', 'sucesso', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Ver Link Externo (DANFSE Oficial)">
                                                         <button
                                                             onClick={async () => {
@@ -1780,7 +1786,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'autorizada', 'issued', 'emitida', 'emitido', 'sucesso'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Cancelar Nota">
                                                          <button
                                                              onClick={() => {
@@ -1793,7 +1799,7 @@ ${messageWithPlaceholder}`;
                                                          </button>
                                                      </Tooltip>
                                                 )}
-                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'autorizada', 'issued', 'emitida', 'emitido', 'sucesso', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar PDF">
                                                         <button
                                                             onClick={() => handleDownloadPDF(invoice)}
@@ -1803,7 +1809,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {invoice.external_id && ['concluido', 'autorizado', 'cancelado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'autorizada', 'issued', 'emitida', 'emitido', 'sucesso', 'cancelado'].includes(invoice.status?.toLowerCase()) && (
                                                     <Tooltip content="Baixar XML">
                                                         <button
                                                             onClick={() => handleDownloadXML(invoice)}
@@ -1813,7 +1819,7 @@ ${messageWithPlaceholder}`;
                                                         </button>
                                                     </Tooltip>
                                                 )}
-                                                {invoice.external_id && ['concluido', 'autorizado', 'issued'].includes(invoice.status?.toLowerCase()) && (
+                                                {invoice.external_id && ['concluido', 'autorizado', 'autorizada', 'issued', 'emitida', 'emitido', 'sucesso'].includes(invoice.status?.toLowerCase()) && (
                                                     <>
                                                         <Tooltip content={hasConnectedWhatsApp ? "Enviar por WhatsApp" : "WhatsApp indisponível: Nenhuma instância conectada e ativa. Acesse a aba WhatsApp para conectar."}>
                                                             <button
