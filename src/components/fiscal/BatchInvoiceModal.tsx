@@ -23,6 +23,7 @@ interface ChargeWithContact {
     reference_month: string;
     status: string;
     fiscal_invoice_id: string | null;
+    invoice?: any;
     due_date: string;
     notes?: string;
     contact: {
@@ -583,7 +584,6 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             return;
         }
 
-        const idsToProcess = Array.from(selectedIds);
         const total = idsToProcess.length;
         const logs: typeof executionLogs = {};
         
