@@ -1612,7 +1612,12 @@ ${messageWithPlaceholder}`;
                                                                      p?.itens?.[0]?.descricao ||
                                                                      p?.itens?.[0]?.discriminacao ||
                                                                      (invoice as any).notes;
-                                                        return desc ? String(desc).replace(/\|/g, '\n').trim() : 'Sem descrição';
+                                                        if (!desc) return 'Sem descrição';
+                                                        return String(desc)
+                                                            .replace(/\|/g, '\n')
+                                                            .replace(/(?<!^)(\d{2}\s*-\s*)/g, '\n$1')
+                                                            .replace(/\n\s*\n/g, '\n')
+                                                            .trim();
                                                     })()}>
                                                         <span className="text-[10px] text-blue-500 font-bold cursor-help flex items-center gap-1 hover:underline whitespace-nowrap bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/30 dark:border-blue-900/10">
                                                             <Search size={10} />
