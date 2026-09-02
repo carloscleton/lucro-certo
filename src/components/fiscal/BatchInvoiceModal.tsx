@@ -560,6 +560,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const runBatchEmission = async () => {
         if (selectedIds.size === 0) return;
 
+        const idsToProcess = Array.from(selectedIds);
+
         // Do not allow emitting invoices for past months
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -570,8 +572,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
         // Require service dropdown to be filled for all selected charges
         const selectedWithoutService = idsToProcess
-            .map(id => charges.find(c => c.id === id))
-            .filter(c => c && !c.subscription?.service?.id);
+            .map((id: string) => charges.find((c: any) => c.id === id))
+            .filter((c: any) => c && !c.subscription?.service?.id);
 
         if (selectedWithoutService.length > 0) {
             alert(`⚠️ Atenção: Não é possível emitir!\n\nExiste(m) ${selectedWithoutService.length} cliente(s) selecionado(s) sem Serviço definido.\n\nPor favor, escolha o "Serviço Geral (Lote)" no topo do modal ou selecione o Serviço no campo da linha de cada cliente antes de emitir.`);
