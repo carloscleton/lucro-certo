@@ -6832,8 +6832,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
         if (activeProvider === 'national' || type === 'nfsenac' || String(id).startsWith('DPS')) {
             console.log(`🌐 [FISCAL-STATUS] Nota do Portal Nacional detectada (${id}). Verificando status...`);
             
-            // Se a nota está em 'processando', tenta localizar se existe outro registro concluído correspondente no banco
-            if (dbRecord?.company_id && (dbRecord.status === 'processando' || !dbRecord.status)) {
+            // Se a nota está em 'processando' ou 'emitida', tenta localizar se existe outro registro concluído correspondente no banco
+            if (dbRecord?.company_id && (dbRecord.status === 'processando' || dbRecord.status === 'emitida' || dbRecord.status === 'EMITIDA' || !dbRecord.status)) {
                 try {
                     const dpsNumToMatch = dbRecord.dps_number || dbRecord.invoice_number;
                     if (dpsNumToMatch) {
@@ -6870,8 +6870,8 @@ app.get(['/fiscal-module/status/:id', '/api/fiscal-module/status/:id'], authenti
                 }
             }
 
-            // Se a nota continua em 'processando', consultar o SEFIN Nacional diretamente via mTLS
-            if (dbRecord && (dbRecord.status === 'processando' || !dbRecord.status)) {
+            // Se a nota continua em 'processando' ou 'emitida', consultar o SEFIN Nacional diretamente via mTLS
+            if (dbRecord && (dbRecord.status === 'processando' || dbRecord.status === 'emitida' || dbRecord.status === 'EMITIDA' || !dbRecord.status)) {
                 const nat = settings?.national_config || {};
                 const pfxBase64 = nat.certificado_pfx_base64 || settings?.certificado_pfx_base64;
                 const certPassword = nat.certificado_senha || settings?.certificado_senha || '';

@@ -494,20 +494,21 @@ ${messageWithPlaceholder}`;
                 timeoutPromise
             ]);
 
-            await refresh();
-            setIsRefreshing(null);
-
             const authorizedStatuses = ['issued', 'concluido', 'autorizado', 'autorizada', 'success', 'emitida', 'emitido'];
             const resultStatus = String(statusResult?.status || statusResult?.flowStatus || '').toLowerCase();
             const wasAlreadyAuthorized = ['issued', 'concluido', 'autorizado', 'autorizada'].includes(String(invoice.status || '').toLowerCase());
 
-            if (authorizedStatuses.includes(resultStatus)) {
+            if (authorizedStatuses.includes(resultStatus) || invoice.status?.toLowerCase() === 'emitida') {
                 try {
                     await supabase
                         .from('fiscal_invoices')
                         .update({ status: 'concluido' })
                         .eq('id', invoice.id);
                 } catch (e) {}
+            }
+
+            await refresh();
+            setIsRefreshing(null);
                 if (!wasAlreadyAuthorized) {
                     setResultModal({
                         isOpen: true,
