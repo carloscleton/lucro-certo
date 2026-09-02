@@ -558,6 +558,19 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     // Batch emission execution
     const runBatchEmission = async () => {
         if (selectedIds.size === 0) return;
+
+        const idsToProcess = Array.from(selectedIds);
+
+        // Require service dropdown to be filled for all selected charges
+        const selectedWithoutService = idsToProcess
+            .map(id => charges.find(c => c.id === id))
+            .filter(c => c && !c.subscription?.service?.id);
+
+        if (selectedWithoutService.length > 0) {
+            alert(`⚠️ Atenção: Não é possível emitir!\n\nExiste(m) ${selectedWithoutService.length} cliente(s) selecionado(s) sem Serviço definido.\n\nPor favor, escolha o "Serviço Geral (Lote)" no topo do modal ou selecione o Serviço no campo da linha de cada cliente antes de emitir.`);
+            return;
+        }
+
         setIsProcessing(true);
         setIsPaused(false);
         setProgress(0);
@@ -627,8 +640,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const natCode = config?.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
 
                 const serviceObj = (charge.subscription as any)?.service;
-                const planName = serviceObj?.name || charge.subscription?.plan?.name || 'Recorrente';
-                const serviceDescription = serviceObj?.description || serviceObj?.name || `Mensalidade do plano de fidelidade: ${planName}`;
+                const cleanServiceDesc = (serviceObj?.description || serviceObj?.name || '').trim();
 
                 const serviceTaxCode = serviceObj?.codigo_servico_municipal || serviceObj?.item_lista_servico;
                 const serviceNatCode = serviceObj?.codigo_tributacao_nacional;
@@ -646,9 +658,8 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 const finalTaxCode = cleanTaxCode || cTribNac6;
 
-                // Combine service description with charge notes (same as individual)
+                // Combine service description with charge notes (NO fallback to "Mensalidade do plano de fidelidade: Recorrente")
                 const chargeNotes = charge.notes?.trim() || '';
-                const cleanServiceDesc = serviceDescription.trim();
                 const fullDescription = chargeNotes
                     ? (cleanServiceDesc && !cleanServiceDesc.includes(chargeNotes) ? `${cleanServiceDesc}\n${chargeNotes}` : chargeNotes)
                     : cleanServiceDesc;
@@ -1112,7 +1123,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Prontos p/ Emitir</span>
                         <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                            {charges.filter(c => !c.fiscal_invoice_id && validateContact(c.contact).length === 0).length}
+                            {charges.filter(c => !c.fiscal_invoice_id && validateContact(c.contact).length === 0 && !!c.subscription?.service?.id).length}
                         </span>
                     </div>
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
@@ -1124,7 +1135,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     <div className="p-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl flex flex-col">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Incompletos</span>
                         <span className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">
-                            {charges.filter(c => validateContact(c.contact).length > 0).length}
+                            {charges.filter(c => !c.fiscal_invoice_id && (validateContact(c.contact).length > 0 || !c.subscription?.service?.id)).length}
                         </span>
                     </div>
                 </div>
@@ -1184,10 +1195,19 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                         type="checkbox"
                                                         checked={isChecked}
                                                         onChange={() => handleToggleSelect(c.id)}
-                                                        disabled={isProcessing || isEmitted || missing.length > 0}
+                                                        disabled={isProcessing || isEmitted || missing.length > 0 || !hasService}
+                                                        title={
+                                                            isEmitted 
+                                                                ? "Nota Fiscal já gerada para este cliente nesta competência" 
+                                                                : !hasService 
+                                                                ? "Selecione o Serviço para este cliente antes de emitir" 
+                                                                : missing.length > 0 
+                                                                ? `Cadastro incompleto: ${missing.join(', ')}` 
+                                                                : "Selecionar para emissão"
+                                                        }
                                                         className={clsx(
                                                             "w-4 h-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500",
-                                                            (isEmitted || missing.length > 0) && "opacity-40 cursor-not-allowed"
+                                                            (isEmitted || missing.length > 0 || !hasService) && "opacity-40 cursor-not-allowed"
                                                         )}
                                                     />
                                                 </td>
@@ -1221,10 +1241,10 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                             "w-full max-w-[280px] rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 font-bold transition-all duration-200 cursor-pointer",
                                                             hasService
                                                                 ? "bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700/70 text-amber-900 dark:text-amber-200 focus:ring-amber-500"
-                                                                : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-500 focus:ring-violet-500"
+                                                                : "bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-300 dark:border-rose-800/70 text-rose-700 dark:text-rose-300 focus:ring-rose-500"
                                                         )}
                                                     >
-                                                        <option value="" className="text-gray-400">Nenhum (Usar Plano)</option>
+                                                        <option value="" className="text-rose-600 font-bold">⚠️ Selecione o Serviço...</option>
                                                         {services.map(s => (
                                                             <option key={s.id} value={s.id} className="text-gray-800 dark:text-gray-200 font-semibold">{s.name}</option>
                                                         ))}
@@ -1283,7 +1303,14 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                      </div>
                                                  </td>
                                                 <td className="py-4 px-4">
-                                                    {missing.length === 0 ? (
+                                                    {!hasService ? (
+                                                        <span 
+                                                            className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700/60 cursor-help"
+                                                            title="Selecione um Serviço Geral no topo ou o Serviço da linha para este cliente"
+                                                        >
+                                                            <AlertTriangle size={12} /> Sem Serviço
+                                                        </span>
+                                                    ) : missing.length === 0 ? (
                                                         <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-950/10">
                                                             <Check size={12} strokeWidth={2.5} /> Pronto
                                                         </span>
@@ -1298,9 +1325,17 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                 </td>
                                                 <td className="py-4 px-4">
                                                     {isEmitted ? (
-                                                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-950/10">
-                                                            <CheckCircle2 size={12} /> Emitida
-                                                        </span>
+                                                        <div className="flex flex-col items-start gap-0.5">
+                                                            <span 
+                                                                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700/60 shadow-sm cursor-help"
+                                                                title={`Nota Fiscal já foi gerada com sucesso para este cliente na competência ${selectedMonth}`}
+                                                            >
+                                                                <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" /> Nota Gerada ✓
+                                                            </span>
+                                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 pl-1">
+                                                                Já faturado nesta competência
+                                                            </span>
+                                                        </div>
                                                     ) : log?.status === 'sending' ? (
                                                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-0.5 rounded-full border border-amber-100 dark:border-amber-950/10 animate-pulse">
                                                             <Loader2 size={12} className="animate-spin" /> Emitindo...
@@ -1324,6 +1359,20 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                 </td>
                                                 <td className="py-4 px-4 text-center">
                                                     <div className="flex items-center justify-center gap-1.5">
+                                                        {isEmitted && c.fiscal_invoice_id && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const baseApi = API_BASE_URL.replace(/\/$/, '');
+                                                                    const targetUrl = (c.invoice as any)?.pdf_url || `${baseApi}/fiscal-module/national/${c.fiscal_invoice_id}/pdf?companyId=${currentEntity.id}`;
+                                                                    window.open(targetUrl, '_blank');
+                                                                }}
+                                                                className="p-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-xl transition-all border border-emerald-200 dark:border-emerald-900/30 cursor-pointer"
+                                                                title="Visualizar Nota Fiscal em PDF"
+                                                            >
+                                                                <FileText size={15} />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             onClick={() => {
