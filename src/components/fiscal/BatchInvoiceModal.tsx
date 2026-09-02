@@ -640,7 +640,9 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                 const natCode = config?.default_taxation_code?.replace(/\D/g, '').substring(0, 9) || '';
 
                 const serviceObj = (charge.subscription as any)?.service;
-                const cleanServiceDesc = (serviceObj?.description || serviceObj?.name || '').trim();
+                const serviceName = (serviceObj?.name || '').trim();
+                const contactDefaultNotes = (charge.contact as any)?.metadata?.observacao_nota?.trim() || '';
+                const chargeNotes = (charge.notes?.trim() || contactDefaultNotes).trim();
 
                 const serviceTaxCode = serviceObj?.codigo_servico_municipal || serviceObj?.item_lista_servico;
                 const serviceNatCode = serviceObj?.codigo_tributacao_nacional;
@@ -658,11 +660,10 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
 
                 const finalTaxCode = cleanTaxCode || cTribNac6;
 
-                // Combine service description with charge notes (NO fallback to "Mensalidade do plano de fidelidade: Recorrente")
-                const chargeNotes = charge.notes?.trim() || '';
-                const fullDescription = chargeNotes
-                    ? (cleanServiceDesc && !cleanServiceDesc.includes(chargeNotes) ? `${cleanServiceDesc}\n${chargeNotes}` : chargeNotes)
-                    : cleanServiceDesc;
+                // Combine Service Name + Client Notes (NO marketing description or fallback strings)
+                const fullDescription = serviceName && chargeNotes
+                    ? (serviceName.toLowerCase() !== chargeNotes.toLowerCase() ? `${serviceName}\n${chargeNotes}` : chargeNotes)
+                    : (serviceName || chargeNotes);
 
                 let payload: any;
 
