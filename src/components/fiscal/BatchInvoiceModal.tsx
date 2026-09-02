@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CheckCircle2, Clock3, XCircle, RefreshCw, Play, Pause, Calendar, AlertTriangle, CheckSquare, Square, Search, Loader2, FileText, Check, Edit2, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock3, XCircle, RefreshCw, Play, Pause, Calendar, AlertTriangle, CheckSquare, Square, Search, Loader2, FileText, Check, Edit2, MessageSquare, UserPlus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
@@ -26,6 +26,7 @@ interface ChargeWithContact {
     invoice?: any;
     due_date: string;
     notes?: string;
+    is_adhoc?: boolean;
     contact: {
         id: string;
         name: string;
@@ -144,6 +145,90 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [globalServiceId, setGlobalServiceId] = useState<string>('');
     const [editingNotesChargeId, setEditingNotesChargeId] = useState<string | null>(null);
     const [tempNotesText, setTempNotesText] = useState<string>('');
+    // Ad-hoc Client States
+    const [showAddClientModal, setShowAddClientModal] = useState(false);
+    const [allContacts, setAllContacts] = useState<any[]>([]);
+    const [isFetchingContacts, setIsFetchingContacts] = useState(false);
+    const [contactSearchTerm, setContactSearchTerm] = useState('');
+
+    const handleOpenAddClientModal = async () => {
+        setShowAddClientModal(true);
+        setContactSearchTerm('');
+        if (!currentEntity.id) return;
+        setIsFetchingContacts(true);
+        try {
+            const { data } = await supabase
+                .from('contacts')
+                .select('*')
+                .eq('company_id', currentEntity.id)
+                .order('name');
+            setAllContacts(data || []);
+        } catch (e) {
+            console.error('Error fetching contacts:', e);
+        } finally {
+            setIsFetchingContacts(false);
+        }
+    };
+
+    const handleAddAdHocClient = (contact: any) => {
+        const existingIndex = charges.findIndex(c => c.contact.id === contact.id);
+        if (existingIndex >= 0) {
+            alert(`O cliente "${contact.name}" já está na lista deste lote.`);
+            setShowAddClientModal(false);
+            return;
+        }
+
+        const selectedServiceObj = services.find(s => s.id === globalServiceId);
+        const newAdHocId = `adhoc_${contact.id}_${Date.now()}`;
+        const newCharge: ChargeWithContact = {
+            id: newAdHocId,
+            amount: selectedServiceObj?.price || 0,
+            reference_month: selectedMonth,
+            status: 'active',
+            fiscal_invoice_id: null,
+            due_date: new Date().toISOString(),
+            notes: (contact as any)?.metadata?.observacao_nota || '',
+            is_adhoc: true,
+            contact: {
+                id: contact.id,
+                name: contact.name || '',
+                type: contact.type || 'client',
+                tax_id: contact.tax_id || null,
+                email: contact.email || null,
+                phone: contact.phone || null,
+                whatsapp: contact.whatsapp || null,
+                zip_code: contact.zip_code || null,
+                street: contact.street || null,
+                number: contact.number || null,
+                complement: contact.complement || null,
+                neighborhood: contact.neighborhood || null,
+                city: contact.city || null,
+                state: contact.state || null
+            },
+            subscription: {
+                id: `adhoc_sub_${contact.id}`,
+                plan: {
+                    id: 'adhoc',
+                    name: 'Avulso',
+                    price: 0
+                },
+                service: selectedServiceObj || undefined
+            }
+        };
+
+        setCharges(prev => [newCharge, ...prev]);
+        setSelectedIds(prev => new Set(prev).add(newAdHocId));
+        setShowAddClientModal(false);
+    };
+
+    const handleRemoveAdHocClient = (chargeId: string) => {
+        setCharges(prev => prev.filter(c => c.id !== chargeId));
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.delete(chargeId);
+            return next;
+        });
+    };
 
     const handleApplyGlobalService = (serviceId: string) => {
         setGlobalServiceId(serviceId);
@@ -1097,6 +1182,16 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                             <option value="error">Erros</option>
                             <option value="incomplete">Cadastro Incompleto</option>
                         </select>
+
+                        <button
+                            type="button"
+                            onClick={handleOpenAddClientModal}
+                            disabled={isProcessing}
+                            className="bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                        >
+                            <UserPlus size={15} />
+                            Adicionar Cliente Avulso
+                        </button>
                     </div>
                 </div>
 
@@ -1238,7 +1333,14 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                     <div className="text-xs text-gray-400 mt-0.5">{c.contact.tax_id || 'Sem CPF/CNPJ'}</div>
                                                 </td>
                                                 <td className="py-4 px-4">
-                                                    <div className="font-medium">{c.subscription?.plan?.name || 'Assinatura'}</div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-medium">{c.subscription?.plan?.name || 'Assinatura'}</span>
+                                                        {c.is_adhoc && (
+                                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-900/20 dark:border-purple-900/30">
+                                                                Avulso
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-xs text-gray-400 mt-0.5">Vencimento: {new Date(c.due_date).toLocaleDateString('pt-BR')}</div>
                                                 </td>
                                                 <td className="py-4 px-4">
@@ -1413,6 +1515,17 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                                         >
                                                             <Edit2 size={15} />
                                                         </button>
+                                                        {c.is_adhoc && !isEmitted && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveAdHocClient(c.id)}
+                                                                disabled={isProcessing}
+                                                                className="p-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 dark:hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer"
+                                                                title="Remover cliente avulso do lote"
+                                                            >
+                                                                <Trash2 size={15} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1677,6 +1790,78 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                                 className="bg-violet-600 hover:bg-violet-700 text-white font-bold"
                             >
                                 Salvar Observação
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal para Seleção de Cliente Avulso */}
+            {showAddClientModal && (
+                <Modal
+                    isOpen={showAddClientModal}
+                    onClose={() => setShowAddClientModal(false)}
+                    title="Adicionar Cliente ao Lote"
+                    subtitle="Selecione qualquer cliente cadastrado para incluir no lote de emissão"
+                    icon={UserPlus}
+                    maxWidth="max-w-xl"
+                    variant="primary"
+                >
+                    <div className="flex flex-col gap-4 text-sm">
+                        <div className="relative">
+                            <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por nome ou CPF/CNPJ..."
+                                value={contactSearchTerm}
+                                onChange={(e) => setContactSearchTerm(e.target.value)}
+                                className="pl-9 pr-4 py-2 w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800 border border-gray-100 dark:border-slate-800 rounded-xl">
+                            {isFetchingContacts ? (
+                                <div className="p-8 flex flex-col items-center justify-center gap-2">
+                                    <Loader2 className="animate-spin text-violet-500" size={24} />
+                                    <span className="text-xs font-semibold text-gray-400">Buscando clientes...</span>
+                                </div>
+                            ) : (() => {
+                                const filtered = allContacts.filter(c => 
+                                    (c.name || '').toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+                                    (c.tax_id || '').includes(contactSearchTerm)
+                                );
+
+                                if (filtered.length === 0) {
+                                    return (
+                                        <div className="p-8 text-center text-xs font-bold text-gray-400">
+                                            Nenhum cliente cadastrado encontrado.
+                                        </div>
+                                    );
+                                }
+
+                                return filtered.map(contact => (
+                                    <div key={contact.id} className="p-3 flex items-center justify-between hover:bg-violet-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <div>
+                                            <div className="font-bold text-sm text-gray-800 dark:text-gray-200">{contact.name}</div>
+                                            <div className="text-xs text-gray-400 font-mono">{contact.tax_id || 'Sem CPF/CNPJ'}</div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() => handleAddAdHocClient(contact)}
+                                            className="text-xs font-bold bg-violet-50 hover:bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
+                                        >
+                                            Adicionar
+                                        </Button>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <Button variant="outline" size="sm" onClick={() => setShowAddClientModal(false)}>
+                                Cancelar
                             </Button>
                         </div>
                     </div>
