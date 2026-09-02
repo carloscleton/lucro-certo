@@ -200,12 +200,12 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const [progress, setProgress] = useState(0);
     const [executionLogs, setExecutionLogs] = useState<Record<string, { status: 'idle' | 'sending' | 'success' | 'error'; message?: string; pdfUrl?: string }>>({});
 
-    // Generate Month Options
+    // Generate Month Options (Current month and future months only)
     const monthOptions = useMemo(() => {
         const options = [];
         const d = new Date();
-        // Generates last 6 months and next 3 months
-        for (let i = -6; i <= 3; i++) {
+        // Generates current month and next 6 months
+        for (let i = 0; i <= 6; i++) {
             const temp = new Date(d.getFullYear(), d.getMonth() + i, 1);
             const value = `${temp.getFullYear()}-${String(temp.getMonth() + 1).padStart(2, '0')}`;
             const label = temp.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -560,7 +560,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
     const runBatchEmission = async () => {
         if (selectedIds.size === 0) return;
 
-        const idsToProcess = Array.from(selectedIds);
+        // Do not allow emitting invoices for past months
+        const now = new Date();
+        const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        if (selectedMonth < currentMonthStr) {
+            alert(`⚠️ Atenção: Não é permitido emitir Nota Fiscal para competências passadas (${selectedMonth}).\n\nPor favor, selecione a competência do mês atual ou meses futuros.`);
+            return;
+        }
 
         // Require service dropdown to be filled for all selected charges
         const selectedWithoutService = idsToProcess
