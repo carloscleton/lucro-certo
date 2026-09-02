@@ -1601,7 +1601,18 @@ ${messageWithPlaceholder}`;
                                                         const p = invoice.payload;
                                                         const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
                                                         const servico = servicos[0];
-                                                        return servico?.discriminacao || p?.itens?.[0]?.descricao || 'Sem descrição';
+                                                        const desc = p?.infDPS?.serv?.cServ?.xDescServ ||
+                                                                     p?.retorno?.infDPS?.serv?.cServ?.xDescServ ||
+                                                                     p?.infDPS?.infComp?.xInfComp ||
+                                                                     servico?.discriminacao ||
+                                                                     servico?.descricao ||
+                                                                     p?.discriminacao ||
+                                                                     p?.descricao ||
+                                                                     p?.discriminacaoServico ||
+                                                                     p?.itens?.[0]?.descricao ||
+                                                                     p?.itens?.[0]?.discriminacao ||
+                                                                     invoice.notes;
+                                                        return desc ? String(desc).replace(/\|/g, '\n').trim() : 'Sem descrição';
                                                     })()}>
                                                         <span className="text-[10px] text-blue-500 font-bold cursor-help flex items-center gap-1 hover:underline whitespace-nowrap bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/30 dark:border-blue-900/10">
                                                             <Search size={10} />
