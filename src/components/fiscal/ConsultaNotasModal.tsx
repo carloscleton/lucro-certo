@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, AlertCircle, RefreshCw, X, Download, FileCode, CheckCircle2, Clock3, XCircle } from 'lucide-react';
+import { Search, AlertCircle, RefreshCw, X, Download, FileCode } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
