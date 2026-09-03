@@ -416,7 +416,7 @@ ${messageWithPlaceholder}`;
 
             // Date Period Filter
             if (selectedPeriodFilter !== 'all') {
-                const rawDate = invoice.created_at || invoice.issue_date || invoice.payload?.dCompet || invoice.payload?.dDPS;
+                const rawDate = invoice.created_at || (invoice as any).issue_date || invoice.payload?.dCompet || invoice.payload?.dDPS;
                 if (rawDate) {
                     const invDate = new Date(rawDate);
                     const now = new Date();
