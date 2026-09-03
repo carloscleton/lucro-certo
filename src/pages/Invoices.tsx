@@ -1475,48 +1475,49 @@ ${messageWithPlaceholder}`;
                         >
                             Personalizado 📅
                         </button>
-                    </div>
-
-                    {/* Date Inputs when Custom selected */}
-                    {selectedPeriodFilter === 'custom' && (
-                        <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Mês:</label>
-                            <input
-                                type="month"
-                                value={selectedMonthFilter}
-                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <span className="text-xs text-gray-400 font-bold px-1">ou Período:</span>
-                            <input
-                                type="date"
-                                value={customStartDate}
-                                onChange={(e) => setCustomStartDate(e.target.value)}
-                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <span className="text-xs text-gray-400 font-bold">até</span>
-                            <input
-                                type="date"
-                                value={customEndDate}
-                                onChange={(e) => setCustomEndDate(e.target.value)}
-                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    {/* Platform Billing Tracker Widget on Right Side of Same Row */}
+                    {!isLoading && (
+                        <div className="shrink-0 mt-2 lg:mt-0">
+                            <PlatformBillingTracker
+                                invoices={invoices}
+                                companySettings={currentCompany?.settings}
+                                activeProvider={currentCompany?.settings?.fiscal_provider || 'tecnospeed'}
                             />
                         </div>
                     )}
                 </div>
+
+                {/* Date Inputs when Custom selected */}
+                {selectedPeriodFilter === 'custom' && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 animate-in fade-in duration-200 border-t border-gray-100/60 dark:border-slate-800/40">
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Mês:</label>
+                        <input
+                            type="month"
+                            value={selectedMonthFilter}
+                            onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 font-bold px-1">ou Período:</span>
+                        <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 font-bold">até</span>
+                        <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
+                    </div>
+                )}
             </div>
 
-            {!isLoading && (
-                <PlatformBillingTracker
-                    invoices={invoices}
-                    companySettings={currentCompany?.settings}
-                    activeProvider={currentCompany?.settings?.fiscal_provider || 'tecnospeed'}
-                />
-            )}
-
-            {/* Rich Metric KPI Grid */}
-            {!isLoading && invoices.length > 0 && (() => {
-                const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
+            {/* Rich Metric KPI Grid (Updates Dynamically according to Filtered Invoices) */}
+            {!isLoading && (() => {
+                const invoicesForStats = filteredInvoices;
                 
                 const calcVal = (inv: any) => {
                     const p = inv.payload;
