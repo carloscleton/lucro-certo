@@ -1293,43 +1293,44 @@ ${messageWithPlaceholder}`;
                         </p>
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
                     <Button 
                         variant="ghost" 
                         onClick={refresh} 
-                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
+                        className="h-9 px-3 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
+                        title="Atualizar lista de notas"
                     >
-                        <RefreshCw size={14} className={clsx("mr-1.5", isLoading && "animate-spin")} />
+                        <RefreshCw size={14} className={clsx("mr-1.5 text-gray-500", isLoading && "animate-spin")} />
                         Atualizar Lista
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowConsultaModal(true)} 
-                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
+                        className="h-9 px-3 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
                     >
-                        <Search size={14} className="mr-1.5" />
+                        <Search size={14} className="mr-1.5 text-gray-500" />
                         Consultar Notas
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowBillingModal(true)} 
-                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
+                        className="h-9 px-3 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
                     >
-                        <BarChart3 size={14} className="mr-1.5 text-blue-500" />
+                        <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
                         Relatório de Cobrança
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setShowBatchModal(true)} 
-                        className="flex-1 md:flex-none h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/40 dark:border-slate-700/40"
+                        className="h-9 px-3.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
                     >
-                        <RefreshCw size={14} className="mr-1.5 text-violet-500" />
+                        <RefreshCw size={14} className="mr-1.5 text-violet-600 dark:text-violet-400" />
                         Faturamento Recorrente
                     </Button>
                     <Button 
                         variant="primary" 
                         onClick={() => setShowNewModal(true)} 
-                        className="flex-1 md:flex-none h-9 px-3.5 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/10 font-bold text-xs rounded-xl"
+                        className="h-9 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all"
                     >
                         <Plus size={16} className="mr-1.5" />
                         Nova Nota Avulsa
@@ -1345,67 +1346,163 @@ ${messageWithPlaceholder}`;
                 />
             )}
 
-            {/* Stats */}
+            {/* Rich Metric KPI Grid */}
             {!isLoading && invoices.length > 0 && (() => {
                 const invoicesForStats = invoices.filter(i => !i.deleted || showDeleted);
+                
+                const calcVal = (inv: any) => {
+                    const p = inv.payload;
+                    const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+                    const servico = servicos[0];
+                    const val = inv.amount || 
+                                p?.servicesAmount || 
+                                p?.retorno?.servicesAmount || 
+                                p?.retorno?.valorTotal || 
+                                p?.infDPS?.valores?.vServPrest?.vServ ||
+                                p?.valores?.vServPrest?.vServ ||
+                                p?.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                                p?.retorno?.valores?.vServPrest?.vServ ||
+                                servico?.valor?.servico || 
+                                p?.valorTotal || 
+                                p?.valorTotalBruto || 
+                                p?.vServ ||
+                                0;
+                    const parsed = typeof val === 'number' ? val : (parseFloat(String(val).replace(',', '.')) || 0);
+                    return isNaN(parsed) ? 0 : parsed;
+                };
+
+                const authorizedList = invoicesForStats.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()));
+                const processingList = invoicesForStats.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()));
+                const cancelledList = invoicesForStats.filter(i => i.status?.toLowerCase() === 'cancelado');
+                const rejectedList = invoicesForStats.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase()));
+
+                const authorizedSum = authorizedList.reduce((acc, i) => acc + calcVal(i), 0);
+                const processingSum = processingList.reduce((acc, i) => acc + calcVal(i), 0);
+                const cancelledSum = cancelledList.reduce((acc, i) => acc + calcVal(i), 0);
+                const rejectedSum = rejectedList.reduce((acc, i) => acc + calcVal(i), 0);
+                const totalSum = invoicesForStats.reduce((acc, i) => acc + calcVal(i), 0);
+
+                const fmtCurr = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
                 return (
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-500 select-none">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-500 select-none">
                         {/* Autorizadas */}
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-emerald-100/70 dark:border-emerald-950/30 shadow-sm hover:shadow-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
-                            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl ring-2 ring-emerald-50/50 dark:ring-emerald-950/10">
-                                <CheckCircle2 size={18} />
+                        <div className="bg-gradient-to-br from-white via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm hover:shadow-emerald-500/10 hover:border-emerald-300 dark:hover:border-emerald-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Autorizadas</span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                    {authorizedList.length} nota{authorizedList.length !== 1 ? 's' : ''}
+                                </span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Autorizadas</p>
-                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
-                                    {invoicesForStats.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length}
+                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight leading-none">
+                                    {fmtCurr(authorizedSum)}
+                                </p>
+                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                    Total aprovado e emitido
                                 </p>
                             </div>
                         </div>
+
                         {/* Processando */}
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-blue-100/70 dark:border-blue-950/30 shadow-sm hover:shadow-blue-500/5 hover:border-blue-200 dark:hover:border-blue-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
-                            <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-xl ring-2 ring-blue-50/50 dark:ring-blue-950/10">
-                                <Clock3 size={18} />
+                        <div className="bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+                                        <Clock3 size={18} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Processando</span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100/80 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                    {processingList.length} nota{processingList.length !== 1 ? 's' : ''}
+                                </span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Processando</p>
-                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
-                                    {invoicesForStats.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length}
+                                <p className="text-xl font-black text-blue-700 dark:text-blue-400 tracking-tight leading-none">
+                                    {fmtCurr(processingSum)}
+                                </p>
+                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                                    Aguardando prefeitura / SEFIN
                                 </p>
                             </div>
                         </div>
+
                         {/* Canceladas */}
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100/70 dark:border-slate-950/30 shadow-sm hover:shadow-slate-500/5 hover:border-slate-200 dark:hover:border-slate-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
-                            <div className="p-2 bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 rounded-xl ring-2 ring-slate-50/50 dark:ring-slate-950/10">
-                                <XCircle size={18} />
+                        <div className="bg-gradient-to-br from-white via-white to-slate-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-slate-500/10 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-xl">
+                                        <XCircle size={18} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Canceladas</span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                    {cancelledList.length} nota{cancelledList.length !== 1 ? 's' : ''}
+                                </span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Canceladas</p>
-                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
-                                    {invoicesForStats.filter(i => i.status?.toLowerCase() === 'cancelado').length}
+                                <p className="text-xl font-black text-slate-700 dark:text-slate-300 tracking-tight leading-none">
+                                    {fmtCurr(cancelledSum)}
+                                </p>
+                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
+                                    Anuladas no período
                                 </p>
                             </div>
                         </div>
+
                         {/* Rejeitadas */}
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-rose-100/70 dark:border-rose-950/30 shadow-sm hover:shadow-rose-500/5 hover:border-rose-200 dark:hover:border-rose-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
-                            <div className="p-2 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl ring-2 ring-rose-50/50 dark:ring-rose-950/10">
-                                <XCircle size={18} />
+                        <div className="bg-gradient-to-br from-white via-white to-rose-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/20 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/30 shadow-sm hover:shadow-rose-500/10 hover:border-rose-300 dark:hover:border-rose-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
+                                        <AlertTriangle size={18} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Rejeitadas</span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100/80 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                    {rejectedList.length} nota{rejectedList.length !== 1 ? 's' : ''}
+                                </span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Rejeitadas</p>
-                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">
-                                    {invoicesForStats.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length}
+                                <p className="text-xl font-black text-rose-700 dark:text-rose-400 tracking-tight leading-none">
+                                    {fmtCurr(rejectedSum)}
+                                </p>
+                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
+                                    Erros de validação
                                 </p>
                             </div>
                         </div>
-                        {/* Total Geral */}
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-indigo-100/70 dark:border-indigo-950/30 shadow-sm hover:shadow-indigo-500/5 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:scale-[1.01] transition-all duration-300 flex items-center gap-3">
-                            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl ring-2 ring-indigo-50/50 dark:ring-indigo-950/10">
-                                <Receipt size={18} />
+
+                        {/* Total Geral (Volume Faturado) */}
+                        <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 text-white p-4 rounded-2xl border border-indigo-700/50 shadow-md shadow-indigo-950/20 hover:shadow-indigo-500/15 hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-white/10 text-indigo-200 rounded-xl backdrop-blur-md">
+                                        <Receipt size={18} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-indigo-200 uppercase tracking-wider">Volume Faturado</span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white backdrop-blur-md">
+                                    {invoicesForStats.length} total
+                                </span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Total Geral</p>
-                                <p className="text-lg font-black text-gray-900 dark:text-white leading-none mt-1">{invoicesForStats.length}</p>
+                                <p className="text-xl font-black text-white tracking-tight leading-none">
+                                    {fmtCurr(totalSum)}
+                                </p>
+                                <p className="text-[10px] font-semibold text-indigo-200/80 mt-1.5 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                                    Valor acumulado no sistema
+                                </p>
                             </div>
                         </div>
                     </div>

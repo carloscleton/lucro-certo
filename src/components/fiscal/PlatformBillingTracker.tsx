@@ -243,7 +243,7 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
     };
 
     return (
-        <div className="bg-gradient-to-r from-blue-50/30 via-indigo-50/5 to-transparent dark:from-slate-850 dark:via-slate-850/40 dark:to-transparent border border-blue-100/40 dark:border-slate-800/80 rounded-2xl p-3.5 mb-4 animate-in fade-in duration-300 shadow-sm select-none">
+        <div className="bg-gradient-to-r from-blue-50/30 via-indigo-50/5 to-transparent dark:from-slate-850 dark:via-slate-850/40 dark:to-transparent border border-blue-100/40 dark:border-slate-800/80 rounded-2xl p-3 mb-1 animate-in fade-in duration-300 shadow-sm select-none">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                 <div className="flex items-center gap-2.5">
                     <div className="p-2 bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
