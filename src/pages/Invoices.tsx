@@ -1475,6 +1475,8 @@ ${messageWithPlaceholder}`;
                         >
                             Personalizado 📅
                         </button>
+                    </div>
+
                     {/* Platform Billing Tracker Widget on Right Side of Same Row */}
                     {!isLoading && (
                         <div className="shrink-0 mt-2 lg:mt-0">
