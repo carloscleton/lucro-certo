@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Search, AlertCircle, RefreshCw, X, Download, FileCode } from 'lucide-react';
+import { Search, AlertCircle, RefreshCw, X, FileText, FileCode, CheckCircle2, Clock3, XCircle, Calendar, Receipt } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
-import { Tooltip } from '../ui/Tooltip';
 import { clsx } from 'clsx';
 import { API_BASE_URL } from '../../lib/constants';
+import { formatCurrency } from '../../utils/currencyUtils';
 
 interface ConsultaNotasModalProps {
     onClose: () => void;
@@ -73,7 +73,12 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
                                         p?.toma?.xNome || 
                                         p?.tomador?.razaoSocial || 
                                         p?.destinatario?.nome || 
-                                        'Cliente Cadastrado / Consumidor Final';
+                                        'Cliente Cadastrado';
+
+                        const tomadorDoc = p?.infDPS?.toma?.cpfCnpj || 
+                                           p?.toma?.cpfCnpj || 
+                                           p?.tomador?.cpfCnpj || 
+                                           p?.destinatario?.cpfCnpj || '';
 
                         const baseApi = API_BASE_URL.replace(/\/$/, '');
                         const pdfUrl = inv.payload?.pdf_url || 
@@ -89,6 +94,7 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
                             id: key,
                             situacao: (inv.status || 'CONCLUIDO').toUpperCase(),
                             tomador,
+                            tomadorDoc,
                             emissao: new Date(inv.created_at).toLocaleDateString('pt-BR'),
                             autorizacao: new Date(inv.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                             valorServico: typeof val === 'number' ? val : (parseFloat(String(val).replace(',', '.')) || 0),
@@ -132,156 +138,207 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
         }
     };
 
+    const totalCalculado = results.reduce((acc, curr) => acc + (curr.valorServico || 0), 0);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-6xl max-h-[92vh] flex flex-col rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 overflow-hidden">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 md:p-8 border-b border-gray-100 dark:border-slate-800">
+                <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 dark:border-slate-800/80 bg-gray-50/50 dark:bg-slate-900/50">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
-                            <Search size={28} />
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-900/40 shadow-sm">
+                            <Search size={26} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Consulta de Notas</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Consulte notas fiscais na TecnoSpeed / Plugnotas por período.</p>
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Consulta de Notas Fiscais</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Consulte e baixe notas fiscais emitidas no período selecionado</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-50 hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-colors">
-                        <X size={24} />
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-colors cursor-pointer"
+                    >
+                        <X size={20} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                    <div className="flex flex-col md:flex-row gap-4 mb-8">
-                        <div className="flex-1">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Tipo de Nota</label>
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6">
+                    {/* Filter Card Toolbar */}
+                    <div className="p-4 bg-gray-50/80 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 flex flex-col md:flex-row items-end gap-4">
+                        <div className="flex-1 w-full md:w-auto">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Tipo de Nota</label>
                             <select 
                                 value={tipo} 
                                 onChange={(e: any) => setTipo(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             >
-                                <option value="nfse">NFS-e (Serviço)</option>
-                                <option value="nfe">NF-e (Produto)</option>
+                                <option value="nfse">NFS-e (Nota de Serviço)</option>
+                                <option value="nfe">NF-e (Nota de Produto)</option>
                             </select>
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Data Inicial</label>
+                        <div className="flex-1 w-full md:w-auto">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Data Inicial</label>
                             <input 
                                 type="date" 
                                 value={dataInicial} 
                                 onChange={(e) => setDataInicial(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">Data Final</label>
+                        <div className="flex-1 w-full md:w-auto">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Data Final</label>
                             <input 
                                 type="date" 
                                 value={dataFinal} 
                                 onChange={(e) => setDataFinal(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             />
                         </div>
-                        <div className="flex items-end">
+                        <div className="w-full md:w-auto">
                             <Button 
                                 variant="primary" 
                                 onClick={handleConsultar} 
                                 isLoading={isConsulting}
-                                className="h-12 bg-blue-600 hover:bg-blue-700 font-bold px-8 w-full md:w-auto"
+                                className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold text-xs px-6 shadow-md shadow-blue-500/20 active:scale-95 transition-all w-full"
                             >
-                                {isConsulting ? <RefreshCw className="animate-spin mr-2" size={18} /> : <Search size={18} className="mr-2" />}
+                                {isConsulting ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Search size={16} className="mr-2" />}
                                 Buscar Notas
                             </Button>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl flex gap-3 text-rose-600 dark:text-rose-400 text-sm">
-                            <AlertCircle size={20} className="shrink-0" />
+                        <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-2xl flex items-center gap-3 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                            <AlertCircle size={18} className="shrink-0 text-rose-500" />
                             <p>{error}</p>
                         </div>
                     )}
 
+                    {/* Summary Bar when results found */}
                     {results.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden">
-                            <div className="overflow-x-auto">
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs">
+                            <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-bold">
+                                <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
+                                <span>{results.length} nota{results.length !== 1 ? 's' : ''} localizada{results.length !== 1 ? 's' : ''} no período</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-extrabold text-gray-900 dark:text-white">
+                                <span className="text-gray-400 font-medium">Total:</span>
+                                <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(totalCalculado)}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Table Results */}
+                    {results.length > 0 && (
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden shadow-sm">
+                            <div className="w-full overflow-x-auto">
                                 <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
                                     <thead>
-                                        <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
-                                            <th className="py-4 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">ID / Status</th>
-                                            <th className="py-4 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Tomador</th>
-                                            <th className="py-4 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Emissão / Autorização</th>
-                                            <th className="py-4 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400">Valor / Número</th>
-                                            <th className="py-4 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400">Links</th>
+                                        <tr className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                                            <th className="py-3.5 px-5">Status / ID</th>
+                                            <th className="py-3.5 px-5">Tomador (Cliente)</th>
+                                            <th className="py-3.5 px-5">Emissão / Autorização</th>
+                                            <th className="py-3.5 px-5">Valor & Nº Nota</th>
+                                            <th className="py-3.5 px-5 text-right">Documentos</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                                        {results.map((nota: any) => (
-                                            <tr key={nota.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                                <td className="py-4 px-6">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="font-mono text-[10px] text-gray-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded truncate max-w-[120px]" title={nota.id}>
-                                                            {nota.id?.substring(0, 8)}...
-                                                        </span>
-                                                        <span className={clsx(
-                                                            "text-[10px] font-bold uppercase tracking-widest",
-                                                            nota.situacao === 'CONCLUIDO' ? 'text-emerald-500' : 'text-blue-500'
-                                                        )}>
-                                                            {nota.situacao || 'DESCONHECIDO'}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <div className="font-medium text-gray-900 dark:text-white truncate max-w-[150px]" title={nota.tomador}>
-                                                        CNPJ/CPF: {nota.tomador}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <div className="flex flex-col text-xs text-gray-500">
-                                                        <span>Emissão: {nota.emissao}</span>
-                                                        {nota.autorizacao && <span>Aut: {nota.autorizacao}</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-gray-900 dark:text-white">
-                                                            {nota.valorServico ? `R$ ${nota.valorServico.toFixed(2)}` : 'N/A'}
-                                                        </span>
-                                                        {nota.numeroNfse && (
-                                                            <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                                                                Nº {nota.numeroNfse}
+                                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
+                                        {results.map((nota: any) => {
+                                            const s = String(nota.situacao || '').toUpperCase();
+                                            const isSuccess = ['CONCLUIDO', 'AUTORIZADO', 'AUTORIZADA', 'ISSUED', 'EMITIDA'].includes(s);
+                                            const isPending = ['PROCESSANDO', 'EM_PROCESSAMENTO'].includes(s);
+
+                                            return (
+                                                <tr key={nota.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                                                    <td className="py-4 px-5">
+                                                        <div className="flex flex-col items-start gap-1">
+                                                            {isSuccess ? (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1">
+                                                                    <CheckCircle2 size={11} /> Autorizada
+                                                                </span>
+                                                            ) : isPending ? (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 flex items-center gap-1">
+                                                                    <Clock3 size={11} className="animate-spin" /> Processando
+                                                                </span>
+                                                            ) : (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40 flex items-center gap-1">
+                                                                    <XCircle size={11} /> Rejeitada
+                                                                </span>
+                                                            )}
+                                                            <span className="font-mono text-[9px] text-gray-400 mt-0.5" title={nota.id}>
+                                                                ID: {nota.id?.substring(0, 14)}...
                                                             </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-5 max-w-xs">
+                                                        <div className="font-bold text-gray-900 dark:text-white text-sm truncate" title={nota.tomador}>
+                                                            {nota.tomador}
+                                                        </div>
+                                                        {nota.tomadorDoc && (
+                                                            <div className="text-xs font-mono text-gray-400 mt-0.5">
+                                                                {nota.tomadorDoc}
+                                                            </div>
                                                         )}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6 text-right">
-                                                    <div className="flex justify-end items-center gap-2">
-                                                        {nota.pdf && (
-                                                            <Tooltip content="Ver PDF">
-                                                                <button
-                                                                    onClick={() => window.open(nota.pdf, '_blank')}
-                                                                    className="h-8 w-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
+                                                    </td>
+                                                    <td className="py-4 px-5">
+                                                        <div className="flex flex-col gap-0.5 text-xs">
+                                                            <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                                                <Calendar size={12} className="text-blue-500" />
+                                                                {nota.emissao}
+                                                            </span>
+                                                            {nota.autorizacao && (
+                                                                <span className="text-[11px] font-semibold text-gray-400 flex items-center gap-1">
+                                                                    <Clock3 size={11} />
+                                                                    {nota.autorizacao}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-5">
+                                                        <div className="flex flex-col items-start gap-1">
+                                                            <span className="font-black text-gray-900 dark:text-white text-sm">
+                                                                {formatCurrency(nota.valorServico || 0)}
+                                                            </span>
+                                                            {nota.numeroNfse && (
+                                                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/30">
+                                                                    Nº {nota.numeroNfse}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-5 text-right">
+                                                        <div className="flex justify-end items-center gap-2">
+                                                            {nota.pdf ? (
+                                                                <a
+                                                                    href={nota.pdf}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                                                                    title="Visualizar ou Baixar PDF da Nota Fiscal"
                                                                 >
-                                                                    <Download size={16} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-                                                        {nota.xml && (
-                                                            <Tooltip content="Ver XML">
-                                                                <button
-                                                                    onClick={() => window.open(nota.xml, '_blank')}
-                                                                    className="h-8 w-8 flex items-center justify-center text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
+                                                                    <FileText size={14} /> PDF
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-[10px] text-gray-400 italic">Sem PDF</span>
+                                                            )}
+                                                            {nota.xml && (
+                                                                <a
+                                                                    href={nota.xml}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                                                                    title="Visualizar ou Baixar XML da Nota Fiscal"
                                                                 >
-                                                                    <FileCode size={16} />
-                                                                </button>
-                                                            </Tooltip>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                                    <FileCode size={14} /> XML
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
