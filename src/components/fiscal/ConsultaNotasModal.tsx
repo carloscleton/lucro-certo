@@ -163,53 +163,53 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6">
-                    {/* Filter Card Toolbar */}
-                    <div className="p-4 bg-gray-50/80 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 flex flex-col md:flex-row items-end gap-4">
-                        <div className="flex-1 w-full md:w-auto">
-                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Tipo de Nota</label>
+                <div className="flex-1 min-h-0 p-6 md:p-8 flex flex-col gap-4 overflow-hidden">
+                    {/* Horizontal Filter Toolbar */}
+                    <div className="p-3.5 bg-gray-50/80 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 flex flex-wrap items-center gap-3 shrink-0">
+                        <div className="flex-1 min-w-[160px]">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 ml-1">Tipo de Nota</label>
                             <select 
                                 value={tipo} 
                                 onChange={(e: any) => setTipo(e.target.value)}
-                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             >
                                 <option value="nfse">NFS-e (Nota de Serviço)</option>
                                 <option value="nfe">NF-e (Nota de Produto)</option>
                             </select>
                         </div>
-                        <div className="flex-1 w-full md:w-auto">
-                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Data Inicial</label>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 ml-1">Data Inicial</label>
                             <input 
                                 type="date" 
                                 value={dataInicial} 
                                 onChange={(e) => setDataInicial(e.target.value)}
-                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             />
                         </div>
-                        <div className="flex-1 w-full md:w-auto">
-                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Data Final</label>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 ml-1">Data Final</label>
                             <input 
                                 type="date" 
                                 value={dataFinal} 
                                 onChange={(e) => setDataFinal(e.target.value)}
-                                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                             />
                         </div>
-                        <div className="w-full md:w-auto">
+                        <div className="self-end">
                             <Button 
                                 variant="primary" 
                                 onClick={handleConsultar} 
                                 isLoading={isConsulting}
-                                className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold text-xs px-6 shadow-md shadow-blue-500/20 active:scale-95 transition-all w-full"
+                                className="h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold text-xs px-6 shadow-md shadow-blue-500/20 active:scale-95 transition-all"
                             >
-                                {isConsulting ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Search size={16} className="mr-2" />}
+                                {isConsulting ? <RefreshCw className="animate-spin mr-1.5" size={15} /> : <Search size={15} className="mr-1.5" />}
                                 Buscar Notas
                             </Button>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-2xl flex items-center gap-3 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                        <div className="p-3 px-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-2xl flex items-center gap-3 text-rose-700 dark:text-rose-300 text-xs font-semibold shrink-0">
                             <AlertCircle size={18} className="shrink-0 text-rose-500" />
                             <p>{error}</p>
                         </div>
@@ -217,7 +217,7 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
 
                     {/* Summary Bar when results found */}
                     {results.length > 0 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs shrink-0">
                             <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-bold">
                                 <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
                                 <span>{results.length} nota{results.length !== 1 ? 's' : ''} localizada{results.length !== 1 ? 's' : ''} no período</span>
@@ -229,13 +229,13 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
                         </div>
                     )}
 
-                    {/* Table Results */}
+                    {/* Table Results with Internal Scrollbar */}
                     {results.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="w-full overflow-x-auto">
+                        <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 flex flex-col overflow-hidden shadow-sm">
+                            <div className="w-full h-full overflow-y-auto overflow-x-auto custom-scrollbar">
                                 <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-                                    <thead>
-                                        <tr className="bg-gray-50/80 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                                    <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-gray-400 shadow-sm">
+                                        <tr>
                                             <th className="py-3.5 px-5">Status / ID</th>
                                             <th className="py-3.5 px-5">Tomador (Cliente)</th>
                                             <th className="py-3.5 px-5">Emissão / Autorização</th>
