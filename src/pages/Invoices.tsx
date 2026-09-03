@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -223,6 +223,13 @@ export function Invoices() {
     const [showBatchModal, setShowBatchModal] = useState(false);
     const [boletoModal, setBoletoModal] = useState<{ isOpen: boolean; invoice: any }>({ isOpen: false, invoice: null });
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<'all' | 'current_month' | 'previous_month' | 'last_3_months' | 'current_year' | 'custom'>('current_month');
+    const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const [customStartDate, setCustomStartDate] = useState<string>('');
+    const [customEndDate, setCustomEndDate] = useState<string>('');
     const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
     const [showDeleted, setShowDeleted] = useState(false);
     const [resultModal, setResultModal] = useState<{isOpen: boolean, title: string, message: string, type: 'success' | 'error' | 'info', data?: any}>({
@@ -403,33 +410,75 @@ ${messageWithPlaceholder}`;
         }
     };
 
-    const filteredInvoices = invoices.filter(invoice => {
-        if (invoice.deleted && !showDeleted) return false;
-        if (!searchQuery) return true;
-        const searchLower = searchQuery.toLowerCase().trim();
-        
-        const clientNameQuote = invoice.quote?.contact?.name || '';
-        const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
-        const clientNamePayloadNfse = invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.DPS?.infDPS?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
-        const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
-        const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || (invoice.payload?.noTomador ? 'consumidor final' : 'consumidor final')).toLowerCase();
-        
-        const invoiceNumber = String(invoice.invoice_number || '').toLowerCase();
-        const payloadNumber = String(invoice.payload?.numero || invoice.payload?.retorno?.numeroNfse || invoice.payload?.numeroNfse || invoice.payload?.numeroNfe || invoice.payload?.retorno?.numero || invoice.payload?.retorno?.dps?.numero || '').toLowerCase();
-        const dpsNumber = String(invoice.dps_number || '').toLowerCase();
-        const externalId = String(invoice.external_id || '').toLowerCase();
-        
-        const status = String(invoice.status || '').toLowerCase();
-        const type = String(invoice.type || '').toLowerCase();
-        
-        return clientName.includes(searchLower) ||
-               invoiceNumber.includes(searchLower) ||
-               payloadNumber.includes(searchLower) ||
-               dpsNumber.includes(searchLower) ||
-               externalId.includes(searchLower) ||
-               status.includes(searchLower) ||
-               type.includes(searchLower);
-    });
+    const filteredInvoices = useMemo(() => {
+        return invoices.filter(invoice => {
+            if (invoice.deleted && !showDeleted) return false;
+
+            // Date Period Filter
+            if (selectedPeriodFilter !== 'all') {
+                const rawDate = invoice.created_at || invoice.issue_date || invoice.payload?.dCompet || invoice.payload?.dDPS;
+                if (rawDate) {
+                    const invDate = new Date(rawDate);
+                    const now = new Date();
+
+                    if (selectedPeriodFilter === 'current_month') {
+                        const isSameMonth = invDate.getFullYear() === now.getFullYear() && invDate.getMonth() === now.getMonth();
+                        if (!isSameMonth) return false;
+                    } else if (selectedPeriodFilter === 'previous_month') {
+                        const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        const isPrevMonth = invDate.getFullYear() === prevMonthDate.getFullYear() && invDate.getMonth() === prevMonthDate.getMonth();
+                        if (!isPrevMonth) return false;
+                    } else if (selectedPeriodFilter === 'last_3_months') {
+                        const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                        if (invDate < threeMonthsAgo) return false;
+                    } else if (selectedPeriodFilter === 'current_year') {
+                        if (invDate.getFullYear() !== now.getFullYear()) return false;
+                    } else if (selectedPeriodFilter === 'custom') {
+                        if (selectedMonthFilter) {
+                            const [y, m] = selectedMonthFilter.split('-').map(Number);
+                            if (y && m) {
+                                const isSelectedMonth = invDate.getFullYear() === y && (invDate.getMonth() + 1) === m;
+                                if (!isSelectedMonth) return false;
+                            }
+                        }
+                        if (customStartDate) {
+                            const start = new Date(customStartDate + 'T00:00:00');
+                            if (invDate < start) return false;
+                        }
+                        if (customEndDate) {
+                            const end = new Date(customEndDate + 'T23:59:59');
+                            if (invDate > end) return false;
+                        }
+                    }
+                }
+            }
+
+            if (!searchQuery) return true;
+            const searchLower = searchQuery.toLowerCase().trim();
+            
+            const clientNameQuote = invoice.quote?.contact?.name || '';
+            const clientNamePayloadNfe = invoice.payload?.destinatario?.nome || '';
+            const clientNamePayloadNfse = invoice.payload?.infDPS?.toma?.xNome || invoice.payload?.toma?.xNome || invoice.payload?.DPS?.infDPS?.toma?.xNome || invoice.payload?.tomador?.razaoSocial || invoice.payload?.tomador?.nome || '';
+            const clientNamePayloadBorrower = invoice.payload?.borrower?.name || invoice.payload?.retorno?.borrower?.name || '';
+            const clientName = (clientNameQuote || clientNamePayloadNfe || clientNamePayloadNfse || clientNamePayloadBorrower || (invoice.payload?.noTomador ? 'consumidor final' : 'consumidor final')).toLowerCase();
+            
+            const invoiceNumber = String(invoice.invoice_number || '').toLowerCase();
+            const payloadNumber = String(invoice.payload?.numero || invoice.payload?.retorno?.numeroNfse || invoice.payload?.numeroNfse || invoice.payload?.numeroNfe || invoice.payload?.retorno?.numero || invoice.payload?.retorno?.dps?.numero || '').toLowerCase();
+            const dpsNumber = String(invoice.dps_number || '').toLowerCase();
+            const externalId = String(invoice.external_id || '').toLowerCase();
+            
+            const status = String(invoice.status || '').toLowerCase();
+            const type = String(invoice.type || '').toLowerCase();
+            
+            return clientName.includes(searchLower) ||
+                   invoiceNumber.includes(searchLower) ||
+                   payloadNumber.includes(searchLower) ||
+                   dpsNumber.includes(searchLower) ||
+                   externalId.includes(searchLower) ||
+                   status.includes(searchLower) ||
+                   type.includes(searchLower);
+        });
+    }, [invoices, showDeleted, searchQuery, selectedPeriodFilter, selectedMonthFilter, customStartDate, customEndDate]);
 
 
 
@@ -1273,68 +1322,187 @@ ${messageWithPlaceholder}`;
 
     return (
         <div className="flex flex-col h-[calc(100vh-135px)] max-w-full overflow-hidden gap-4 animate-in fade-in duration-150">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-1 select-none">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100/50 dark:border-blue-900/30 shadow-sm">
-                        <Receipt size={22} />
-                    </div>
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
-                                Notas Fiscais
-                            </h1>
-                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full border border-blue-100/30 dark:border-blue-900/20">
-                                v1.2.2
-                            </span>
+            {/* Header Card with Title, Actions & Date Period Control */}
+            <div className="flex flex-col gap-3.5 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm select-none">
+                {/* Top Row: Title & Primary Actions */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100 dark:border-blue-900/40 shadow-sm">
+                            <Receipt size={22} />
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Histórico de NF-e e NFS-e emitidas pela sua empresa
-                        </p>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                                    Notas Fiscais
+                                </h1>
+                                <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold rounded-full border border-blue-100 dark:border-blue-900/30">
+                                    v1.2.2
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Histórico completo de NF-e e NFS-e emitidas pela sua empresa
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                        <Button 
+                            variant="ghost" 
+                            onClick={refresh} 
+                            className="h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
+                            title="Atualizar lista de notas"
+                        >
+                            <RefreshCw size={14} className={clsx("mr-1.5 text-gray-500", isLoading && "animate-spin")} />
+                            Atualizar Lista
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setShowConsultaModal(true)} 
+                            className="h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
+                        >
+                            <Search size={14} className="mr-1.5 text-gray-500" />
+                            Consultar Notas
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setShowBillingModal(true)} 
+                            className="h-9 px-3 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
+                        >
+                            <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
+                            Relatório de Cobrança
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setShowBatchModal(true)} 
+                            className="h-9 px-3.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
+                        >
+                            <RefreshCw size={14} className="mr-1.5 text-violet-600 dark:text-violet-400" />
+                            Faturamento Recorrente
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={() => setShowNewModal(true)} 
+                            className="h-9 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                        >
+                            <Plus size={16} className="mr-1.5" />
+                            Nova Nota Avulsa
+                        </Button>
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-                    <Button 
-                        variant="ghost" 
-                        onClick={refresh} 
-                        className="h-9 px-3 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
-                        title="Atualizar lista de notas"
-                    >
-                        <RefreshCw size={14} className={clsx("mr-1.5 text-gray-500", isLoading && "animate-spin")} />
-                        Atualizar Lista
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => setShowConsultaModal(true)} 
-                        className="h-9 px-3 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm transition-all"
-                    >
-                        <Search size={14} className="mr-1.5 text-gray-500" />
-                        Consultar Notas
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => setShowBillingModal(true)} 
-                        className="h-9 px-3 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
-                    >
-                        <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
-                        Relatório de Cobrança
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => setShowBatchModal(true)} 
-                        className="h-9 px-3.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
-                    >
-                        <RefreshCw size={14} className="mr-1.5 text-violet-600 dark:text-violet-400" />
-                        Faturamento Recorrente
-                    </Button>
-                    <Button 
-                        variant="primary" 
-                        onClick={() => setShowNewModal(true)} 
-                        className="h-9 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all"
-                    >
-                        <Plus size={16} className="mr-1.5" />
-                        Nova Nota Avulsa
-                    </Button>
+
+                {/* Bottom Row: Date Period Filter Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800/60">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
+                        <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mr-1">
+                            <Calendar size={15} className="text-blue-500" />
+                            Filtrar Período:
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('current_month')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'current_month'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Mês Atual
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('previous_month')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'previous_month'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Mês Anterior
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('last_3_months')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'last_3_months'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Últimos 3 Meses
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('current_year')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'current_year'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Ano Atual
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('all')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'all'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Todas as Datas
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPeriodFilter('custom')}
+                            className={clsx(
+                                "px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold",
+                                selectedPeriodFilter === 'custom'
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            Personalizado 📅
+                        </button>
+                    </div>
+
+                    {/* Date Inputs when Custom selected */}
+                    {selectedPeriodFilter === 'custom' && (
+                        <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Mês:</label>
+                            <input
+                                type="month"
+                                value={selectedMonthFilter}
+                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-gray-400 font-bold px-1">ou Período:</span>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-gray-400 font-bold">até</span>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
