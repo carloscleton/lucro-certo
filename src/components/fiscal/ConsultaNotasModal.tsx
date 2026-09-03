@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search, AlertCircle, RefreshCw, X, Download, FileCode } from 'lucide-react';
+import { Search, AlertCircle, RefreshCw, X, Download, FileCode, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
 import { Tooltip } from '../ui/Tooltip';
 import { clsx } from 'clsx';
+import { API_BASE_URL } from '../../lib/constants';
 
 interface ConsultaNotasModalProps {
     onClose: () => void;
@@ -12,8 +13,14 @@ interface ConsultaNotasModalProps {
 }
 
 export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalProps) {
-    const [dataInicial, setDataInicial] = useState('');
-    const [dataFinal, setDataFinal] = useState('');
+    const [dataInicial, setDataInicial] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    });
+    const [dataFinal, setDataFinal] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
     const [tipo, setTipo] = useState<'nfse' | 'nfe'>('nfse');
     const [isConsulting, setIsConsulting] = useState(false);
     const [results, setResults] = useState<any[]>([]);
@@ -33,22 +40,93 @@ export function ConsultaNotasModal({ onClose, companyId }: ConsultaNotasModalPro
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             if (!token) throw new Error('Sessão expirada.');
             
-            const response = await fiscalService.consultarNotasPorPeriodo(companyId, dataInicial, dataFinal, tipo, token);
-            
-            if (response?.message && response.message.includes('Não implementado')) {
-                setError('A consulta por período não está disponível no ambiente de Sandbox da Tecnospeed para este tipo de nota.');
-                return;
+            const combinedMap = new Map<string, any>();
+
+            // 1. Consultar registros locais da tabela fiscal_invoices no Supabase
+            try {
+                const startDateISO = `${dataInicial}T00:00:00.000Z`;
+                const endDateISO = `${dataFinal}T23:59:59.999Z`;
+
+                const { data: dbInvoices } = await supabase
+                    .from('fiscal_invoices')
+                    .select('*')
+                    .eq('company_id', companyId)
+                    .gte('created_at', startDateISO)
+                    .lte('created_at', endDateISO)
+                    .order('created_at', { ascending: false });
+
+                if (dbInvoices && dbInvoices.length > 0) {
+                    dbInvoices.forEach((inv: any) => {
+                        const p = inv.payload || {};
+                        const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
+                        const servico = servicos[0];
+                        const val = inv.amount || 
+                                    p?.servicesAmount || 
+                                    p?.retorno?.servicesAmount || 
+                                    p?.retorno?.valorTotal || 
+                                    p?.infDPS?.valores?.vServPrest?.vServ ||
+                                    p?.valores?.vServPrest?.vServ ||
+                                    servico?.valor?.servico || 
+                                    p?.valorTotal || 0;
+
+                        const tomador = p?.infDPS?.toma?.xNome || 
+                                        p?.toma?.xNome || 
+                                        p?.tomador?.razaoSocial || 
+                                        p?.destinatario?.nome || 
+                                        'Cliente Cadastrado / Consumidor Final';
+
+                        const baseApi = API_BASE_URL.replace(/\/$/, '');
+                        const pdfUrl = inv.payload?.pdf_url || 
+                                       inv.payload?.retorno?.pdfUrl || 
+                                       (inv.external_id ? `${baseApi}/fiscal-module/${inv.type || 'national'}/${inv.external_id || inv.id}/pdf?companyId=${companyId}` : null);
+
+                        const xmlUrl = inv.payload?.xml_url || 
+                                       inv.payload?.xml || 
+                                       (inv.external_id ? `${baseApi}/fiscal-module/${inv.type || 'national'}/${inv.external_id || inv.id}/xml?companyId=${companyId}` : null);
+
+                        const key = String(inv.external_id || inv.id);
+                        combinedMap.set(key, {
+                            id: key,
+                            situacao: (inv.status || 'CONCLUIDO').toUpperCase(),
+                            tomador,
+                            emissao: new Date(inv.created_at).toLocaleDateString('pt-BR'),
+                            autorizacao: new Date(inv.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                            valorServico: typeof val === 'number' ? val : (parseFloat(String(val).replace(',', '.')) || 0),
+                            numeroNfse: inv.invoice_number || inv.dps_number || p?.numero || p?.nfseNumero || '',
+                            pdf: pdfUrl,
+                            xml: xmlUrl
+                        });
+                    });
+                }
+            } catch (localErr) {
+                console.warn('⚠️ [CONSULTA-LOCAL] Erro ao buscar no Supabase:', localErr);
             }
 
-            const notasArray = response?.notas || (Array.isArray(response) ? response : []);
-            setResults(notasArray);
-            
-            if (notasArray.length === 0) {
-                setError('Nenhuma nota encontrada no período especificado.');
+            // 2. Consultar notas remotas via API do backend (TecnoSpeed/NFe.io/National)
+            try {
+                const response = await fiscalService.consultarNotasPorPeriodo(companyId, dataInicial, dataFinal, tipo, token);
+                const notasArray = response?.notas || (Array.isArray(response) ? response : []);
+                if (Array.isArray(notasArray)) {
+                    notasArray.forEach((remoteInv: any) => {
+                        const key = String(remoteInv.id || remoteInv.external_id || remoteInv.numeroNfse);
+                        if (key && !combinedMap.has(key)) {
+                            combinedMap.set(key, remoteInv);
+                        }
+                    });
+                }
+            } catch (remoteErr) {
+                console.warn('⚠️ [CONSULTA-REMOTA] Busca na API externa retornou erro/indisponível:', remoteErr);
+            }
+
+            const finalResults = Array.from(combinedMap.values());
+            setResults(finalResults);
+
+            if (finalResults.length === 0) {
+                setError('Nenhuma nota fiscal encontrada no período especificado.');
             }
         } catch (err: any) {
             console.error('Erro ao consultar notas:', err);
-            setError(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Erro ao consultar notas.');
+            setError(err.message || 'Erro ao consultar notas.');
         } finally {
             setIsConsulting(false);
         }
