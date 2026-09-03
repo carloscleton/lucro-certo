@@ -3,7 +3,6 @@ import { Search, AlertCircle, RefreshCw, X, FileText, FileCode, CheckCircle2, Cl
 import { Button } from '../ui/Button';
 import { fiscalService } from '../../services/fiscalService';
 import { supabase } from '../../lib/supabase';
-import { clsx } from 'clsx';
 import { API_BASE_URL } from '../../lib/constants';
 import { formatCurrency } from '../../utils/currencyUtils';
 
