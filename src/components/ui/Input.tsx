@@ -38,6 +38,43 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                             className
                         )}
                         {...props}
+                        onPaste={(e) => {
+                            props.onPaste?.(e);
+                            if (e.defaultPrevented) return;
+
+                            const pastedText = e.clipboardData.getData('text');
+                            if (pastedText && /[\r\n\t\u00A0\u200B]/.test(pastedText)) {
+                                e.preventDefault();
+                                const cleanedPasted = pastedText
+                                    .replace(/[\r\n\t\u00A0\u200B]+/g, ' ')
+                                    .replace(/  +/g, ' ');
+
+                                const target = e.currentTarget;
+                                const start = target.selectionStart ?? target.value.length;
+                                const end = target.selectionEnd ?? target.value.length;
+
+                                const currentValue = target.value;
+                                const newValue = currentValue.slice(0, start) + cleanedPasted + currentValue.slice(end);
+
+                                const excludedTypes = ['password', 'email', 'date', 'number', 'month', 'week', 'time', 'datetime-local', 'color', 'file'];
+                                const inputType = target.type || props.type || 'text';
+                                const finalValue = !excludedTypes.includes(inputType) && !preserveCase
+                                    ? newValue.toUpperCase()
+                                    : newValue;
+
+                                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                                nativeInputValueSetter?.call(target, finalValue);
+
+                                target.dispatchEvent(new Event('input', { bubbles: true }));
+
+                                const newCursorPos = start + cleanedPasted.length;
+                                try {
+                                    target.setSelectionRange(newCursorPos, newCursorPos);
+                                } catch (err) {
+                                    // Selection range might fail on unsupported input types
+                                }
+                            }
+                        }}
                         onChange={(e) => {
                             // Types that don't support selection range or unnecessary for uppercase
                             const excludedTypes = ['password', 'email', 'date', 'number', 'month', 'week', 'time', 'datetime-local', 'color', 'file'];
