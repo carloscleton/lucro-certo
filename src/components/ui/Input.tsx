@@ -43,10 +43,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                             if (e.defaultPrevented) return;
 
                             const pastedText = e.clipboardData.getData('text');
-                            if (pastedText && /[\r\n\t\u00A0\u200B]/.test(pastedText)) {
+                            if (pastedText) {
                                 e.preventDefault();
+
+                                // Clean all newlines, tabs, unicode whitespace, and multiple spaces into single spaces
                                 const cleanedPasted = pastedText
-                                    .replace(/[\r\n\t\u00A0\u200B]+/g, ' ')
+                                    .replace(/[\s\u00A0\u2000-\u200B\u202F\u205F\u3000\r\n\t]+/g, ' ')
                                     .replace(/  +/g, ' ');
 
                                 const target = e.currentTarget;
@@ -83,10 +85,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                             if (!excludedTypes.includes(inputType) && !preserveCase) {
                                 const start = e.target.selectionStart;
                                 const end = e.target.selectionEnd;
-                                e.target.value = e.target.value.toUpperCase();
-                                // Only set selection if supported (though excludedTypes should cover it)
-                                if (start !== null && end !== null) {
-                                    e.target.setSelectionRange(start, end);
+                                const upper = e.target.value.toUpperCase();
+                                if (e.target.value !== upper) {
+                                    e.target.value = upper;
+                                    if (start !== null && end !== null) {
+                                        try {
+                                            e.target.setSelectionRange(start, end);
+                                        } catch (err) {}
+                                    }
                                 }
                             }
                             props.onChange?.(e);
