@@ -2108,7 +2108,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         />
                     </div>
 
-                    {type === 'nfse' && (
+                    {type === 'nfse' && !['2', '3'].includes(String(config?.regime_tributario || '')) && (
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">
                                 Regime Especial de Tributação (DPS)

@@ -44,6 +44,9 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const isFiscalEnabled = currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
     const activeProvider = (currentCompany as any)?.settings?.fiscal_provider || 'tecnospeed';
     const isNacional = activeProvider === 'national' || !!(currentCompany?.tecnospeed_config?.nfse_nacional || currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional);
+    const companyConfig = (currentCompany as any)?.settings?.fiscal_config || currentCompany?.tecnospeed_config || {};
+    const regimeTributario = String(companyConfig?.regime_tributario || (currentCompany as any)?.regime_tributario || '1');
+    const isSimplesNacional = ['2', '3'].includes(regimeTributario);
 
     useEffect(() => {
         if (initialData) {
@@ -304,28 +307,30 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                     </div>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Regime Especial de Tributação (Específico do Serviço)
-                                    </label>
-                                    <select
-                                        value={regimeEspecial}
-                                        onChange={e => setRegimeEspecial(e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
-                                    >
-                                        <option value="">Usar Configuração Padrão da Empresa</option>
-                                        <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
-                                        <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
-                                        <option value="1">1 - Microempresa municipal</option>
-                                        <option value="2">2 - Estimativa</option>
-                                        <option value="3">3 - Sociedade de profissionais</option>
-                                        <option value="5">5 - Microempresário Individual (MEI)</option>
-                                        <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
-                                    </select>
-                                    <p className="text-[10px] text-gray-400">
-                                        Permite trocar automaticamente o regime especial ao emitir nota para este serviço.
-                                    </p>
-                                </div>
+                                {!isSimplesNacional && (
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Regime Especial de Tributação (Específico do Serviço)
+                                        </label>
+                                        <select
+                                            value={regimeEspecial}
+                                            onChange={e => setRegimeEspecial(e.target.value)}
+                                            className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                        >
+                                            <option value="">Usar Configuração Padrão da Empresa</option>
+                                            <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
+                                            <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
+                                            <option value="1">1 - Microempresa municipal</option>
+                                            <option value="2">2 - Estimativa</option>
+                                            <option value="3">3 - Sociedade de profissionais</option>
+                                            <option value="5">5 - Microempresário Individual (MEI)</option>
+                                            <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
+                                        </select>
+                                        <p className="text-[10px] text-gray-400">
+                                            Permite trocar automaticamente o regime especial ao emitir nota para este serviço.
+                                        </p>
+                                    </div>
+                                )}
                     </div>
                 )}
 
