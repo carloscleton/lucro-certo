@@ -59,20 +59,40 @@ export function useServices() {
         if (!user) return;
 
         const company_id = currentEntity.type === 'company' ? currentEntity.id : null;
+        const payload: any = { ...service, user_id: user.id, company_id };
 
-        const { error } = await supabase
+        let { error } = await supabase
             .from('services')
-            .insert([{ ...service, user_id: user.id, company_id }]);
+            .insert([payload]);
+
+        if (error && (error.code === 'PGRST204' || error.message?.includes('regime_especial_tributacao'))) {
+            delete payload.regime_especial_tributacao;
+            const retry = await supabase
+                .from('services')
+                .insert([payload]);
+            error = retry.error;
+        }
 
         if (error) throw error;
         await fetchServices();
     };
 
     const updateService = async (id: string, updates: Partial<Service>) => {
-        const { error } = await supabase
+        const payload: any = { ...updates };
+
+        let { error } = await supabase
             .from('services')
-            .update(updates)
+            .update(payload)
             .eq('id', id);
+
+        if (error && (error.code === 'PGRST204' || error.message?.includes('regime_especial_tributacao'))) {
+            delete payload.regime_especial_tributacao;
+            const retry = await supabase
+                .from('services')
+                .update(payload)
+                .eq('id', id);
+            error = retry.error;
+        }
 
         if (error) throw error;
         await fetchServices();
