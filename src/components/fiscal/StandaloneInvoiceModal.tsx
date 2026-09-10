@@ -2115,8 +2115,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             </label>
                             <select
                                 value={selectedRegimeEspecial !== '' ? selectedRegimeEspecial : (config?.default_regime_especial || String(nationalConfig?.reg_esp_trib ?? 0))}
-                                onChange={(e) => setSelectedRegimeEspecial(e.target.value)}
-                                className="w-full h-11 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none"
+                                disabled
+                                className="w-full h-11 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 text-xs font-bold shadow-sm cursor-not-allowed outline-none"
                             >
                                 <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
                                 <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
@@ -2126,6 +2126,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <option value="5">5 - Microempresário Individual (MEI)</option>
                                 <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
                             </select>
+                            <p className="text-[10px] text-gray-400 ml-1 mt-1">
+                                Definido automaticamente pelo Cadastro do Serviço ou pelas Configurações Fiscais da Empresa.
+                            </p>
                         </div>
                     )}
                 </div>
