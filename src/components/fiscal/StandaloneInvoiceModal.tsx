@@ -2108,7 +2108,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         />
                     </div>
 
-                    {type === 'nfse' && !['2', '3'].includes(String(config?.regime_tributario || '')) && (
+                    {type === 'nfse' && !(() => {
+                        const op = String(config?.op_simp_nac || nationalConfig?.op_simp_nac || config?.regime_tributario || '1');
+                        const isSimplesFlag = !!(config?.simples_nacional || nationalConfig?.simples_nacional);
+                        return op === '2' || op === '3' || (op === '1' && isSimplesFlag);
+                    })() && (
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">
                                 Regime Especial de Tributação (DPS)

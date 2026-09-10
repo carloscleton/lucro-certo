@@ -44,9 +44,6 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const isFiscalEnabled = currentEntity.type === 'company' && currentCompany?.fiscal_module_enabled;
     const activeProvider = (currentCompany as any)?.settings?.fiscal_provider || 'tecnospeed';
     const isNacional = activeProvider === 'national' || !!(currentCompany?.tecnospeed_config?.nfse_nacional || currentCompany?.tecnospeed_config?.nfse?.config?.nfseNacional);
-    const companyConfig = (currentCompany as any)?.settings?.fiscal_config || currentCompany?.tecnospeed_config || {};
-    const regimeTributario = String(companyConfig?.regime_tributario || (currentCompany as any)?.regime_tributario || '1');
-    const isSimplesNacional = ['2', '3'].includes(regimeTributario);
 
     useEffect(() => {
         if (initialData) {
@@ -307,7 +304,12 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                     </div>
                                 </div>
 
-                                {!isSimplesNacional && (
+                                {!(() => {
+                                    const natConfig = (currentCompany as any)?.settings?.national_config || {};
+                                    const opSN = String(natConfig.op_simp_nac || currentCompany?.tecnospeed_config?.op_simp_nac || currentCompany?.tecnospeed_config?.regime_tributario || '1');
+                                    const isSimplesFlag = !!(natConfig.simples_nacional || currentCompany?.tecnospeed_config?.simples_nacional);
+                                    return opSN === '2' || opSN === '3' || isSimplesFlag;
+                                })() && (
                                     <div className="space-y-1">
                                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Regime Especial de Tributação (Específico do Serviço)
