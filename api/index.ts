@@ -10533,7 +10533,7 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
         const result = await adapter.getPaymentStatus(targetCode);
 
         if (charge?.id && result.status) {
-            const isApproved = result.status === 'approved' || result.status === 'paid';
+            const isApproved = result.status === 'approved' || (result.status as string) === 'paid';
             const patchData: any = {
                 status: result.status,
                 paid_at: isApproved ? (result.paid_at || new Date().toISOString()) : null

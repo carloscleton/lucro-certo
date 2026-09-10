@@ -104,7 +104,7 @@ export class AsaasAdapter implements PaymentAdapter {
                 success: true,
                 payment_id: payment.id,
                 status: mappedStatus,
-                paid_amount: (mappedStatus === 'approved' || mappedStatus === 'paid') ? (payment.confirmedValue || payment.value) : undefined,
+                paid_amount: (mappedStatus === 'approved' || (mappedStatus as string) === 'paid') ? (payment.confirmedValue || payment.value) : undefined,
                 paid_at: payment.clientPaymentDate || payment.paymentDate || undefined,
                 receipt_url: payment.transactionReceiptUrl || undefined
             };
