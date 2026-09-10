@@ -282,11 +282,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [notes, setNotes] = useState(initialNotes || '');
     const [isExpandedNotes, setIsExpandedNotes] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [selectedRegimeEspecial, setSelectedRegimeEspecial] = useState<string>('');
 
     // Reset contact selection when switching companies
     useEffect(() => {
         setContactId('');
         setRecurringNotice(null);
+        setSelectedRegimeEspecial('');
     }, [currentEntity.id]);
 
     // Auto-populate default invoice observations when contact changes
@@ -624,6 +626,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             updated.taxCode = service.codigo_servico_municipal || service.item_lista_servico || '';
                             updated.taxationCode = service.codigo_servico_municipal || service.item_lista_servico || '';
                             updated.codigoTributacaoNacional = service.codigo_tributacao_nacional || '';
+                            if (service.regime_especial_tributacao !== undefined && service.regime_especial_tributacao !== null && service.regime_especial_tributacao !== '') {
+                                setSelectedRegimeEspecial(String(service.regime_especial_tributacao));
+                            }
                             // Só substitui pelo preço do catálogo se o cliente NÃO tiver faturamento recorrente ativo
                             if (!recurringNotice) {
                                 updated.amount = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(service.price);
@@ -1153,7 +1158,9 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         })
                     };
 
-                    if (config.default_regime_especial && config.default_regime_especial !== '0') {
+                    if (selectedRegimeEspecial !== '') {
+                        payload.prestador.regimeEspecialTributacao = parseInt(selectedRegimeEspecial);
+                    } else if (config.default_regime_especial && config.default_regime_especial !== '0') {
                         payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
                     }
 
@@ -2089,7 +2096,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         )}
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div>
                         <Input
                             label="Código IBGE da Cidade (Onde o serviço/venda ocorre)"
                             value={cityCode}
@@ -2100,6 +2107,27 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             className="bg-slate-100 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm cursor-not-allowed font-mono font-bold"
                         />
                     </div>
+
+                    {type === 'nfse' && (
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1.5">
+                                Regime Especial de Tributação (DPS)
+                            </label>
+                            <select
+                                value={selectedRegimeEspecial !== '' ? selectedRegimeEspecial : (config?.default_regime_especial || String(nationalConfig?.reg_esp_trib ?? 0))}
+                                onChange={(e) => setSelectedRegimeEspecial(e.target.value)}
+                                className="w-full h-11 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none"
+                            >
+                                <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
+                                <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
+                                <option value="1">1 - Microempresa municipal</option>
+                                <option value="2">2 - Estimativa</option>
+                                <option value="3">3 - Sociedade de profissionais</option>
+                                <option value="5">5 - Microempresário Individual (MEI)</option>
+                                <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">

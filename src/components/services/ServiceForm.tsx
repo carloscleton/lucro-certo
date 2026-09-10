@@ -32,6 +32,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
     const [munCode, setMunCode] = useState('');
     const [lcItem, setLcItem] = useState('');
     const [natCode, setNatCode] = useState('');
+    const [regimeEspecial, setRegimeEspecial] = useState('');
     const [isLoyalty, setIsLoyalty] = useState(false);
     const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
     const [nbsAutoFilled, setNbsAutoFilled] = useState(false);
@@ -54,6 +55,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setMunCode(initialData.codigo_servico_municipal || '');
             setLcItem(initialData.item_lista_servico || '');
             setNatCode(initialData.codigo_tributacao_nacional || '');
+            setRegimeEspecial(initialData.regime_especial_tributacao || '');
             setIsLoyalty(initialData.is_loyalty || false);
             setNbsAutoFilled(false);
         } else {
@@ -65,6 +67,7 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
             setMunCode('');
             setLcItem('');
             setNatCode('');
+            setRegimeEspecial('');
             setIsLoyalty(false);
         }
     }, [initialData, isOpen]);
@@ -85,12 +88,13 @@ export function ServiceForm({ isOpen, onClose, onSubmit, initialData }: ServiceF
 
     const { clearCache } = useAutoSave(
         'service_form',
-        { name, description, price, unit, showInPdf, munCode, lcItem, natCode },
+        { name, description, price, unit, showInPdf, munCode, lcItem, natCode, regimeEspecial },
         {
             name: setName, description: setDescription, price: setPrice,
             unit: setUnit, showInPdf: setShowInPdf, munCode: setMunCode,
             lcItem: setLcItem,
             natCode: setNatCode,
+            regimeEspecial: setRegimeEspecial,
             isLoyalty: setIsLoyalty
         },
         !initialData,
@@ -155,6 +159,7 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                 codigo_servico_municipal: munCode,
                 item_lista_servico: lcItem,
                 codigo_tributacao_nacional: natCode,
+                regime_especial_tributacao: regimeEspecial,
                 is_loyalty: isLoyalty,
             });
             clearCache();
@@ -297,6 +302,29 @@ Regras: No máximo 2 frases curtas, tom profissional, foque no benefício para o
                                             </datalist>
                                         )}
                                     </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Regime Especial de Tributação (Específico do Serviço)
+                                    </label>
+                                    <select
+                                        value={regimeEspecial}
+                                        onChange={e => setRegimeEspecial(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
+                                    >
+                                        <option value="">Usar Padrão da Empresa</option>
+                                        <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
+                                        <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
+                                        <option value="1">1 - Microempresa municipal</option>
+                                        <option value="2">2 - Estimativa</option>
+                                        <option value="3">3 - Sociedade de profissionais</option>
+                                        <option value="5">5 - Microempresário Individual (MEI)</option>
+                                        <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
+                                    </select>
+                                    <p className="text-[10px] text-gray-400">
+                                        Permite trocar automaticamente o regime especial ao emitir nota para este serviço.
+                                    </p>
                                 </div>
                     </div>
                 )}

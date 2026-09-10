@@ -14,6 +14,7 @@ export interface Service {
     codigo_servico_municipal?: string;
     item_lista_servico?: string;
     codigo_tributacao_nacional?: string;
+    regime_especial_tributacao?: string;
     is_loyalty?: boolean;
     user_id: string;
     company_id?: string;
