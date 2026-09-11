@@ -116,17 +116,19 @@ export function WhatsApp() {
     const [evoGoNats, setEvoGoNats] = useState('default');
 
     const evoApiAllowed = currentEntity.settings?.whatsapp_provider_evo_api_enabled !== false;
+    const evo2ApiAllowed = !!currentEntity.settings?.whatsapp_provider_evo2_api_enabled;
     const evoGoAllowed = currentEntity.settings?.whatsapp_provider_evo_go_enabled !== false;
     const wahaAllowed = !!currentEntity.settings?.whatsapp_provider_waha_enabled;
 
     const getDefaultProvider = () => {
         if (evoApiAllowed) return 'evolution_api';
+        if (evo2ApiAllowed) return 'evolution2_api';
         if (evoGoAllowed) return 'evolution_go';
         if (wahaAllowed) return 'waha';
         return 'evolution_api';
     };
 
-    const [selectedProvider, setSelectedProvider] = useState<'evolution_api' | 'evolution_go' | 'waha'>(
+    const [selectedProvider, setSelectedProvider] = useState<'evolution_api' | 'evolution2_api' | 'evolution_go' | 'waha'>(
         getDefaultProvider()
     );
 
@@ -962,6 +964,7 @@ export function WhatsApp() {
                             className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 font-semibold text-sm h-[45px] text-gray-700 dark:text-white"
                         >
                             {evoApiAllowed && <option value="evolution_api">Evolution API (Padrão)</option>}
+                            {evo2ApiAllowed && <option value="evolution2_api">Evolution API 2 (Válvula de Escape)</option>}
                             {evoGoAllowed && <option value="evolution_go">Evolution GO (Alta Performance)</option>}
                             {wahaAllowed && <option value="waha">WAHA API (Alternativo)</option>}
                         </select>

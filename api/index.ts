@@ -131,6 +131,10 @@ const EVOLUTION_API_KEY = (process.env.EVOLUTION_API_KEY && process.env.EVOLUTIO
 const EVOLUTION_GO_API_URL = process.env.EVOLUTION_GO_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL;
 const EVOLUTION_GO_API_KEY = process.env.EVOLUTION_GO_API_KEY?.trim() || EVOLUTION_API_KEY;
 
+// Evolution API 2 (Servidor Secundario / Valvula de Escape) Config
+const EVOLUTION2_API_URL = process.env.EVOLUTION2_API_URL?.trim().replace(/\/+$/, '') || EVOLUTION_API_URL;
+const EVOLUTION2_API_KEY = process.env.EVOLUTION2_API_KEY?.trim() || EVOLUTION_API_KEY;
+
 // WAHA API Config
 const WAHA_API_URL = process.env.WAHA_API_URL?.trim().replace(/\/+$/, '') || 'http://localhost:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY?.trim() || '';
@@ -195,6 +199,12 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
     } else if (dbProvider === 'evolution_go') {
         return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
+    if (dbProvider === 'waha') {
+        return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
+    } else if (dbProvider === 'evolution_go') {
+        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
+    } else if (dbProvider === 'evolution2_api') {
+        return { url: EVOLUTION2_API_URL, apiKey: EVOLUTION2_API_KEY, isGo: false, provider: 'evolution2_api' };
     } else if (dbProvider === 'evolution_api') {
         return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
     }
@@ -225,9 +235,10 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
     // 🔍 2. Auto-detecção inteligente para instâncias Evolution (ignora para WAHA)
     if (dbProvider !== 'waha' && (nameToMatch || tokenToMatch)) {
         try {
-            const [goListRes, stdListRes] = await Promise.allSettled([
+            const [goListRes, stdListRes, evo2ListRes] = await Promise.allSettled([
                 axios.get(`${EVOLUTION_GO_API_URL}/instance/all`, { headers: { 'apikey': EVOLUTION_GO_API_KEY }, timeout: 5000 }),
-                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 5000 })
+                axios.get(`${EVOLUTION_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION_API_KEY }, timeout: 5000 }),
+                axios.get(`${EVOLUTION2_API_URL}/instance/fetchInstances`, { headers: { 'apikey': EVOLUTION2_API_KEY }, timeout: 5000 })
             ]);
 
             let foundInGo = false;
@@ -249,20 +260,34 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
                 );
             }
 
-            if (defaultProvider === 'evolution_go') {
+            let foundInEvo2 = false;
+            if (evo2ListRes.status === 'fulfilled') {
+                const rawEvo2Instances = Array.isArray(evo2ListRes.value.data) ? evo2ListRes.value.data : [];
+                const evo2Instances = rawEvo2Instances.map((item: any) => item.instance || item);
+                foundInEvo2 = evo2Instances.some((i: any) =>
+                    (nameToMatch && (i.name || i.instanceName || '').toLowerCase().trim() === nameToMatch) ||
+                    (tokenToMatch && (i.token || i.id || i.instanceId || '').toLowerCase().trim() === tokenToMatch)
+                );
+            }
+
+            if (defaultProvider === 'evolution2_api') {
+                if (foundInEvo2) {
+                    return { url: EVOLUTION2_API_URL, apiKey: EVOLUTION2_API_KEY, isGo: false, provider: 'evolution2_api' };
+                } else if (foundInStd) {
+                    return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
+                }
+            } else if (defaultProvider === 'evolution_go') {
                 if (foundInGo) {
-                    console.log(`🔌 [Evolution Config] Usando Evolution GO conforme toggle ativo para a instância ${identifier.instanceName || identifier.token}`);
                     return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
                 } else if (foundInStd) {
-                    console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution GO, usando Evolution Padrão`);
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
                 }
             } else {
                 if (foundInStd) {
-                    console.log(`🔌 [Evolution Config] Usando Evolution Padrão conforme toggle inativo para a instância ${identifier.instanceName || identifier.token}`);
                     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
+                } else if (foundInEvo2) {
+                    return { url: EVOLUTION2_API_URL, apiKey: EVOLUTION2_API_KEY, isGo: false, provider: 'evolution2_api' };
                 } else if (foundInGo) {
-                    console.log(`🔌 [Evolution Config] Fallback: Instância ${identifier.instanceName || identifier.token} não está no Evolution Padrão, usando Evolution GO`);
                     return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
                 }
             }
@@ -276,25 +301,34 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
     } else if (defaultProvider === 'evolution_go') {
         return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
+    } else if (defaultProvider === 'evolution2_api') {
+        return { url: EVOLUTION2_API_URL, apiKey: EVOLUTION2_API_KEY, isGo: false, provider: 'evolution2_api' };
     }
     return { url: EVOLUTION_API_URL, apiKey: EVOLUTION_API_KEY, isGo: false, provider: 'evolution_api' };
 }
 
 // Helper to get the alternative/fallback Evolution config (opposite of current)
 function getAlternativeConfig(currentConfig: { url: string; apiKey: string; isGo: boolean; provider?: string }) {
-    if (currentConfig.isGo) {
+    if (currentConfig.provider === 'evolution2_api') {
         return {
             url: EVOLUTION_API_URL,
             apiKey: EVOLUTION_API_KEY,
             isGo: false,
             provider: 'evolution_api'
         };
+    } else if (currentConfig.isGo) {
+        return {
+            url: EVOLUTION2_API_URL !== EVOLUTION_API_URL ? EVOLUTION2_API_URL : EVOLUTION_API_URL,
+            apiKey: EVOLUTION2_API_KEY !== EVOLUTION_API_KEY ? EVOLUTION2_API_KEY : EVOLUTION_API_KEY,
+            isGo: false,
+            provider: EVOLUTION2_API_URL !== EVOLUTION_API_URL ? 'evolution2_api' : 'evolution_api'
+        };
     } else {
         return {
-            url: EVOLUTION_GO_API_URL,
-            apiKey: EVOLUTION_GO_API_KEY,
-            isGo: true,
-            provider: 'evolution_go'
+            url: EVOLUTION2_API_URL !== EVOLUTION_API_URL ? EVOLUTION2_API_URL : EVOLUTION_GO_API_URL,
+            apiKey: EVOLUTION2_API_KEY !== EVOLUTION_API_KEY ? EVOLUTION2_API_KEY : EVOLUTION_GO_API_KEY,
+            isGo: EVOLUTION2_API_URL !== EVOLUTION_API_URL ? false : true,
+            provider: EVOLUTION2_API_URL !== EVOLUTION_API_URL ? 'evolution2_api' : 'evolution_go'
         };
     }
 }
