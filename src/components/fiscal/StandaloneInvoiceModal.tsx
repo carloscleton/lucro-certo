@@ -1160,8 +1160,11 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                     if (selectedRegimeEspecial !== '') {
                         payload.prestador.regimeEspecialTributacao = parseInt(selectedRegimeEspecial);
-                    } else if (config.default_regime_especial && config.default_regime_especial !== '0') {
-                        payload.prestador.regimeEspecialTributacao = parseInt(config.default_regime_especial);
+                    } else {
+                        const defaultReg = nationalConfig?.reg_esp_trib !== undefined && nationalConfig?.reg_esp_trib !== null
+                            ? Number(nationalConfig.reg_esp_trib)
+                            : parseInt(config?.default_regime_especial || '0');
+                        payload.prestador.regimeEspecialTributacao = defaultReg;
                     }
 
                     let finalNotes = notes || '';
@@ -2118,7 +2121,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 Regime Especial de Tributação (DPS)
                             </label>
                             <select
-                                value={selectedRegimeEspecial !== '' ? selectedRegimeEspecial : (config?.default_regime_especial || String(nationalConfig?.reg_esp_trib ?? 0))}
+                                value={selectedRegimeEspecial !== '' ? selectedRegimeEspecial : String(nationalConfig?.reg_esp_trib !== undefined && nationalConfig?.reg_esp_trib !== null ? nationalConfig.reg_esp_trib : (config?.default_regime_especial || '0'))}
                                 disabled
                                 className="w-full h-11 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 text-xs font-bold shadow-sm cursor-not-allowed outline-none"
                             >
