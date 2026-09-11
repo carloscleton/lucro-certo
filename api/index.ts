@@ -199,10 +199,6 @@ async function getEvolutionConfig(identifier: { companyId?: string; instanceName
         return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
     } else if (dbProvider === 'evolution_go') {
         return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
-    if (dbProvider === 'waha') {
-        return { url: WAHA_API_URL, apiKey: WAHA_API_KEY, isGo: false, provider: 'waha' };
-    } else if (dbProvider === 'evolution_go') {
-        return { url: EVOLUTION_GO_API_URL, apiKey: EVOLUTION_GO_API_KEY, isGo: true, provider: 'evolution_go' };
     } else if (dbProvider === 'evolution2_api') {
         return { url: EVOLUTION2_API_URL, apiKey: EVOLUTION2_API_KEY, isGo: false, provider: 'evolution2_api' };
     } else if (dbProvider === 'evolution_api') {
