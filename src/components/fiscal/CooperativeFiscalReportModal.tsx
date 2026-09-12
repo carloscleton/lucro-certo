@@ -126,6 +126,8 @@ export function CooperativeFiscalReportModal({ isOpen, onClose, invoices, compan
             title="Fechamento Fiscal de Cooperativa"
             subtitle={`Resumo de atos cooperados e não cooperados • ${companyName}`}
             icon={Building2}
+            maxWidth="max-w-5xl"
+            variant="primary"
         >
             <div className="space-y-6 py-2">
                 {/* Filtro por Período */}
