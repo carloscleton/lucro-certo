@@ -222,6 +222,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         return { isValid: true };
     }, [selectedContact]);
 
+
+
     const handleContactSubmit = async (contactData: any) => {
         try {
             let contactResult;
@@ -464,6 +466,65 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
     const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false));
     const isRegimeNormal = config?.regime_tributario === '3';
+
+    const proactiveFiscalValidation = useMemo(() => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (!noTomador) {
+            if (!selectedContact) {
+                errors.push('Selecione um cliente/tomador para a nota.');
+            } else {
+                const taxDigits = (selectedContact.tax_id || '').replace(/\D/g, '');
+                if (!taxDigits) {
+                    errors.push(`O tomador não possui ${selectedContact.entity_type === 'PJ' ? 'CNPJ' : 'CPF'} cadastrado.`);
+                } else if (taxDigits.length !== 11 && taxDigits.length !== 14) {
+                    errors.push(`Tamanho inválido para ${selectedContact.entity_type === 'PJ' ? 'CNPJ' : 'CPF'} (${taxDigits.length} dígitos).`);
+                }
+
+                const cepDigits = (selectedContact.zip_code || '').replace(/\D/g, '');
+                if (!cepDigits) {
+                    errors.push('O CEP do tomador está ausente.');
+                } else if (cepDigits.length !== 8) {
+                    errors.push('O CEP do tomador deve conter exatamente 8 dígitos.');
+                }
+
+                if (!selectedContact.street) warnings.push('Logradouro ausente.');
+                if (!selectedContact.city) warnings.push('Cidade do tomador ausente.');
+            }
+        }
+
+        if (items.length === 0) {
+            errors.push('Adicione ao menos 1 item na nota.');
+        } else {
+            items.forEach((item, index) => {
+                const itemLabel = items.length > 1 ? `Item ${index + 1}` : 'Item';
+                if (!item.description?.trim()) {
+                    errors.push(`Descrição ausente no ${itemLabel}.`);
+                }
+                const numVal = parseFloat((item.amount || '0').replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.'));
+                if (isNaN(numVal) || numVal <= 0) {
+                    errors.push(`Valor unitário zerado ou inválido no ${itemLabel}.`);
+                }
+                if (type === 'nfse' && isNacional) {
+                    const c6 = (item.taxCode || '').replace(/\D/g, '');
+                    if (c6.length !== 6) {
+                        warnings.push(`Cód. Tributação (cTribNac) no ${itemLabel} deve ter 6 dígitos.`);
+                    }
+                    const c9 = (item.codigoTributacaoNacional || '').replace(/\D/g, '');
+                    if (c9.length !== 9) {
+                        warnings.push(`Cód. NBS no ${itemLabel} deve ter 9 dígitos.`);
+                    }
+                }
+            });
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors,
+            warnings
+        };
+    }, [noTomador, selectedContact, items, type, isNacional]);
 
     // Auto-fill from Config
     useEffect(() => {
@@ -2136,6 +2197,55 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             <p className="text-[10px] text-gray-400 ml-1 mt-1">
                                 Definido automaticamente pelo Cadastro do Serviço ou pelas Configurações Fiscais da Empresa.
                             </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Validador Fiscal Pró-ativo (Check Pre-Emissão) */}
+                <div className={`p-4 rounded-3xl border ${
+                    !proactiveFiscalValidation.isValid 
+                        ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30' 
+                        : proactiveFiscalValidation.warnings.length > 0 
+                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30'
+                        : 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/20'
+                } transition-all`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            {proactiveFiscalValidation.isValid ? (
+                                <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                                <AlertCircle size={18} className="text-rose-600 dark:text-rose-400" />
+                            )}
+                            <span className="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+                                Validação Fiscal Pró-ativa (Pré-Emissão)
+                            </span>
+                        </div>
+                        {proactiveFiscalValidation.isValid && proactiveFiscalValidation.warnings.length === 0 && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-widest">
+                                100% Válida p/ Envio
+                            </span>
+                        )}
+                    </div>
+
+                    {!proactiveFiscalValidation.isValid && (
+                        <div className="mt-2 space-y-1">
+                            <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300">Pendências impeditivas identificadas:</p>
+                            <ul className="list-disc list-inside text-[11px] text-rose-600/90 dark:text-rose-400/90 font-medium space-y-0.5">
+                                {proactiveFiscalValidation.errors.map((err, idx) => (
+                                    <li key={idx}>{err}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {proactiveFiscalValidation.warnings.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                            <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300">Avisos de atenção (Recomendado ajustar):</p>
+                            <ul className="list-disc list-inside text-[11px] text-amber-600/90 dark:text-amber-400/90 font-medium space-y-0.5">
+                                {proactiveFiscalValidation.warnings.map((warn, idx) => (
+                                    <li key={idx}>{warn}</li>
+                                ))}
+                            </ul>
                         </div>
                     )}
                 </div>

@@ -18,6 +18,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal } from '../components/fiscal/BillingReportModal';
+import { CooperativeFiscalReportModal } from '../components/fiscal/CooperativeFiscalReportModal';
 import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
@@ -220,7 +221,17 @@ export function Invoices() {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showConsultaModal, setShowConsultaModal] = useState(false);
     const [showBillingModal, setShowBillingModal] = useState(false);
+    const [showCoopReportModal, setShowCoopReportModal] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
+
+    const isCooperative = useMemo(() => {
+        if (!currentCompany) return false;
+        const isRegime1 = (currentCompany as any).regime_tributario === '1' || currentCompany.tecnospeed_config?.regime_tributario === '1';
+        const hasReg4 = currentCompany.tecnospeed_config?.reg_esp_trib === '4' || 
+                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === '4' ||
+                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === 4;
+        return isRegime1 && hasReg4;
+    }, [currentCompany]);
     const [boletoModal, setBoletoModal] = useState<{ isOpen: boolean; invoice: any }>({ isOpen: false, invoice: null });
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<'all' | 'current_month' | 'previous_month' | 'last_3_months' | 'current_year' | 'custom'>('current_month');
@@ -1371,6 +1382,16 @@ ${messageWithPlaceholder}`;
                             <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
                             Relatório de Cobrança
                         </Button>
+                        {isCooperative && (
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => setShowCoopReportModal(true)} 
+                                className="h-9 px-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 transition-all shadow-sm"
+                            >
+                                <Building2 size={14} className="mr-1.5 text-emerald-600 dark:text-emerald-400" />
+                                Fechamento Cooperativa
+                            </Button>
+                        )}
                         <Button 
                             variant="ghost" 
                             onClick={() => setShowBatchModal(true)} 
@@ -2239,6 +2260,15 @@ ${messageWithPlaceholder}`;
                     />
                 );
             })()}
+
+            {isCooperative && showCoopReportModal && (
+                <CooperativeFiscalReportModal
+                    isOpen={showCoopReportModal}
+                    onClose={() => setShowCoopReportModal(false)}
+                    invoices={invoices}
+                    companyName={(currentCompany as any)?.friendly_name || (currentCompany as any)?.name || currentEntity.name}
+                />
+            )}
 
 
 
