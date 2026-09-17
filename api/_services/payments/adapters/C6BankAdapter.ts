@@ -84,15 +84,15 @@ export class C6BankAdapter implements PaymentAdapter {
 
         const candidateUrls = this.isSandbox
             ? [
-                'https://developers.c6bank.com.br/auth',
-                'https://developers.c6bank.com.br/auth/',
+                'https://baas-sandbox.c6bank.com.br/auth',
+                'https://baas-api-sandbox.c6bank.com.br/auth',
                 'https://api.c6bank.com.br/auth',
-                'https://api-sandbox.c6bank.com.br/auth'
+                'https://baas.c6bank.com.br/auth'
             ]
             : [
-                'https://api.c6bank.com.br/auth',
-                'https://api.c6bank.com.br/auth/',
-                'https://developers.c6bank.com.br/auth'
+                'https://baas.c6bank.com.br/auth',
+                'https://baas-api.c6bank.com.br/auth',
+                'https://api.c6bank.com.br/auth'
             ];
 
         let lastErrorMessage = '';
@@ -116,7 +116,7 @@ export class C6BankAdapter implements PaymentAdapter {
                     return token;
                 }
             } catch (err: any) {
-                if (err.code !== 'ENOTFOUND') {
+                if (err.code !== 'ENOTFOUND' && err.response?.status !== 405) {
                     lastErrorMessage = err.response?.data?.message || err.response?.data?.error_description || err.message || '';
                 }
                 
@@ -143,7 +143,7 @@ export class C6BankAdapter implements PaymentAdapter {
                             return token;
                         }
                     } catch (jsonErr: any) {
-                        if (jsonErr.code !== 'ENOTFOUND') {
+                        if (jsonErr.code !== 'ENOTFOUND' && jsonErr.response?.status !== 405) {
                             lastErrorMessage = jsonErr.response?.data?.message || jsonErr.message || lastErrorMessage;
                         }
                     }
@@ -151,7 +151,7 @@ export class C6BankAdapter implements PaymentAdapter {
             }
         }
 
-        throw new Error(`Erro de Autenticação no C6 Bank: ${lastErrorMessage || 'Verifique Client ID, Client Secret e Certificado mTLS.'}`);
+        throw new Error(`Erro de Autenticação no C6 Bank: ${lastErrorMessage || 'Aguardando liberação de escopo/credenciais do parceiro junto ao C6 Bank (homologacaoapi@c6bank.com.br).'}`);
     }
 
     async testConnection(): Promise<{ success: boolean; message: string }> {
