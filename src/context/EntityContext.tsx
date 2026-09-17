@@ -200,7 +200,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
             // Restaurar preferência salva do localStorage (por usuário)
             const savedKey = localStorage.getItem(`${STORAGE_KEY}_${user.id}`);
 
-            setCurrentEntity(() => {
+            setCurrentEntity((prev) => {
                 let bestMatch: Entity | null = null;
 
                 // 1. Prioridade Máxima: Preferência salva do usuário (localStorage)
@@ -218,8 +218,23 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     bestMatch = companies[0];
                 }
 
-                // 3. Fallback final: Ambiente Pessoal
-                return bestMatch || personalOption;
+                const target = bestMatch || personalOption;
+
+                // Manter a referência de prev se o ID e tipo forem os mesmos para evitar re-renders desnecessários
+                if (
+                    prev &&
+                    prev.type === target.type &&
+                    prev.id === target.id &&
+                    prev.name === target.name &&
+                    prev.role === target.role &&
+                    prev.currency === target.currency &&
+                    prev.fiscal_module_enabled === target.fiscal_module_enabled &&
+                    prev.payments_module_enabled === target.payments_module_enabled
+                ) {
+                    return prev;
+                }
+
+                return target;
             });
 
         } catch (err) {
