@@ -27,8 +27,8 @@ export class C6BankAdapter implements PaymentAdapter {
         this.keyPem = isSandbox ? config.sandbox_private_key_pem : config.prod_private_key_pem;
 
         this.baseUrl = isSandbox 
-            ? 'https://api-sandbox.c6bank.com.br' 
-            : 'https://api.c6bank.com.br';
+            ? 'https://baas-api-sandbox.c6bank.info' 
+            : 'https://baas-api.c6bank.info';
 
         if (!this.clientId || !this.clientSecret) {
             throw new Error(`Credenciais do C6 Bank (${isSandbox ? 'Sandbox' : 'Produção'}) incompletas ou ausentes. Preencha Client ID e Client Secret.`);
@@ -84,15 +84,15 @@ export class C6BankAdapter implements PaymentAdapter {
 
         const candidateUrls = this.isSandbox
             ? [
-                'https://baas-sandbox.c6bank.com.br/auth',
-                'https://baas-api-sandbox.c6bank.com.br/auth',
-                'https://api.c6bank.com.br/auth',
-                'https://baas.c6bank.com.br/auth'
+                'https://baas-api-sandbox.c6bank.info/auth',
+                'https://baas-api-sandbox.c6bank.info/v1/auth',
+                'https://baas-api-sandbox.c6bank.info/oauth/token',
+                'https://baas-api.c6bank.info/auth'
             ]
             : [
-                'https://baas.c6bank.com.br/auth',
-                'https://baas-api.c6bank.com.br/auth',
-                'https://api.c6bank.com.br/auth'
+                'https://baas-api.c6bank.info/auth',
+                'https://baas-api.c6bank.info/v1/auth',
+                'https://baas-api.c6bank.info/oauth/token'
             ];
 
         let lastErrorMessage = '';
@@ -151,7 +151,7 @@ export class C6BankAdapter implements PaymentAdapter {
             }
         }
 
-        throw new Error(`Erro de Autenticação no C6 Bank: ${lastErrorMessage || 'Aguardando liberação de escopo/credenciais do parceiro junto ao C6 Bank (homologacaoapi@c6bank.com.br).'}`);
+        throw new Error(`Erro de Autenticação no C6 Bank: ${lastErrorMessage || 'Verifique Client ID, Client Secret e Certificado mTLS.'}`);
     }
 
     async testConnection(): Promise<{ success: boolean; message: string }> {
@@ -233,7 +233,7 @@ export class C6BankAdapter implements PaymentAdapter {
             };
             if (this.httpsAgent) reqConfig.httpsAgent = this.httpsAgent;
 
-            const response = await axios.post(`${this.baseUrl}/pix/bank_slips`, payload, reqConfig);
+            const response = await axios.post(`${this.baseUrl}/v1/bank_slips/`, payload, reqConfig);
 
             const resData = response.data || {};
             const paymentId = resData.id || resData.bank_slip_id || externalRef;
