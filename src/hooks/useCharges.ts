@@ -31,18 +31,26 @@ export interface Charge {
     };
 }
 
+const chargesCache = new Map<string, Charge[]>();
+
 export function useCharges() {
     const { currentEntity } = useEntity();
-    const [charges, setCharges] = useState<Charge[]>([]);
-    const [loading, setLoading] = useState(true);
+    const cacheKey = currentEntity?.id || 'none';
+    const cached = chargesCache.get(cacheKey);
 
-    const fetchCharges = useCallback(async () => {
-        if (!currentEntity || currentEntity.type !== 'company') {
+    const [charges, setCharges] = useState<Charge[]>(cached || []);
+    const [loading, setLoading] = useState(!cached);
+
+    const fetchCharges = useCallback(async (silent = false) => {
+        if (!currentEntity || currentEntity.type !== 'company' || !currentEntity.id) {
+            setCharges([]);
             setLoading(false);
             return;
         }
 
-        setLoading(true);
+        if (!chargesCache.has(cacheKey) && !silent) {
+            setLoading(true);
+        }
         try {
             const { data, error } = await withRetry(() => supabase
                 .from('company_charges')
@@ -54,7 +62,9 @@ export function useCharges() {
                 .order('created_at', { ascending: false }));
 
             if (error) throw error;
-            setCharges(data || []);
+            const res = data || [];
+            chargesCache.set(cacheKey, res);
+            setCharges(res);
         } catch (error) {
             const errStr = String((error as any)?.message || error);
             if (!errStr.includes('Failed to fetch')) {
@@ -63,12 +73,13 @@ export function useCharges() {
         } finally {
             setLoading(false);
         }
-    }, [currentEntity]);
+    }, [currentEntity?.id, currentEntity?.type, cacheKey]);
 
     useEffect(() => {
-        fetchCharges();
+        const hasCache = chargesCache.has(cacheKey);
+        fetchCharges(hasCache);
 
-        if (!currentEntity || currentEntity.type !== 'company') return;
+        if (!currentEntity || currentEntity.type !== 'company' || !currentEntity.id) return;
 
         const channel = supabase
             .channel(`company_charges_changes_${currentEntity.id}`)
@@ -81,7 +92,7 @@ export function useCharges() {
                     filter: `company_id=eq.${currentEntity.id}`
                 },
                 () => {
-                    fetchCharges();
+                    fetchCharges(true);
                 }
             )
             .subscribe();
@@ -89,7 +100,7 @@ export function useCharges() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [fetchCharges, currentEntity]);
+    }, [fetchCharges, currentEntity?.id, currentEntity?.type, cacheKey]);
 
     const createCharge = async (params: {
         provider: string,

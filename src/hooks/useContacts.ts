@@ -39,6 +39,7 @@ export interface Contact {
 }
 
 const contactsCache = new Map<string, Contact[]>();
+const checkedMigrationContactIds = new Set<string>();
 
 export function useContacts() {
     const { user } = useAuth();
@@ -50,9 +51,14 @@ export function useContacts() {
     const [loading, setLoading] = useState(!cached);
 
     const runMigration = async (nullContacts: Contact[]) => {
-        if (nullContacts.length === 0) return false;
+        const unmigrated = nullContacts.filter(c => !checkedMigrationContactIds.has(c.id));
+        if (unmigrated.length === 0) return false;
+
+        // Mark contact IDs as checked immediately to avoid repeated attempts during session
+        unmigrated.forEach(c => checkedMigrationContactIds.add(c.id));
+
         try {
-            console.log('Running contacts company migration for', nullContacts.length, 'contacts...');
+            console.log('Running contacts company migration for', unmigrated.length, 'contacts...');
             
             // 1. Fetch transactions linking contacts to companies
             const { data: txs } = await supabase
@@ -89,7 +95,7 @@ export function useContacts() {
             addMappings(quotes);
             addMappings(deals);
 
-            const contactsToMigrate = nullContacts.filter(c => mapping[c.id]);
+            const contactsToMigrate = unmigrated.filter(c => mapping[c.id]);
             if (contactsToMigrate.length > 0) {
                 console.log(`Migrating ${contactsToMigrate.length} contacts to their respective companies...`);
                 const promises = contactsToMigrate.map(c => 
@@ -113,9 +119,9 @@ export function useContacts() {
         setContacts(list);
     };
 
-    const fetchContacts = async () => {
+    const fetchContacts = async (silent = false) => {
         if (!user) return;
-        if (!contactsCache.has(cacheKey)) {
+        if (!contactsCache.has(cacheKey) && !silent) {
             setLoading(true);
         }
         try {
@@ -156,8 +162,9 @@ export function useContacts() {
     };
 
     useEffect(() => {
-        fetchContacts();
-    }, [user, currentEntity]);
+        const hasCache = contactsCache.has(cacheKey);
+        fetchContacts(hasCache);
+    }, [user?.id, currentEntity?.id, cacheKey]);
 
     const addContact = async (contact: Omit<Contact, 'id' | 'user_id'>) => {
         if (!user) return;

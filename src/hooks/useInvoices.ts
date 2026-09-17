@@ -53,14 +53,14 @@ export function useInvoices() {
     const [invoices, setInvoices] = useState<FiscalInvoice[]>(cachedData || []);
     const [isLoading, setIsLoading] = useState(!cachedData);
 
-    const fetchInvoices = useCallback(async () => {
-        if (!currentEntity.id || currentEntity.type === 'personal') {
+    const fetchInvoices = useCallback(async (silent = false) => {
+        if (!currentEntity?.id || currentEntity.type === 'personal') {
             setInvoices([]);
             setIsLoading(false);
             return;
         }
 
-        if (!invoicesCache.has(cacheKey)) {
+        if (!invoicesCache.has(cacheKey) && !silent) {
             setIsLoading(true);
         }
         try {
@@ -79,13 +79,15 @@ export function useInvoices() {
                 
                 if (compData?.id) {
                     filterId = compData.id;
-                    console.log(`🎯 [useInvoices] ID resolvido via CNPJ: ${filterId}`);
+                    if (!silent) console.log(`🎯 [useInvoices] ID resolvido via CNPJ: ${filterId}`);
                 } else {
-                    console.warn(`⚠️ [useInvoices] Não foi possível resolver UUID para CNPJ: ${currentEntity.cnpj}`);
+                    if (!silent) console.warn(`⚠️ [useInvoices] Não foi possível resolver UUID para CNPJ: ${currentEntity.cnpj}`);
                 }
             }
 
-            console.log(`🔍 [useInvoices] Buscando notas para company_id: ${filterId}`);
+            if (!silent) {
+                console.log(`🔍 [useInvoices] Buscando notas para company_id: ${filterId}`);
+            }
 
             const { data, error } = await withRetry(() => supabase
                 .from('fiscal_invoices')
@@ -127,15 +129,18 @@ export function useInvoices() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentEntity.id, currentEntity.type]);
+    }, [currentEntity?.id, currentEntity?.type, currentEntity?.cnpj, cacheKey]);
 
     useEffect(() => {
-        fetchInvoices();
-    }, [fetchInvoices]);
+        const hasCache = invoicesCache.has(cacheKey);
+        fetchInvoices(hasCache);
+    }, [fetchInvoices, cacheKey]);
+
+    const refresh = useCallback(() => fetchInvoices(false), [fetchInvoices]);
 
     return {
         invoices,
         isLoading,
-        refresh: fetchInvoices
+        refresh
     };
 }
