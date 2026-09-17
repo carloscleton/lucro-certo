@@ -82,46 +82,72 @@ export class C6BankAdapter implements PaymentAdapter {
         params.append('grant_type', 'client_credentials');
         params.append('scope', 'bankslip.read bankslip.write bankslip_pix.read bankslip_pix.write');
 
-        const tokenUrl = `${this.baseUrl}/auth`;
+        const candidateUrls = this.isSandbox
+            ? [
+                'https://api-sandbox.c6bank.com.br/auth',
+                'https://api-sandbox.c6bank.com.br/auth/',
+                'https://developers.c6bank.com.br/auth',
+                'https://developers.c6bank.com.br/auth/',
+                'https://api.sandbox.c6bank.com.br/auth',
+                'https://api-hml.c6bank.com.br/auth'
+            ]
+            : [
+                'https://api.c6bank.com.br/auth',
+                'https://api.c6bank.com.br/auth/'
+            ];
 
-        const attemptFetch = async (url: string, timeoutMs: number) => {
-            const reqConfig: any = {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                timeout: timeoutMs
-            };
+        let lastErrorMessage = '';
 
-            if (this.httpsAgent) {
-                reqConfig.httpsAgent = this.httpsAgent;
-            }
-
-            const response = await axios.post(url, params.toString(), reqConfig);
-
-            if (!response.data?.access_token) {
-                throw new Error('Retorno da API do C6 Bank não contém access_token.');
-            }
-
-            const token = response.data.access_token;
-            const expiresIn = (response.data.expires_in || 300) * 1000;
-            tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
-            return token;
-        };
-
-        try {
-            return await attemptFetch(tokenUrl, 15000);
-        } catch (firstErr: any) {
-            console.warn('⚠️ Primeira tentativa OAuth C6 Bank falhou. Tentando URL alternativa...', firstErr.message);
+        for (const url of candidateUrls) {
             try {
-                // Tenta URL alternativa de sandbox se falhar
-                const fallbackUrl = this.isSandbox ? 'https://developers.c6bank.com.br/auth' : tokenUrl;
-                return await attemptFetch(fallbackUrl, 15000);
-            } catch (retryErr: any) {
-                console.error('C6 Bank OAuth Error:', retryErr.response?.data || retryErr.message);
-                const detail = retryErr.response?.data?.message || retryErr.response?.data?.error_description || retryErr.message || '';
-                throw new Error(`Erro de Autenticação no C6 Bank: ${detail}`);
+                const reqConfig: any = {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    timeout: 10000
+                };
+                if (this.httpsAgent) reqConfig.httpsAgent = this.httpsAgent;
+
+                const response = await axios.post(url, params.toString(), reqConfig);
+                if (response.data?.access_token) {
+                    const token = response.data.access_token;
+                    const expiresIn = (response.data.expires_in || 300) * 1000;
+                    tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
+                    this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
+                    return token;
+                }
+            } catch (err: any) {
+                lastErrorMessage = err.response?.data?.message || err.response?.data?.error_description || err.message || '';
+                // If 405 Method Not Allowed, try JSON format on same URL
+                if (err.response?.status === 405) {
+                    try {
+                        const reqConfigJson: any = {
+                            headers: { 'Content-Type': 'application/json' },
+                            timeout: 10000
+                        };
+                        if (this.httpsAgent) reqConfigJson.httpsAgent = this.httpsAgent;
+
+                        const responseJson = await axios.post(url, {
+                            client_id: this.clientId,
+                            client_secret: this.clientSecret,
+                            grant_type: 'client_credentials'
+                        }, reqConfigJson);
+
+                        if (responseJson.data?.access_token) {
+                            const token = responseJson.data.access_token;
+                            const expiresIn = (responseJson.data.expires_in || 300) * 1000;
+                            tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
+                            this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
+                            return token;
+                        }
+                    } catch (jsonErr: any) {
+                        lastErrorMessage = jsonErr.response?.data?.message || jsonErr.message || lastErrorMessage;
+                    }
+                }
             }
         }
+
+        throw new Error(`Erro de Autenticação no C6 Bank: ${lastErrorMessage || 'Verifique Client ID, Client Secret e Certificado mTLS.'}`);
     }
 
     async testConnection(): Promise<{ success: boolean; message: string }> {

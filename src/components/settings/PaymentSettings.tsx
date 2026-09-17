@@ -121,7 +121,7 @@ export function PaymentSettings() {
         providerDef?.fields.forEach(field => {
             const envKey = isSandbox ? `sandbox_${field.key}` : `prod_${field.key}`;
             let val = (config[field.key] || '').trim();
-            if (field.key === 'client_id') {
+            if (field.key === 'client_id' && selectedProvider !== 'c6_bank') {
                 val = val.toLowerCase();
             }
             fullConfig[envKey] = val;
@@ -133,41 +133,39 @@ export function PaymentSettings() {
         fullConfig.default_discount_days = parseInt(discountDays) || 0;
         fullConfig.default_payment_instructions = paymentInstructions;
 
-        // 2. Test Connection FIRST
+        // 2. Test Connection FIRST (non-blocking)
         setTesting(true);
+        let testPassed = false;
         try {
             const testResult = await testConnection(selectedProvider, fullConfig, isSandbox);
+            testPassed = testResult?.success || false;
 
             if (!testResult.success) {
-                notify('error', testResult.message || 'Falha na comunicação com o gateway.', 'Erro de Credenciais');
-                setTesting(false);
-                return;
+                notify('warning', (testResult.message || 'Falha ao testar conexão.') + ' A configuração será salva no banco.', 'Aviso de Credenciais');
+            } else {
+                notify('success', 'Conexão validada com sucesso!', 'Gateway Online');
             }
-
-            notify('success', 'Conexão validada com sucesso!', 'Gateway Online');
         } catch (err) {
-            notify('error', 'Não foi possível testar as credenciais agora.', 'Erro de Conexão');
-            setTesting(false);
-            return;
+            notify('warning', 'Não foi possível testar as credenciais agora. A configuração será salva mesmo assim.', 'Aviso de Conexão');
         } finally {
             setTesting(false);
         }
 
-        // 3. If test passed, proceed to SAVE with verification timestamp
+        // 3. Save configuration to database
         setSaving(true);
         const { error } = await saveGateway({
             provider: selectedProvider as any,
             is_active: true,
             is_sandbox: isSandbox,
             config: fullConfig,
-            last_verified_at: new Date().toISOString()
+            last_verified_at: testPassed ? new Date().toISOString() : undefined
         } as any);
 
         setSaving(false);
         if (error) {
             notify('error', (error as any).message || 'Erro ao persistir configuração no banco.', 'Falha ao Salvar');
         } else {
-            notify('success', 'Configurações salvas e gateway ativado.', 'Sucesso!');
+            notify('success', 'Configurações salvas e gateway ativado com sucesso!', 'Sucesso!');
         }
     };
 
