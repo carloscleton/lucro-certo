@@ -388,7 +388,7 @@ export function PaymentSettings() {
                                             value={config[field.key] || ''}
                                             onChange={e => {
                                                 const rawVal = e.target.value;
-                                                const val = field.key === 'client_id' ? rawVal.toLowerCase() : rawVal;
+                                                const val = (field.key === 'client_id' && selectedProvider !== 'c6_bank') ? rawVal.toLowerCase() : rawVal;
                                                 setConfig(prev => ({ ...prev, [field.key]: val }));
                                             }}
                                             placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}
