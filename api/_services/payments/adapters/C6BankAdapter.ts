@@ -233,7 +233,7 @@ export class C6BankAdapter implements PaymentAdapter {
             };
             if (this.httpsAgent) reqConfig.httpsAgent = this.httpsAgent;
 
-            const response = await axios.post(`${this.baseUrl}/v1/bank_slips/`, payload, reqConfig);
+            const response = await axios.post(`${this.baseUrl}/v2/bank_slips/`, payload, reqConfig);
 
             const resData = response.data || {};
             const paymentId = resData.id || resData.bank_slip_id || externalRef;
@@ -273,7 +273,7 @@ export class C6BankAdapter implements PaymentAdapter {
         };
         if (this.httpsAgent) reqConfig.httpsAgent = this.httpsAgent;
 
-        const response = await axios.get(`${this.baseUrl}/pix/bank_slips/${nossoNumero}/pdf`, reqConfig);
+        const response = await axios.get(`${this.baseUrl}/v2/bank_slips/${nossoNumero}/pdf`, reqConfig);
         return Buffer.from(response.data);
     }
 
@@ -287,7 +287,7 @@ export class C6BankAdapter implements PaymentAdapter {
             };
             if (this.httpsAgent) reqConfig.httpsAgent = this.httpsAgent;
 
-            const response = await axios.get(`${this.baseUrl}/pix/bank_slips/${payment_id}`, reqConfig);
+            const response = await axios.get(`${this.baseUrl}/v2/bank_slips/${payment_id}`, reqConfig);
             const data = response.data || {};
             const isPaid = data.status === 'PAID' || data.status === 'SETTLED' || data.status === 'PAGO';
             const isCancelled = data.status === 'CANCELLED' || data.status === 'BAIXADO';
