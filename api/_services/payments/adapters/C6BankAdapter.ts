@@ -84,16 +84,15 @@ export class C6BankAdapter implements PaymentAdapter {
 
         const candidateUrls = this.isSandbox
             ? [
-                'https://api-sandbox.c6bank.com.br/auth',
-                'https://api-sandbox.c6bank.com.br/auth/',
                 'https://developers.c6bank.com.br/auth',
                 'https://developers.c6bank.com.br/auth/',
-                'https://api.sandbox.c6bank.com.br/auth',
-                'https://api-hml.c6bank.com.br/auth'
+                'https://api.c6bank.com.br/auth',
+                'https://api-sandbox.c6bank.com.br/auth'
             ]
             : [
                 'https://api.c6bank.com.br/auth',
-                'https://api.c6bank.com.br/auth/'
+                'https://api.c6bank.com.br/auth/',
+                'https://developers.c6bank.com.br/auth'
             ];
 
         let lastErrorMessage = '';
@@ -117,7 +116,10 @@ export class C6BankAdapter implements PaymentAdapter {
                     return token;
                 }
             } catch (err: any) {
-                lastErrorMessage = err.response?.data?.message || err.response?.data?.error_description || err.message || '';
+                if (err.code !== 'ENOTFOUND') {
+                    lastErrorMessage = err.response?.data?.message || err.response?.data?.error_description || err.message || '';
+                }
+                
                 // If 405 Method Not Allowed, try JSON format on same URL
                 if (err.response?.status === 405) {
                     try {
@@ -141,7 +143,9 @@ export class C6BankAdapter implements PaymentAdapter {
                             return token;
                         }
                     } catch (jsonErr: any) {
-                        lastErrorMessage = jsonErr.response?.data?.message || jsonErr.message || lastErrorMessage;
+                        if (jsonErr.code !== 'ENOTFOUND') {
+                            lastErrorMessage = jsonErr.response?.data?.message || jsonErr.message || lastErrorMessage;
+                        }
                     }
                 }
             }
