@@ -538,7 +538,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 rounded-xl flex items-start gap-2.5">
                                 <AlertCircle className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" size={16} />
                                 <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
-                                    Esta nota não possui tomador cadastrado no CRM. Os dados do pagador abaixo foram extraídos da Nota Fiscal e serão registrados no Banco Inter.
+                                    Esta nota não possui tomador cadastrado no CRM. Os dados do pagador abaixo foram extraídos da Nota Fiscal e serão registrados no banco/gateway selecionado.
                                 </p>
                             </div>
                         )}

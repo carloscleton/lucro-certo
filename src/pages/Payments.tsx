@@ -111,7 +111,7 @@ export function Payments() {
         if (isModalOpen) {
             const defProv = defaultGateway?.provider || (activeGateways.find(g => g.is_active)?.provider || 'asaas');
             setSelectedProvider(defProv);
-            if (defProv === 'banco_inter') {
+            if (defProv === 'banco_inter' || defProv === 'c6_bank') {
                 setSelectedMethods(['boleto']);
             } else {
                 setSelectedMethods(['pix', 'credit_card', 'boleto']);
@@ -865,7 +865,7 @@ export function Payments() {
                                         type="button"
                                         onClick={() => {
                                             setSelectedProvider(gateway.provider);
-                                            if (gateway.provider === 'banco_inter') {
+                                            if (gateway.provider === 'banco_inter' || gateway.provider === 'c6_bank') {
                                                 setSelectedMethods(['boleto']);
                                             } else {
                                                 setSelectedMethods(['pix', 'credit_card', 'boleto']);
@@ -881,7 +881,9 @@ export function Payments() {
                                         </div>
                                         <div className="text-left flex-1">
                                             <div className="flex items-center justify-between gap-1">
-                                                <span className="block text-sm font-black dark:text-white uppercase tracking-tight leading-none">{gateway.provider.replace('_', ' ')}</span>
+                                                <span className="block text-sm font-black dark:text-white uppercase tracking-tight leading-none">
+                                                    {gateway.provider === 'c6_bank' ? 'C6 Bank (Boleto/BolePix)' : gateway.provider === 'banco_inter' ? 'Banco Inter (BolePix)' : gateway.provider.replace('_', ' ')}
+                                                </span>
                                                 {gateway.is_default && (
                                                     <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5 uppercase tracking-wider">
                                                         <Star size={9} className="fill-amber-500 text-amber-500" /> Padrão

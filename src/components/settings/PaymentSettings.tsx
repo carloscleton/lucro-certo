@@ -32,6 +32,14 @@ const PROVIDERS = [
             { key: 'certificate_pem', label: 'Certificado Público (PEM)', placeholder: 'Conteúdo do arquivo público (.crt ou .pem)', type: 'textarea' },
             { key: 'private_key_pem', label: 'Chave Privada (PEM)', placeholder: 'Conteúdo da chave privada (.key ou .pem)', type: 'textarea_hidden' }
         ]
+    },
+    {
+        id: 'c6_bank', name: 'C6 Bank (Boleto / BolePix)', fields: [
+            { key: 'client_id', label: 'Client ID', placeholder: 'Chave Client ID obtida no portal C6 Developers' },
+            { key: 'client_secret', label: 'Client Secret', placeholder: 'Segredo Client Secret obtido no portal C6 Developers', type: 'password' },
+            { key: 'certificate_pem', label: 'Certificado mTLS (.crt / .pem)', placeholder: 'Conteúdo do arquivo de certificado (.crt ou .pem)', type: 'textarea' },
+            { key: 'private_key_pem', label: 'Chave Privada mTLS (.key / .pem)', placeholder: 'Conteúdo da chave privada (.key ou .pem)', type: 'textarea_hidden' }
+        ]
     }
 ];
 
