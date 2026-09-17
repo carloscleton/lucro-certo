@@ -9662,6 +9662,44 @@ app.get(['/payments/inter/pdf/:companyId/:nossoNumero', '/api/payments/inter/pdf
     }
 });
 
+// --- C6 BANK PDF PROXY ROUTE ---
+app.get(['/payments/c6/pdf/:companyId/:nossoNumero', '/api/payments/c6/pdf/:companyId/:nossoNumero'], async (req, res) => {
+    try {
+        const { companyId, nossoNumero } = req.params;
+        const isSandboxQuery = req.query.sandbox === 'true';
+
+        const { data: gateway } = await axios.get(`${SUPABASE_URL}/rest/v1/company_payment_gateways`, {
+            params: { 
+                company_id: `eq.${companyId}`, 
+                provider: 'eq.c6_bank', 
+                select: '*' 
+            },
+            headers: { 
+                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!, 
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!}` 
+            }
+        });
+
+        if (!gateway || gateway.length === 0) {
+            return res.status(404).send('Configuração de pagamento do C6 Bank não encontrada para esta empresa.');
+        }
+
+        const config = gateway[0].config;
+        const isSandbox = isSandboxQuery || gateway[0].is_sandbox || false;
+
+        const { C6BankAdapter } = await import('./_services/payments/adapters/C6BankAdapter.js');
+        const adapter = new C6BankAdapter(config, isSandbox);
+        const pdfBuffer = await adapter.getBoletoPdf(nossoNumero as any);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="boleto-c6-${nossoNumero}.pdf"`);
+        return res.send(pdfBuffer);
+    } catch (err: any) {
+        console.error('Erro ao buscar PDF do boleto C6:', err.message);
+        return res.status(500).send(`Erro ao processar download do PDF: ${err.message}`);
+    }
+});
+
 
 // --- PAYMENT GATEWAY ROUTES ---
 
