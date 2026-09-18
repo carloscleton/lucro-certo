@@ -11,7 +11,34 @@ interface BillingReportModalProps {
     onClose: () => void;
     invoices: FiscalInvoice[];
     fiscalSettings?: Record<string, any>;
+    onOpenBoletoModal?: (invoice: FiscalInvoice) => void;
 }
+
+export const isInvoiceCancelled = (inv: FiscalInvoice): boolean => {
+    const s = inv.status?.toLowerCase() || '';
+    return (
+        s === 'cancelado' ||
+        Boolean(inv.deleted) ||
+        Boolean(inv.cancelled_at) ||
+        Boolean(inv.cancellation_reason) ||
+        Boolean(inv.payload?.cancelamento)
+    );
+};
+
+export const isInvoiceAuthorized = (inv: FiscalInvoice): boolean => {
+    const s = inv.status?.toLowerCase() || '';
+    return ['concluido', 'autorizado'].includes(s) && !isInvoiceCancelled(inv);
+};
+
+export const isInvoiceProcessing = (inv: FiscalInvoice): boolean => {
+    const s = inv.status?.toLowerCase() || '';
+    return ['processando', 'em_processamento'].includes(s) && !isInvoiceCancelled(inv);
+};
+
+export const isInvoiceRejected = (inv: FiscalInvoice): boolean => {
+    const s = inv.status?.toLowerCase() || '';
+    return ['erro', 'rejeitado'].includes(s) && !isInvoiceCancelled(inv);
+};
 
 const renderInvoiceRates = (invoice: any) => {
     const p = invoice.payload || {};
@@ -112,7 +139,7 @@ const renderInvoiceRates = (invoice: any) => {
     );
 };
 
-export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }: BillingReportModalProps) {
+export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, onOpenBoletoModal }: BillingReportModalProps) {
     const getFirstDayOfMonth = () => {
         const now = new Date();
         return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -163,7 +190,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         const cfgIss    = fiscalSettings?.default_iss_aliquota    ? Number(fiscalSettings.default_iss_aliquota)    : null;
 
         const authorizedInvoices = filteredInvoices.filter(i => 
-            ['concluido', 'autorizado'].includes(i.status?.toLowerCase())
+            isInvoiceAuthorized(i) || isInvoiceCancelled(i)
         );
 
         authorizedInvoices.forEach(i => {
@@ -287,19 +314,17 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         }
 
         // 2. Filtro de Status
-        const status = invoice.status?.toLowerCase() || '';
         if (statusFilter !== 'all') {
             if (statusFilter === 'autorizada') {
-                if (!['concluido', 'autorizado'].includes(status)) return false;
+                if (!isInvoiceAuthorized(invoice)) return false;
             } else if (statusFilter === 'cancelada') {
-                if (status !== 'cancelado') return false;
+                if (!isInvoiceCancelled(invoice)) return false;
             } else if (statusFilter === 'rejeitada') {
-                if (!['erro', 'rejeitado'].includes(status)) return false;
+                if (!isInvoiceRejected(invoice)) return false;
             } else if (statusFilter === 'processando') {
-                if (!['processando', 'em_processamento'].includes(status)) return false;
+                if (!isInvoiceProcessing(invoice)) return false;
             }
         }
-
 
         // 3. Filtro de Busca (Número da nota, Cliente ou Emissor)
         if (searchQuery) {
@@ -325,36 +350,35 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
     // Cálculos de Resumo com base no filtro atual
     const stats = {
         totalEmitted: filteredInvoices.length,
-        authorized: filteredInvoices.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase())).length,
-        cancelled: filteredInvoices.filter(i => i.status?.toLowerCase() === 'cancelado').length,
-        rejected: filteredInvoices.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase())).length,
-        processing: filteredInvoices.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase())).length,
+        authorized: filteredInvoices.filter(isInvoiceAuthorized).length,
+        cancelled: filteredInvoices.filter(isInvoiceCancelled).length,
+        rejected: filteredInvoices.filter(isInvoiceRejected).length,
+        processing: filteredInvoices.filter(isInvoiceProcessing).length,
         
         // Valores das ativas/autorizadas
         authorizedAmount: filteredInvoices
-            .filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()))
+            .filter(isInvoiceAuthorized)
             .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
-        // Valores das canceladas
+        // Valores das canceladas / excluídas do histórico
         cancelledAmount: filteredInvoices
-            .filter(i => i.status?.toLowerCase() === 'cancelado')
+            .filter(isInvoiceCancelled)
             .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
         // Valores das em processamento
         processingAmount: filteredInvoices
-            .filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()))
+            .filter(isInvoiceProcessing)
             .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0),
 
-        // Cobráveis: Notas autorizadas ou canceladas (ambas foram geradas com sucesso)
-        billableCount: filteredInvoices.filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase())).length,
+        // Cobráveis: Notas autorizadas OU canceladas (todas as que foram geradas no período para cobrança)
+        billableCount: filteredInvoices.filter(i => isInvoiceAuthorized(i) || isInvoiceCancelled(i)).length,
         
-        // Soma dos valores das notas cobráveis
+        // Soma dos valores das notas cobráveis (Autorizadas + Canceladas)
         billableAmount: filteredInvoices
-            .filter(i => ['concluido', 'autorizado', 'cancelado'].includes(i.status?.toLowerCase()))
+            .filter(i => isInvoiceAuthorized(i) || isInvoiceCancelled(i))
             .reduce((acc, curr) => acc + getInvoiceAmount(curr.payload, curr.amount), 0)
     };
 
-    // Exportação em formato CSV com suporte UTF-8 BOM
     const handleExportCSV = () => {
         const headers = [
             'Data Emissao',
@@ -387,11 +411,11 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
             const val = getInvoiceAmount(p, inv.amount);
             
             const emissor = inv.created_by_profile?.full_name || inv.created_by_profile?.email || 'N/A';
-            const status = inv.status;
+            const status = isInvoiceCancelled(inv) ? 'CANCELADO' : inv.status;
             
-            const dateCancel = inv.cancelled_at ? new Date(inv.cancelled_at).toLocaleString('pt-BR') : '';
-            const quemCancelou = inv.cancelled_by_profile?.full_name || inv.cancelled_by_profile?.email || '';
-            const justificativa = inv.cancellation_reason || p?.cancelamento?.justificativa || '';
+            const dateCancel = inv.cancelled_at ? new Date(inv.cancelled_at).toLocaleString('pt-BR') : (isInvoiceCancelled(inv) ? new Date(inv.updated_at).toLocaleString('pt-BR') : '');
+            const quemCancelou = inv.cancelled_by_profile?.full_name || inv.cancelled_by_profile?.email || (isInvoiceCancelled(inv) ? 'Sistema' : '');
+            const justificativa = inv.cancellation_reason || p?.cancelamento?.justificativa || (inv.deleted ? 'Excluída do Histórico' : '');
             
             return [
                 dateEmissao,
@@ -400,7 +424,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                 clientName,
                 Number(val).toFixed(2).replace('.', ','),
                 emissor,
-                status.toUpperCase(),
+                String(status).toUpperCase(),
                 dateCancel,
                 quemCancelou,
                 justificativa
@@ -423,33 +447,32 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
         document.body.removeChild(link);
     };
 
-    const getStatusBadge = (status: string) => {
-        const s = status?.toLowerCase();
-        if (s === 'concluido' || s === 'autorizado') {
+    const getStatusBadge = (invoice: FiscalInvoice) => {
+        if (isInvoiceCancelled(invoice)) {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-500/20">
+                    <XCircle size={10} /> Cancelada / Excluída
+                </span>
+            );
+        }
+        if (isInvoiceAuthorized(invoice)) {
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20">
                     <CheckCircle2 size={10} /> Autorizada
                 </span>
             );
         }
-        if (s === 'processando' || s === 'em_processamento') {
+        if (isInvoiceProcessing(invoice)) {
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-500/20">
                     <Clock3 size={10} className="animate-spin" /> Processando
                 </span>
             );
         }
-        if (s === 'erro' || s === 'rejeitado') {
+        if (isInvoiceRejected(invoice)) {
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-500/20">
                     <XCircle size={10} /> Rejeitada
-                </span>
-            );
-        }
-        if (s === 'cancelado') {
-            return (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-500/20">
-                    <XCircle size={10} /> Cancelada
                 </span>
             );
         }
@@ -799,7 +822,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                                            'Não identificado';
 
                                         // Cancelamento info
-                                        const isCancelled = invoice.status?.toLowerCase() === 'cancelado';
+                                        const isCancelled = isInvoiceCancelled(invoice);
                                         
                                         return (
                                             <tr key={invoice.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -832,19 +855,19 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                                     </div>
                                                 </td>
                                                 <td className="py-3.5 px-4">
-                                                    {getStatusBadge(invoice.status)}
+                                                    {getStatusBadge(invoice)}
                                                 </td>
                                                 <td className="py-3.5 px-4 max-w-[200px]">
                                                     {isCancelled ? (
                                                         <div className="space-y-1 text-[11px] leading-tight">
                                                             <div className="text-slate-700 dark:text-slate-300 font-semibold flex flex-col">
-                                                                <span>📅 {invoice.cancelled_at ? new Date(invoice.cancelled_at).toLocaleString('pt-BR') : 'Sem data'}</span>
-                                                                <span className="text-[10px] text-slate-500 font-medium mt-0.5">👤 {invoice.cancelled_by_profile?.full_name || invoice.cancelled_by_profile?.email || 'N/A'}</span>
+                                                                <span>📅 {invoice.cancelled_at ? new Date(invoice.cancelled_at).toLocaleString('pt-BR') : new Date(invoice.updated_at).toLocaleString('pt-BR')}</span>
+                                                                <span className="text-[10px] text-slate-500 font-medium mt-0.5">👤 {invoice.cancelled_by_profile?.full_name || invoice.cancelled_by_profile?.email || 'Sistema'}</span>
                                                             </div>
-                                                            {invoice.cancellation_reason && (
-                                                                <Tooltip content={invoice.cancellation_reason}>
-                                                                    <div className="text-[9px] text-slate-400 bg-slate-50 dark:bg-slate-800 p-1.5 rounded border border-slate-100 dark:border-slate-700 truncate cursor-help">
-                                                                        💬 {invoice.cancellation_reason}
+                                                            {(invoice.cancellation_reason || invoice.payload?.cancelamento?.justificativa || invoice.deleted) && (
+                                                                <Tooltip content={invoice.cancellation_reason || invoice.payload?.cancelamento?.justificativa || 'Nota Excluída do Histórico / Cancelada'}>
+                                                                    <div className="text-[9px] text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 p-1.5 rounded border border-rose-100 dark:border-rose-900/30 truncate cursor-help font-bold">
+                                                                        💬 {invoice.cancellation_reason || invoice.payload?.cancelamento?.justificativa || 'Excluída do Histórico'}
                                                                     </div>
                                                                 </Tooltip>
                                                             )}
@@ -854,11 +877,19 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings }
                                                     )}
                                                 </td>
                                                 <td className="py-3.5 px-4 text-right">
-                                                    <div className="flex flex-col items-end">
+                                                    <div className="flex flex-col items-end gap-1">
                                                         <span className="font-bold text-gray-900 dark:text-white text-xs">
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)}
                                                         </span>
                                                         {renderInvoiceRates(invoice)}
+                                                        {onOpenBoletoModal && (
+                                                            <button
+                                                                onClick={() => onOpenBoletoModal(invoice)}
+                                                                className="mt-1 px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer"
+                                                            >
+                                                                💳 Lançar Cobrança
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

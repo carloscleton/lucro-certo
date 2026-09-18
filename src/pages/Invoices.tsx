@@ -2257,6 +2257,10 @@ ${messageWithPlaceholder}`;
                         onClose={() => setShowBillingModal(false)}
                         invoices={invoices}
                         fiscalSettings={resolvedSettings}
+                        onOpenBoletoModal={(inv) => {
+                            setShowBillingModal(false);
+                            setBoletoModal({ isOpen: true, invoice: inv });
+                        }}
                     />
                 );
             })()}
