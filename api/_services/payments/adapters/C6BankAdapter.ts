@@ -116,7 +116,11 @@ export class C6BankAdapter implements PaymentAdapter {
                     const token = response.data.access_token;
                     const expiresIn = (response.data.expires_in || 300) * 1000;
                     tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
-                    this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
+                    try {
+                        this.baseUrl = new URL(url).origin;
+                    } catch (e) {
+                        this.baseUrl = this.isSandbox ? 'https://baas-api-sandbox.c6bank.info' : 'https://baas-api.c6bank.info';
+                    }
                     return token;
                 }
             } catch (err: any) {
@@ -145,7 +149,11 @@ export class C6BankAdapter implements PaymentAdapter {
                     const token = responseBasic.data.access_token;
                     const expiresIn = (responseBasic.data.expires_in || 300) * 1000;
                     tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
-                    this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
+                    try {
+                        this.baseUrl = new URL(url).origin;
+                    } catch (e) {
+                        this.baseUrl = this.isSandbox ? 'https://baas-api-sandbox.c6bank.info' : 'https://baas-api.c6bank.info';
+                    }
                     return token;
                 }
             } catch (basicErr: any) {
