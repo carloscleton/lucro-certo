@@ -87,17 +87,21 @@ export class C6BankAdapter implements PaymentAdapter {
                 'https://baas-api-sandbox.c6bank.info/auth',
                 'https://baas-api-sandbox.c6bank.info/v1/auth',
                 'https://baas-api-sandbox.c6bank.info/oauth/token',
+                'https://baas-api-sandbox.c6bank.info/v2/auth',
                 'https://baas-api.c6bank.info/auth'
             ]
             : [
                 'https://baas-api.c6bank.info/auth',
                 'https://baas-api.c6bank.info/v1/auth',
-                'https://baas-api.c6bank.info/oauth/token'
+                'https://baas-api.c6bank.info/oauth/token',
+                'https://baas-api.c6bank.info/v2/auth'
             ];
 
         let lastErrorMessage = '';
+        const basicAuthToken = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
 
         for (const url of candidateUrls) {
+            // Attempt 1: Form-urlencoded body
             try {
                 const reqConfig: any = {
                     headers: {
@@ -119,34 +123,34 @@ export class C6BankAdapter implements PaymentAdapter {
                 if (err.code !== 'ENOTFOUND' && err.response?.status !== 405) {
                     lastErrorMessage = err.response?.data?.message || err.response?.data?.error_description || err.message || '';
                 }
-                
-                // If 405 Method Not Allowed, try JSON format on same URL
-                if (err.response?.status === 405) {
-                    try {
-                        const reqConfigJson: any = {
-                            headers: { 'Content-Type': 'application/json' },
-                            timeout: 10000
-                        };
-                        if (this.httpsAgent) reqConfigJson.httpsAgent = this.httpsAgent;
+            }
 
-                        const responseJson = await axios.post(url, {
-                            client_id: this.clientId,
-                            client_secret: this.clientSecret,
-                            grant_type: 'client_credentials'
-                        }, reqConfigJson);
+            // Attempt 2: Basic Auth Header with grant_type in body
+            try {
+                const reqConfigBasic: any = {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': `Basic ${basicAuthToken}`
+                    },
+                    timeout: 10000
+                };
+                if (this.httpsAgent) reqConfigBasic.httpsAgent = this.httpsAgent;
 
-                        if (responseJson.data?.access_token) {
-                            const token = responseJson.data.access_token;
-                            const expiresIn = (responseJson.data.expires_in || 300) * 1000;
-                            tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
-                            this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
-                            return token;
-                        }
-                    } catch (jsonErr: any) {
-                        if (jsonErr.code !== 'ENOTFOUND' && jsonErr.response?.status !== 405) {
-                            lastErrorMessage = jsonErr.response?.data?.message || jsonErr.message || lastErrorMessage;
-                        }
-                    }
+                const basicParams = new URLSearchParams();
+                basicParams.append('grant_type', 'client_credentials');
+                basicParams.append('scope', 'bankslip.read bankslip.write bankslip_pix.read bankslip_pix.write');
+
+                const responseBasic = await axios.post(url, basicParams.toString(), reqConfigBasic);
+                if (responseBasic.data?.access_token) {
+                    const token = responseBasic.data.access_token;
+                    const expiresIn = (responseBasic.data.expires_in || 300) * 1000;
+                    tokenCache.set(cacheKey, { token, expiresAt: Date.now() + expiresIn });
+                    this.baseUrl = url.substring(0, url.lastIndexOf('/auth'));
+                    return token;
+                }
+            } catch (basicErr: any) {
+                if (basicErr.code !== 'ENOTFOUND' && basicErr.response?.status !== 405) {
+                    lastErrorMessage = basicErr.response?.data?.message || basicErr.response?.data?.error_description || basicErr.message || lastErrorMessage;
                 }
             }
         }
