@@ -6698,7 +6698,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                             await axios.post(`${config.url}/api/sendText`, {
                                 session: targetName,
                                 chatId: `${recipientPhone}@c.us`,
-                                text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
+                                text: waMsg
                             }, {
                                 headers: wahaHeaders
                             });
@@ -6723,7 +6723,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                             await axios.post(`${config.url}/send/text`, {
                                 id: targetName,
                                 number: recipientPhone,
-                                text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`
+                                text: waMsg
                             }, {
                                 headers: {
                                     'apikey': instanceToken || config.apiKey,
@@ -6750,7 +6750,7 @@ async function triggerWhatsAppNotificationHelper(invoiceId: string, pdfUrl: stri
                         } catch (errStd: any) {
                             await axios.post(`${config.url}/message/sendText/${encodedName}`, {
                                 number: recipientPhone,
-                                text: `${waMsg}\n\nLink do PDF: ${finalPdfUrl}`,
+                                text: waMsg,
                                 linkPreview: true
                             }, {
                                 headers: {
@@ -11210,9 +11210,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
         let response;
         if (config.provider === 'waha') {
             let textToSend = text || '';
-            if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
-                textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
-            }
             if (!textToSend) {
                 return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
             }
@@ -11236,9 +11233,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
             });
         } else if (config.isGo) {
             let textToSend = text || '';
-            if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
-                textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
-            }
             if (!textToSend) {
                 return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
             }
@@ -11257,9 +11251,6 @@ app.post(['/whatsapp/send', '/api/whatsapp/send'], authenticate, async (req, res
             });
         } else {
             let textToSend = text || '';
-            if (finalMediaUrl && !textToSend.includes(finalMediaUrl)) {
-                textToSend = `${textToSend}\n\nLink do PDF: ${finalMediaUrl}`.trim();
-            }
             if (!textToSend) {
                 return res.status(400).json({ error: 'text ou mediaUrl é obrigatório' });
             }
