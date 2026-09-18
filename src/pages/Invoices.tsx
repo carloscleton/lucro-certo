@@ -16,8 +16,7 @@ import { BatchInvoiceModal } from '../components/fiscal/BatchInvoiceModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
-import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
-import { BillingReportModal } from '../components/fiscal/BillingReportModal';
+import { BillingReportModal, isInvoiceAuthorized, isInvoiceCancelled, isInvoiceProcessing, isInvoiceRejected } from '../components/fiscal/BillingReportModal';
 import { CooperativeFiscalReportModal } from '../components/fiscal/CooperativeFiscalReportModal';
 import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
@@ -1563,10 +1562,10 @@ ${messageWithPlaceholder}`;
                     return isNaN(parsed) ? 0 : parsed;
                 };
 
-                const authorizedList = invoicesForStats.filter(i => ['concluido', 'autorizado'].includes(i.status?.toLowerCase()));
-                const processingList = invoicesForStats.filter(i => ['processando', 'em_processamento'].includes(i.status?.toLowerCase()));
-                const cancelledList = invoicesForStats.filter(i => i.status?.toLowerCase() === 'cancelado');
-                const rejectedList = invoicesForStats.filter(i => ['erro', 'rejeitado'].includes(i.status?.toLowerCase()));
+                const authorizedList = invoicesForStats.filter(isInvoiceAuthorized);
+                const processingList = invoicesForStats.filter(isInvoiceProcessing);
+                const cancelledList = invoicesForStats.filter(isInvoiceCancelled);
+                const rejectedList = invoicesForStats.filter(isInvoiceRejected);
 
                 const authorizedSum = authorizedList.reduce((acc, i) => acc + calcVal(i), 0);
                 const processingSum = processingList.reduce((acc, i) => acc + calcVal(i), 0);
