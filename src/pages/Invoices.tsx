@@ -15,6 +15,7 @@ import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { BatchInvoiceModal } from '../components/fiscal/BatchInvoiceModal';
 import { ResultModal } from '../components/ui/ResultModal';
 import { Tooltip } from '../components/ui/Tooltip';
+import { Modal } from '../components/ui/Modal';
 import { InvoiceDetailModal } from '../components/fiscal/InvoiceDetailModal';
 import { BillingReportModal, isInvoiceAuthorized, isInvoiceCancelled, isInvoiceProcessing, isInvoiceRejected } from '../components/fiscal/BillingReportModal';
 import { CooperativeFiscalReportModal } from '../components/fiscal/CooperativeFiscalReportModal';
