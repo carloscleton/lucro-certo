@@ -4,6 +4,7 @@ import { AsaasAdapter } from './adapters/AsaasAdapter.js';
 import { StripeAdapter } from './adapters/StripeAdapter.js';
 import { BancoInterAdapter } from './adapters/BancoInterAdapter.js';
 import { C6BankAdapter } from './adapters/C6BankAdapter.js';
+import { ItauAdapter } from './adapters/ItauAdapter.js';
 
 export class PaymentFactory {
     private static adapters: Record<string, any> = {
@@ -12,6 +13,7 @@ export class PaymentFactory {
         'stripe': StripeAdapter,
         'banco_inter': BancoInterAdapter,
         'c6_bank': C6BankAdapter,
+        'banco_itau': ItauAdapter,
     };
 
     static getAdapter(provider: string, config: any, isSandbox: boolean = true): PaymentAdapter {

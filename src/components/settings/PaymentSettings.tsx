@@ -40,6 +40,17 @@ const PROVIDERS = [
             { key: 'certificate_pem', label: 'Certificado mTLS (.crt / .pem)', placeholder: 'Conteúdo do arquivo de certificado (.crt ou .pem)', type: 'textarea' },
             { key: 'private_key_pem', label: 'Chave Privada mTLS (.key / .pem)', placeholder: 'Conteúdo da chave privada (.key ou .pem)', type: 'textarea_hidden' }
         ]
+    },
+    {
+        id: 'banco_itau', name: 'Banco Itaú (Boleto / BolePix)', fields: [
+            { key: 'client_id', label: 'Client ID', placeholder: 'ID da Aplicação obtido no portal Itaú for Developers' },
+            { key: 'client_secret', label: 'Client Secret', placeholder: 'Segredo obtido no portal Itaú for Developers', type: 'password' },
+            { key: 'agencia', label: 'Agência', placeholder: '0000 (4 dígitos)' },
+            { key: 'conta', label: 'Conta Corrente', placeholder: '00000 (com dígito)' },
+            { key: 'carteira', label: 'Carteira de Cobrança', placeholder: '109, 112 ou 175' },
+            { key: 'certificate_pem', label: 'Certificado mTLS (.crt / .pem)', placeholder: 'Conteúdo do arquivo de certificado (.crt ou .pem)', type: 'textarea' },
+            { key: 'private_key_pem', label: 'Chave Privada mTLS (.key / .pem)', placeholder: 'Conteúdo da chave privada (.key ou .pem)', type: 'textarea_hidden' }
+        ]
     }
 ];
 
@@ -121,7 +132,7 @@ export function PaymentSettings() {
         providerDef?.fields.forEach(field => {
             const envKey = isSandbox ? `sandbox_${field.key}` : `prod_${field.key}`;
             let val = (config[field.key] || '').trim();
-            if (field.key === 'client_id' && selectedProvider !== 'c6_bank') {
+            if (field.key === 'client_id' && selectedProvider !== 'c6_bank' && selectedProvider !== 'banco_itau') {
                 val = val.toLowerCase();
             }
             fullConfig[envKey] = val;
@@ -388,7 +399,7 @@ export function PaymentSettings() {
                                             value={config[field.key] || ''}
                                             onChange={e => {
                                                 const rawVal = e.target.value;
-                                                const val = (field.key === 'client_id' && selectedProvider !== 'c6_bank') ? rawVal.toLowerCase() : rawVal;
+                                                const val = (field.key === 'client_id' && selectedProvider !== 'c6_bank' && selectedProvider !== 'banco_itau') ? rawVal.toLowerCase() : rawVal;
                                                 setConfig(prev => ({ ...prev, [field.key]: val }));
                                             }}
                                             placeholder={`${isSandbox ? '[Sandbox] ' : ''}${field.placeholder}`}

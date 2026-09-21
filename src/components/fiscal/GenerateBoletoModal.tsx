@@ -304,7 +304,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
         if (!targetCharge) return;
 
         const chargeProvider = targetCharge.provider || selectedProvider;
-        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
+        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : chargeProvider === 'stripe' ? 'Stripe' : chargeProvider === 'c6_bank' ? 'C6 Bank' : chargeProvider === 'banco_itau' ? 'Banco Itaú' : 'Banco Inter';
 
         if (!window.confirm(`Deseja realmente cancelar esta cobrança no ${providerName}? Esta ação baixará/cancelará o título no provedor.`)) return;
 
@@ -344,7 +344,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
         if (!code) return;
 
         const chargeProvider = targetCharge.provider || selectedProvider;
-        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
+        const providerName = chargeProvider === 'asaas' ? 'Asaas' : chargeProvider === 'mercado_pago' ? 'Mercado Pago' : chargeProvider === 'stripe' ? 'Stripe' : chargeProvider === 'c6_bank' ? 'C6 Bank' : chargeProvider === 'banco_itau' ? 'Banco Itaú' : 'Banco Inter';
 
         setCheckingStatus(true);
         try {
