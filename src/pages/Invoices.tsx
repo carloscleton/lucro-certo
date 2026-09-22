@@ -10,6 +10,7 @@ import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/constants';
+import axios from 'axios';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
 import { ConsultaNotasModal } from '../components/fiscal/ConsultaNotasModal';
 import { BatchInvoiceModal } from '../components/fiscal/BatchInvoiceModal';
@@ -379,6 +380,52 @@ export function Invoices() {
 
         return () => clearInterval(intervalId);
     }, [invoices?.length, currentEntity?.id]);
+
+    useEffect(() => {
+        if (!charges || charges.length === 0 || !currentEntity?.id) return;
+        
+        const pendingCharges = charges.filter(c => c.status === 'pending');
+        if (pendingCharges.length === 0) return;
+
+        console.log(`🔄 [CHARGES-AUTO-SYNC] ${pendingCharges.length} cobrança(s) pendente(s). Sincronizando com os gateways em segundo plano...`);
+
+        const checkAndSyncPendingCharges = async () => {
+            try {
+                const token = (await supabase.auth.getSession()).data.session?.access_token;
+                if (!token) return;
+
+                let updatedAny = false;
+                for (const charge of pendingCharges) {
+                    const code = charge.gateway_id || charge.external_reference || charge.id;
+                    if (!code) continue;
+
+                    try {
+                        const res = await axios.get(
+                            `${API_BASE_URL}/payments/status/${code}?companyId=${currentEntity.id}&provider=${charge.provider}`,
+                            { headers: { 'Authorization': `Bearer ${token}` } }
+                        );
+                        if (res.data?.success && res.data?.status && res.data.status !== 'pending') {
+                            console.log(`✅ [CHARGES-AUTO-SYNC] Cobrança ${charge.id} atualizada para status: ${res.data.status}`);
+                            updatedAny = true;
+                        }
+                    } catch (cErr: any) {
+                        // Ignora erros de rede temporários
+                    }
+                }
+
+                if (updatedAny) {
+                    fetchCharges(true);
+                    refresh();
+                }
+            } catch (err: any) {
+                console.warn(`⚠️ [CHARGES-AUTO-SYNC] Erro no ciclo de atualização:`, err.message);
+            }
+        };
+
+        checkAndSyncPendingCharges();
+        const intervalId = setInterval(checkAndSyncPendingCharges, 15000);
+        return () => clearInterval(intervalId);
+    }, [charges?.length, currentEntity?.id, fetchCharges, refresh]);
 
     const handleAiRewrite = async () => {
         if (!sendModal.message) return;

@@ -10770,9 +10770,12 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
 
         console.log(`✅ Pagamento ${external_reference} atualizado para: ${status} ${paid_amount ? `(Valor Pago: ${paid_amount})` : ''}`);
 
-        // 1.5. Buscar o registro de cobrança original para obter o valor base (original)
-        const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=id,amount,quote_id`, {
-            headers: { 'apikey': SUPABASE_ANON_KEY }
+        // 1.5. Buscar o registro de cobrança original (por external_reference, gateway_id ou id)
+        const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?or=(external_reference.eq.${external_reference},gateway_id.eq.${external_reference},id.eq.${external_reference})&select=id,amount,quote_id,company_id`, {
+            headers: { 
+                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`
+            }
         });
         const originalCharge = chargeRes.data?.[0];
 
@@ -10791,9 +10794,14 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
             }
         }
 
-        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?external_reference=eq.${external_reference}&select=quote_id,description,amount`, patchData, {
+        const matchQuery = originalCharge?.id 
+            ? `id=eq.${originalCharge.id}` 
+            : `or=(external_reference.eq.${external_reference},gateway_id.eq.${external_reference})`;
+
+        const updateChargeResponse = await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?${matchQuery}&select=quote_id,description,amount`, patchData, {
             headers: {
-                'apikey': SUPABASE_ANON_KEY,
+                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=representation'
             }
