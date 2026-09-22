@@ -56,6 +56,29 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // Helper to format date safely
+    const formatDateSafe = (dateStr: any): string => {
+        if (!dateStr) return '';
+        try {
+            const raw = String(dateStr).trim();
+            const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+                const [, year, month, day] = match;
+                return `${day}/${month}/${year}`;
+            }
+            const parsed = new Date(raw);
+            if (!isNaN(parsed.getTime())) {
+                const day = String(parsed.getUTCDate()).padStart(2, '0');
+                const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+                const year = parsed.getUTCFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            return raw;
+        } catch {
+            return String(dateStr);
+        }
+    };
+
     // Initial default due date: +15 days from today
     const getDefaultDueDate = () => {
         const date = new Date();
@@ -816,13 +839,20 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                     </div>
                                 </div>
 
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                    activeCharge.status === 'approved' || activeCharge.status === 'paid'
-                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
-                                }`}>
-                                    {activeCharge.status === 'approved' || activeCharge.status === 'paid' ? '✓ PAGO' : '⏳ PENDENTE'}
-                                </span>
+                                <div className="flex flex-col items-end">
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                        activeCharge.status === 'approved' || activeCharge.status === 'paid'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
+                                    }`}>
+                                        {activeCharge.status === 'approved' || activeCharge.status === 'paid' ? '✓ PAGO' : '⏳ PENDENTE'}
+                                    </span>
+                                    {(activeCharge.status === 'approved' || activeCharge.status === 'paid') && (activeCharge.paid_at || activeCharge.payment_date || activeCharge.updated_at) && (
+                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                            Pago em: {formatDateSafe(activeCharge.paid_at || activeCharge.payment_date || activeCharge.updated_at)}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Conteúdo Específico por Método (Pix vs Cartão vs Boleto) */}

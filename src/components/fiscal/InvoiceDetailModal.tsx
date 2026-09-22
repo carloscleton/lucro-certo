@@ -1001,15 +1001,22 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                     Dados de Pagamento & Cobrança
                                 </h4>
                                 {linkedCharge && (
-                                    <span className={clsx(
-                                        "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                                        ['approved', 'paid'].includes(linkedCharge.status) && "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
-                                        ['pending'].includes(linkedCharge.status) && "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
-                                        ['cancelled', 'rejected'].includes(linkedCharge.status) && "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                                    )}>
-                                        {['approved', 'paid'].includes(linkedCharge.status) ? '✓ Pago' :
-                                         ['pending'].includes(linkedCharge.status) ? '⏳ Pendente' : '✕ Cancelado'}
-                                    </span>
+                                    <div className="flex flex-col items-end">
+                                        <span className={clsx(
+                                            "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                            ['approved', 'paid'].includes(linkedCharge.status) && "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+                                            ['pending'].includes(linkedCharge.status) && "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+                                            ['cancelled', 'rejected'].includes(linkedCharge.status) && "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                        )}>
+                                            {['approved', 'paid'].includes(linkedCharge.status) ? '✓ Pago' :
+                                             ['pending'].includes(linkedCharge.status) ? '⏳ Pendente' : '✕ Cancelado'}
+                                        </span>
+                                        {['approved', 'paid'].includes(linkedCharge.status) && (linkedCharge.paid_at || linkedCharge.payment_date || linkedCharge.updated_at) && (
+                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                                Pago em: {formatDateSafe(linkedCharge.paid_at || linkedCharge.payment_date || linkedCharge.updated_at)}
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -1021,7 +1028,10 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                             ) : linkedCharge ? (
                                 <div className="space-y-3.5">
                                     {/* Grid de Informações Chave */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-gray-100 dark:border-slate-800/60">
+                                    <div className={clsx(
+                                        "grid gap-3 bg-gray-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-gray-100 dark:border-slate-800/60",
+                                        ['approved', 'paid'].includes(linkedCharge.status) ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"
+                                    )}>
                                         <div>
                                             <span className="block text-[9px] font-black text-gray-400 uppercase tracking-wider">Valor do Boleto</span>
                                             <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
@@ -1040,6 +1050,14 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                                 {linkedCharge.provider || 'Asaas'}
                                             </span>
                                         </div>
+                                        {['approved', 'paid'].includes(linkedCharge.status) && (
+                                            <div>
+                                                <span className="block text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Data do Pagamento</span>
+                                                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                                                    {formatDateSafe(linkedCharge.paid_at || linkedCharge.payment_date || linkedCharge.updated_at)}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Linha Digitável / Código de Barras */}

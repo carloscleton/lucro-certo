@@ -85,6 +85,28 @@ export function parseFiscalError(error: any): string {
     return status ? `[Erro HTTP ${status}] Rejeição no cancelamento da Nota Fiscal.` : 'Rejeição no cancelamento da Nota Fiscal.';
 }
 
+export const formatDateSafe = (dateStr: any): string => {
+    if (!dateStr) return '';
+    try {
+        const raw = String(dateStr).trim();
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            const [, year, month, day] = match;
+            return `${day}/${month}/${year}`;
+        }
+        const parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+            const day = String(parsed.getUTCDate()).padStart(2, '0');
+            const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+            const year = parsed.getUTCFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        return raw;
+    } catch {
+        return String(dateStr);
+    }
+};
+
 export const renderInvoiceRates = (invoice: any) => {
     const p = invoice.payload || {};
     const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
@@ -1952,41 +1974,51 @@ ${messageWithPlaceholder}`;
                                                     const isPix = method === 'pix' || !!activeCharge.qr_code;
                                                     const isCard = method === 'credit_card';
 
+                                                    const rawPaidDate = isPaid ? (activeCharge.paid_at || activeCharge.payment_date || activeCharge.updated_at) : null;
+                                                    const paidDate = rawPaidDate ? formatDateSafe(rawPaidDate) : null;
+
                                                     return (
-                                                        <Tooltip content={`Cobrança ${activeCharge.provider?.toUpperCase()} Registrada (${isPaid ? 'Status: PAGO' : 'Status: PENDENTE'})`}>
-                                                            <button
-                                                                onClick={() => setBoletoModal({ isOpen: true, invoice })}
-                                                                className={clsx(
-                                                                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-sm transition-all cursor-pointer",
-                                                                    isPaid
-                                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                                                                        : isPix
-                                                                            ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30 hover:bg-teal-500/20"
-                                                                            : isCard
-                                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
-                                                                                : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
-                                                                )}
-                                                            >
-                                                                {isPaid ? (
-                                                                    <CheckCircle2 size={11} className="text-emerald-500" />
-                                                                ) : isPix ? (
-                                                                    <QrCode size={11} className="text-teal-500" />
-                                                                ) : isCard ? (
-                                                                    <CreditCard size={11} className="text-blue-500" />
-                                                                ) : (
-                                                                    <FileText size={11} className="text-purple-500" />
-                                                                )}
-                                                                <span>
-                                                                    {isPaid
-                                                                        ? 'Cobrança Paga ✓'
-                                                                        : isPix
-                                                                            ? 'Pix Gerado'
-                                                                            : isCard
-                                                                                ? 'Cartão Gerado'
-                                                                                : 'Boleto Gerado'}
+                                                        <div className="flex flex-col items-start gap-0.5">
+                                                            <Tooltip content={`Cobrança ${activeCharge.provider?.toUpperCase()} Registrada (${isPaid ? `Status: PAGO${paidDate ? ` em ${paidDate}` : ''}` : 'Status: PENDENTE'})`}>
+                                                                <button
+                                                                    onClick={() => setBoletoModal({ isOpen: true, invoice })}
+                                                                    className={clsx(
+                                                                        "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-sm transition-all cursor-pointer",
+                                                                        isPaid
+                                                                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                                                            : isPix
+                                                                                ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30 hover:bg-teal-500/20"
+                                                                                : isCard
+                                                                                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
+                                                                                    : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
+                                                                    )}
+                                                                >
+                                                                    {isPaid ? (
+                                                                        <CheckCircle2 size={11} className="text-emerald-500" />
+                                                                    ) : isPix ? (
+                                                                        <QrCode size={11} className="text-teal-500" />
+                                                                    ) : isCard ? (
+                                                                        <CreditCard size={11} className="text-blue-500" />
+                                                                    ) : (
+                                                                        <FileText size={11} className="text-purple-500" />
+                                                                    )}
+                                                                    <span>
+                                                                        {isPaid
+                                                                            ? 'Cobrança Paga ✓'
+                                                                            : isPix
+                                                                                ? 'Pix Gerado'
+                                                                                : isCard
+                                                                                    ? 'Cartão Gerado'
+                                                                                    : 'Boleto Gerado'}
+                                                                    </span>
+                                                                </button>
+                                                            </Tooltip>
+                                                            {isPaid && paidDate && (
+                                                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 pl-0.5 whitespace-nowrap">
+                                                                    Pago em: {paidDate}
                                                                 </span>
-                                                            </button>
-                                                        </Tooltip>
+                                                            )}
+                                                        </div>
                                                     );
                                                 })()}
 
