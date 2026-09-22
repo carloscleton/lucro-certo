@@ -10571,10 +10571,30 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
         let charge: any = null;
         if (codigoSolicitacao) {
             try {
-                const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?or=(id.eq.${codigoSolicitacao},gateway_id.eq.${codigoSolicitacao},external_reference.eq.${codigoSolicitacao})&select=*`, {
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(codigoSolicitacao);
+                const isNumeric = /^\d+$/.test(codigoSolicitacao);
+                let filter = `or=(gateway_id.eq.${codigoSolicitacao},external_reference.eq.${codigoSolicitacao})`;
+                if (isUuid || isNumeric) {
+                    filter = `or=(id.eq.${codigoSolicitacao},gateway_id.eq.${codigoSolicitacao},external_reference.eq.${codigoSolicitacao})`;
+                }
+
+                const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?${filter}&select=*`, {
                     headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
                 });
                 charge = chargeRes.data?.[0];
+
+                if (!charge && companyId) {
+                    const fallbackRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?company_id=eq.${companyId}&order=created_at.desc&limit=20`, {
+                        headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
+                    });
+                    charge = (fallbackRes.data || []).find((c: any) =>
+                        c.id === codigoSolicitacao ||
+                        c.gateway_id === codigoSolicitacao ||
+                        c.external_reference === codigoSolicitacao ||
+                        (codigoSolicitacao.startsWith('CHG-') && c.external_reference?.includes(codigoSolicitacao.replace('CHG-', '')))
+                    );
+                }
+
                 if (charge && !provider) {
                     provider = charge.provider;
                 }
@@ -10583,7 +10603,7 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
             }
         }
 
-        provider = provider || 'banco_inter';
+        provider = provider || charge?.provider || 'banco_inter';
         const compId = companyId || charge?.company_id;
         const providerTitle = provider === 'asaas' ? 'Asaas' : provider === 'mercado_pago' ? 'Mercado Pago' : 'Banco Inter';
 
@@ -10600,7 +10620,7 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
         const targetCode = charge?.gateway_id || codigoSolicitacao;
         const result = await adapter.getPaymentStatus(targetCode);
 
-        if (charge?.id && result.status) {
+        if (result.status) {
             const isApproved = result.status === 'approved' || (result.status as string) === 'paid';
             const patchData: any = {
                 status: result.status,
@@ -10610,14 +10630,17 @@ app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSol
             if (isApproved) {
                 if (result.paid_amount) patchData.paid_amount = result.paid_amount;
                 if (result.receipt_url) patchData.payment_link = result.receipt_url;
-                if (charge.amount && result.paid_amount && result.paid_amount > Number(charge.amount)) {
+                if (charge?.amount && result.paid_amount && result.paid_amount > Number(charge.amount)) {
                     patchData.interest_amount = Number((result.paid_amount - Number(charge.amount)).toFixed(2));
                 } else {
                     patchData.interest_amount = 0;
                 }
             }
 
-            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, patchData, {
+            const targetId = charge?.id;
+            const patchFilter = targetId ? `id=eq.${targetId}` : `or=(gateway_id.eq.${codigoSolicitacao},external_reference.eq.${codigoSolicitacao})`;
+
+            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?${patchFilter}`, patchData, {
                 headers: {
                     'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,

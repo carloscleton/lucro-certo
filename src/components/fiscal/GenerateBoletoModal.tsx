@@ -183,7 +183,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                         .from('company_charges')
                         .select('*')
                         .eq('company_id', invoice.company_id)
-                        .in('status', ['pending', 'approved'])
+                        .neq('status', 'cancelled')
                         .or(`external_reference.eq.NF${invoiceNo},description.ilike.%Nº ${invoiceNo}%`)
                         .order('created_at', { ascending: false })
                         .limit(1);
@@ -390,8 +390,19 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                 if (res.data.status === 'cancelled') {
                     setExistingCharge(null);
                     setResult(null);
-                } else if (existingCharge) {
-                    setExistingCharge((prev: any) => ({ ...prev, status: res.data.status }));
+                } else {
+                    const isApproved = res.data.status === 'approved' || res.data.status === 'paid';
+                    const updatePayload = (prev: any) => prev ? {
+                        ...prev,
+                        status: res.data.status,
+                        paid_at: isApproved ? (res.data.paid_at || prev.paid_at || new Date().toISOString()) : prev.paid_at,
+                        paid_amount: res.data.paid_amount || prev.paid_amount,
+                        payment_link: res.data.receipt_url || prev.payment_link
+                    } : null;
+
+                    if (existingCharge) setExistingCharge(updatePayload);
+                    if (result) setResult(updatePayload);
+                    onSuccess?.();
                 }
             }
         } catch (err: any) {
