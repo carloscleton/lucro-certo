@@ -10562,6 +10562,72 @@ app.post(['/payments/cancel', '/api/payments/cancel', '/payments/inter/cancel', 
     }
 });
 
+app.post(['/payments/update', '/api/payments/update'], authenticate, async (req, res) => {
+    const { companyId, chargeId, codigoSolicitacao, provider, updateData } = req.body;
+    try {
+        let activeProvider = provider || 'asaas';
+        let charge: any = null;
+
+        const codeToFind = chargeId || codigoSolicitacao;
+        if (codeToFind) {
+            try {
+                const queryFilter = `or=(id.eq.${codeToFind},gateway_id.eq.${codeToFind},external_reference.eq.${codeToFind})`;
+                const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?${queryFilter}&select=*`, {
+                    headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
+                });
+                charge = chargeRes.data?.[0];
+                if (charge && !activeProvider) activeProvider = charge.provider;
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao buscar dados da cobrança no banco:', dbErr.message);
+            }
+        }
+
+        const compId = companyId || charge?.company_id;
+        const targetCode = charge?.gateway_id || codigoSolicitacao || chargeId;
+
+        if (!compId || !targetCode) {
+            return res.status(400).json({ error: 'companyId e chargeId/codigoSolicitacao são obrigatórios.' });
+        }
+
+        const gateway = await getGatewayForCompany(compId, activeProvider);
+        if (!gateway) {
+            return res.status(400).json({ error: `Configuração do gateway ${activeProvider} não encontrada.` });
+        }
+
+        const isSandbox = charge?.is_sandbox ?? gateway.is_sandbox ?? true;
+        const adapter = PaymentFactory.getAdapter(activeProvider, gateway.config, isSandbox);
+
+        if (typeof (adapter as any).updateCharge !== 'function') {
+            return res.status(400).json({ error: `O gateway ${activeProvider} não suporta edição direta de cobranças ativas.` });
+        }
+
+        const result = await (adapter as any).updateCharge(targetCode, updateData);
+
+        if (result.success && charge?.id) {
+            const dbUpdate: any = {};
+            if (updateData.amount) dbUpdate.amount = updateData.amount;
+            if (updateData.description !== undefined) dbUpdate.description = updateData.description;
+            if (updateData.payment_method) dbUpdate.payment_method = updateData.payment_method;
+            if (result.payment_link) dbUpdate.payment_link = result.payment_link;
+            if (result.qr_code) dbUpdate.qr_code = result.qr_code;
+            if (result.qr_code_base64) dbUpdate.qr_code_base64 = result.qr_code_base64;
+
+            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, dbUpdate, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        res.json(result);
+    } catch (error: any) {
+        console.error('❌ Erro ao atualizar cobrança:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSolicitacao', '/payments/inter/status/:codigoSolicitacao', '/api/payments/inter/status/:codigoSolicitacao'], authenticate, async (req, res) => {
     const { codigoSolicitacao } = req.params;
     const companyId = req.query.companyId as string;

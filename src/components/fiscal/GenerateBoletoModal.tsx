@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info, QrCode, Percent } from 'lucide-react';
+import { FileText, Calendar, CreditCard, Copy, ExternalLink, AlertCircle, Rocket, Star, Link as LinkIcon, Download, RefreshCw, XCircle, ShieldCheck, Info, QrCode, Percent, Edit, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -55,6 +55,36 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
     const [cancelling, setCancelling] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // Charge Edit State (Asaas / Gateways)
+    const [showEditCharge, setShowEditCharge] = useState(false);
+    const [updatingCharge, setUpdatingCharge] = useState(false);
+    const [editDueDate, setEditDueDate] = useState('');
+    const [editAmount, setEditAmount] = useState<number>(0);
+    const [editDescription, setEditDescription] = useState('');
+    const [editMethod, setEditMethod] = useState<'boleto' | 'pix' | 'credit_card' | 'all'>('boleto');
+    const [editInterest, setEditInterest] = useState('0');
+    const [editFine, setEditFine] = useState('0');
+    const [editDiscount, setEditDiscount] = useState('0');
+    const [editDiscountDays, setEditDiscountDays] = useState('0');
+
+    useEffect(() => {
+        const charge = existingCharge || result;
+        if (charge) {
+            if (charge.due_date) {
+                setEditDueDate(String(charge.due_date).split('T')[0]);
+            }
+            if (charge.amount) {
+                setEditAmount(Number(charge.amount));
+            }
+            if (charge.description) {
+                setEditDescription(charge.description);
+            }
+            if (charge.payment_method) {
+                setEditMethod(charge.payment_method);
+            }
+        }
+    }, [existingCharge, result]);
 
     // Helper to format date safely
     const formatDateSafe = (dateStr: any): string => {
@@ -410,6 +440,62 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
             notify('error', 'Erro', `Não foi possível consultar o status atual no ${providerName}.`);
         } finally {
             setCheckingStatus(false);
+        }
+    };
+
+    const handleUpdateCharge = async () => {
+        const targetCharge = existingCharge || result;
+        if (!targetCharge) return;
+
+        const chargeProvider = targetCharge.provider || selectedProvider;
+        const code = targetCharge.gateway_id || targetCharge.payment_id || targetCharge.external_reference;
+
+        setUpdatingCharge(true);
+        try {
+            const session = (await supabase.auth.getSession()).data.session;
+            const res = await axios.post(`${API_BASE_URL}/payments/update`, {
+                companyId: invoice.company_id,
+                chargeId: targetCharge.id || targetCharge.chargeId,
+                codigoSolicitacao: code,
+                provider: chargeProvider,
+                updateData: {
+                    payment_method: editMethod,
+                    amount: editAmount,
+                    due_date: editDueDate,
+                    description: editDescription,
+                    fine: editFine && parseFloat(editFine) > 0 ? { value: parseFloat(editFine), type: 'PERCENTAGE' } : undefined,
+                    interest: editInterest && parseFloat(editInterest) > 0 ? { value: parseFloat(editInterest) } : undefined,
+                    discount: editDiscount && parseFloat(editDiscount) > 0 ? { value: parseFloat(editDiscount), dueDateLimitDays: parseInt(editDiscountDays || '0') } : undefined
+                }
+            }, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+
+            if (res.data.success) {
+                notify('success', 'Cobrança Atualizada', `Cobrança atualizada no ${chargeProvider === 'asaas' ? 'Asaas' : 'Gateway'} com sucesso!`);
+                const updateFn = (prev: any) => prev ? {
+                    ...prev,
+                    due_date: editDueDate || prev.due_date,
+                    amount: editAmount || prev.amount,
+                    description: editDescription || prev.description,
+                    payment_method: editMethod || prev.payment_method,
+                    payment_link: res.data.payment_link || prev.payment_link,
+                    qr_code: res.data.qr_code || prev.qr_code,
+                    qr_code_base64: res.data.qr_code_base64 || prev.qr_code_base64
+                } : null;
+
+                if (existingCharge) setExistingCharge(updateFn);
+                if (result) setResult(updateFn);
+                setShowEditCharge(false);
+                onSuccess?.();
+            } else {
+                notify('error', 'Erro ao Atualizar', res.data.error || 'Falha ao atualizar cobrança.');
+            }
+        } catch (err: any) {
+            console.error('Erro ao atualizar cobrança:', err);
+            notify('error', 'Erro ao Atualizar', err.response?.data?.error || err.message || 'Falha ao atualizar cobrança.');
+        } finally {
+            setUpdatingCharge(false);
         }
     };
 
@@ -988,6 +1074,160 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                         <div className="p-8 text-center text-gray-400">
                                             <LinkIcon size={40} className="mx-auto mb-2 opacity-50" />
                                             <p className="text-xs font-bold">Cobrança ativa registrada no banco.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* PAINEL DE EDIÇÃO DE COBRANÇA (VENCIMENTO, VALOR, MÉTODO, JUROS/MULTA/DESCONTO) */}
+                            {activeCharge.status !== 'approved' && activeCharge.status !== 'paid' && (
+                                <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl space-y-3">
+                                    <div
+                                        onClick={() => setShowEditCharge(!showEditCharge)}
+                                        className="flex items-center justify-between cursor-pointer select-none"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Edit size={16} className="text-amber-600 dark:text-amber-400" />
+                                            <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                                                Alterar Vencimento, Valor ou Método de Pagamento
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline uppercase tracking-wider flex items-center gap-1">
+                                            {showEditCharge ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                            {showEditCharge ? 'Ocultar Edição' : 'Editar Cobrança'}
+                                        </span>
+                                    </div>
+
+                                    {showEditCharge && (
+                                        <div className="pt-3 border-t border-amber-200/60 dark:border-amber-800/40 space-y-4 animate-in fade-in duration-200">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Data de Vencimento (dueDate)
+                                                    </label>
+                                                    <Input
+                                                        type="date"
+                                                        value={editDueDate}
+                                                        onChange={e => setEditDueDate(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Valor da Cobrança (R$)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0.01"
+                                                        value={editAmount || ''}
+                                                        onChange={e => setEditAmount(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Forma de Pagamento (billingType)
+                                                    </label>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {[
+                                                            { id: 'boleto', label: 'Boleto' },
+                                                            { id: 'pix', label: 'Pix' },
+                                                            { id: 'credit_card', label: 'Cartão' },
+                                                            { id: 'all', label: 'Flexível (Todos)' }
+                                                        ].map(m => (
+                                                            <button
+                                                                key={m.id}
+                                                                type="button"
+                                                                onClick={() => setEditMethod(m.id as any)}
+                                                                className={clsx(
+                                                                    "py-2 px-1 rounded-xl text-xs font-bold uppercase transition border text-center cursor-pointer",
+                                                                    editMethod === m.id
+                                                                        ? "bg-amber-500 text-slate-950 border-amber-600 shadow-sm font-extrabold"
+                                                                        : "bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-800"
+                                                                )}
+                                                            >
+                                                                {m.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Descrição / Observações na Cobrança
+                                                    </label>
+                                                    <Input
+                                                        value={editDescription}
+                                                        onChange={e => setEditDescription(e.target.value)}
+                                                        placeholder="Descrição exibida ao pagador"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Juros ao mês (%)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={editInterest}
+                                                        onChange={e => setEditInterest(e.target.value)}
+                                                        placeholder="Ex: 1.00"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Multa por Atraso (%)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={editFine}
+                                                        onChange={e => setEditFine(e.target.value)}
+                                                        placeholder="Ex: 2.00"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Desconto Antecipado (%)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={editDiscount}
+                                                        onChange={e => setEditDiscount(e.target.value)}
+                                                        placeholder="Ex: 5.00"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                        Prazo Desconto (dias antes)
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        value={editDiscountDays}
+                                                        onChange={e => setEditDiscountDays(e.target.value)}
+                                                        placeholder="Ex: 0"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                onClick={handleUpdateCharge}
+                                                isLoading={updatingCharge}
+                                                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                                            >
+                                                <Save size={16} />
+                                                Salvar Alterações no {activeProviderName || 'Gateway'}
+                                            </Button>
                                         </div>
                                     )}
                                 </div>

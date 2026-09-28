@@ -136,6 +136,80 @@ export class AsaasAdapter implements PaymentAdapter {
         }
     }
 
+    async updateCharge(payment_id: string, updateData: any): Promise<PaymentResponse> {
+        try {
+            let billingType: string | undefined = undefined;
+            if (updateData.payment_method === 'pix') billingType = 'PIX';
+            else if (updateData.payment_method === 'credit_card') billingType = 'CREDIT_CARD';
+            else if (updateData.payment_method === 'boleto') billingType = 'BOLETO';
+            else if (updateData.payment_method === 'all') billingType = 'UNDEFINED';
+
+            const payload: any = {};
+            if (billingType) payload.billingType = billingType;
+            if (updateData.amount !== undefined && updateData.amount > 0) payload.value = updateData.amount;
+            if (updateData.due_date) payload.dueDate = updateData.due_date;
+            if (updateData.description !== undefined) payload.description = updateData.description;
+
+            if (updateData.fine !== undefined) {
+                payload.fine = updateData.fine.value > 0 ? {
+                    value: updateData.fine.value,
+                    type: updateData.fine.type || 'PERCENTAGE'
+                } : { value: 0 };
+            }
+
+            if (updateData.interest !== undefined) {
+                payload.interest = updateData.interest.value > 0 ? {
+                    value: updateData.interest.value
+                } : { value: 0 };
+            }
+
+            if (updateData.discount !== undefined) {
+                payload.discount = updateData.discount.value > 0 ? {
+                    value: updateData.discount.value,
+                    dueDateLimitDays: updateData.discount.dueDateLimitDays || 0,
+                    type: updateData.discount.type || 'PERCENTAGE'
+                } : { value: 0 };
+            }
+
+            const response = await axios.post(`${this.baseUrl}/payments/${payment_id}`, payload, {
+                headers: { 'access_token': this.apiKey }
+            });
+
+            const payment = response.data;
+
+            // Refetch PIX QR Code if needed
+            let qrCodeData = null;
+            if (payment.billingType === 'PIX' || payment.billingType === 'BOLETO') {
+                try {
+                    const qrCodeResponse = await axios.get(`${this.baseUrl}/payments/${payment.id}/pixQrCode`, {
+                        headers: { 'access_token': this.apiKey }
+                    });
+                    qrCodeData = qrCodeResponse.data;
+                } catch (qrError) {
+                    console.warn('Could not get PIX QR code for updated Asaas payment:', payment.id);
+                }
+            }
+
+            return {
+                success: true,
+                payment_id: payment.id,
+                qr_code: qrCodeData?.payload,
+                qr_code_base64: qrCodeData?.encodedImage,
+                payment_link: payment.bankSlipUrl || payment.invoiceUrl,
+                due_date: payment.dueDate || updateData.due_date,
+                status: this.mapStatus(payment.status)
+            };
+        } catch (error: any) {
+            console.error('Asaas Update Error:', error.response?.data || error.message);
+            const detail = error.response?.data?.errors?.[0]?.description || error.message;
+            return {
+                success: false,
+                status: 'rejected',
+                error: detail
+            };
+        }
+    }
+
     async handleNotification(payload: any): Promise<{ external_reference: string; status: string; paid_amount?: number; fee?: number; receipt_url?: string }> {
         // Asaas Webhook payload contains the payment object
         const payment = payload.payment;
