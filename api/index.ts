@@ -10623,20 +10623,17 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
             if (result.qr_code !== undefined) dbUpdate.qr_code = result.qr_code;
             if (result.qr_code_base64 !== undefined) dbUpdate.qr_code_base64 = result.qr_code_base64;
 
-            if (updateData.interest) dbUpdate.interest_value = updateData.interest.value || 0;
-            if (updateData.fine) dbUpdate.fine_value = updateData.fine.value || 0;
-            if (updateData.discount) {
-                dbUpdate.discount_value = updateData.discount.value || 0;
-                dbUpdate.discount_days = updateData.discount.dueDateLimitDays || 0;
+            try {
+                await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, dbUpdate, {
+                    headers: {
+                        'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (dbErr: any) {
+                console.warn('⚠️ Falha ao atualizar company_charges no banco:', dbErr.response?.data || dbErr.message);
             }
-
-            await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, dbUpdate, {
-                headers: {
-                    'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
 
             // Sincronizar também o vencimento/valor na tabela de notas fiscais (fiscal_invoices)
             if (charge.external_reference || charge.quote_id) {
