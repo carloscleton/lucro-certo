@@ -10604,14 +10604,23 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
         const result = await (adapter as any).updateCharge(targetCode, updateData);
 
         if (result.success && charge?.id) {
-            const dbUpdate: any = {};
-            if (updateData.amount) dbUpdate.amount = updateData.amount;
+            const dbUpdate: any = {
+                updated_at: new Date().toISOString()
+            };
+            if (updateData.amount !== undefined && updateData.amount > 0) dbUpdate.amount = updateData.amount;
             if (updateData.due_date) dbUpdate.due_date = updateData.due_date;
             if (updateData.description !== undefined) dbUpdate.description = updateData.description;
             if (updateData.payment_method) dbUpdate.payment_method = updateData.payment_method;
             if (result.payment_link) dbUpdate.payment_link = result.payment_link;
-            if (result.qr_code) dbUpdate.qr_code = result.qr_code;
-            if (result.qr_code_base64) dbUpdate.qr_code_base64 = result.qr_code_base64;
+            if (result.qr_code !== undefined) dbUpdate.qr_code = result.qr_code;
+            if (result.qr_code_base64 !== undefined) dbUpdate.qr_code_base64 = result.qr_code_base64;
+
+            if (updateData.interest) dbUpdate.interest_value = updateData.interest.value || 0;
+            if (updateData.fine) dbUpdate.fine_value = updateData.fine.value || 0;
+            if (updateData.discount) {
+                dbUpdate.discount_value = updateData.discount.value || 0;
+                dbUpdate.discount_days = updateData.discount.dueDateLimitDays || 0;
+            }
 
             await axios.patch(`${SUPABASE_URL}/rest/v1/company_charges?id=eq.${charge.id}`, dbUpdate, {
                 headers: {
