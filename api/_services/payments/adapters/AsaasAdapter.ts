@@ -164,25 +164,25 @@ export class AsaasAdapter implements PaymentAdapter {
             if (updateData.due_date) payload.dueDate = updateData.due_date;
             if (updateData.description !== undefined) payload.description = updateData.description;
 
-            if (updateData.fine !== undefined) {
-                payload.fine = updateData.fine.value > 0 ? {
+            if (updateData.fine && updateData.fine.value > 0) {
+                payload.fine = {
                     value: updateData.fine.value,
                     type: updateData.fine.type || 'PERCENTAGE'
-                } : { value: 0 };
+                };
             }
 
-            if (updateData.interest !== undefined) {
-                payload.interest = updateData.interest.value > 0 ? {
+            if (updateData.interest && updateData.interest.value > 0) {
+                payload.interest = {
                     value: updateData.interest.value
-                } : { value: 0 };
+                };
             }
 
-            if (updateData.discount !== undefined) {
-                payload.discount = updateData.discount.value > 0 ? {
+            if (updateData.discount && updateData.discount.value > 0) {
+                payload.discount = {
                     value: updateData.discount.value,
                     dueDateLimitDays: updateData.discount.dueDateLimitDays || 0,
                     type: updateData.discount.type || 'PERCENTAGE'
-                } : { value: 0 };
+                };
             }
 
             const response = await axios.post(`${this.baseUrl}/payments/${realPaymentId}`, payload, {
