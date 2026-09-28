@@ -10606,6 +10606,7 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
         if (result.success && charge?.id) {
             const dbUpdate: any = {};
             if (updateData.amount) dbUpdate.amount = updateData.amount;
+            if (updateData.due_date) dbUpdate.due_date = updateData.due_date;
             if (updateData.description !== undefined) dbUpdate.description = updateData.description;
             if (updateData.payment_method) dbUpdate.payment_method = updateData.payment_method;
             if (result.payment_link) dbUpdate.payment_link = result.payment_link;
@@ -10619,6 +10620,35 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
                     'Content-Type': 'application/json'
                 }
             });
+
+            // Sincronizar também o vencimento/valor na tabela de notas fiscais (fiscal_invoices)
+            if (charge.external_reference || charge.quote_id) {
+                try {
+                    const invoiceUpdate: any = {};
+                    if (updateData.due_date) invoiceUpdate.due_date = updateData.due_date;
+                    if (updateData.amount) invoiceUpdate.amount = updateData.amount;
+
+                    if (Object.keys(invoiceUpdate).length > 0) {
+                        const invoiceNo = charge.external_reference ? charge.external_reference.replace(/\D/g, '') : null;
+                        let invFilter = `company_id=eq.${compId}`;
+                        if (charge.quote_id) {
+                            invFilter += `&quote_id=eq.${charge.quote_id}`;
+                        } else if (invoiceNo) {
+                            invFilter += `&invoice_number=eq.${invoiceNo}`;
+                        }
+
+                        await axios.patch(`${SUPABASE_URL}/rest/v1/fiscal_invoices?${invFilter}`, invoiceUpdate, {
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }).catch(() => {});
+                    }
+                } catch (invErr: any) {
+                    console.warn('⚠️ Nota fiscal não atualizada no banco:', invErr.message);
+                }
+            }
         }
 
         res.json(result);
