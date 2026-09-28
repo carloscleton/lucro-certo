@@ -10571,7 +10571,11 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
         const codeToFind = chargeId || codigoSolicitacao;
         if (codeToFind) {
             try {
-                const queryFilter = `or=(id.eq.${codeToFind},gateway_id.eq.${codeToFind},external_reference.eq.${codeToFind})`;
+                const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(codeToFind));
+                const queryFilter = isUuid
+                    ? `or=(id.eq.${codeToFind},gateway_id.eq.${codeToFind},external_reference.eq.${codeToFind})`
+                    : `or=(gateway_id.eq.${codeToFind},external_reference.eq.${codeToFind})`;
+
                 const chargeRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_charges?${queryFilter}&select=*`, {
                     headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
                 });
@@ -10583,7 +10587,7 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
         }
 
         const compId = companyId || charge?.company_id;
-        const targetCode = charge?.gateway_id || codigoSolicitacao || chargeId;
+        const targetCode = charge?.gateway_id || charge?.external_reference || codigoSolicitacao || chargeId;
 
         if (!compId || !targetCode) {
             return res.status(400).json({ error: 'companyId e chargeId/codigoSolicitacao são obrigatórios.' });
@@ -10602,6 +10606,10 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
         }
 
         const result = await (adapter as any).updateCharge(targetCode, updateData);
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
 
         if (result.success && charge?.id) {
             const dbUpdate: any = {

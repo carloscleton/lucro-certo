@@ -138,6 +138,20 @@ export class AsaasAdapter implements PaymentAdapter {
 
     async updateCharge(payment_id: string, updateData: any): Promise<PaymentResponse> {
         try {
+            let realPaymentId = payment_id;
+            if (!realPaymentId.startsWith('pay_')) {
+                try {
+                    const searchRes = await axios.get(`${this.baseUrl}/payments?externalReference=${payment_id}`, {
+                        headers: { 'access_token': this.apiKey }
+                    });
+                    if (searchRes.data?.data?.[0]?.id) {
+                        realPaymentId = searchRes.data.data[0].id;
+                    }
+                } catch (searchErr) {
+                    console.warn('Could not find Asaas payment by externalReference:', payment_id);
+                }
+            }
+
             let billingType: string | undefined = undefined;
             if (updateData.payment_method === 'pix') billingType = 'PIX';
             else if (updateData.payment_method === 'credit_card') billingType = 'CREDIT_CARD';
@@ -171,7 +185,7 @@ export class AsaasAdapter implements PaymentAdapter {
                 } : { value: 0 };
             }
 
-            const response = await axios.post(`${this.baseUrl}/payments/${payment_id}`, payload, {
+            const response = await axios.post(`${this.baseUrl}/payments/${realPaymentId}`, payload, {
                 headers: { 'access_token': this.apiKey }
             });
 
