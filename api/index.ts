@@ -2995,6 +2995,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             }
             const serieId = serieVal.padStart(5, '0').substring(0, 5); // Série DPS no ID (5 dígitos fixos)
             const rawDpsStr = inf.nDPS !== undefined ? String(inf.nDPS).replace(/\D/g, '') : String(Date.now());
+            const numDpsInt = rawDpsStr;
             // Garante que o número da DPS no ID tenha exatamente 15 dígitos (XSD TSIdDPS)
             const numDps15 = (rawDpsStr.length > 15 ? rawDpsStr.slice(-15) : rawDpsStr);
             const numero = numDps15.padStart(15, '0'); // Número DPS (15 dígitos exatos)
