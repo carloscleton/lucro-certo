@@ -2348,7 +2348,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // 🔍 Log diagnóstico: verificar se national_config foi recuperado corretamente do DB
             console.log(`🏛️ [ADN-NACIONAL] Iniciando fluxo Portal Nacional | companyId: ${companyId} | resolvedId: ${resolvedId}`);
 // Endpoint para consultar adesão municipal e parâmetro de emissão PJ no Portal Nacional (ADN)
-app.get('/api/fiscal-module/check-municipality-adhesion', async (req: Request, res: Response) => {
+app.get(['/fiscal-module/check-municipality-adhesion', '/api/fiscal-module/check-municipality-adhesion'], async (req: Request, res: Response) => {
     try {
         const { cMun, cidade, uf } = req.query;
         const cleanIbge = String(cMun || '2400802').replace(/\D/g, '');
