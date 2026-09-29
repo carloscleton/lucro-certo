@@ -3294,7 +3294,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             let adnResponse: any = null;
             let adnData: any = null;
-            let currentDpsSeq = parseInt(String(numDpsInt || nextDpsNumber || defaultMigrationDpsNumber), 10);
+            let rawSeqNum = String(numDpsInt || nextDpsNumber || defaultMigrationDpsNumber).replace(/\D/g, '');
+            if (rawSeqNum.length > 15) rawSeqNum = rawSeqNum.slice(-15);
+            let currentDpsSeq = parseInt(rawSeqNum, 10);
             if (isNaN(currentDpsSeq) || currentDpsSeq < 1) currentDpsSeq = defaultMigrationDpsNumber;
 
             let retryCount = 0;
@@ -3340,14 +3342,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             try {
                 while (retryCount < maxDpsRetries) {
                     retryCount++;
-                    const currentNumStr = String(currentDpsSeq);
-                    const paddedDpsNum = currentNumStr.padStart(15, '0');
-                    const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${serieVal.padStart(5, '0')}${paddedDpsNum}`;
+                    const cleanSeqStr = String(currentDpsSeq).replace(/\D/g, '');
+                    const numDps15Str = cleanSeqStr.length > 15 ? cleanSeqStr.slice(-15) : cleanSeqStr;
+                    const paddedDpsNum = numDps15Str.padStart(15, '0');
+                    const cleanSerie5 = (serieVal || '1').padStart(5, '0').slice(-5);
+                    const currentDpsId = `DPS${finalCLocEmi}${tpInsc}${insc}${cleanSerie5}${paddedDpsNum}`;
                     
-                    inf.nDPS = currentNumStr;
+                    inf.nDPS = String(parseInt(numDps15Str, 10) || 1);
                     inf.tpAmb = tpAmb;
                     if (adnPayload?.infDPS) {
-                        adnPayload.infDPS.nDPS = currentNumStr;
+                        adnPayload.infDPS.nDPS = inf.nDPS;
                         adnPayload.infDPS.tpAmb = tpAmb;
                     }
 
