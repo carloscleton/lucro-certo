@@ -235,7 +235,18 @@ export function Invoices() {
 
         return charges.find(c =>
             c.status !== 'cancelled' &&
+            c.status !== 'rejected' &&
             (c.external_reference === `NF${invNo}` || (c.description || '').includes(`Nº ${invNo}`))
+        );
+    };
+
+    const getInvoiceLatestCharge = (invoice: any) => {
+        if (!invoice || !charges || charges.length === 0) return null;
+        const invNo = invoice.invoice_number || invoice.external_id?.slice(-6) || '';
+        if (!invNo) return null;
+
+        return charges.find(c =>
+            c.external_reference === `NF${invNo}` || (c.description || '').includes(`Nº ${invNo}`)
         );
     };
     // activeProvider is no longer used here
@@ -2014,6 +2025,29 @@ ${messageWithPlaceholder}`;
                                                 {/* Badge Visual da Cobrança Criada (Pix, Cartão ou Boleto) */}
                                                 {(() => {
                                                     const activeCharge = getInvoiceCharge(invoice);
+                                                    const latestCharge = getInvoiceLatestCharge(invoice);
+                                                    const isCancelled = !activeCharge && latestCharge && (latestCharge.status === 'cancelled' || latestCharge.status === 'rejected');
+
+                                                    if (!activeCharge && !isCancelled) return null;
+
+                                                    if (isCancelled && latestCharge) {
+                                                        const method = latestCharge.payment_method || '';
+                                                        const isPix = method === 'pix' || !!latestCharge.qr_code;
+                                                        return (
+                                                            <div className="flex flex-col items-start gap-0.5">
+                                                                <Tooltip content={`Cobrança ${latestCharge.provider?.toUpperCase()} Cancelada no Gateway — Clique para Emitir Novo Boleto`}>
+                                                                    <button
+                                                                        onClick={() => setBoletoModal({ isOpen: true, invoice })}
+                                                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-sm transition-all cursor-pointer bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                                                                    >
+                                                                        <XCircle size={11} className="text-rose-500" />
+                                                                        <span>{isPix ? 'Pix Cancelado' : 'Boleto Cancelado'}</span>
+                                                                    </button>
+                                                                </Tooltip>
+                                                            </div>
+                                                        );
+                                                    }
+
                                                     if (!activeCharge) return null;
 
                                                     const isPaid = activeCharge.status === 'approved' || activeCharge.status === 'paid';
@@ -2096,18 +2130,23 @@ ${messageWithPlaceholder}`;
                                                 {/* Gerar / Gerenciar Boleto / Cobrança */}
                                                 {(() => {
                                                     const activeCharge = getInvoiceCharge(invoice);
-                                                    const method = activeCharge?.payment_method || '';
-                                                    const isPix = method === 'pix' || !!activeCharge?.qr_code;
+                                                    const latestCharge = getInvoiceLatestCharge(invoice);
+                                                    const isCancelled = !activeCharge && latestCharge && (latestCharge.status === 'cancelled' || latestCharge.status === 'rejected');
+
+                                                    const method = (activeCharge || latestCharge)?.payment_method || '';
+                                                    const isPix = method === 'pix' || !!(activeCharge || latestCharge)?.qr_code;
                                                     const isCard = method === 'credit_card';
 
+                                                    const tooltipContent = activeCharge
+                                                        ? `Cobrança (${isPix ? 'Pix' : isCard ? 'Cartão' : 'Boleto'}) Ativa — Clique para Gerenciar / Ver`
+                                                        : isCancelled
+                                                            ? `⚠️ Boleto/Cobrança Cancelada no Gateway — Clique para Emitir Novo Boleto`
+                                                            : hasActiveGateway
+                                                                ? "Gerar Cobrança (Pix, Cartão ou Boleto)"
+                                                                : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar.";
+
                                                     return (
-                                                        <Tooltip content={
-                                                            activeCharge 
-                                                                ? `Cobrança (${isPix ? 'Pix' : isCard ? 'Cartão' : 'Boleto'}) Ativa — Clique para Gerenciar / Ver` 
-                                                                : hasActiveGateway 
-                                                                    ? "Gerar Cobrança (Pix, Cartão ou Boleto)" 
-                                                                    : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar."
-                                                        }>
+                                                        <Tooltip content={tooltipContent}>
                                                             <button
                                                                 onClick={() => {
                                                                     if (!hasActiveGateway) return;
@@ -2118,12 +2157,16 @@ ${messageWithPlaceholder}`;
                                                                     "h-10 w-10 flex items-center justify-center glass-morphism rounded-xl transition-all shadow-sm relative",
                                                                     activeCharge
                                                                         ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 dark:border-emerald-400 font-bold shadow-emerald-500/20"
-                                                                        : hasActiveGateway
-                                                                            ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
-                                                                            : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800"
+                                                                        : isCancelled
+                                                                            ? "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-2 border-rose-500 dark:border-rose-400 font-bold shadow-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-900/50 cursor-pointer"
+                                                                            : hasActiveGateway
+                                                                                ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
+                                                                                : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800"
                                                                 )}
                                                             >
-                                                                {isPix ? (
+                                                                {isCancelled ? (
+                                                                    <XCircle size={18} className="text-rose-600 dark:text-rose-400" />
+                                                                ) : isPix ? (
                                                                     <QrCode size={18} />
                                                                 ) : isCard ? (
                                                                     <CreditCard size={18} />
@@ -2133,6 +2176,9 @@ ${messageWithPlaceholder}`;
 
                                                                 {activeCharge && (
                                                                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
+                                                                )}
+                                                                {isCancelled && (
+                                                                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full" />
                                                                 )}
                                                             </button>
                                                         </Tooltip>

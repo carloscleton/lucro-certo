@@ -213,16 +213,23 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                         .from('company_charges')
                         .select('*')
                         .eq('company_id', invoice.company_id)
-                        .neq('status', 'cancelled')
                         .or(`external_reference.eq.NF${invoiceNo},description.ilike.%Nº ${invoiceNo}%`)
                         .order('created_at', { ascending: false })
                         .limit(1);
 
                     if (data && data.length > 0) {
-                        setExistingCharge(data[0]);
+                        const latest = data[0];
+                        if (latest.status === 'cancelled' || latest.status === 'rejected') {
+                            setExistingCharge(null);
+                        } else {
+                            setExistingCharge(latest);
+                        }
+                    } else {
+                        setExistingCharge(null);
                     }
                 } catch (err) {
                     console.error('Erro ao verificar cobrança existente:', err);
+                    setExistingCharge(null);
                 } finally {
                     setLoadingExisting(false);
                 }
@@ -417,7 +424,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                 const formattedStatus = statusMap[res.data.status] || res.data.status;
                 notify('info', `Status ${providerName}`, `Status atual no ${providerName}: ${formattedStatus}`);
 
-                if (res.data.status === 'cancelled') {
+                if (res.data.status === 'cancelled' || res.data.status === 'rejected') {
                     setExistingCharge(null);
                     setResult(null);
                 } else {
