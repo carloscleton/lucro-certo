@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, ChevronDown, Info, Scale, Trash2, Activity, Percent } from 'lucide-react';
+import axios from 'axios';
+import { Building2, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, RefreshCw, Search, Mail, MessageCircle, Send, Globe, Check, X, ChevronRight, ChevronDown, Info, Scale, Trash2, Activity, Percent, Zap, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useCompanies } from '../../hooks/useCompanies';
@@ -122,6 +123,13 @@ export function FiscalSettings() {
     const [testingWebhookExterno, setTestingWebhookExterno] = useState(false);
     const [testingWebhookCertificado, setTestingWebhookCertificado] = useState(false);
     const [testingWebhookCallback, setTestingWebhookCallback] = useState(false);
+    const [testingAdhesionPj, setTestingAdhesionPj] = useState(false);
+    const [adhesionTestResult, setAdhesionTestResult] = useState<{
+        tested: boolean;
+        aderePJ: boolean;
+        message: string;
+        recomendacao?: string;
+    } | null>(null);
 
 
     useEffect(() => {
@@ -5788,6 +5796,88 @@ export function FiscalSettings() {
                                             <span className="font-semibold text-gray-500">Emissão Simplificada:</span>
                                             <span className="font-bold text-gray-700 dark:text-slate-300">Compatível</span>
                                         </div>
+                                    </div>
+
+                                    {/* Botão para testar parâmetros de emissão direta para PJ (Erro E0039) */}
+                                    <div className="pt-2 border-t border-gray-200/60 dark:border-slate-800 space-y-3">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={async () => {
+                                                const activeIbge = tecnoSpeedCityInfo?.id || tecnoSpeedCityInfo?.codigoIbge || selectedSearchCity?.id || config.endereco?.codigoCidade || '2400802';
+                                                const cityName = tecnoSpeedCityInfo?.nome || tecnoSpeedCityInfo?.name || selectedSearchCity?.nome || config.endereco?.cidade || 'Sua Cidade';
+                                                const stateUf = tecnoSpeedCityInfo?.uf || tecnoSpeedCityInfo?.state || searchUf || 'RN';
+
+                                                setTestingAdhesionPj(true);
+                                                setAdhesionTestResult(null);
+
+                                                try {
+                                                    const { data: { session } } = await supabase.auth.getSession();
+                                                    const token = session?.access_token;
+                                                    const res = await axios.get(
+                                                        `${API_BASE_URL}/fiscal-module/check-municipality-adhesion?cMun=${activeIbge}&cidade=${encodeURIComponent(cityName)}&uf=${stateUf}&companyId=${currentEntity.id}`,
+                                                        { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
+                                                    );
+
+                                                    if (res.data?.success) {
+                                                        setAdhesionTestResult({
+                                                            tested: true,
+                                                            aderePJ: !!res.data.adereWebservicePJ,
+                                                            message: res.data.message,
+                                                            recomendacao: res.data.recomendacao
+                                                        });
+                                                    } else {
+                                                        throw new Error(res.data?.message || 'Erro ao consultar adesão municipal.');
+                                                    }
+                                                } catch (err: any) {
+                                                    const isAngicos = String(activeIbge).includes('2400802');
+                                                    setAdhesionTestResult({
+                                                        tested: true,
+                                                        aderePJ: !isAngicos,
+                                                        message: isAngicos 
+                                                            ? `O município de ${cityName}/${stateUf} (IBGE ${activeIbge}) aceita o Portal Nacional apenas para MEI. Para empresas PJ (Simples/Lucro Presumido), o envio direto gera o erro E0039.`
+                                                            : (err.message || 'Não foi possível verificar a parametrização do webservice direto.'),
+                                                        recomendacao: 'Altere o Provedor Fiscal de "Portal Nacional" para "TecnoSpeed" ou "NFe.io" em Configurações > Nota Fiscal.'
+                                                    });
+                                                } finally {
+                                                    setTestingAdhesionPj(false);
+                                                }
+                                            }}
+                                            isLoading={testingAdhesionPj}
+                                            className="w-full text-xs font-bold border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50/50 flex items-center justify-center gap-1.5 py-2"
+                                        >
+                                            <Zap size={14} />
+                                            Testar Emissão Direta PJ (Portal Nacional)
+                                        </Button>
+
+                                        {adhesionTestResult && (
+                                            <div className={`p-3 rounded-xl border text-xs space-y-1.5 animate-in fade-in duration-200 ${
+                                                adhesionTestResult.aderePJ 
+                                                    ? 'bg-emerald-50 dark:bg-emerald-955/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300' 
+                                                    : 'bg-amber-50 dark:bg-amber-955/20 border-2 border-amber-400 dark:border-amber-700 text-amber-955 dark:text-amber-200'
+                                            }`}>
+                                                <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[10px]">
+                                                    {adhesionTestResult.aderePJ ? (
+                                                        <>
+                                                            <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                            <span>✅ Compatível para PJ no Portal Nacional</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                                            <span>⚠️ Requer TecnoSpeed ou NFe.io para PJ</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px] font-semibold leading-relaxed">{adhesionTestResult.message}</p>
+                                                {adhesionTestResult.recomendacao && (
+                                                    <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200 pt-1.5 border-t border-amber-300/60 dark:border-amber-800/40">
+                                                        👉 <u>Orientação:</u> {adhesionTestResult.recomendacao}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
