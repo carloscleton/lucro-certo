@@ -1786,6 +1786,26 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                             </div>
                         </div>
 
+                        {/* Alerta de orientação para Erro E0039 (Município não parametrizado no Portal Nacional) */}
+                        {(String(error || '').includes('E0039') || String(errorDetail || '').includes('E0039') || String(JSON.stringify(rawGovResponse || {})).includes('E0039') || String(JSON.stringify(rawGovResponse || {})).includes('deve estar parametrizado para utilizar os emissores públicos')) && (
+                            <div className="bg-amber-100/90 dark:bg-amber-950/40 p-4 rounded-xl border-2 border-amber-400 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs space-y-2 font-sans shadow-md">
+                                <p className="font-bold flex items-center gap-2 text-amber-950 dark:text-amber-100 text-xs uppercase tracking-wider">
+                                    💡 Orientação para Resolução do Erro E0039:
+                                </p>
+                                <div className="space-y-1.5 text-xs text-amber-950 dark:text-amber-200 leading-relaxed font-medium">
+                                    <p>
+                                        <strong>O município da sua empresa ainda não aderiu ao webservice direto do Portal Nacional (ADN gov.br).</strong>
+                                    </p>
+                                    <p>
+                                        A Receita Federal só permite emissões pelo Portal Nacional para cidades que firmaram convênio nacional.
+                                    </p>
+                                    <p className="pt-1 font-bold text-amber-900 dark:text-amber-100">
+                                        👉 <u>Como Resolver:</u> Acesse <strong>Configurações &gt; Nota Fiscal (ou Configurar Empresa)</strong> e altere o <strong>Provedor Fiscal</strong> de <em>Portal Nacional</em> para <em>TecnoSpeed</em> ou <em>NFe.io</em>.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Alerta de orientações quando for Erro 500 ou Instabilidade no Governo */}
                         {(String(error || '').includes('500') || String(errorDetail || '').includes('500') || String(JSON.stringify(rawGovResponse || {})).includes('500') || String(error || '').toLowerCase().includes('server error')) && (
                             <div className="bg-amber-100/90 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-300/80 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 text-xs space-y-2 font-sans shadow-sm">

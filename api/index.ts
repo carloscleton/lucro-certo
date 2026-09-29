@@ -3812,8 +3812,16 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     });
                 }
 
+                const errBodyStr = JSON.stringify(errData || {});
+                const isE0039 = errBodyStr.includes('E0039') || errBodyStr.includes('deve estar parametrizado para utilizar os emissores públicos');
+
+                let errorTitle = 'Erro retornado pelo Portal Nacional (ADN gov.br)';
+                if (isE0039) {
+                    errorTitle = 'Erro E0039: O município da sua empresa ainda não aderiu ao Portal Nacional (ADN gov.br). Altere o Provedor Fiscal nas Configurações para TecnoSpeed ou NFe.io.';
+                }
+
                 return res.status(errStatus || 400).json({
-                    error: 'Erro retornado pelo Portal Nacional (ADN gov.br)',
+                    error: errorTitle,
                     erros: errData?.erros || (Array.isArray(errData) ? errData : undefined),
                     detail: detailedMessage,
                     raw_sefin: errData,
