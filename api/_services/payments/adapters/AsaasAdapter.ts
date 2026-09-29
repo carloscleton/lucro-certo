@@ -412,18 +412,36 @@ export class AsaasAdapter implements PaymentAdapter {
     }
 
     private mapStatus(asaasStatus: string): 'pending' | 'approved' | 'rejected' | 'cancelled' {
-        switch (asaasStatus) {
+        const statusUpper = (asaasStatus || '').toUpperCase();
+        switch (statusUpper) {
             case 'RECEIVED':
             case 'CONFIRMED':
-            case 'RECEIVED_IN_CASH': return 'approved';
-            case 'PENDING': return 'pending';
+            case 'RECEIVED_IN_CASH':
+                return 'approved';
+            case 'PENDING':
+            case 'AWAITING_RISK_ANALYSIS':
+                return 'pending';
             case 'OVERDUE':
             case 'REFUNDED':
             case 'REFUND_REQUESTED':
+            case 'REFUND_IN_PROGRESS':
             case 'CHARGEBACK_REQUESTED':
             case 'CHARGEBACK_DISPUTE':
-            case 'AWAITING_CHARGEBACK_REVERSAL': return 'cancelled';
-            default: return 'pending';
+            case 'AWAITING_CHARGEBACK_REVERSAL':
+            case 'DELETED':
+            case 'PAYMENT_DELETED':
+            case 'CANCELLED':
+            case 'CANCELED':
+            case 'PAYMENT_CANCELLED':
+            case 'PAYMENT_CANCELLED_BY_RISK_ANALYSIS':
+            case 'DUNNING_REQUESTED':
+            case 'DUNNING_RECEIVED':
+                return 'cancelled';
+            default:
+                if (statusUpper.includes('CANCEL') || statusUpper.includes('DELETE') || statusUpper.includes('REFUND') || statusUpper.includes('EXPIRED')) {
+                    return 'cancelled';
+                }
+                return 'pending';
         }
     }
 }

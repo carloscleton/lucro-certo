@@ -221,6 +221,26 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                         const latest = data[0];
                         if (latest.status === 'cancelled' || latest.status === 'rejected') {
                             setExistingCharge(null);
+                        } else if (latest.status === 'pending') {
+                            const code = latest.gateway_id || latest.external_reference || latest.id;
+                            const token = (await supabase.auth.getSession()).data.session?.access_token;
+                            if (code && token) {
+                                try {
+                                    const res = await axios.get(
+                                        `${API_BASE_URL}/payments/status/${code}?companyId=${invoice.company_id}&provider=${latest.provider || 'asaas'}`,
+                                        { headers: { 'Authorization': `Bearer ${token}` } }
+                                    );
+                                    if (res.data?.success && (res.data?.status === 'cancelled' || res.data?.status === 'rejected')) {
+                                        setExistingCharge(null);
+                                    } else {
+                                        setExistingCharge(latest);
+                                    }
+                                } catch {
+                                    setExistingCharge(latest);
+                                }
+                            } else {
+                                setExistingCharge(latest);
+                            }
                         } else {
                             setExistingCharge(latest);
                         }

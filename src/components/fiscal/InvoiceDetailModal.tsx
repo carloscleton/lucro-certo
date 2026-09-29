@@ -195,7 +195,26 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
 
             const { data } = await query.limit(1);
             if (data && data.length > 0) {
-                setLinkedCharge(data[0]);
+                let chargeObj = data[0];
+                setLinkedCharge(chargeObj);
+
+                if (chargeObj.status === 'pending') {
+                    const code = chargeObj.gateway_id || chargeObj.external_reference || chargeObj.id;
+                    const token = (await supabase.auth.getSession()).data.session?.access_token;
+                    if (code && token) {
+                        try {
+                            const res = await axios.get(
+                                `${API_BASE_URL}/payments/status/${code}?companyId=${invoice.company_id}&provider=${chargeObj.provider || 'asaas'}`,
+                                { headers: { 'Authorization': `Bearer ${token}` } }
+                            );
+                            if (res.data?.success && res.data?.status && res.data.status !== 'pending') {
+                                setLinkedCharge({ ...chargeObj, status: res.data.status });
+                            }
+                        } catch {
+                            // Ignora erro temporário de rede
+                        }
+                    }
+                }
             } else {
                 setLinkedCharge(null);
             }
