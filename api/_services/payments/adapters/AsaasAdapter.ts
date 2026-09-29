@@ -93,7 +93,32 @@ export class AsaasAdapter implements PaymentAdapter {
 
     async getPaymentStatus(payment_id: string): Promise<PaymentResponse> {
         try {
-            const response = await axios.get(`${this.baseUrl}/payments/${payment_id}`, {
+            let realId = payment_id;
+            if (!realId.startsWith('pay_')) {
+                try {
+                    const searchRes = await axios.get(`${this.baseUrl}/payments?externalReference=${payment_id}`, {
+                        headers: { 'access_token': this.apiKey }
+                    });
+                    if (searchRes.data?.data?.[0]?.id) {
+                        realId = searchRes.data.data[0].id;
+                        if (searchRes.data.data[0].status) {
+                            const mappedStatus = this.mapStatus(searchRes.data.data[0].status);
+                            return {
+                                success: true,
+                                payment_id: realId,
+                                status: mappedStatus,
+                                paid_amount: (mappedStatus === 'approved' || (mappedStatus as string) === 'paid') ? (searchRes.data.data[0].confirmedValue || searchRes.data.data[0].value) : undefined,
+                                paid_at: searchRes.data.data[0].clientPaymentDate || searchRes.data.data[0].paymentDate || undefined,
+                                receipt_url: searchRes.data.data[0].transactionReceiptUrl || undefined
+                            };
+                        }
+                    }
+                } catch {
+                    console.warn('Asaas externalReference lookup failed for:', payment_id);
+                }
+            }
+
+            const response = await axios.get(`${this.baseUrl}/payments/${realId}`, {
                 headers: { 'access_token': this.apiKey }
             });
 
@@ -110,6 +135,15 @@ export class AsaasAdapter implements PaymentAdapter {
             };
         } catch (error: any) {
             console.error('Asaas status check error:', error.message);
+            const status = error.response?.status;
+            const desc = (error.response?.data?.errors?.[0]?.description || error.message || '').toLowerCase();
+            if (status === 404 || desc.includes('não encontrada') || desc.includes('not found') || desc.includes('removid') || desc.includes('inválid') || desc.includes('delet')) {
+                return {
+                    success: true,
+                    payment_id: payment_id,
+                    status: 'cancelled'
+                };
+            }
             throw error;
         }
     }

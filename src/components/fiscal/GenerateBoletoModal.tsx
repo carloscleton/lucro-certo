@@ -232,6 +232,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                     );
                                     if (res.data?.success && (res.data?.status === 'cancelled' || res.data?.status === 'rejected')) {
                                         setExistingCharge(null);
+                                        onSuccess?.();
                                     } else {
                                         setExistingCharge(latest);
                                     }
