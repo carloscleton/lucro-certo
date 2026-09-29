@@ -6481,6 +6481,16 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
+        
+        if (statusCode === 404) {
+            return res.json({
+                codigoIbge: cleanIbge,
+                homologado: false,
+                ativo: true,
+                message: 'Cidade sem parâmetros customizados (padrão nacional)'
+            });
+        }
+
         console.error(`❌ Erro ao consultar cidade ${codigoIbge} (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
         res.status(statusCode).json({ error: 'Erro ao consultar cidade na TecnoSpeed', detail: errorDetail });
     }
@@ -6518,6 +6528,16 @@ app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfe
     } catch (error: any) {
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
+
+        if (statusCode === 404) {
+            return res.json({
+                codigoIbge: cleanIbge,
+                homologado: false,
+                ativo: true,
+                message: 'Prefeitura sem parâmetros NFe.io registrados'
+            });
+        }
+
         console.error(`❌ Erro ao consultar prefeitura NFe.io ${codigoIbge} (Status ${statusCode}):`, JSON.stringify(errorDetail, null, 2));
         res.status(statusCode).json({ error: 'Erro ao consultar prefeitura na NFe.io', detail: errorDetail });
     }
