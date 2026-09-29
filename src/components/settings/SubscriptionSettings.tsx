@@ -95,7 +95,7 @@ export function SubscriptionSettings() {
         try {
             const { data, error: fetchError } = await withRetry(() => supabase
                 .from('companies')
-                .select('id, trade_name, subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value, cnpj')
+                .select('id, trade_name, subscription_plan, subscription_status, current_period_end, trial_ends_at, next_billing_value, cnpj, settings')
                 .eq('id', effectiveCompanyId)
                 .maybeSingle());
 
@@ -254,6 +254,38 @@ export function SubscriptionSettings() {
     const daysLeft = getRemainingDays();
     const canChangePlan = subscription?.subscription_status !== 'active' || daysLeft <= 0;
 
+    const displayMonthlyFee = (() => {
+        const fromSettings = subscription?.settings?.monthly_fee;
+        if (fromSettings !== undefined && fromSettings !== null && Number(fromSettings) > 0) return Number(fromSettings);
+        const fromBilling = subscription?.next_billing_value;
+        if (fromBilling !== undefined && fromBilling !== null && Number(fromBilling) > 0) return Number(fromBilling);
+        const provider = subscription?.settings?.fiscal_provider || 'tecnospeed';
+        const providerFixed = subscription?.settings?.admin_fiscal_billing?.[provider]?.fixed_fee;
+        if (providerFixed !== undefined && providerFixed !== null && Number(providerFixed) > 0) return Number(providerFixed);
+        return 100;
+    })();
+
+    const handleGenerateSubscriptionPayment = async () => {
+        try {
+            const { data: { session: freshSession } } = await supabase.auth.getSession();
+            const res = await supabase.functions.invoke('platform-checkout', {
+                body: { 
+                    company_id: subscription.id,
+                    access_token: freshSession?.access_token 
+                }
+            });
+            if (res.error) throw res.error;
+            if (res.data?.paymentUrl) {
+                window.open(res.data.paymentUrl, '_blank');
+                notify('success', 'Link de pagamento (Boleto/Pix/Cartão) aberto em nova aba!', 'Cobrança Gerada');
+            } else {
+                throw new Error('Falha ao gerar link de pagamento. Verifique se o gateway da plataforma está ativo nas Configurações da Plataforma.');
+            }
+        } catch (err: any) {
+            notify('error', err.message || 'Erro ao gerar pagamento da assinatura.', 'Falha no Checkout');
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -285,7 +317,7 @@ export function SubscriptionSettings() {
 
                     <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(subscription?.next_billing_value || 97)}
+                            {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(displayMonthlyFee)}
                         </span>
                         <span className="text-gray-500 text-sm">/mês</span>
                     </div>
@@ -330,40 +362,13 @@ export function SubscriptionSettings() {
                         </div>
                     </div>
 
-                    {isPastDue ? (
-                        <Button
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
-                            onClick={async () => {
-                                try {
-                                    const { data: { session: freshSession } } = await supabase.auth.getSession();
-                                    const res = await supabase.functions.invoke('platform-checkout', {
-                                        body: { 
-                                            company_id: subscription.id,
-                                            access_token: freshSession?.access_token 
-                                        }
-                                    });
-                                    if (res.error) throw res.error;
-                                    if (res.data?.paymentUrl) {
-                                        window.location.href = res.data.paymentUrl;
-                                    } else {
-                                        throw new Error('Falha ao gerar link. Contate o suporte.');
-                                    }
-                                } catch (err: any) {
-                                    notify('error', err.message || 'Erro ao gerar pagamento.', 'Falha no Checkout');
-                                }
-                            }}
-                        >
-                            <ExternalLink size={16} />
-                            Regularizar Agora
-                        </Button>
-                    ) : (
-                        <Button
-                            className="w-full bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500 cursor-not-allowed"
-                            disabled
-                        >
-                            Plano em dia
-                        </Button>
-                    )}
+                    <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 font-bold shadow-md shadow-emerald-500/20"
+                        onClick={handleGenerateSubscriptionPayment}
+                    >
+                        <ExternalLink size={16} />
+                        Gerar Boleto / Pix de Pagamento
+                    </Button>
                 </div>
 
                 {/* Next Billing Card */}

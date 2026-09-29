@@ -218,6 +218,13 @@ export function useAdmin() {
 
             if (error) throw error;
 
+            if (settings?.monthly_fee !== undefined && settings?.monthly_fee !== null) {
+                const numericMonthly = Number(settings.monthly_fee);
+                if (!isNaN(numericMonthly) && numericMonthly >= 0) {
+                    await supabase.from('companies').update({ next_billing_value: numericMonthly }).eq('id', companyId);
+                }
+            }
+
             // Update local state instead of full refresh
             setCompaniesList(prev => prev.map(c => 
                 c.id === companyId 
