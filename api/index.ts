@@ -2993,6 +2993,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 console.warn(`⚠️ [ADN-NACIONAL] Série ${serieVal} é reservada ao Fisco. Ajustando para Série 1 para emissão pelo contribuinte.`);
                 serieVal = '1';
             }
+            const serieId = serieVal.padStart(5, '0').substring(0, 5); // Série DPS no ID (5 dígitos fixos)
             const rawDpsStr = inf.nDPS !== undefined ? String(inf.nDPS).replace(/\D/g, '') : String(Date.now());
             // Garante que o número da DPS no ID tenha exatamente 15 dígitos (XSD TSIdDPS)
             const numDps15 = (rawDpsStr.length > 15 ? rawDpsStr.slice(-15) : rawDpsStr);
