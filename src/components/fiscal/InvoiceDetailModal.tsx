@@ -13,6 +13,7 @@ import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
+import axios from 'axios';
 
 interface InvoiceDetailModalProps {
     isOpen: boolean;
