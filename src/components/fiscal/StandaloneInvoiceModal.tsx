@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown, Maximize2, Minimize2, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -95,16 +95,33 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
                     onFocus={() => setIsOpen(true)}
                     placeholder={placeholder || "Ex: Consultoria Técnica Mensal"}
                     required
-                    className="w-full h-11 px-4 pr-10 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none"
+                    className={`w-full h-11 px-4 ${filterText ? 'pr-16' : 'pr-10'} rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-sm font-bold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none`}
                 />
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="absolute right-3 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    tabIndex={-1}
-                >
-                    <ChevronDown size={18} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
+                <div className="absolute right-3 flex items-center gap-1">
+                    {filterText && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setFilterText('');
+                                onChange('');
+                            }}
+                            className="p-1 text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800"
+                            title="Limpar descrição"
+                            tabIndex={-1}
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        tabIndex={-1}
+                    >
+                        <ChevronDown size={18} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                </div>
             </div>
 
             {isOpen && (
@@ -2327,14 +2344,27 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                             Corpo da Nota / Informações Complementares (Detalhamento do Serviço)
                                         </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsExpandedNotes(!isExpandedNotes)}
-                                            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:underline flex items-center gap-1.5 cursor-pointer transition-all"
-                                        >
-                                            {isExpandedNotes ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                                            <span>{isExpandedNotes ? 'Reduzir Campo' : 'Ampliar Campo / Modal'}</span>
-                                        </button>
+                                        <div className="flex items-center gap-3">
+                                            {notes && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNotes('')}
+                                                    className="text-xs font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer transition-all"
+                                                    title="Limpar detalhamento"
+                                                >
+                                                    <X size={13} />
+                                                    <span>Limpar Campo</span>
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsExpandedNotes(!isExpandedNotes)}
+                                                className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:underline flex items-center gap-1.5 cursor-pointer transition-all"
+                                            >
+                                                {isExpandedNotes ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                                <span>{isExpandedNotes ? 'Reduzir Campo' : 'Ampliar Campo / Modal'}</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <textarea
                                         value={notes}
