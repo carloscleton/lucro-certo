@@ -723,17 +723,17 @@ export function Payments() {
                     )}
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="w-full overflow-hidden">
                     {loadingCharges ? (
                         <div className="p-20 text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
                             <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Sincronizando transações...</p>
                         </div>
                     ) : (
-                        <table className="w-full text-left">
+                        <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/50 dark:bg-slate-800/50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-800">
-                                    <th className="px-4 py-4">
+                                    <th className="px-4 py-4 w-[35%]">
                                         <div className="flex items-center gap-3">
                                             <input
                                                 type="checkbox"
@@ -745,11 +745,11 @@ export function Payments() {
                                             <span>Cliente / Referência</span>
                                         </div>
                                     </th>
-                                    <th className="px-4 py-4">Valor</th>
-                                    <th className="px-4 py-4 text-center">Modo</th>
-                                    <th className="px-4 py-4">Data</th>
-                                    <th className="px-4 py-4">Status</th>
-                                    <th className="px-4 py-4 text-right">Ações</th>
+                                    <th className="px-4 py-4 w-[20%]">Valor</th>
+                                    <th className="px-4 py-4 text-center w-[10%]">Modo</th>
+                                    <th className="px-4 py-4 w-[15%]">Data</th>
+                                    <th className="px-4 py-4 w-[10%]">Status</th>
+                                    <th className="px-4 py-4 text-right w-[10%]">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -769,16 +769,20 @@ export function Payments() {
                                     filteredCharges.map((charge) => (
                                         <tr key={charge.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
                                             <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 min-w-0">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedIds.includes(charge.id)}
                                                         onChange={() => toggleSelect(charge.id)}
                                                         className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-700 cursor-pointer shrink-0"
                                                     />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">{charge.customer?.name || 'Cliente Geral'}</span>
-                                                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">{charge.external_reference}</span>
+                                                    <div className="flex flex-col min-w-0 max-w-[240px] xl:max-w-xs">
+                                                        <span className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors truncate" title={charge.customer?.name}>
+                                                            {charge.customer?.name || 'Cliente Geral'}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5 truncate">
+                                                            {charge.external_reference}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </td>
