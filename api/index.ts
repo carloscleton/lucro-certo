@@ -1922,6 +1922,8 @@ function getNormalizedHost(req: any): string {
         host = 'lucrocertovercel.vercel.app';
     }
     return host;
+}
+
 // Endpoint para consultar adesão municipal e parâmetro de emissão PJ no Portal Nacional (ADN)
 app.get(['/fiscal-module/check-municipality-adhesion', '/api/fiscal-module/check-municipality-adhesion'], async (req, res) => {
     try {
