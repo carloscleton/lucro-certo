@@ -1922,7 +1922,53 @@ function getNormalizedHost(req: any): string {
         host = 'lucrocertovercel.vercel.app';
     }
     return host;
-}
+// Endpoint para consultar adesão municipal e parâmetro de emissão PJ no Portal Nacional (ADN)
+app.get(['/fiscal-module/check-municipality-adhesion', '/api/fiscal-module/check-municipality-adhesion'], async (req, res) => {
+    try {
+        const { cMun, cidade, uf } = req.query;
+        const cleanIbge = String(cMun || '2400802').replace(/\D/g, '');
+        const cityName = String(cidade || 'Cidade').trim();
+        const stateUf = String(uf || 'RN').trim();
+
+        // Consulta parâmetros oficiais no SEFIN Nacional se disponível
+        try {
+            const sefinParamResp = await axios.get(`https://adn.nfse.gov.br/parametros_municipais/${cleanIbge}`, {
+                timeout: 5000
+            });
+            const p = sefinParamResp.data || {};
+            const aderePJ = !!(p.emiteNFSe || p.obrigaEmissaoNacional || p.cadastraContribuintes);
+            
+            return res.json({
+                success: true,
+                cMun: cleanIbge,
+                cidade: cityName,
+                uf: stateUf,
+                adereWebservicePJ: aderePJ,
+                message: aderePJ 
+                    ? `O município de ${cityName}/${stateUf} possui convênio e parâmetros ativos para emissão direta no Portal Nacional.`
+                    : `O município de ${cityName}/${stateUf} (IBGE ${cleanIbge}) não parametrizou a emissão direta para empresas PJ.`,
+                recomendacao: !aderePJ ? 'Altere o Provedor Fiscal de "Portal Nacional" para "TecnoSpeed" ou "NFe.io" em Configurações > Nota Fiscal.' : undefined
+            });
+        } catch {
+            const isKnownNonAdherent = ['2400802'].includes(cleanIbge);
+            const aderePJ = !isKnownNonAdherent;
+
+            return res.json({
+                success: true,
+                cMun: cleanIbge,
+                cidade: cityName,
+                uf: stateUf,
+                adereWebservicePJ: aderePJ,
+                message: aderePJ 
+                    ? `O município de ${cityName}/${stateUf} aceita emissão no padrão nacional.`
+                    : `O município de ${cityName}/${stateUf} (IBGE ${cleanIbge}) aceita o Portal Nacional apenas para MEI. Para empresas PJ (Simples/Lucro Presumido), o envio direto gera o erro E0039.`,
+                recomendacao: !aderePJ ? 'Altere o Provedor Fiscal de "Portal Nacional" para "TecnoSpeed" ou "NFe.io" em Configurações > Nota Fiscal.' : undefined
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, async (req, res) => {
     const { companyId, payload, type, quoteId, isLabTest, provider } = req.body;
@@ -2347,54 +2393,6 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             // 🔍 Log diagnóstico: verificar se national_config foi recuperado corretamente do DB
             console.log(`🏛️ [ADN-NACIONAL] Iniciando fluxo Portal Nacional | companyId: ${companyId} | resolvedId: ${resolvedId}`);
-// Endpoint para consultar adesão municipal e parâmetro de emissão PJ no Portal Nacional (ADN)
-app.get(['/fiscal-module/check-municipality-adhesion', '/api/fiscal-module/check-municipality-adhesion'], async (req: Request, res: Response) => {
-    try {
-        const { cMun, cidade, uf } = req.query;
-        const cleanIbge = String(cMun || '2400802').replace(/\D/g, '');
-        const cityName = String(cidade || 'Cidade').trim();
-        const stateUf = String(uf || 'RN').trim();
-
-        // Consulta parâmetros oficiais no SEFIN Nacional se disponível
-        try {
-            const sefinParamResp = await axios.get(`https://adn.nfse.gov.br/parametros_municipais/${cleanIbge}`, {
-                timeout: 5000
-            });
-            const p = sefinParamResp.data || {};
-            const aderePJ = !!(p.emiteNFSe || p.obrigaEmissaoNacional || p.cadastraContribuintes);
-            
-            return res.json({
-                success: true,
-                cMun: cleanIbge,
-                cidade: cityName,
-                uf: stateUf,
-                adereWebservicePJ: aderePJ,
-                message: aderePJ 
-                    ? `O município de ${cityName}/${stateUf} possui convênio e parâmetros ativos para emissão direta no Portal Nacional.`
-                    : `O município de ${cityName}/${stateUf} (IBGE ${cleanIbge}) não parametrizou a emissão direta para empresas PJ.`,
-                recomendacao: !aderePJ ? 'Altere o Provedor Fiscal de "Portal Nacional" para "TecnoSpeed" ou "NFe.io" em Configurações > Nota Fiscal.' : undefined
-            });
-        } catch {
-            const isKnownNonAdherent = ['2400802'].includes(cleanIbge);
-            const aderePJ = !isKnownNonAdherent;
-
-            return res.json({
-                success: true,
-                cMun: cleanIbge,
-                cidade: cityName,
-                uf: stateUf,
-                adereWebservicePJ: aderePJ,
-                message: aderePJ 
-                    ? `O município de ${cityName}/${stateUf} aceita emissão no padrão nacional.`
-                    : `O município de ${cityName}/${stateUf} (IBGE ${cleanIbge}) aceita o Portal Nacional apenas para MEI. Para empresas PJ (Simples/Lucro Presumido), o envio direto gera o erro E0039.`,
-                recomendacao: !aderePJ ? 'Altere o Provedor Fiscal de "Portal Nacional" para "TecnoSpeed" ou "NFe.io" em Configurações > Nota Fiscal.' : undefined
-            });
-        }
-    } catch (err: any) {
-        return res.status(500).json({ success: false, message: err.message });
-    }
-});
-
             console.log(`🏛️ [ADN-NACIONAL] national_config keys: ${Object.keys(nat).join(', ') || '(vazio)'}`);
             console.log(`🏛️ [ADN-NACIONAL] certificado_pfx_base64 presente: ${!!nat.certificado_pfx_base64} | tamanho: ${nat.certificado_pfx_base64 ? nat.certificado_pfx_base64.length : 0} chars`);
             console.log(`🏛️ [ADN-NACIONAL] certificado_senha presente: ${!!nat.certificado_senha} | ambiente: ${nat.ambiente || 'homologacao'}`);
@@ -6456,6 +6454,7 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
     const { codigoIbge } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
+    const cleanIbge = String(codigoIbge).replace(/\D/g, '');
 
     try {
         const { config } = await getCompanyFiscalConfig(authHeader!, companyId as string);
@@ -6467,7 +6466,6 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
         const defaultBase = isSandbox ? 'https://api.sandbox.plugnotas.com.br' : 'https://api.plugnotas.com.br';
         const baseUrl = (isSandbox ? (config.endpoint_homologacao || defaultBase) : (config.endpoint_producao || defaultBase)).toLowerCase().replace(/\/$/, '');
 
-        const cleanIbge = String(codigoIbge).replace(/\D/g, '');
         console.log(`🔍 [FISCAL-CIDADES] Consultando cidade IBGE: ${cleanIbge} em ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
 
         const response = await axios.get(`${baseUrl}/nfse/cidades/${cleanIbge}`, {
@@ -6500,6 +6498,7 @@ app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfe
     const { codigoIbge } = req.params;
     const { companyId } = req.query;
     const authHeader = req.headers.authorization;
+    const cleanIbge = String(codigoIbge).replace(/\D/g, '');
 
     try {
         const { settings } = await getCompanyFiscalConfig(authHeader!, companyId as string);
@@ -6512,7 +6511,6 @@ app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfe
         const isSandbox = nfeioConfig.ambiente === 'homologacao';
         const baseUrl = isSandbox ? 'https://prefectures-dev.api.nfe.io' : 'https://prefectures.api.nfe.io';
 
-        const cleanIbge = String(codigoIbge).replace(/\D/g, '');
         console.log(`🔍 [NFEIO-CIDADES] Consultando prefeitura NFe.io IBGE: ${cleanIbge} em ${isSandbox ? 'SANDBOX' : 'PROD'}...`);
 
         const response = await axiosNfeioRequest({
@@ -10760,7 +10758,7 @@ app.post(['/payments/update', '/api/payments/update'], authenticate, async (req,
 });
 
 app.get(['/payments/status/:codigoSolicitacao', '/api/payments/status/:codigoSolicitacao', '/payments/inter/status/:codigoSolicitacao', '/api/payments/inter/status/:codigoSolicitacao'], authenticate, async (req, res) => {
-    const { codigoSolicitacao } = req.params;
+    const codigoSolicitacao = String(req.params.codigoSolicitacao || '');
     const companyId = req.query.companyId as string;
     let provider = req.query.provider as string;
 
