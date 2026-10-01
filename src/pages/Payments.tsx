@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import clsx from 'clsx';
 import {
     CreditCard,
     Plus,
@@ -64,6 +65,10 @@ export function Payments() {
     const { notify } = useNotification();
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<'all' | 'current_month' | 'previous_month' | 'last_3_months' | 'current_year' | 'custom'>('current_month');
+    const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('');
+    const [customStartDate, setCustomStartDate] = useState<string>('');
+    const [customEndDate, setCustomEndDate] = useState<string>('');
     const [syncingChargeId, setSyncingChargeId] = useState<string | null>(null);
     const [viewingReceipt, setViewingReceipt] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -146,23 +151,66 @@ export function Payments() {
         return quotes.filter(q => q.status === 'approved' && q.payment_status !== 'paid');
     }, [quotes]);
 
+    const periodFilteredCharges = useMemo(() => {
+        if (selectedPeriodFilter === 'all') return charges;
+
+        const now = new Date();
+
+        return charges.filter(c => {
+            const rawDate = c.created_at || c.due_date || c.paid_at;
+            if (!rawDate) return true;
+
+            const chargeDate = new Date(rawDate);
+
+            if (selectedPeriodFilter === 'current_month') {
+                return chargeDate.getFullYear() === now.getFullYear() && chargeDate.getMonth() === now.getMonth();
+            } else if (selectedPeriodFilter === 'previous_month') {
+                const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                return chargeDate.getFullYear() === prevMonthDate.getFullYear() && chargeDate.getMonth() === prevMonthDate.getMonth();
+            } else if (selectedPeriodFilter === 'last_3_months') {
+                const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                return chargeDate >= threeMonthsAgo;
+            } else if (selectedPeriodFilter === 'current_year') {
+                return chargeDate.getFullYear() === now.getFullYear();
+            } else if (selectedPeriodFilter === 'custom') {
+                if (selectedMonthFilter) {
+                    const [y, m] = selectedMonthFilter.split('-').map(Number);
+                    if (y && m) {
+                        const isSelectedMonth = chargeDate.getFullYear() === y && (chargeDate.getMonth() + 1) === m;
+                        if (!isSelectedMonth) return false;
+                    }
+                }
+                if (customStartDate) {
+                    const start = new Date(customStartDate + 'T00:00:00');
+                    if (chargeDate < start) return false;
+                }
+                if (customEndDate) {
+                    const end = new Date(customEndDate + 'T23:59:59');
+                    if (chargeDate > end) return false;
+                }
+                return true;
+            }
+            return true;
+        });
+    }, [charges, selectedPeriodFilter, selectedMonthFilter, customStartDate, customEndDate]);
+
     const stats = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const approvedPaidTotal = charges
+        const approvedPaidTotal = periodFilteredCharges
             .filter(c => c.status === 'approved' || c.status === 'paid')
             .reduce((acc, curr) => acc + Number(curr.paid_amount || curr.amount), 0);
 
-        const approvedOriginalTotal = charges
+        const approvedOriginalTotal = periodFilteredCharges
             .filter(c => c.status === 'approved' || c.status === 'paid')
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-        const approvedInterestTotal = charges
+        const approvedInterestTotal = periodFilteredCharges
             .filter(c => c.status === 'approved' || c.status === 'paid')
             .reduce((acc, curr) => acc + Number(curr.interest_amount || 0), 0);
 
-        const overdueCharges = charges.filter(c => {
+        const overdueCharges = periodFilteredCharges.filter(c => {
             if (c.status !== 'pending' || !c.due_date) return false;
             const strictlyDueDate = getStrictlyDueDate(c.due_date);
             return today.getTime() > strictlyDueDate.getTime();
@@ -170,7 +218,7 @@ export function Payments() {
 
         const overdue = overdueCharges.reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-        const pending = charges
+        const pending = periodFilteredCharges
             .filter(c => {
                 if (c.status !== 'pending') return false;
                 if (!c.due_date) return true;
@@ -179,7 +227,7 @@ export function Payments() {
             })
             .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-        const activeLinks = charges.filter(c => c.status === 'pending').length;
+        const activeLinks = periodFilteredCharges.filter(c => c.status === 'pending').length;
 
         const currencyCode = window.__CURRENCY_CODE__ || 'BRL';
         const locale = window.__CURRENCY_LOCALE__ || 'pt-BR';
@@ -187,25 +235,65 @@ export function Payments() {
 
         return [
             { 
+                id: 'total_received',
                 label: 'Total Recebido', 
                 value: formatter.format(approvedPaidTotal), 
                 subValue: approvedInterestTotal > 0 ? `Original: ${formatter.format(approvedOriginalTotal)} | Juros: ${formatter.format(approvedInterestTotal)}` : undefined,
                 color: 'emerald', 
-                icon: ArrowDownLeft 
+                icon: ArrowDownLeft,
+                badge: 'Confirmado',
+                badgeBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40',
+                gradient: 'from-emerald-500 to-teal-600',
+                glow: 'hover:shadow-emerald-500/10'
             },
-            { label: 'Pendente (A Vencer)', value: formatter.format(pending), color: 'amber', icon: Clock },
-            { label: 'Em Atraso', value: formatter.format(overdue), color: 'rose', icon: AlertTriangle },
-            { label: 'Links Ativos', value: activeLinks.toString(), color: 'blue', icon: CreditCard },
+            { 
+                id: 'pending',
+                label: 'Pendente (A Vencer)', 
+                value: formatter.format(pending), 
+                subValue: undefined,
+                color: 'amber', 
+                icon: Clock,
+                badge: 'A Vencer',
+                badgeBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/40',
+                gradient: 'from-amber-500 to-orange-500',
+                glow: 'hover:shadow-amber-500/10'
+            },
+            { 
+                id: 'overdue',
+                label: 'Em Atraso', 
+                value: formatter.format(overdue), 
+                subValue: overdueCharges.length > 0 ? `${overdueCharges.length} cobrança(s) em atraso` : undefined,
+                color: 'rose', 
+                icon: AlertTriangle,
+                badge: overdue > 0 ? 'Requer Atenção' : 'Regular',
+                badgeBg: overdue > 0 ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/40' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+                gradient: 'from-rose-500 to-red-600',
+                glow: 'hover:shadow-rose-500/10'
+            },
+            { 
+                id: 'active_links',
+                label: 'Links Ativos', 
+                value: activeLinks.toString(), 
+                subValue: undefined,
+                color: 'blue', 
+                icon: CreditCard,
+                badge: 'Ativos',
+                badgeBg: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/40',
+                gradient: 'from-indigo-600 to-blue-600',
+                glow: 'hover:shadow-indigo-500/10'
+            },
         ];
-    }, [charges]);
+    }, [periodFilteredCharges]);
 
     const filteredCharges = useMemo(() => {
-        return charges.filter(c =>
-            c.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.external_reference.toLowerCase().includes(searchTerm.toLowerCase())
+        if (!searchTerm) return periodFilteredCharges;
+        const term = searchTerm.toLowerCase();
+        return periodFilteredCharges.filter(c =>
+            c.customer?.name?.toLowerCase().includes(term) ||
+            c.description?.toLowerCase().includes(term) ||
+            c.external_reference?.toLowerCase().includes(term)
         );
-    }, [charges, searchTerm]);
+    }, [periodFilteredCharges, searchTerm]);
 
     const handleCreate = async () => {
         if (!selectedContactId || !amount || !selectedProvider) {
@@ -462,21 +550,144 @@ export function Payments() {
                 </div>
             </div>
 
+            {/* Date Period Filter Bar */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
+                        <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mr-1 font-semibold">
+                            <Calendar size={16} className="text-indigo-600 dark:text-indigo-400" />
+                            Filtrar Período:
+                        </span>
+
+                        {[
+                            { id: 'current_month', label: 'Mês Atual' },
+                            { id: 'previous_month', label: 'Mês Anterior' },
+                            { id: 'last_3_months', label: 'Últimos 3 Meses' },
+                            { id: 'current_year', label: 'Ano Atual' },
+                            { id: 'all', label: 'Todas as Datas' },
+                            { id: 'custom', label: 'Personalizado 📅' },
+                        ].map((period) => (
+                            <button
+                                key={period.id}
+                                type="button"
+                                onClick={() => setSelectedPeriodFilter(period.id as any)}
+                                className={clsx(
+                                    "px-3.5 py-2 rounded-xl transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5",
+                                    selectedPeriodFilter === period.id
+                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-[1.02]"
+                                        : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                )}
+                            >
+                                {period.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer ml-auto"
+                    >
+                        <RefreshCw size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <span>Atualizar Lista</span>
+                    </button>
+                </div>
+
+                {/* Custom Date Inputs */}
+                {selectedPeriodFilter === 'custom' && (
+                    <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800/60 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Por Mês:</label>
+                            <input
+                                type="month"
+                                value={selectedMonthFilter}
+                                onChange={(e) => {
+                                    setSelectedMonthFilter(e.target.value);
+                                    setCustomStartDate('');
+                                    setCustomEndDate('');
+                                }}
+                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <span className="text-xs font-bold text-gray-400">ou por Intervalo:</span>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">De:</label>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => {
+                                    setCustomStartDate(e.target.value);
+                                    setSelectedMonthFilter('');
+                                }}
+                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Até:</label>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => {
+                                    setCustomEndDate(e.target.value);
+                                    setSelectedMonthFilter('');
+                                }}
+                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        {(selectedMonthFilter || customStartDate || customEndDate) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedMonthFilter('');
+                                    setCustomStartDate('');
+                                    setCustomEndDate('');
+                                }}
+                                className="text-xs font-bold text-rose-500 hover:text-rose-600 underline ml-2 cursor-pointer"
+                            >
+                                Limpar Filtros Customizados
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, idx) => (
-                    <div key={idx} className="group bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-xl shadow-gray-200/40 dark:shadow-none transition-all duration-500 hover:shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className={`p-4 rounded-2xl bg-${stat.color}-50 dark:bg-${stat.color}-900/20 text-${stat.color}-600 dark:text-${stat.color}-400 group-hover:scale-110 transition-transform duration-500`}>
-                                <stat.icon size={28} />
+                {stats.map((stat) => (
+                    <div
+                        key={stat.id}
+                        className={clsx(
+                            "relative group bg-white dark:bg-slate-900 p-6 rounded-[2.2rem] border border-gray-100 dark:border-slate-800/80 shadow-lg shadow-gray-200/40 dark:shadow-none hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden",
+                            stat.glow
+                        )}
+                    >
+                        {/* Top Accent Line */}
+                        <div className={clsx("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r opacity-90 group-hover:opacity-100 transition-opacity", stat.gradient)} />
+                        
+                        {/* Subtle background glow effect on hover */}
+                        <div className={clsx("absolute -right-8 -top-8 w-28 h-28 rounded-full bg-gradient-to-br opacity-5 group-hover:opacity-15 blur-xl transition-all duration-500 pointer-events-none", stat.gradient)} />
+
+                        <div className="flex items-center justify-between mb-4">
+                            <div className={clsx("p-3.5 rounded-2xl bg-gradient-to-br text-white shadow-md shadow-gray-400/20 group-hover:scale-110 transition-transform duration-300", stat.gradient)}>
+                                <stat.icon size={22} />
                             </div>
+                            <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border", stat.badgeBg)}>
+                                {stat.badge}
+                            </span>
                         </div>
-                        <h3 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">{stat.label}</h3>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white mt-1 tabular-nums italic tracking-tighter">{stat.value}</p>
-                        {stat.subValue && (
-                            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mt-1.5 leading-normal">
-                                {stat.subValue}
-                            </p>
+
+                        <h3 className="text-[11px] font-black text-gray-400 dark:text-slate-400 uppercase tracking-widest">{stat.label}</h3>
+                        
+                        <p className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mt-1.5 tabular-nums tracking-tight">
+                            {stat.value}
+                        </p>
+
+                        {stat.subValue ? (
+                            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-800/60 flex items-center text-xs font-semibold text-gray-500 dark:text-slate-400">
+                                <span className="truncate">{stat.subValue}</span>
+                            </div>
+                        ) : (
+                            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-800/60 flex items-center text-xs font-medium text-gray-400 dark:text-slate-500">
+                                <span>{stat.id === 'pending' ? 'Cobranças aguardando pagamento' : stat.id === 'active_links' ? 'Links de cobrança ativos' : 'Visão geral'}</span>
+                            </div>
                         )}
                     </div>
                 ))}
