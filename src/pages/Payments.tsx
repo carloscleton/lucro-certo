@@ -33,6 +33,7 @@ import { usePaymentGateways } from '../hooks/usePaymentGateways';
 import { useQuotes } from '../hooks/useQuotes';
 import { useNotification } from '../context/NotificationContext';
 import { useEntity } from '../context/EntityContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/currencyUtils';
 import { supabase } from '../lib/supabase';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
@@ -57,6 +58,7 @@ const getStrictlyDueDate = (dateString?: string) => {
 };
 
 export function Payments() {
+    const { user } = useAuth();
     const { currentEntity } = useEntity();
     const { contacts } = useContacts();
     const { charges, loading: loadingCharges, createCharge, deleteCharge, deleteMultipleCharges } = useCharges();
@@ -339,6 +341,14 @@ export function Payments() {
                     .single();
 
                 if (error) throw error;
+
+                const internalLink = `${window.location.origin}/pay/${data.id}`;
+                const { data: updated } = await supabase
+                    .from('company_charges')
+                    .update({ payment_link: internalLink })
+                    .eq('id', data.id)
+                    .select()
+                    .single();
 
                 // Criar lançamento automático no Contas a Receber (transactions)
                 try {
