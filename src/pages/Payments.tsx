@@ -733,7 +733,7 @@ export function Payments() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-gray-50/50 dark:bg-slate-800/50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-slate-800">
-                                    <th className="px-8 py-5">
+                                    <th className="px-4 py-4">
                                         <div className="flex items-center gap-3">
                                             <input
                                                 type="checkbox"
@@ -745,11 +745,11 @@ export function Payments() {
                                             <span>Cliente / Referência</span>
                                         </div>
                                     </th>
-                                    <th className="px-8 py-5">Valor</th>
-                                    <th className="px-8 py-5 text-center">Modo</th>
-                                    <th className="px-8 py-5">Data</th>
-                                    <th className="px-8 py-5">Status</th>
-                                    <th className="px-8 py-5 text-right">Ações</th>
+                                    <th className="px-4 py-4">Valor</th>
+                                    <th className="px-4 py-4 text-center">Modo</th>
+                                    <th className="px-4 py-4">Data</th>
+                                    <th className="px-4 py-4">Status</th>
+                                    <th className="px-4 py-4 text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -768,7 +768,7 @@ export function Payments() {
                                 ) : (
                                     filteredCharges.map((charge) => (
                                         <tr key={charge.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300">
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
@@ -782,7 +782,7 @@ export function Payments() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-4">
                                                 <div className="flex flex-col">
                                                     <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tighter italic">
                                                         {(() => {
@@ -820,7 +820,7 @@ export function Payments() {
                                                     })()}
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5 text-center">
+                                            <td className="px-4 py-4 text-center">
                                                 <span className={`text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg border ${charge.is_sandbox
                                                     ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30'
                                                     : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30'
@@ -828,7 +828,7 @@ export function Payments() {
                                                     {charge.is_sandbox ? 'Teste' : 'Prod'}
                                                 </span>
                                             </td>
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-4">
                                                 {(() => {
                                                     const today = new Date();
                                                     today.setHours(0, 0, 0, 0);
@@ -855,7 +855,7 @@ export function Payments() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="px-8 py-5">
+                                            <td className="px-4 py-4">
                                                 {(() => {
                                                     const today = new Date();
                                                     today.setHours(0, 0, 0, 0);
@@ -900,7 +900,7 @@ export function Payments() {
                                                     );
                                                 })()}
                                             </td>
-                                            <td className="px-8 py-5 text-right">
+                                            <td className="px-4 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     {(() => {
                                                         const isPaid = charge.status === 'approved' || charge.status === 'paid';
