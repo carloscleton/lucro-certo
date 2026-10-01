@@ -340,13 +340,26 @@ export function Payments() {
 
                 if (error) throw error;
 
-                const internalLink = `${window.location.origin}/pay/${data.id}`;
-                const { data: updated } = await supabase
-                    .from('company_charges')
-                    .update({ payment_link: internalLink })
-                    .eq('id', data.id)
-                    .select()
-                    .single();
+                // Criar lançamento automático no Contas a Receber (transactions)
+                try {
+                    const customerName = contact.name || 'Cliente';
+                    const transactionDesc = description || `Cobrança Flexível - ${customerName}`;
+                    await supabase.from('transactions').insert({
+                        user_id: user?.id,
+                        company_id: currentEntity.id,
+                        description: transactionDesc,
+                        amount: Number(amount),
+                        date: dueDate || getDefaultDueDate(),
+                        type: 'income',
+                        status: 'pending',
+                        contact_id: selectedContactId,
+                        quote_id: selectedQuoteId || null,
+                        payment_method: selectedMethods.length === 3 ? 'all' : selectedMethods.join(','),
+                        notes: `Ref: ${data.external_reference} | Gerado via Link Flexível`
+                    });
+                } catch (txErr) {
+                    console.warn('[Payments] Erro ao criar lançamento automático no financeiro:', txErr);
+                }
 
                 setResult(updated);
             } else if (gateway) {

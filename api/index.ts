@@ -9837,6 +9837,60 @@ app.post('/payments/create', authenticate, async (req, res) => {
                     'Prefer': 'return=minimal'
                 }
             });
+
+            // 3. Criar lançamento automático no Contas a Receber (transactions) — Evitar duplicidade se já existe quote_id
+            try {
+                let skipAutoTransaction = false;
+                if (quoteId) {
+                    const existingTx = await axios.get(`${SUPABASE_URL}/rest/v1/transactions?quote_id=eq.${quoteId}&type=eq.income&select=id&limit=1`, {
+                        headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
+                    });
+                    if (existingTx.data && existingTx.data.length > 0) {
+                        skipAutoTransaction = true;
+                        console.log(`📋 [CONTAS-RECEBER] Orçamento ${quoteId} já possui lançamento financeiro. Pulando criação automática.`);
+                    }
+                }
+
+                if (!skipAutoTransaction) {
+                    // Buscar user_id do dono da empresa para vincular ao lançamento
+                    const companyOwnerRes = await axios.get(`${SUPABASE_URL}/rest/v1/company_members?company_id=eq.${companyId}&role=eq.owner&select=user_id&limit=1`, {
+                        headers: { 'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY }
+                    });
+                    const ownerId = companyOwnerRes.data?.[0]?.user_id;
+
+                    if (ownerId) {
+                        const customerName = payload.customer?.name || 'Cliente';
+                        const methodLabel = (payload.payment_method === 'pix' ? 'Pix' : payload.payment_method === 'credit_card' ? 'Cartão' : payload.payment_method === 'boleto' ? 'Boleto' : 'Cobrança');
+                        const transactionDesc = payload.description || `${methodLabel} - ${customerName}`;
+
+                        await axios.post(`${SUPABASE_URL}/rest/v1/transactions`, {
+                            user_id: ownerId,
+                            company_id: companyId,
+                            description: transactionDesc,
+                            amount: Number(payload.amount),
+                            date: dueDateValue || new Date().toISOString().split('T')[0],
+                            type: 'income',
+                            status: 'pending',
+                            contact_id: customerId || null,
+                            quote_id: quoteId || null,
+                            payment_method: payload.payment_method || 'pix',
+                            notes: `Ref: ${external_reference} | Gerado automaticamente via ${provider}`
+                        }, {
+                            headers: {
+                                'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            }
+                        });
+                        console.log(`📋 [CONTAS-RECEBER] Lançamento pendente criado para cobrança ${external_reference} (${transactionDesc} - R$ ${payload.amount})`);
+                    } else {
+                        console.warn(`⚠️ [CONTAS-RECEBER] Não foi possível encontrar o dono da empresa ${companyId} para criar lançamento.`);
+                    }
+                }
+            } catch (txErr: any) {
+                console.error('⚠️ [CONTAS-RECEBER] Erro ao criar lançamento automático (não-bloqueante):', txErr.response?.data || txErr.message);
+            }
         }
 
         res.json(result);
@@ -11072,6 +11126,26 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
                         }, { headers: { 'apikey': SUPABASE_ANON_KEY } });
                         console.log(`✅ Assinatura da empresa ${possibleCompanyName} renovada!`);
                     }
+                }
+            // C) Sincronizar Baixa Automática no Contas a Receber por Referência Externa (se criado sem quote_id)
+            if (external_reference) {
+                try {
+                    const patchTx: any = {
+                        status: 'received',
+                        payment_date: new Date().toISOString().split('T')[0]
+                    };
+                    if (paid_amount) patchTx.paid_amount = paid_amount;
+
+                    await axios.patch(`${SUPABASE_URL}/rest/v1/transactions?notes=ilike.%${external_reference}%`, patchTx, {
+                        headers: {
+                            'apikey': SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    console.log(`✅ [CONTAS-RECEBER] Baixa automática efetuada para a cobrança ${external_reference}`);
+                } catch (txSettleErr: any) {
+                    console.warn('⚠️ [CONTAS-RECEBER] Erro ao sincronizar baixa automática no webhook:', txSettleErr.message);
                 }
             }
         }
