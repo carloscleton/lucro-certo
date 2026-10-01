@@ -11127,6 +11127,8 @@ app.post('/payments/webhook/:provider/:companyId', async (req, res) => {
                         console.log(`✅ Assinatura da empresa ${possibleCompanyName} renovada!`);
                     }
                 }
+            }
+
             // C) Sincronizar Baixa Automática no Contas a Receber por Referência Externa (se criado sem quote_id)
             if (external_reference) {
                 try {
