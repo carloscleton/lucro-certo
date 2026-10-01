@@ -2145,23 +2145,31 @@ ${messageWithPlaceholder}`;
                                                                 ? "Gerar Cobrança (Pix, Cartão ou Boleto)"
                                                                 : "⚠️ Nenhum Gateway de Pagamento ativo. Vá em Configurações > Integradores / Pagamentos para configurar.";
 
+                                                    const isPaidCharge = activeCharge && (activeCharge.status === 'approved' || activeCharge.status === 'paid');
+
+                                                    const finalTooltip = isPaidCharge
+                                                        ? `✅ Cobrança já paga — Pagamento confirmado`
+                                                        : tooltipContent;
+
                                                     return (
-                                                        <Tooltip content={tooltipContent}>
+                                                        <Tooltip content={finalTooltip}>
                                                             <button
                                                                 onClick={() => {
-                                                                    if (!hasActiveGateway) return;
+                                                                    if (!hasActiveGateway || isPaidCharge) return;
                                                                     setBoletoModal({ isOpen: true, invoice });
                                                                 }}
-                                                                disabled={!hasActiveGateway}
+                                                                disabled={!hasActiveGateway || !!isPaidCharge}
                                                                 className={clsx(
                                                                     "h-10 w-10 flex items-center justify-center glass-morphism rounded-xl transition-all shadow-sm relative",
-                                                                    activeCharge
-                                                                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 dark:border-emerald-400 font-bold shadow-emerald-500/20"
-                                                                        : isCancelled
-                                                                            ? "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-2 border-rose-500 dark:border-rose-400 font-bold shadow-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-900/50 cursor-pointer"
-                                                                            : hasActiveGateway
-                                                                                ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
-                                                                                : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800"
+                                                                    isPaidCharge
+                                                                        ? "opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700"
+                                                                        : activeCharge
+                                                                            ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 dark:border-emerald-400 font-bold shadow-emerald-500/20"
+                                                                            : isCancelled
+                                                                                ? "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-2 border-rose-500 dark:border-rose-400 font-bold shadow-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-900/50 cursor-pointer"
+                                                                                : hasActiveGateway
+                                                                                    ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer"
+                                                                                    : "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-slate-800"
                                                                 )}
                                                             >
                                                                 {isCancelled ? (
@@ -2174,7 +2182,7 @@ ${messageWithPlaceholder}`;
                                                                     <FileText size={18} />
                                                                 )}
 
-                                                                {activeCharge && (
+                                                                {activeCharge && !isPaidCharge && (
                                                                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
                                                                 )}
                                                                 {isCancelled && (
