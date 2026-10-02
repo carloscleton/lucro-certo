@@ -299,6 +299,7 @@ export function Invoices() {
         isLoading: boolean;
         isFetchingEmails?: boolean;
         clientEmails?: string[];
+        boletoUrl?: string;
     }>({
         isOpen: false,
         invoice: null,
@@ -307,7 +308,8 @@ export function Invoices() {
         message: '',
         isLoading: false,
         isFetchingEmails: false,
-        clientEmails: []
+        clientEmails: [],
+        boletoUrl: undefined
     });
     const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<any | null>(null);
     const [isRewriting, setIsRewriting] = useState(false);
@@ -1102,6 +1104,113 @@ ${messageWithPlaceholder}`;
         }
     };
 
+    const getSendModalInvoiceDetails = (invoice: any) => {
+        if (!invoice) return { clientName: 'Cliente', invoiceNumber: '', accessKey: '', invoiceAmount: 'R$ 0,00', rawAmount: 0 };
+        const p = invoice.payload || {};
+        const quoteContact = invoice.quote?.contact;
+        const clientName = quoteContact?.name ||
+            p?.infDPS?.toma?.xNome || p?.toma?.xNome || p?.DPS?.infDPS?.toma?.xNome || p?.retorno?.infDPS?.toma?.xNome ||
+            p?.tomador?.razaoSocial || p?.tomador?.nome || p?.destinatario?.razaoSocial || p?.destinatario?.nome ||
+            p?.borrower?.name || p?.retorno?.tomador?.razaoSocial || p?.retorno?.borrower?.name ||
+            (p?.noTomador ? 'CONSUMIDOR FINAL' : 'Cliente');
+
+        const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
+        const invoiceNumber = num ? String(num) : (invoice.external_id || '');
+
+        const accessKey = invoice.access_key || p?.retorno?.chaveAcesso || p?.chaveAcesso || p?.chave || '';
+
+        const servicos = Array.isArray(p?.servico) ? p.servico : (p?.servico ? [p.servico] : []);
+        const servico = servicos[0];
+        const val = invoice.amount || 
+                    p?.servicesAmount || 
+                    p?.retorno?.servicesAmount || 
+                    p?.retorno?.valorTotal || 
+                    p?.infDPS?.valores?.vServPrest?.vServ ||
+                    p?.valores?.vServPrest?.vServ ||
+                    p?.retorno?.infDPS?.valores?.vServPrest?.vServ ||
+                    p?.retorno?.valores?.vServPrest?.vServ ||
+                    servico?.valor?.servico || 
+                    p?.valorTotal || 
+                    p?.valorTotalBruto || 
+                    p?.vServ ||
+                    0;
+        const invoiceAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+        return { clientName, invoiceNumber, accessKey, invoiceAmount, rawAmount: val };
+    };
+
+    const fetchBoletoUrlForInvoice = async (invoice: any): Promise<string | undefined> => {
+        if (!invoice?.company_id) return undefined;
+        const p = invoice.payload || {};
+        
+        // 1. Check direct properties on payload
+        const directBoleto = p?.bank_slip_url || p?.boletoUrl || p?.boleto_url || p?.payment_link || p?.retorno?.bank_slip_url || p?.retorno?.boletoUrl || invoice?.boleto_url;
+        if (typeof directBoleto === 'string' && directBoleto.startsWith('http')) {
+            return directBoleto;
+        }
+
+        // 2. Safely query company_charges
+        try {
+            const num = invoice.invoice_number || p?.retorno?.numeroNfse || p?.numeroNfse || p?.numeroNfe || p?.retorno?.numero || p?.numero || p?.retorno?.dps?.numero;
+            const rawNo = num ? String(num) : (invoice.external_id ? String(invoice.external_id).slice(-6) : '');
+            const cleanNo = String(rawNo).replace(/\D/g, '');
+
+            const validQuoteId = (typeof invoice.quote_id === 'string' && invoice.quote_id.trim().length > 10)
+                ? invoice.quote_id.trim()
+                : (typeof invoice.quote?.id === 'string' && invoice.quote.id.trim().length > 10 ? invoice.quote.id.trim() : null);
+
+            const orClauses: string[] = [];
+
+            if (validQuoteId) {
+                orClauses.push(`quote_id.eq.${validQuoteId}`);
+            }
+
+            if (cleanNo) {
+                orClauses.push(`external_reference.eq.NF${cleanNo}`);
+                orClauses.push(`external_reference.eq.${cleanNo}`);
+                orClauses.push(`description.ilike.%${cleanNo}%`);
+            } else if (rawNo) {
+                const safeNo = String(rawNo).replace(/[^a-zA-Z0-9]/g, '');
+                if (safeNo) {
+                    orClauses.push(`external_reference.eq.NF${safeNo}`);
+                    orClauses.push(`description.ilike.%${safeNo}%`);
+                }
+            }
+
+            if (invoice.id && typeof invoice.id === 'string' && invoice.id.length > 10) {
+                orClauses.push(`external_reference.eq.${invoice.id}`);
+            }
+
+            if (orClauses.length === 0) return undefined;
+
+            const { data: chargeData, error: chargeErr } = await supabase
+                .from('company_charges')
+                .select('bank_slip_url, payment_link, invoice_url, pdf_url, status')
+                .eq('company_id', invoice.company_id)
+                .or(orClauses.join(','))
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (chargeErr) {
+                console.warn('⚠️ Erro ao consultar company_charges:', chargeErr.message);
+                return undefined;
+            }
+
+            if (chargeData && chargeData.length > 0) {
+                const ch = chargeData[0];
+                if (ch.status !== 'cancelled' && ch.status !== 'rejected') {
+                    const u = ch.bank_slip_url || ch.payment_link || ch.invoice_url || ch.pdf_url;
+                    if (typeof u === 'string' && u.startsWith('http')) {
+                        return u;
+                    }
+                }
+            }
+        } catch (bErr) {
+            console.warn('Erro ao buscar boleto vinculado:', bErr);
+        }
+        return undefined;
+    };
+
     const handleOpenSendEmail = async (invoice: any) => {
         const payloadEmail = getEmailFromPayload(invoice).toLowerCase().trim();
         const initialEmails = payloadEmail ? payloadEmail.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean) : [];
@@ -1114,7 +1223,8 @@ ${messageWithPlaceholder}`;
             message: '',
             isLoading: false,
             isFetchingEmails: true,
-            clientEmails: initialEmails
+            clientEmails: initialEmails,
+            boletoUrl: undefined
         });
 
         try {
@@ -1187,14 +1297,17 @@ ${messageWithPlaceholder}`;
 
             // 3. Tentar por Nome se ainda não achou
             if (dbEmails.length === 0 && rawName && typeof rawName === 'string' && rawName.trim().length >= 3) {
-                const cleanName = rawName.trim();
-                let q = supabase.from('contacts').select('email');
-                if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
-                q = q.or(`name.ilike.%${cleanName}%,trade_name.ilike.%${cleanName}%`);
+                const words = rawName.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().split(/\s+/).filter(w => w.length >= 3);
+                const searchWord = words[0] || rawName.trim().slice(0, 15).replace(/[^a-zA-Z0-9]/g, '');
+                if (searchWord) {
+                    let q = supabase.from('contacts').select('email');
+                    if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
+                    q = q.or(`name.ilike.%${searchWord}%,trade_name.ilike.%${searchWord}%`);
 
-                const { data } = await q.limit(1);
-                if (data?.[0]?.email) {
-                    dbEmails.push(data[0].email);
+                    const { data } = await q.limit(1);
+                    if (data?.[0]?.email) {
+                        dbEmails.push(data[0].email);
+                    }
                 }
             }
 
@@ -1203,13 +1316,17 @@ ${messageWithPlaceholder}`;
                 ...initialEmails
             ])).filter(Boolean);
 
+            // 4. Buscar Boleto vinculado se houver
+            const fetchedBoletoUrl = await fetchBoletoUrlForInvoice(invoice);
+
             setSendModal(prev => {
                 if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'email') {
                     return { 
                         ...prev, 
                         isFetchingEmails: false,
                         clientEmails: combinedList,
-                        recipient: combinedList.join(', ')
+                        recipient: combinedList.join(', '),
+                        boletoUrl: fetchedBoletoUrl
                     };
                 }
                 return prev;
@@ -1270,62 +1387,38 @@ ${messageWithPlaceholder}`;
                 });
             } else {
                 const inv = sendModal.invoice;
-                const p = inv.payload;
+                const p = inv.payload || {};
 
-                // E-mail original do cadastro da nota
-                const registeredEmail = getEmailFromPayload(inv).toLowerCase().trim();
-                const recipientEmail = sendModal.recipient.toLowerCase().trim();
-                const isRegisteredEmail = registeredEmail && registeredEmail === recipientEmail;
+                const pdfUrl = getPdfUrlFromInvoice(inv);
+                const rawXmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl;
+                const xmlUrl = typeof rawXmlUrl === 'string' ? rawXmlUrl : undefined;
 
-                if (isRegisteredEmail) {
-                    // ✅ E-mail igual ao cadastro → usa o provedor fiscal (PlugNotas/NFe.io)
-                    console.log(`✉️ [EMAIL] E-mail igual ao cadastro → usando provedor fiscal`);
-                    await fiscalService.resendEmail(
-                        inv.external_id,
-                        inv.type,
-                        inv.company_id,
-                        [sendModal.recipient],
-                        session.access_token
-                    );
-                    setResultModal({
-                        isOpen: true,
-                        title: 'E-mail Enviado! ✉️',
-                        message: `Nota Fiscal enviada para ${sendModal.recipient} via ${inv.type === 'nfe' ? 'PlugNotas' : 'provedor fiscal'}.`,
-                        type: 'success'
-                    });
-                } else {
-                    // ✅ E-mail diferente do cadastro → usa Resend para entrega garantida
-                    console.log(`✉️ [EMAIL] E-mail diferente do cadastro (${registeredEmail || 'vazio'} → ${recipientEmail}) → usando Resend`);
-                    const pdfUrl = getPdfUrlFromInvoice(inv);
-                    // Garante que xmlUrl é string (payload TecnoSpeed pode retornar objeto)
-                    const rawXmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl;
-                    const xmlUrl = typeof rawXmlUrl === 'string' ? rawXmlUrl : undefined;
-                    const clientName = inv.quote?.contact?.name ||
-                        p?.infDPS?.toma?.xNome || p?.toma?.xNome ||
-                        p?.tomador?.razaoSocial || p?.destinatario?.nome ||
-                        p?.borrower?.name || p?.retorno?.borrower?.name || 'Cliente';
-                    const invoiceNumber = p?.numero || p?.nfseNumero || p?.retorno?.nfseNumero || inv.external_id || '';
-                    const companyName = inv.company?.trade_name || currentEntity?.name || 'Lucro Certo';
+                const { clientName, invoiceNumber, accessKey, invoiceAmount } = getSendModalInvoiceDetails(inv);
+                const companyName = inv.company?.trade_name || currentEntity?.name || 'Lucro Certo';
 
-                    await fiscalService.sendEmailViaResend({
-                        to: sendModal.recipient,
-                        token: session.access_token,
-                        clientName,
-                        invoiceNumber: String(invoiceNumber),
-                        invoiceType: inv.type || 'nfse',
-                        // Verifica se é string antes de chamar .startsWith
-                        pdfUrl: typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? pdfUrl : undefined,
-                        xmlUrl: typeof xmlUrl === 'string' && xmlUrl.startsWith('http') ? xmlUrl : undefined,
-                        companyName,
-                        companyId: currentEntity?.id
-                    });
-                    setResultModal({
-                        isOpen: true,
-                        title: 'E-mail Enviado! ✉️',
-                        message: `Nota Fiscal enviada para ${sendModal.recipient} (e-mail alternativo via Resend).`,
-                        type: 'success'
-                    });
-                }
+                const boletoUrl = sendModal.boletoUrl || (await fetchBoletoUrlForInvoice(inv));
+
+                await fiscalService.sendEmailViaResend({
+                    to: sendModal.recipient,
+                    token: session.access_token,
+                    clientName,
+                    invoiceNumber: String(invoiceNumber),
+                    invoiceType: inv.type || 'nfse',
+                    invoiceAmount,
+                    accessKey,
+                    pdfUrl: typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? pdfUrl : undefined,
+                    xmlUrl: typeof xmlUrl === 'string' && xmlUrl.startsWith('http') ? xmlUrl : undefined,
+                    boletoUrl: typeof boletoUrl === 'string' && boletoUrl.startsWith('http') ? boletoUrl : undefined,
+                    companyName,
+                    companyId: currentEntity?.id || inv.company_id
+                });
+
+                setResultModal({
+                    isOpen: true,
+                    title: 'E-mail Enviado! ✉️',
+                    message: `Nota Fiscal enviada para ${sendModal.recipient} com sucesso!`,
+                    type: 'success'
+                });
             }
             setSendModal(prev => ({ ...prev, isOpen: false }));
         } catch (err: any) {
@@ -2461,6 +2554,54 @@ ${messageWithPlaceholder}`;
                     maxWidth="max-w-md"
                 >
                     <div className="space-y-6 pt-2">
+                        {/* Resumo do Documento (Cliente & Valor) */}
+                        {sendModal.invoice && (() => {
+                            const { clientName, invoiceNumber, accessKey, invoiceAmount } = getSendModalInvoiceDetails(sendModal.invoice);
+                            return (
+                                <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-slate-800/80 dark:to-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2 text-xs">
+                                    <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-1.5">
+                                        <span className="font-extrabold uppercase text-[10px] tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                            <FileText size={13} className="text-blue-600 dark:text-blue-400" />
+                                            Resumo do Documento
+                                        </span>
+                                        {invoiceNumber && (
+                                            <span className="font-bold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/80 px-2 py-0.5 rounded-full text-[10px]">
+                                                Nº {invoiceNumber}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                                        <div>
+                                            <span className="block text-[9px] font-bold uppercase text-slate-400">Cliente / Tomador</span>
+                                            <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs truncate block" title={clientName}>
+                                                {clientName}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[9px] font-bold uppercase text-slate-400">Valor da Nota Fiscal</span>
+                                            <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs block">
+                                                {invoiceAmount}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {accessKey && (
+                                        <div className="pt-0.5">
+                                            <span className="block text-[9px] font-bold uppercase text-slate-400">Chave de Acesso</span>
+                                            <span className="font-mono text-[9px] text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 select-all block truncate" title={accessKey}>
+                                                {accessKey}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {sendModal.type === 'email' && sendModal.boletoUrl && (
+                                        <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 p-1.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40">
+                                            <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0" />
+                                            <span className="font-bold text-[10px]">Boleto bancário gerado vinculado (será anexado ao e-mail).</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
                         {sendModal.type === 'whatsapp' ? (
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">

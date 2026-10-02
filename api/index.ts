@@ -7678,14 +7678,20 @@ const DEFAULT_EMAIL_HTML_TEMPLATE = `<!DOCTYPE html>
               <p style="margin:0 0 8px;color:#64748b;font-size:14px;">Olá,</p>
               <h2 style="margin:0 0 24px;color:#1e293b;font-size:22px;font-weight:700;">{{clientName}} 👋</h2>
               <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                Sua <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong> foi emitida com sucesso e está disponível para acesso.
+                Sua <strong>{{invoiceLabel}} Nº {{invoiceNumber}}</strong>{{#if invoiceAmount}} no valor de <strong>{{invoiceAmount}}</strong>{{/if}} foi emitida com sucesso e está disponível para acesso.
               </p>
               <!-- Destaque -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;margin-bottom:32px;">
                 <tr>
                   <td style="padding:24px;">
                     <p style="margin:0 0 4px;color:#0369a1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Documento Emitido</p>
-                    <p style="margin:0;color:#0c4a6e;font-size:18px;font-weight:700;">{{invoiceLabel}} Nº {{invoiceNumber}}</p>
+                    <p style="margin:0 0 4px;color:#0c4a6e;font-size:18px;font-weight:700;">{{invoiceLabel}} Nº {{invoiceNumber}}</p>
+                    {{#if invoiceAmount}}
+                    <p style="margin:4px 0 0;color:#0369a1;font-size:15px;font-weight:600;">Valor Total: <strong style="color:#0c4a6e;">{{invoiceAmount}}</strong></p>
+                    {{/if}}
+                    {{#if accessKey}}
+                    <p style="margin:8px 0 0;color:#0284c7;font-size:12px;word-break:break-all;font-family:monospace;">Chave de Acesso: {{accessKey}}</p>
+                    {{/if}}
                   </td>
                 </tr>
               </table>
@@ -7696,6 +7702,18 @@ const DEFAULT_EMAIL_HTML_TEMPLATE = `<!DOCTYPE html>
                   <td align="center">
                     <a href="{{pdfUrl}}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#0f3460,#1a1a2e);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
                       📄 Visualizar PDF da Nota
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              {{/if}}
+              <!-- Botão Boleto -->
+              {{#if boletoUrl}}
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{boletoUrl}}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#059669,#047857);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.5px;">
+                      🏷️ Visualizar / Baixar Boleto
                     </a>
                   </td>
                 </tr>
@@ -7749,7 +7767,7 @@ const parseConditionalBlock = (html: string, variableName: string, value: any) =
 
 // ✉️ Envio de e-mail via Resend (funciona para qualquer destinatário)
 app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
-    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, companyName, companyLogo, companyId } = req.body;
+    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, boletoUrl, invoiceAmount, accessKey, companyName, companyLogo, companyId } = req.body;
 
     if (!to) {
         return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
@@ -7838,14 +7856,20 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     // 1. Processar blocos condicionais
     htmlBody = parseConditionalBlock(htmlBody, 'pdfUrl', !!pdfUrl && String(pdfUrl).startsWith('http'));
     htmlBody = parseConditionalBlock(htmlBody, 'xmlUrl', !!xmlUrl && String(xmlUrl).startsWith('http'));
+    htmlBody = parseConditionalBlock(htmlBody, 'boletoUrl', !!boletoUrl && String(boletoUrl).startsWith('http'));
+    htmlBody = parseConditionalBlock(htmlBody, 'invoiceAmount', !!invoiceAmount);
+    htmlBody = parseConditionalBlock(htmlBody, 'accessKey', !!accessKey);
 
     // 2. Substituir placeholders
     htmlBody = replacePlaceholder(htmlBody, 'companyName', safeCompanyName);
     htmlBody = replacePlaceholder(htmlBody, 'clientName', safeClientName);
     htmlBody = replacePlaceholder(htmlBody, 'invoiceNumber', safeInvoiceNumber);
     htmlBody = replacePlaceholder(htmlBody, 'invoiceLabel', invoiceLabel);
+    htmlBody = replacePlaceholder(htmlBody, 'invoiceAmount', invoiceAmount || '');
+    htmlBody = replacePlaceholder(htmlBody, 'accessKey', accessKey || '');
     htmlBody = replacePlaceholder(htmlBody, 'pdfUrl', pdfUrl || '');
     htmlBody = replacePlaceholder(htmlBody, 'xmlUrl', xmlUrl || '');
+    htmlBody = replacePlaceholder(htmlBody, 'boletoUrl', boletoUrl || '');
 
     if (isSmtp) {
         try {

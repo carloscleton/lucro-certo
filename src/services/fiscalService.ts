@@ -173,8 +173,11 @@ export const fiscalService = {
         clientName?: string;
         invoiceNumber?: string;
         invoiceType?: string;
+        invoiceAmount?: string;
+        accessKey?: string;
         pdfUrl?: string;
         xmlUrl?: string;
+        boletoUrl?: string;
         companyName?: string;
         subject?: string;
         companyId?: string;
@@ -186,8 +189,11 @@ export const fiscalService = {
             clientName: params.clientName,
             invoiceNumber: params.invoiceNumber,
             invoiceType: params.invoiceType,
+            invoiceAmount: params.invoiceAmount,
+            accessKey: params.accessKey,
             pdfUrl: params.pdfUrl,
             xmlUrl: params.xmlUrl,
+            boletoUrl: params.boletoUrl,
             companyName: params.companyName,
             companyId: params.companyId
         }, {
