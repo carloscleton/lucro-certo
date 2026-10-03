@@ -326,10 +326,13 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterId || '');
             if (currentEntity.cnpj && (!filterId || !isUUID)) {
                 const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                const formattedCnpj = cleanCnpj.length === 14 
+                    ? cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                    : cleanCnpj;
                 const { data: compData } = await supabase
                     .from('companies')
                     .select('id')
-                    .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                    .in('cnpj', Array.from(new Set([cleanCnpj, formattedCnpj, currentEntity.cnpj])))
                     .maybeSingle();
                 if (compData?.id) {
                     filterId = compData.id;

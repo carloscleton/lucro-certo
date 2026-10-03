@@ -339,10 +339,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                 const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterCompanyId || '');
                 if (currentEntity.cnpj && (!filterCompanyId || !isUUID)) {
                     const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                    const formattedCnpj = cleanCnpj.length === 14 
+                        ? cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                        : cleanCnpj;
                     const { data: compData } = await supabase
                         .from('companies')
                         .select('id')
-                        .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                        .in('cnpj', Array.from(new Set([cleanCnpj, formattedCnpj, currentEntity.cnpj])))
                         .maybeSingle();
                     if (compData?.id) {
                         filterCompanyId = compData.id;
@@ -1308,11 +1311,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
                             console.log(`🔍 [DB-SAVE] Resolvendo UUID via CNPJ: ${currentEntity.cnpj}`);
                             const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                            const formattedCnpj = cleanCnpj.length === 14 
+                                ? cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                                : cleanCnpj;
                             
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                                .in('cnpj', Array.from(new Set([cleanCnpj, formattedCnpj, currentEntity.cnpj])))
                                 .maybeSingle();
                             
                             if (compData?.id) {
@@ -1564,10 +1570,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                         if (currentEntity.cnpj && (!realCompanyId || !isUUID)) {
                             const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                            const formattedCnpj = cleanCnpj.length === 14 
+                                ? cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                                : cleanCnpj;
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                                .in('cnpj', Array.from(new Set([cleanCnpj, formattedCnpj, currentEntity.cnpj])))
                                 .maybeSingle();
                             if (compData?.id) realCompanyId = compData.id;
                         }
@@ -1668,10 +1677,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         let realCompanyId = currentEntity.id;
                         if (currentEntity.cnpj) {
                             const cleanCnpj = currentEntity.cnpj.replace(/\D/g, '');
+                            const formattedCnpj = cleanCnpj.length === 14 
+                                ? cleanCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                                : cleanCnpj;
                             const { data: compData } = await supabase
                                 .from('companies')
                                 .select('id')
-                                .or(`cnpj.eq.${cleanCnpj},cnpj.eq.${currentEntity.cnpj}`)
+                                .in('cnpj', Array.from(new Set([cleanCnpj, formattedCnpj, currentEntity.cnpj])))
                                 .maybeSingle();
                             
                             if (compData?.id) {
