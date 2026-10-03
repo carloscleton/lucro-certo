@@ -7789,13 +7789,13 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     if (companyId && SUPABASE_URL) {
         try {
             const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
-            const authHeader = req.headers.authorization || `Bearer ${supabaseKey}`;
+            // Usa a service_role key para a busca no banco, evitando bloqueio por RLS
             const response = await axios.get(
                 `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
                 {
                     headers: {
                         'apikey': supabaseKey,
-                        'Authorization': authHeader
+                        'Authorization': `Bearer ${supabaseKey}`
                     }
                 }
             );
@@ -7806,23 +7806,32 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
                 activeFromEmail = resendConfig.fromEmail || '';
             }
         } catch (dbErr: any) {
-            console.warn(`⚠️ [RESEND] Erro ao buscar configurações de email customizado da empresa ${companyId}:`, dbErr.message);
+            console.warn(`⚠️ [EMAIL] Erro ao buscar configurações de e-mail da empresa ${companyId}:`, dbErr.message);
         }
     }
 
     const isSmtp = resendConfig.provider === 'smtp';
-    let isUsingGlobalFallback = false;
-    if (!isSmtp && !activeApiKey) {
+
+    if (isSmtp) {
+        if (!resendConfig.smtp_host || !resendConfig.smtp_user || !resendConfig.smtp_pass) {
+            return res.status(400).json({
+                error: 'Configuração de SMTP incompleta',
+                message: 'Verifique se os campos de Servidor SMTP, Usuário e Senha estão preenchidos em Configurações > E-mail.'
+            });
+        }
+        if (!activeFromEmail) {
+            activeFromEmail = `${safeCompanyName} <${resendConfig.smtp_user}>`;
+        }
+    } else if (!activeApiKey) {
         if (RESEND_API_KEY) {
             activeApiKey = RESEND_API_KEY;
             const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'nao-responder@lucrocerto.com';
             activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
-            isUsingGlobalFallback = true;
             console.log(`ℹ️ [RESEND] Empresa ${companyId} não tem API Key própria. Usando fallback global: ${activeFromEmail}`);
         } else {
             return res.status(400).json({ 
                 error: 'Configuração de e-mail ausente', 
-                message: 'Você precisa configurar sua própria Chave de API e E-mail de Remetente do Resend em Configurações > E-mail.' 
+                message: 'Você precisa configurar sua própria Chave de API ou Servidor SMTP em Configurações > E-mail.' 
             });
         }
     }
