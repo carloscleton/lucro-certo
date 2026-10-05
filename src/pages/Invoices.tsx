@@ -1199,7 +1199,7 @@ ${messageWithPlaceholder}`;
             if (chargeData && chargeData.length > 0) {
                 const ch = chargeData[0];
                 if (ch.status !== 'cancelled' && ch.status !== 'rejected') {
-                    const u = ch.bank_slip_url || ch.payment_link || ch.invoice_url || ch.pdf_url;
+                    const u = ch.payment_link || ch.invoice_url || ch.pdf_url;
                     if (typeof u === 'string' && u.startsWith('http')) {
                         return u;
                     }
