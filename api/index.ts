@@ -7802,43 +7802,46 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     const safeCompanyName = companyName || 'Lucro Certo';
 
     let companySettings: any = null;
-    let resendConfig: any = clientResendConfig || {};
+    let resendConfig: any = {};
 
-    if ((!resendConfig || (!resendConfig.apiKey && !resendConfig.smtp_host)) && companyId && SUPABASE_URL) {
-        try {
-            const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
-            const authHeader = req.headers.authorization || `Bearer ${supabaseKey}`;
+    // 1. Busca configurações da empresa no banco usando o token do usuário (igual à versão que funcionava;
+    //    com a chave anon o RLS bloqueia a leitura e as configurações voltam vazias).
+    if (companyId && SUPABASE_URL) {
+        const tryFetch = async (apiKeyHeader: string, authHeader: string) => {
             const response = await axios.get(
                 `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
-                {
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': authHeader
-                    }
-                }
+                { headers: { 'apikey': apiKeyHeader, 'Authorization': authHeader } }
             );
-            if (response.data && response.data.length > 0) {
-                companySettings = response.data[0].settings || {};
-                const dbResend = companySettings.resend_config || {};
-                resendConfig = { ...dbResend, ...resendConfig };
+            return response.data && response.data.length > 0 ? (response.data[0].settings || {}) : null;
+        };
+        try {
+            if (req.headers.authorization) {
+                companySettings = await tryFetch(SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY!, req.headers.authorization as string);
+            }
+            if (!companySettings && SUPABASE_SERVICE_ROLE_KEY) {
+                companySettings = await tryFetch(SUPABASE_SERVICE_ROLE_KEY, `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`);
             }
         } catch (dbErr: any) {
-            console.warn(`⚠️ [EMAIL] Erro ao buscar configurações de e-mail da empresa ${companyId}:`, dbErr.message);
+            console.warn(`⚠️ [EMAIL] Erro ao buscar configurações de e-mail da empresa ${companyId}:`, dbErr.response?.data || dbErr.message);
+        }
+        resendConfig = { ...(companySettings?.resend_config || {}) };
+    }
+
+    // 2. Complementa com a configuração enviada pelo front (mesma usada no "Testar Envio"), só onde o banco não tem valor
+    if (clientResendConfig && typeof clientResendConfig === 'object') {
+        for (const [k, v] of Object.entries(clientResendConfig)) {
+            if (v !== undefined && v !== null && v !== '' && (resendConfig[k] === undefined || resendConfig[k] === null || resendConfig[k] === '')) {
+                resendConfig[k] = v;
+            }
         }
     }
 
     const isSmtp = resendConfig.provider === 'smtp';
     let activeApiKey = resendConfig.apiKey || '';
-    let activeFromEmail = '';
+    // Remetente: usa exatamente o valor configurado (mesmo comportamento do "Testar Envio")
+    let activeFromEmail = resendConfig.fromEmail ? String(resendConfig.fromEmail).trim() : '';
 
-    if (resendConfig.fromEmail && String(resendConfig.fromEmail).trim()) {
-        const rawFrom = String(resendConfig.fromEmail).trim();
-        if (rawFrom.includes('<') && rawFrom.includes('>')) {
-            activeFromEmail = rawFrom;
-        } else {
-            activeFromEmail = `${safeCompanyName} <${rawFrom}>`;
-        }
-    }
+    console.log(`✉️ [EMAIL] Empresa ${companyId} | provider=${resendConfig.provider || 'resend'} | configDoBanco=${!!companySettings} | apiKeyPropria=${!!resendConfig.apiKey} | from=${activeFromEmail || '(vazio)'}`);
 
     if (isSmtp) {
         if (!resendConfig.smtp_host || !resendConfig.smtp_user || !resendConfig.smtp_pass) {
@@ -7848,12 +7851,12 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
             });
         }
         if (!activeFromEmail) {
-            activeFromEmail = `${safeCompanyName} <${resendConfig.smtp_user}>`;
+            activeFromEmail = resendConfig.smtp_user;
         }
     } else {
         if (!activeApiKey && RESEND_API_KEY) {
             activeApiKey = RESEND_API_KEY;
-            console.log(`ℹ️ [RESEND] Empresa ${companyId} usando API Key global.`);
+            console.log(`ℹ️ [RESEND] Empresa ${companyId} sem API Key própria. Usando API Key global.`);
         }
         if (!activeApiKey) {
             return res.status(400).json({ 
@@ -7862,8 +7865,7 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
             });
         }
         if (!activeFromEmail) {
-            const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-            activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
+            activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
         }
     }
 
