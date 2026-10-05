@@ -1428,7 +1428,8 @@ ${messageWithPlaceholder}`;
                     xmlUrl: typeof xmlUrl === 'string' && xmlUrl.startsWith('http') ? xmlUrl : undefined,
                     boletoUrl: typeof boletoUrl === 'string' && boletoUrl.startsWith('http') ? boletoUrl : undefined,
                     companyName,
-                    companyId: currentEntity?.id || inv.company_id
+                    companyId: currentEntity?.id || inv.company_id,
+                    resendConfig: resendConfig || currentCompany?.settings?.resend_config
                 });
 
                 setResultModal({

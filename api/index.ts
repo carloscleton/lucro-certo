@@ -7786,43 +7786,41 @@ const parseConditionalBlock = (html: string, variableName: string, value: any) =
 
 // ✉️ Envio de e-mail via Resend (funciona para qualquer destinatário)
 app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
-    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, boletoUrl, invoiceAmount, accessKey, companyName, companyLogo, companyId } = req.body;
+    const { to, subject, clientName, invoiceNumber, invoiceType, pdfUrl, xmlUrl, boletoUrl, invoiceAmount, accessKey, companyName, companyLogo, companyId, resendConfig: clientResendConfig } = req.body;
 
     if (!to) {
         return res.status(400).json({ error: 'E-mail do destinatário é obrigatório.' });
     }
 
-    if (!companyId) {
+    if (!companyId && !clientResendConfig) {
         return res.status(400).json({ error: 'Configuração de e-mail ausente. ID da empresa não fornecido.' });
     }
 
-    let activeApiKey = '';
     const invoiceLabel = invoiceType === 'nfe' ? 'NF-e' : 'NFS-e';
     const safeClientName = clientName || 'Cliente';
     const safeInvoiceNumber = invoiceNumber || 'N/A';
     const safeCompanyName = companyName || 'Lucro Certo';
-    let activeFromEmail = '';
-    let companySettings: any = null;
-    let resendConfig: any = {};
 
-    if (companyId && SUPABASE_URL) {
+    let companySettings: any = null;
+    let resendConfig: any = clientResendConfig || {};
+
+    if ((!resendConfig || (!resendConfig.apiKey && !resendConfig.smtp_host)) && companyId && SUPABASE_URL) {
         try {
             const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
-            // Usa a service_role key para a busca no banco, evitando bloqueio por RLS
+            const authHeader = req.headers.authorization || `Bearer ${supabaseKey}`;
             const response = await axios.get(
                 `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
                 {
                     headers: {
                         'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`
+                        'Authorization': authHeader
                     }
                 }
             );
             if (response.data && response.data.length > 0) {
                 companySettings = response.data[0].settings || {};
-                resendConfig = companySettings.resend_config || {};
-                activeApiKey = resendConfig.apiKey || '';
-                activeFromEmail = resendConfig.fromEmail || '';
+                const dbResend = companySettings.resend_config || {};
+                resendConfig = { ...dbResend, ...resendConfig };
             }
         } catch (dbErr: any) {
             console.warn(`⚠️ [EMAIL] Erro ao buscar configurações de e-mail da empresa ${companyId}:`, dbErr.message);
@@ -7830,6 +7828,17 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 
     const isSmtp = resendConfig.provider === 'smtp';
+    let activeApiKey = resendConfig.apiKey || '';
+    let activeFromEmail = '';
+
+    if (resendConfig.fromEmail && String(resendConfig.fromEmail).trim()) {
+        const rawFrom = String(resendConfig.fromEmail).trim();
+        if (rawFrom.includes('<') && rawFrom.includes('>')) {
+            activeFromEmail = rawFrom;
+        } else {
+            activeFromEmail = `${safeCompanyName} <${rawFrom}>`;
+        }
+    }
 
     if (isSmtp) {
         if (!resendConfig.smtp_host || !resendConfig.smtp_user || !resendConfig.smtp_pass) {
@@ -7841,22 +7850,21 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         if (!activeFromEmail) {
             activeFromEmail = `${safeCompanyName} <${resendConfig.smtp_user}>`;
         }
-    } else if (!activeApiKey) {
-        if (RESEND_API_KEY) {
+    } else {
+        if (!activeApiKey && RESEND_API_KEY) {
             activeApiKey = RESEND_API_KEY;
-            const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'nao-responder@lucrocerto.com';
-            activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
-            console.log(`ℹ️ [RESEND] Empresa ${companyId} não tem API Key própria. Usando fallback global: ${activeFromEmail}`);
-        } else {
+            console.log(`ℹ️ [RESEND] Empresa ${companyId} usando API Key global.`);
+        }
+        if (!activeApiKey) {
             return res.status(400).json({ 
                 error: 'Configuração de e-mail ausente', 
                 message: 'Você precisa configurar sua própria Chave de API ou Servidor SMTP em Configurações > E-mail.' 
             });
         }
-    }
-
-    if (!activeFromEmail) {
-        activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+        if (!activeFromEmail) {
+            const globalFromDomain = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+            activeFromEmail = `${safeCompanyName} <${globalFromDomain}>`;
+        }
     }
 
     // 📅 Controle de limite de 3.000 envios por mês

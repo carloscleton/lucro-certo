@@ -181,6 +181,7 @@ export const fiscalService = {
         companyName?: string;
         subject?: string;
         companyId?: string;
+        resendConfig?: any;
     }) {
         const base = API_BASE_URL.replace(/\/$/, '');
         const response = await axios.post(`${base}/send-email`, {
@@ -195,7 +196,8 @@ export const fiscalService = {
             xmlUrl: params.xmlUrl,
             boletoUrl: params.boletoUrl,
             companyName: params.companyName,
-            companyId: params.companyId
+            companyId: params.companyId,
+            resendConfig: params.resendConfig
         }, {
             headers: {
                 'Authorization': `Bearer ${params.token}`,
