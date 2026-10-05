@@ -322,12 +322,12 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
                    payloadObj.prestador?.razaoSocial || 
                    'CARLOSCLETON CARVALHO FERNANDES';
 
-  const emitLgr = getVal(enderEmit, 'xLgr') || payloadObj.prestador?.logradouro || 'RUA RIO SUASSUI';
-  const emitNro = getVal(enderEmit, 'nro') || payloadObj.prestador?.numero || '7710';
-  const emitBairro = getVal(enderEmit, 'xBairro') || payloadObj.prestador?.bairro || 'PITIMBU';
+  const emitLgr = getVal(enderEmit, 'xLgr') || payloadObj.prestador?.logradouro || 'RUA JOÃO PESSOA';
+  const emitNro = getVal(enderEmit, 'nro') || payloadObj.prestador?.numero || '267';
+  const emitBairro = getVal(enderEmit, 'xBairro') || payloadObj.prestador?.bairro || 'CIDADE ALTA';
   const emitMun = getVal(infNFSe, 'xLocEmi') || payloadObj.prestador?.cidade || 'Natal';
   const emitUf = getVal(enderEmit, 'UF') || payloadObj.prestador?.uf || 'RN';
-  const emitCep = formatCep(getVal(enderEmit, 'CEP') || payloadObj.prestador?.cep || '59068320');
+  const emitCep = formatCep(getVal(enderEmit, 'CEP') || payloadObj.prestador?.cep || '59025902');
   const emitMunCode = getVal(enderEmit, 'cMun') || getVal(infNFSe, 'cLocIncid') || '24.08102';
   const emitFone = getVal(emit, 'fone') || payloadObj.prestador?.telefone || '8430845723';
   const emitEmail = getVal(emit, 'email') || payloadObj.prestador?.email || 'CARLOSCLETON.NAT@GMAIL.COM';

@@ -5448,9 +5448,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const prestName = prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES';
     const prestCnpjFmt = formatCpfCnpj(prest.cnpj || prest.doc || '00893566000190');
     const prestImFmt = prest.im || prest.inscricaoMunicipal || '-';
-    const prestEndFmt = prest.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU';
+    const prestEndFmt = prest.endereco || 'RUA JOÃO PESSOA, 267, CIDADE ALTA';
     const prestCityUf = `${prest.cidade || 'Natal'} / ${prest.uf || 'RN'}`;
-    const prestIbgeCep = `${formatIbge(prest.cMun || '2408102')} / ${formatCep(prest.cep || '59068320')}`;
+    const prestIbgeCep = `${formatIbge(prest.cMun || '2408102')} / ${formatCep(prest.cep || '59025902')}`;
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
     doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
@@ -6056,9 +6056,21 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const amountVal = parseBrlFloat(rawAmount) || 1160.00;
 
                 // Prestador extraído do XML assinado ou payload
+                const enderEmitBlock = getXmlBlock(emitBlock, 'enderNac') || getXmlBlock(emitBlock, 'enderEmit') || emitBlock;
                 const prestCnpj = getXmlVal(emitBlock, 'CNPJ') || prest.CNPJ || prest.cnpj || nat.cnpj || '00893566000190';
                 const prestNome = getXmlVal(emitBlock, 'xNome') || prest.xNome || prest.nome || nat.razao_social || 'CARLOSCLETON CARVALHO FERNANDES';
                 const prestIm = getXmlVal(emitBlock, 'IM') || prest.IM || prest.im || nat.inscricao_municipal || '1254103';
+                const prestLgr = getXmlVal(enderEmitBlock, 'xLgr') || prest.end?.xLgr || prest.endereco?.logradouro || prest.logradouro || nat.logradouro || nat.endereco || 'RUA JOÃO PESSOA';
+                const prestNro = getXmlVal(enderEmitBlock, 'nro') || prest.end?.nro || prest.endereco?.numero || prest.numero || nat.numero || '267';
+                const prestBairro = getXmlVal(enderEmitBlock, 'xBairro') || prest.end?.xBairro || prest.endereco?.bairro || prest.bairro || nat.bairro || 'CIDADE ALTA';
+                const prestCMun = getXmlVal(enderEmitBlock, 'cMun') || getXmlVal(savedXml, 'cLocIncid') || getXmlVal(savedXml, 'cLocEmi') || prest.cMun || nat.cMun || '2408102';
+                const prestUf = getXmlVal(enderEmitBlock, 'UF') || prest.end?.UF || prest.endereco?.uf || prest.uf || nat.uf || 'RN';
+                const prestCep = getXmlVal(enderEmitBlock, 'CEP') || prest.end?.CEP || prest.endereco?.cep || prest.cep || nat.cep || '59025902';
+                const prestCidade = getXmlVal(savedXml, 'xLocEmi') || getXmlVal(savedXml, 'xLocIncid') || getXmlVal(enderEmitBlock, 'xMun') || prest.cidade || prest.municipio || nat.cidade || 'Natal';
+                const prestTelefone = getXmlVal(emitBlock, 'fone') || prest.fone || prest.telefone || nat.telefone || '';
+                const prestEmail = getXmlVal(emitBlock, 'email') || prest.email || nat.email || '';
+
+                const prestEnderStr = prestLgr ? `${prestLgr}${prestNro ? ' ' + prestNro : ''}${prestBairro ? ', ' + prestBairro : ''}` : (prest.endereco || 'RUA JOÃO PESSOA 267, CIDADE ALTA');
 
                 // Tomador extraído do XML assinado ou payload
                 const tomaCnpj = getXmlVal(tomaBlock, 'CNPJ') || getXmlVal(tomaBlock, 'CPF') || toma.CNPJ || toma.CPF || toma.cnpj || toma.cpf || toma.doc || toma.tax_id || toma.cpfCnpj || '';
@@ -6088,7 +6100,14 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     prestador: {
                         cnpj: prestCnpj,
                         nome: prestNome,
-                        im: prestIm
+                        im: prestIm,
+                        endereco: prestEnderStr,
+                        cidade: prestCidade,
+                        uf: prestUf,
+                        cep: prestCep,
+                        cMun: prestCMun,
+                        telefone: prestTelefone,
+                        email: prestEmail
                     },
                     tomador: {
                         doc: tomaCnpj,

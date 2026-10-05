@@ -568,9 +568,9 @@ export class PDFService {
         const prestName = prest.nome || prest.razaoSocial || 'CARLOSCLETON CARVALHO FERNANDES';
         const prestCnpjFmt = formatCpfCnpj(prest.cnpj || prest.doc || '00893566000190');
         const prestImFmt = prest.im || prest.inscricaoMunicipal || '-';
-        const prestEndFmt = prest.endereco || 'RUA RIO SUASSUI, 7710, PITIMBU';
+        const prestEndFmt = prest.endereco || 'RUA JOÃO PESSOA, 267, CIDADE ALTA';
         const prestCityUf = `${prest.cidade || prest.municipio || 'Natal'} / ${prest.uf || 'RN'}`;
-        const prestIbgeCep = `${formatIbge(prest.cMun || '2408102')} / ${formatCep(prest.cep || '59068320')}`;
+        const prestIbgeCep = `${formatIbge(prest.cMun || '2408102')} / ${formatCep(prest.cep || '59025902')}`;
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(0, 0, 0);
         doc.text('Nome / Nome Empresarial', margin + 2, y + 3.2);
