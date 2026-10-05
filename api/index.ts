@@ -7945,15 +7945,31 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
             
             // Increment count for tracking
             resendConfig.sent_count = sentCount + 1;
-            companySettings.resend_config = resendConfig;
 
             if (SUPABASE_URL && companyId) {
                 try {
                     const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                     const authHeader = `Bearer ${supabaseKey}`;
+                    let targetSettings = companySettings;
+                    if (!targetSettings) {
+                        try {
+                            const getRes = await axios.get(
+                                `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                                { headers: { 'apikey': supabaseKey, 'Authorization': authHeader } }
+                            );
+                            targetSettings = getRes.data?.[0]?.settings || {};
+                        } catch {
+                            targetSettings = {};
+                        }
+                    }
+                    targetSettings.resend_config = {
+                        ...(targetSettings.resend_config || {}),
+                        ...resendConfig
+                    };
+
                     await axios.patch(
                         `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
-                        { settings: companySettings },
+                        { settings: targetSettings },
                         {
                             headers: {
                                 'apikey': supabaseKey,
@@ -8008,16 +8024,32 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         }
 
         resendConfig.sent_count = updatedCount;
-        companySettings.resend_config = resendConfig;
 
         // Atualizar no banco via Supabase REST API
         if (SUPABASE_URL && companyId) {
             try {
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                 const authHeader = `Bearer ${supabaseKey}`;
+                let targetSettings = companySettings;
+                if (!targetSettings) {
+                    try {
+                        const getRes = await axios.get(
+                            `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                            { headers: { 'apikey': supabaseKey, 'Authorization': authHeader } }
+                        );
+                        targetSettings = getRes.data?.[0]?.settings || {};
+                    } catch {
+                        targetSettings = {};
+                    }
+                }
+                targetSettings.resend_config = {
+                    ...(targetSettings.resend_config || {}),
+                    ...resendConfig
+                };
+
                 await axios.patch(
                     `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
-                    { settings: companySettings },
+                    { settings: targetSettings },
                     {
                         headers: {
                             'apikey': supabaseKey,
@@ -8150,15 +8182,31 @@ app.post(['/send-email/custom', '/api/send-email/custom'], authenticate, async (
             console.log(`✅ [SMTP-CUSTOM] E-mail enviado com sucesso. MessageID: ${info.messageId}`);
             
             resendConfig.sent_count = sentCount + 1;
-            companySettings.resend_config = resendConfig;
 
             if (SUPABASE_URL && companyId) {
                 try {
                     const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                     const authHeader = `Bearer ${supabaseKey}`;
+                    let targetSettings = companySettings;
+                    if (!targetSettings) {
+                        try {
+                            const getRes = await axios.get(
+                                `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                                { headers: { 'apikey': supabaseKey, 'Authorization': authHeader } }
+                            );
+                            targetSettings = getRes.data?.[0]?.settings || {};
+                        } catch {
+                            targetSettings = {};
+                        }
+                    }
+                    targetSettings.resend_config = {
+                        ...(targetSettings.resend_config || {}),
+                        ...resendConfig
+                    };
+
                     await axios.patch(
                         `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
-                        { settings: companySettings },
+                        { settings: targetSettings },
                         {
                             headers: {
                                 'apikey': supabaseKey,
@@ -8211,15 +8259,31 @@ app.post(['/send-email/custom', '/api/send-email/custom'], authenticate, async (
         }
 
         resendConfig.sent_count = updatedCount;
-        companySettings.resend_config = resendConfig;
 
         if (SUPABASE_URL && companyId) {
             try {
                 const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
                 const authHeader = `Bearer ${supabaseKey}`;
+                let targetSettings = companySettings;
+                if (!targetSettings) {
+                    try {
+                        const getRes = await axios.get(
+                            `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}&select=settings`,
+                            { headers: { 'apikey': supabaseKey, 'Authorization': authHeader } }
+                        );
+                        targetSettings = getRes.data?.[0]?.settings || {};
+                    } catch {
+                        targetSettings = {};
+                    }
+                }
+                targetSettings.resend_config = {
+                    ...(targetSettings.resend_config || {}),
+                    ...resendConfig
+                };
+
                 await axios.patch(
                     `${SUPABASE_URL}/rest/v1/companies?id=eq.${companyId}`,
-                    { settings: companySettings },
+                    { settings: targetSettings },
                     {
                         headers: {
                             'apikey': supabaseKey,
