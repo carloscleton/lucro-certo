@@ -1185,7 +1185,7 @@ ${messageWithPlaceholder}`;
 
             const { data: chargeData, error: chargeErr } = await supabase
                 .from('company_charges')
-                .select('bank_slip_url, payment_link, invoice_url, pdf_url, status')
+                .select('payment_link, invoice_url, pdf_url, status')
                 .eq('company_id', invoice.company_id)
                 .or(orClauses.join(','))
                 .order('created_at', { ascending: false })
