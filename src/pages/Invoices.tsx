@@ -1185,7 +1185,7 @@ ${messageWithPlaceholder}`;
 
             const { data: chargeData, error: chargeErr } = await supabase
                 .from('company_charges')
-                .select('payment_link, invoice_url, pdf_url, status')
+                .select('payment_link, status')
                 .eq('company_id', invoice.company_id)
                 .or(orClauses.join(','))
                 .order('created_at', { ascending: false })
@@ -1199,7 +1199,7 @@ ${messageWithPlaceholder}`;
             if (chargeData && chargeData.length > 0) {
                 const ch = chargeData[0];
                 if (ch.status !== 'cancelled' && ch.status !== 'rejected') {
-                    const u = ch.payment_link || ch.invoice_url || ch.pdf_url;
+                    const u = ch.payment_link;
                     if (typeof u === 'string' && u.startsWith('http')) {
                         return u;
                     }
