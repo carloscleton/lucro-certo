@@ -1436,6 +1436,7 @@ ${messageWithPlaceholder}`;
                     title: 'E-mail Enviado! ✉️',
                     message: `Nota Fiscal enviada para ${finalRecipientStr} com sucesso!`,
                     type: 'success'
+                });
             }
             setSendModal(prev => ({ ...prev, isOpen: false }));
         } catch (err: any) {
