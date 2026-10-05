@@ -7899,9 +7899,20 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     htmlBody = replacePlaceholder(htmlBody, 'xmlUrl', xmlUrl || '');
     htmlBody = replacePlaceholder(htmlBody, 'boletoUrl', boletoUrl || '');
 
+    const toRaw = Array.isArray(to) ? to.join(',') : String(to || '');
+    const toList = Array.from(new Set(
+        toRaw.split(/[,;\n\r\t]+/)
+             .map(s => s.trim().toLowerCase())
+             .filter(Boolean)
+    ));
+
+    if (toList.length === 0) {
+        return res.status(400).json({ error: 'Nenhum e-mail de destinatário válido fornecido.' });
+    }
+
     if (isSmtp) {
         try {
-            console.log(`✉️ [SMTP] Enviando e-mail para: ${to} via SMTP (${resendConfig.smtp_host})`);
+            console.log(`✉️ [SMTP] Enviando e-mail para: ${toList.join(', ')} via SMTP (${resendConfig.smtp_host})`);
             const transporter = nodemailer.createTransport({
                 host: resendConfig.smtp_host,
                 port: Number(resendConfig.smtp_port || 587),
@@ -7917,7 +7928,7 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
 
             const info = await transporter.sendMail({
                 from: activeFromEmail || resendConfig.smtp_user,
-                to: to,
+                to: toList.join(', '),
                 subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
                 html: htmlBody
             });
@@ -7948,7 +7959,7 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
                 }
             }
 
-            return res.json({ success: true, id: info.messageId, message: `E-mail enviado para ${to} via SMTP` });
+            return res.json({ success: true, id: info.messageId, message: `E-mail enviado para ${toList.join(', ')} via SMTP` });
         } catch (smtpErr: any) {
             console.error('❌ [SMTP] Erro ao enviar e-mail via SMTP:', smtpErr.message);
             return res.status(500).json({
@@ -7959,7 +7970,6 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 
     try {
-        const toList = Array.isArray(to) ? to : String(to).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
         console.log(`✉️ [RESEND] Enviando e-mail para ${toList.length} destinatário(s): ${toList.join(', ')} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
 
         const response = await axios.post('https://api.resend.com/emails', {

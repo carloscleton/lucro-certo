@@ -1302,8 +1302,6 @@ ${messageWithPlaceholder}`;
                 if (searchWord) {
                     let q = supabase.from('contacts').select('email');
                     if (invoice.company_id) q = q.eq('company_id', invoice.company_id);
-                    q = q.or(`name.ilike.%${searchWord}%,trade_name.ilike.%${searchWord}%`);
-
                     const { data } = await q.limit(1);
                     if (data?.[0]?.email) {
                         dbEmails.push(data[0].email);
@@ -1316,16 +1314,23 @@ ${messageWithPlaceholder}`;
                 ...initialEmails
             ])).filter(Boolean);
 
-            // 4. Buscar Boleto vinculado se houver
             const fetchedBoletoUrl = await fetchBoletoUrlForInvoice(invoice);
 
             setSendModal(prev => {
                 if (prev.isOpen && prev.invoice?.id === invoice.id && prev.type === 'email') {
+                    const currentClean = prev.recipient.split(/[,;\n\r\t]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+                    const initialClean = initialEmails.map(s => s.trim().toLowerCase());
+                    const isUnmodified = currentClean.length === 0 || currentClean.join(', ') === initialClean.join(', ');
+
+                    const finalRecipient = isUnmodified 
+                        ? (combinedList.length > 0 ? combinedList.join(', ') : prev.recipient)
+                        : prev.recipient;
+
                     return { 
                         ...prev, 
                         isFetchingEmails: false,
                         clientEmails: combinedList,
-                        recipient: combinedList.join(', '),
+                        recipient: finalRecipient,
                         boletoUrl: fetchedBoletoUrl
                     };
                 }
@@ -1389,6 +1394,19 @@ ${messageWithPlaceholder}`;
                 const inv = sendModal.invoice;
                 const p = inv.payload || {};
 
+                const cleanRecipients = sendModal.recipient
+                    .split(/[,;\n\r\t]+/)
+                    .map(s => s.trim().toLowerCase())
+                    .filter(Boolean);
+
+                if (cleanRecipients.length === 0) {
+                    alert('Por favor, informe ao menos um endereço de e-mail válido para envio.');
+                    setSendModal(prev => ({ ...prev, isLoading: false }));
+                    return;
+                }
+
+                const finalRecipientStr = cleanRecipients.join(', ');
+
                 const pdfUrl = getPdfUrlFromInvoice(inv);
                 const rawXmlUrl = p?.xml || p?.xmlUrl || p?.retorno?.xml || p?.retorno?.xmlUrl;
                 const xmlUrl = typeof rawXmlUrl === 'string' ? rawXmlUrl : undefined;
@@ -1399,7 +1417,7 @@ ${messageWithPlaceholder}`;
                 const boletoUrl = sendModal.boletoUrl || (await fetchBoletoUrlForInvoice(inv));
 
                 await fiscalService.sendEmailViaResend({
-                    to: sendModal.recipient,
+                    to: finalRecipientStr,
                     token: session.access_token,
                     clientName,
                     invoiceNumber: String(invoiceNumber),
@@ -1416,9 +1434,8 @@ ${messageWithPlaceholder}`;
                 setResultModal({
                     isOpen: true,
                     title: 'E-mail Enviado! ✉️',
-                    message: `Nota Fiscal enviada para ${sendModal.recipient} com sucesso!`,
+                    message: `Nota Fiscal enviada para ${finalRecipientStr} com sucesso!`,
                     type: 'success'
-                });
             }
             setSendModal(prev => ({ ...prev, isOpen: false }));
         } catch (err: any) {
