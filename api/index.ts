@@ -7827,13 +7827,12 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         resendConfig = { ...(companySettings?.resend_config || {}) };
     }
 
-    // 2. Complementa com a configuração enviada pelo front (mesma usada no "Testar Envio"), só onde o banco não tem valor
+    // 2. Sobrepor com as configurações ativas enviadas pelo cliente (prioridade para a escolha ativa do front-end)
     if (clientResendConfig && typeof clientResendConfig === 'object') {
-        for (const [k, v] of Object.entries(clientResendConfig)) {
-            if (v !== undefined && v !== null && v !== '' && (resendConfig[k] === undefined || resendConfig[k] === null || resendConfig[k] === '')) {
-                resendConfig[k] = v;
-            }
-        }
+        resendConfig = {
+            ...resendConfig,
+            ...clientResendConfig
+        };
     }
 
     const isSmtp = resendConfig.provider === 'smtp';
@@ -7849,13 +7848,13 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         }
     }
 
-    console.log(`✉️ [EMAIL] Empresa ${companyId} | provider=${resendConfig.provider || 'resend'} | configDoBanco=${!!companySettings} | apiKeyPropria=${!!resendConfig.apiKey} | from=${activeFromEmail || '(vazio)'}`);
+    console.log(`✉️ [EMAIL] Empresa ${companyId} | provider=${resendConfig.provider || 'resend'} | isSmtp=${isSmtp} | host=${resendConfig.smtp_host || 'N/A'} | user=${resendConfig.smtp_user || 'N/A'} | from=${activeFromEmail || '(vazio)'}`);
 
     if (isSmtp) {
         if (!resendConfig.smtp_host || !resendConfig.smtp_user || !resendConfig.smtp_pass) {
             return res.status(400).json({
                 error: 'Configuração de SMTP incompleta',
-                message: 'Verifique se os campos de Servidor SMTP, Usuário e Senha estão preenchidos em Configurações > E-mail.'
+                message: 'Verifique se os campos de Servidor SMTP, Usuário e Senha de App estão preenchidos em Configurações > E-mail.'
             });
         }
         if (!activeFromEmail) {
@@ -7988,11 +7987,14 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
 
     if (isSmtp) {
         try {
-            console.log(`✉️ [SMTP] Enviando e-mail com ${emailAttachments.length} anexo(s) para: ${toList.join(', ')} via SMTP (${resendConfig.smtp_host})`);
+            console.log(`✉️ [SMTP] Enviando e-mail com ${emailAttachments.length} anexo(s) para: ${toList.join(', ')} via SMTP (${resendConfig.smtp_host}:${resendConfig.smtp_port || 587})`);
+            const smtpPort = Number(resendConfig.smtp_port || 587);
+            const isSecure = smtpPort === 465 || !!resendConfig.smtp_secure;
+
             const transporter = nodemailer.createTransport({
                 host: resendConfig.smtp_host,
-                port: Number(resendConfig.smtp_port || 587),
-                secure: !!resendConfig.smtp_secure,
+                port: smtpPort,
+                secure: isSecure,
                 auth: {
                     user: resendConfig.smtp_user,
                     pass: resendConfig.smtp_pass
