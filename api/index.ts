@@ -7838,8 +7838,16 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
 
     const isSmtp = resendConfig.provider === 'smtp';
     let activeApiKey = resendConfig.apiKey || '';
-    // Remetente: usa exatamente o valor configurado (mesmo comportamento do "Testar Envio")
-    let activeFromEmail = resendConfig.fromEmail ? String(resendConfig.fromEmail).trim() : '';
+    let activeFromEmail = '';
+
+    if (resendConfig.fromEmail && String(resendConfig.fromEmail).trim()) {
+        const rawFrom = String(resendConfig.fromEmail).trim();
+        if (rawFrom.includes('<') && rawFrom.includes('>')) {
+            activeFromEmail = rawFrom;
+        } else {
+            activeFromEmail = `${safeCompanyName} <${rawFrom}>`;
+        }
+    }
 
     console.log(`✉️ [EMAIL] Empresa ${companyId} | provider=${resendConfig.provider || 'resend'} | configDoBanco=${!!companySettings} | apiKeyPropria=${!!resendConfig.apiKey} | from=${activeFromEmail || '(vazio)'}`);
 
@@ -7851,7 +7859,7 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
             });
         }
         if (!activeFromEmail) {
-            activeFromEmail = resendConfig.smtp_user;
+            activeFromEmail = resendConfig.smtp_user.includes('<') ? resendConfig.smtp_user : `${safeCompanyName} <${resendConfig.smtp_user}>`;
         }
     } else {
         if (!activeApiKey && RESEND_API_KEY) {
@@ -7865,7 +7873,8 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
             });
         }
         if (!activeFromEmail) {
-            activeFromEmail = `${safeCompanyName} <onboarding@resend.dev>`;
+            const defaultFromDomain = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+            activeFromEmail = defaultFromDomain.includes('<') ? defaultFromDomain : `${safeCompanyName} <${defaultFromDomain}>`;
         }
     }
 
