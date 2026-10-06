@@ -7929,9 +7929,66 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
         return res.status(400).json({ error: 'Nenhum e-mail de destinatário válido fornecido.' });
     }
 
+    // 📎 Processar anexos físicos (PDF, XML e Boleto) para enviar junto ao e-mail
+    const emailAttachments: Array<{ filename: string; content?: Buffer; path?: string }> = [];
+
+    const fetchAttachmentBuffer = async (fileUrl: string): Promise<Buffer | null> => {
+        try {
+            if (!fileUrl || !fileUrl.startsWith('http')) return null;
+            const headers: Record<string, string> = {
+                'User-Agent': 'LucroCertoEmailService/1.0'
+            };
+            if (req.headers.authorization) {
+                headers['Authorization'] = req.headers.authorization as string;
+            }
+            const res = await axios.get(fileUrl, {
+                responseType: 'arraybuffer',
+                timeout: 12000,
+                headers
+            });
+            if (res.status === 200 && res.data && res.data.byteLength > 0) {
+                return Buffer.from(res.data);
+            }
+        } catch (err: any) {
+            console.warn(`⚠️ [EMAIL-ATTACHMENT] Não foi possível baixar anexo de ${fileUrl}:`, err.message);
+        }
+        return null;
+    };
+
+    if (pdfUrl && String(pdfUrl).startsWith('http')) {
+        const pdfBuf = await fetchAttachmentBuffer(String(pdfUrl));
+        const pdfFileName = `NotaFiscal-${safeInvoiceNumber}.pdf`;
+        if (pdfBuf) {
+            emailAttachments.push({ filename: pdfFileName, content: pdfBuf });
+            console.log(`📎 [EMAIL] PDF anexado: ${pdfFileName} (${pdfBuf.length} bytes)`);
+        } else {
+            emailAttachments.push({ filename: pdfFileName, path: String(pdfUrl) });
+        }
+    }
+
+    if (xmlUrl && String(xmlUrl).startsWith('http')) {
+        const xmlBuf = await fetchAttachmentBuffer(String(xmlUrl));
+        const xmlFileName = `NotaFiscal-${safeInvoiceNumber}.xml`;
+        if (xmlBuf) {
+            emailAttachments.push({ filename: xmlFileName, content: xmlBuf });
+            console.log(`📎 [EMAIL] XML anexado: ${xmlFileName} (${xmlBuf.length} bytes)`);
+        } else {
+            emailAttachments.push({ filename: xmlFileName, path: String(xmlUrl) });
+        }
+    }
+
+    if (boletoUrl && String(boletoUrl).startsWith('http')) {
+        const boletoBuf = await fetchAttachmentBuffer(String(boletoUrl));
+        const boletoFileName = `Boleto-${safeInvoiceNumber}.pdf`;
+        if (boletoBuf) {
+            emailAttachments.push({ filename: boletoFileName, content: boletoBuf });
+            console.log(`📎 [EMAIL] Boleto anexado: ${boletoFileName} (${boletoBuf.length} bytes)`);
+        }
+    }
+
     if (isSmtp) {
         try {
-            console.log(`✉️ [SMTP] Enviando e-mail para: ${toList.join(', ')} via SMTP (${resendConfig.smtp_host})`);
+            console.log(`✉️ [SMTP] Enviando e-mail com ${emailAttachments.length} anexo(s) para: ${toList.join(', ')} via SMTP (${resendConfig.smtp_host})`);
             const transporter = nodemailer.createTransport({
                 host: resendConfig.smtp_host,
                 port: Number(resendConfig.smtp_port || 587),
@@ -7945,11 +8002,19 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
                 }
             });
 
+            const nodemailerAttachments = emailAttachments.map(att => {
+                if (att.content) {
+                    return { filename: att.filename, content: att.content };
+                }
+                return { filename: att.filename, path: att.path };
+            });
+
             const info = await transporter.sendMail({
                 from: activeFromEmail || resendConfig.smtp_user,
                 to: toList.join(', '),
                 subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
-                html: htmlBody
+                html: htmlBody,
+                attachments: nodemailerAttachments.length > 0 ? nodemailerAttachments : undefined
             });
 
             console.log(`✅ [SMTP] E-mail enviado com sucesso via SMTP. MessageID: ${info.messageId}`);
@@ -8005,19 +8070,38 @@ app.post(['/send-email', '/api/send-email'], authenticate, async (req, res) => {
     }
 
     try {
-        console.log(`✉️ [RESEND] Enviando e-mail para ${toList.length} destinatário(s): ${toList.join(', ')} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
+        console.log(`✉️ [RESEND] Enviando e-mail com ${emailAttachments.length} anexo(s) para ${toList.length} destinatário(s): ${toList.join(', ')} | Nota: ${invoiceLabel} Nº ${safeInvoiceNumber}`);
 
-        const response = await axios.post('https://api.resend.com/emails', {
+        const resendAttachments = emailAttachments.map(att => {
+            if (att.content) {
+                return {
+                    filename: att.filename,
+                    content: att.content.toString('base64')
+                };
+            }
+            return {
+                filename: att.filename,
+                path: att.path
+            };
+        });
+
+        const resendPayload: any = {
             from: activeFromEmail,
             to: toList,
             subject: subject || `${invoiceLabel} Nº ${safeInvoiceNumber} - ${safeCompanyName}`,
             html: htmlBody
-        }, {
+        };
+
+        if (resendAttachments.length > 0) {
+            resendPayload.attachments = resendAttachments;
+        }
+
+        const response = await axios.post('https://api.resend.com/emails', resendPayload, {
             headers: {
                 'Authorization': `Bearer ${activeApiKey}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 15000
+            timeout: 20000
         });
 
         console.log(`✅ [RESEND] E-mail enviado com sucesso para ${to}. ID: ${response.data?.id}`);
