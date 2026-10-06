@@ -519,7 +519,7 @@ export function EmailSettings() {
     };
 
     return (
-        <div className="space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 text-blue-655 rounded-xl">
                     <Mail size={24} />
@@ -927,7 +927,7 @@ export function EmailSettings() {
                                     title="Email Settings Live Preview"
                                     srcDoc={getPreviewHtml()}
                                     className="w-full h-full min-h-[380px] border border-gray-250 dark:border-slate-800 rounded-xl bg-white"
-                                    sandbox="allow-same-origin"
+                                    sandbox="allow-same-origin allow-scripts"
                                 />
                             </div>
                         </div>
@@ -1013,6 +1013,6 @@ export function EmailSettings() {
                 message={resultModal.message}
                 type={resultModal.type}
             />
-        </div>
+        </form>
     );
 }
