@@ -217,7 +217,9 @@ export function LandingPage() {
                         }));
                         setLandingCampaigns(active);
                         if (active.some((c: any) => c.show_in_popup)) {
-                            setShowBanner(true);
+                            setTimeout(() => {
+                                setShowBanner(true);
+                            }, 600);
                         }
                     }
                 }
