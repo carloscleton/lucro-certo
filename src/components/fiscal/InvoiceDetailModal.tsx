@@ -789,7 +789,7 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                         </div>
                         <div className="w-full flex-1 min-h-0 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 overflow-hidden p-0 flex justify-center">
                             <iframe
-                                src={pdfUrl ? (pdfUrl.includes('#') ? pdfUrl : `${pdfUrl}#zoom=100`) : ''}
+                                src={pdfUrl ? (pdfUrl.includes('#') ? pdfUrl : `${pdfUrl}#view=FitH&zoom=100`) : ''}
                                 className="w-full h-full rounded-2xl border-0 bg-white block"
                                 title="Visualizador de PDF DANFSe v2.0"
                             />

@@ -1093,7 +1093,7 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                                 </a>
                                             </div>
                                             <iframe
-                                                src={activeCharge.payment_link ? (activeCharge.payment_link.includes('#') ? activeCharge.payment_link : `${activeCharge.payment_link}#zoom=100`) : ''}
+                                                src={activeCharge.payment_link ? (activeCharge.payment_link.includes('#') ? activeCharge.payment_link : `${activeCharge.payment_link}#view=FitH&zoom=100`) : ''}
                                                 className="w-full h-80 rounded-xl border border-gray-200 dark:border-slate-700 bg-white"
                                                 title="Visualização do Boleto"
                                             />
