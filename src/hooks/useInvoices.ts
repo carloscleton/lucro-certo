@@ -127,7 +127,9 @@ export function useInvoices() {
             if (error) throw error;
             const finalData = data || [];
             invoicesCache.set(cacheKey, finalData);
-            setInvoices(finalData);
+            requestAnimationFrame(() => {
+                setInvoices(finalData);
+            });
         } catch (error) {
             console.error('Error fetching invoices:', error);
         } finally {
