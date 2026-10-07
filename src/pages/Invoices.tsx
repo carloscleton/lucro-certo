@@ -385,13 +385,16 @@ export function Invoices() {
             }
         };
 
-        // Roda uma vez imediatamente
-        checkAndSyncProcessing();
+        const pollTimer = setTimeout(() => {
+            checkAndSyncProcessing();
+        }, 1200);
 
-        // Roda periodicamente a cada 5 segundos enquanto houver notas em processamento
-        const intervalId = setInterval(checkAndSyncProcessing, 5000);
+        const intervalId = setInterval(checkAndSyncProcessing, 8000);
 
-        return () => clearInterval(intervalId);
+        return () => {
+            clearTimeout(pollTimer);
+            clearInterval(intervalId);
+        };
     }, [invoices?.length, currentEntity?.id]);
 
     useEffect(() => {
@@ -399,8 +402,6 @@ export function Invoices() {
         
         const pendingCharges = charges.filter(c => c.status === 'pending');
         if (pendingCharges.length === 0) return;
-
-        console.log(`🔄 [CHARGES-AUTO-SYNC] ${pendingCharges.length} cobrança(s) pendente(s). Sincronizando com os gateways em segundo plano...`);
 
         const checkAndSyncPendingCharges = async () => {
             try {
@@ -418,7 +419,6 @@ export function Invoices() {
                             { headers: { 'Authorization': `Bearer ${token}` } }
                         );
                         if (res.data?.success && res.data?.status && res.data.status !== 'pending') {
-                            console.log(`✅ [CHARGES-AUTO-SYNC] Cobrança ${charge.id} atualizada para status: ${res.data.status}`);
                             updatedAny = true;
                         }
                     } catch (cErr: any) {
@@ -431,13 +431,19 @@ export function Invoices() {
                     refresh();
                 }
             } catch (err: any) {
-                console.warn(`⚠️ [CHARGES-AUTO-SYNC] Erro no ciclo de atualização:`, err.message);
+                // Ignora falhas no polling
             }
         };
 
-        checkAndSyncPendingCharges();
-        const intervalId = setInterval(checkAndSyncPendingCharges, 15000);
-        return () => clearInterval(intervalId);
+        const syncTimer = setTimeout(() => {
+            checkAndSyncPendingCharges();
+        }, 2000);
+
+        const intervalId = setInterval(checkAndSyncPendingCharges, 20000);
+        return () => {
+            clearTimeout(syncTimer);
+            clearInterval(intervalId);
+        };
     }, [charges?.length, currentEntity?.id, fetchCharges, refresh]);
 
     const handleAiRewrite = async () => {
