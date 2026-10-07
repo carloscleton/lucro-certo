@@ -434,7 +434,7 @@ export function BankingSettings() {
         : null;
 
     return (
-        <div className="space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             {/* Header da Página */}
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 rounded-xl">
@@ -911,6 +911,6 @@ export function BankingSettings() {
                     </div>
                 </div>
             )}
-        </div>
+        </form>
     );
 }

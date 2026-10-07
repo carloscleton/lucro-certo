@@ -927,7 +927,6 @@ export function EmailSettings() {
                                     title="Email Settings Live Preview"
                                     srcDoc={getPreviewHtml()}
                                     className="w-full h-full min-h-[380px] border border-gray-250 dark:border-slate-800 rounded-xl bg-white"
-                                    sandbox="allow-same-origin allow-scripts"
                                 />
                             </div>
                         </div>

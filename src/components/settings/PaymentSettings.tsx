@@ -193,7 +193,7 @@ export function PaymentSettings() {
     if (loading) return <div className="p-4 text-center text-gray-500">Carregando gateways...</div>;
 
     return (
-        <div className="space-y-8">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
             <div className="flex items-start gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
                 <CreditCard className="text-emerald-600 mt-1" size={24} />
                 <div>
@@ -494,6 +494,6 @@ export function PaymentSettings() {
                     )}
                 </div>
             </div>
-        </div>
+        </form>
     );
 }
