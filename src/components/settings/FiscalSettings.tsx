@@ -2889,7 +2889,7 @@ export function FiscalSettings() {
     };
 
     return (
-        <form onSubmit={(e) => e.preventDefault()}>
+        <div>
             {/* Módulo Toggle */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden mb-6">
                 <div className="p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex items-center justify-between">
@@ -5064,6 +5064,8 @@ export function FiscalSettings() {
                                 </p>
                             </div>
 
+                            <form onSubmit={(e) => e.preventDefault()}>
+                            <input type="text" name="username" autoComplete="username" value="certificado-digital" readOnly hidden aria-hidden="true" />
                             <Input
                                 label="Senha do Certificado Digital (PFX)"
                                 type="password"
@@ -5077,6 +5079,7 @@ export function FiscalSettings() {
                                 placeholder="Senha do arquivo .pfx / .p12"
                                 helpText="Informe a senha do arquivo de certificado para o upload e para as emissões."
                             />
+                            </form>
                         </div>
                     </div>
 
@@ -7012,6 +7015,6 @@ export function FiscalSettings() {
                 data={resultModal.data}
                 action={resultModal.action}
             />
-        </form>
+        </div>
     );
 }
