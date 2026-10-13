@@ -5067,6 +5067,7 @@ export function FiscalSettings() {
                             <Input
                                 label="Senha do Certificado Digital (PFX)"
                                 type="password"
+                                autoComplete="new-password"
                                 value={(nationalConfig as any).certificado_senha || certPassword || ''}
                                 onChange={(e: any) => {
                                     const val = e.target.value;
