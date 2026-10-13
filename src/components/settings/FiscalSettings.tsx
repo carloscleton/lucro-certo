@@ -4310,7 +4310,8 @@ export function FiscalSettings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="relative">
+                    <form className="relative" onSubmit={(e) => e.preventDefault()}>
+                        <input type="text" name="username" autoComplete="username" value="nfeio-api" readOnly hidden aria-hidden="true" />
                         <Input
                             label="Chave de API (API Key)"
                             type={showNfeioApiKey ? 'text' : 'password'}
@@ -4327,7 +4328,7 @@ export function FiscalSettings() {
                         >
                             {showNfeioApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
-                    </div>
+                    </form>
                     <Input
                         label="ID da Empresa (Company ID)"
                         value={nfeioConfig.companyId}
@@ -6454,7 +6455,8 @@ export function FiscalSettings() {
                                 preserveCase={true}
                                 helpText="Se preenchido junto com a senha, usará Basic Auth."
                             />
-                            <div className="relative">
+                            <form className="relative" onSubmit={(e) => e.preventDefault()}>
+                                <input type="text" name="username" autoComplete="username" value={certWebhookUser || 'webhook'} readOnly hidden aria-hidden="true" />
                                 <Input
                                     label="Senha / Token do Webhook (Opcional)"
                                     type={showCertWebhookToken ? 'text' : 'password'}
@@ -6475,7 +6477,7 @@ export function FiscalSettings() {
                                 >
                                     {showCertWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 )}
@@ -6493,7 +6495,8 @@ export function FiscalSettings() {
                         />
                     </div>
                     <div className="flex gap-4 items-end">
-                        <div className="flex-1">
+                        <form className="flex-1" onSubmit={(e) => e.preventDefault()}>
+                            <input type="text" name="username" autoComplete="username" value="certificado-digital" readOnly hidden aria-hidden="true" />
                             <Input
                                 label="Senha do Certificado"
                                 type="password"
@@ -6506,7 +6509,7 @@ export function FiscalSettings() {
                                 placeholder="Sua senha"
                                 autoComplete="current-password"
                             />
-                        </div>
+                        </form>
                         <Button
                             type="button"
                             variant="outline"
