@@ -11,6 +11,8 @@ import { ResultModal } from '../ui/ResultModal';
 import { DiagnosticModal } from '../ui/DiagnosticModal';
 import { Tooltip } from '../ui/Tooltip';
 import { API_BASE_URL } from '../../lib/constants';
+import { ImportFromInvoiceModal } from './ImportFromInvoiceModal';
+import { applyImportFields } from '../../utils/fiscalImportMappers';
 
 const extractTecnoSpeedError = (err: any) => {
     const responseData = err.response?.data;
@@ -213,6 +215,7 @@ export function FiscalSettings() {
 
     const [activeSubTab, setActiveSubTab] = useState<'tecnospeed' | 'nfeio' | 'national' | 'other'>('tecnospeed');
     const [changingActiveProvider, setChangingActiveProvider] = useState(false);
+    const [importXmlOpen, setImportXmlOpen] = useState(false);
 
     const [savingNational, setSavingNational] = useState(false);
     const [nationalConfig, setNationalConfig] = useState({
@@ -3068,6 +3071,26 @@ export function FiscalSettings() {
                             <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Tecnologia Fiscal Inativa</h4>
                             <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">Esta tecnologia não é a ativa no momento para sua empresa. O sistema continuará emitindo notas através de <strong>{activeProvider === 'tecnospeed' ? 'TecnoSpeed' : activeProvider === 'nfeio' ? 'NFe.io' : activeProvider === 'national' ? 'Portal Nacional' : 'Outro Provedor'}</strong>. Você pode alterar o emissor ativo no painel de seleção acima.</p>
                         </div>
+                    </div>
+                )}
+
+                {(activeSubTab === 'tecnospeed' || activeSubTab === 'nfeio' || activeSubTab === 'national') && (
+                    <div className="flex justify-end mb-4">
+                        <Button type="button" variant="outline" onClick={() => setImportXmlOpen(true)}>
+                            <ExternalLink size={16} className="mr-2" />
+                            Importar de Nota Fiscal (XML)
+                        </Button>
+                        <ImportFromInvoiceModal
+                            isOpen={importXmlOpen}
+                            provider={activeSubTab}
+                            currentState={activeSubTab === 'tecnospeed' ? config : activeSubTab === 'nfeio' ? nfeioConfig : nationalConfig}
+                            onClose={() => setImportXmlOpen(false)}
+                            onApply={(fields) => {
+                                if (activeSubTab === 'tecnospeed') setConfig(prev => applyImportFields(prev, fields));
+                                else if (activeSubTab === 'nfeio') setNfeioConfig(prev => applyImportFields(prev, fields));
+                                else setNationalConfig(prev => applyImportFields(prev, fields));
+                            }}
+                        />
                     </div>
                 )}
 
