@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar, Bell, CalendarClock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -23,6 +23,7 @@ import { CooperativeFiscalReportModal } from '../components/fiscal/CooperativeFi
 import { PlatformBillingTracker } from '../components/fiscal/PlatformBillingTracker';
 import { DeleteProtectionModal } from '../components/transactions/DeleteProtectionModal';
 import { GenerateBoletoModal } from '../components/fiscal/GenerateBoletoModal';
+import { PendingPaymentsAlertModal, getDaysDiffFromToday } from '../components/fiscal/PendingPaymentsAlertModal';
 import { getInvoiceFilename } from '../utils/invoiceUtils';
 import { formatPhoneWhatsapp } from '../utils/phoneUtils';
 import { getTabPermission } from '../config/permissions';
@@ -257,6 +258,7 @@ export function Invoices() {
     const [showBillingModal, setShowBillingModal] = useState(false);
     const [showCoopReportModal, setShowCoopReportModal] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
+    const [showPendingAlertModal, setShowPendingAlertModal] = useState(false);
 
     const isCooperative = useMemo(() => {
         if (!currentCompany) return false;
@@ -267,6 +269,49 @@ export function Invoices() {
         return isRegime1 && hasReg4;
     }, [currentCompany]);
     const [boletoModal, setBoletoModal] = useState<{ isOpen: boolean; invoice: any }>({ isOpen: false, invoice: null });
+
+    const pendingAlertStats = useMemo(() => {
+        let overdueCount = 0;
+        let dueSoonCount = 0;
+        let pendingCount = 0;
+
+        (charges || []).forEach(c => {
+            if (c.status !== 'pending') return;
+            pendingCount++;
+            const diff = getDaysDiffFromToday(c.due_date);
+            if (diff !== null) {
+                if (diff < 0) overdueCount++;
+                else if (diff <= 7) dueSoonCount++;
+            }
+        });
+
+        (invoices || []).forEach(inv => {
+            if (isInvoiceCancelled(inv) || inv.deleted) return;
+            const invNo = inv.invoice_number || inv.external_id?.slice(-6) || '';
+            const matchedCharge = (charges || []).find(c => {
+                if (c.status === 'cancelled' || c.status === 'rejected') return false;
+                return (
+                    (invNo && c.external_reference === `NF${invNo}`) ||
+                    (invNo && (c.description || '').includes(`Nº ${invNo}`)) ||
+                    (inv.quote_id && c.quote_id && c.quote_id === inv.quote_id)
+                );
+            });
+            if (!matchedCharge) {
+                pendingCount++;
+            }
+        });
+
+        return { overdueCount, dueSoonCount, pendingCount };
+    }, [charges, invoices]);
+
+    const handleNavigateToInvoiceFromAlert = (inv: any) => {
+        setShowPendingAlertModal(false);
+        setSelectedPeriodFilter('all');
+        const invNo = inv.invoice_number || inv.external_id?.slice(-6) || '';
+        if (invNo) {
+            setSearchQuery(String(invNo));
+        }
+    };
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPeriodFilter, setSelectedPeriodFilter] = useState<'all' | 'current_month' | 'previous_month' | 'last_3_months' | 'current_year' | 'custom'>('current_month');
     const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>(() => {
@@ -1574,11 +1619,43 @@ ${messageWithPlaceholder}`;
                         </Button>
                         <Button 
                             variant="ghost" 
-                            onClick={() => setShowBillingModal(true)} 
+                            onClick={() => setShowBillingModal(true)}
                             className="h-9 px-3 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
                         >
                             <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
                             Relatório de Cobrança
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setShowPendingAlertModal(true)} 
+                            className={clsx(
+                                "h-9 px-3 font-bold text-xs rounded-xl border transition-all shadow-sm flex items-center gap-1.5",
+                                pendingAlertStats.overdueCount > 0
+                                    ? "bg-rose-50/90 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40"
+                                    : pendingAlertStats.dueSoonCount > 0
+                                    ? "bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                                    : "bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 border-gray-200/60 dark:border-slate-700/60 hover:bg-gray-100 dark:hover:bg-slate-700"
+                            )}
+                            title="Acompanhar boletos e pagamentos a vencer ou em atraso"
+                        >
+                            <Bell size={14} className={clsx(
+                                pendingAlertStats.overdueCount > 0 
+                                    ? "text-rose-600 animate-bounce" 
+                                    : pendingAlertStats.dueSoonCount > 0 
+                                    ? "text-amber-600 animate-pulse" 
+                                    : "text-gray-500"
+                            )} />
+                            <span>Alertas de Vencimento</span>
+                            {pendingAlertStats.pendingCount > 0 && (
+                                <span className={clsx(
+                                    "px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none",
+                                    pendingAlertStats.overdueCount > 0 
+                                        ? "bg-rose-600 text-white" 
+                                        : "bg-amber-500 text-white"
+                                )}>
+                                    {pendingAlertStats.overdueCount > 0 ? pendingAlertStats.overdueCount : pendingAlertStats.pendingCount}
+                                </span>
+                            )}
                         </Button>
                         {isCooperative && (
                             <Button 
@@ -1592,7 +1669,7 @@ ${messageWithPlaceholder}`;
                         )}
                         <Button 
                             variant="ghost" 
-                            onClick={() => setShowBatchModal(true)} 
+                            onClick={() => setShowBatchModal(true)}
                             className="h-9 px-3.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
                         >
                             <RefreshCw size={14} className="mr-1.5 text-violet-600 dark:text-violet-400" />
@@ -1899,6 +1976,33 @@ ${messageWithPlaceholder}`;
                 );
             })()}
 
+            {/* Overdue / Cross-Month Pending Payments Alert Banner */}
+            {pendingAlertStats.overdueCount > 0 && (
+                <div className="bg-gradient-to-r from-rose-500/15 via-rose-500/5 to-transparent border-l-4 border-rose-500 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl flex-shrink-0">
+                            <AlertTriangle size={18} className="animate-pulse" />
+                        </div>
+                        <div className="text-xs">
+                            <span className="font-extrabold text-rose-800 dark:text-rose-300 block sm:inline">
+                                Atenção Financeira: {pendingAlertStats.overdueCount} {pendingAlertStats.overdueCount === 1 ? 'cobrança vencida' : 'cobranças vencidas'} em aberto!
+                            </span>
+                            <span className="text-gray-600 dark:text-gray-400 text-[11px] sm:ml-2 block sm:inline">
+                                Existem boletos de notas emitidas que já ultrapassaram o vencimento.
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowPendingAlertModal(true)}
+                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0 cursor-pointer self-end sm:self-center"
+                    >
+                        <CalendarClock size={13} />
+                        Ver Alertas de Vencimento
+                    </button>
+                </div>
+            )}
+
             {/* Search and List Header */}
             <div className="flex flex-row items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm w-full select-none">
                 <div className="relative flex-1">
@@ -1977,6 +2081,41 @@ ${messageWithPlaceholder}`;
                                             </div>
                                             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">Nenhuma nota fiscal encontrada</p>
                                             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Sua lista de emissões está vazia</p>
+                                            {pendingAlertStats.pendingCount > 0 && (
+                                                <div className="mt-5 p-4 max-w-lg bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/40 dark:to-slate-900 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl shadow-sm text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                    <div className="flex items-center justify-center gap-2 text-amber-800 dark:text-amber-300 font-extrabold text-xs mb-1">
+                                                        <Bell size={15} className="text-amber-600 animate-bounce" />
+                                                        <span>Virada de Mês: Cobranças em Aberto Detectadas</span>
+                                                    </div>
+                                                    <p className="text-xs text-amber-900/90 dark:text-amber-200 font-medium">
+                                                        Você possui <strong>{pendingAlertStats.pendingCount} cobrança(s)/nota(s) em aberto</strong> de períodos anteriores que não aparecem neste mês atual.
+                                                    </p>
+                                                    <div className="flex flex-wrap items-center justify-center gap-2 mt-3.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPendingAlertModal(true)}
+                                                            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                                                        >
+                                                            <CalendarClock size={14} />
+                                                            Ver Alertas de Pagamento
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedPeriodFilter('previous_month')}
+                                                            className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-700 transition-all cursor-pointer"
+                                                        >
+                                                            Ver Mês Anterior
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedPeriodFilter('all')}
+                                                            className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-700 transition-all cursor-pointer"
+                                                        >
+                                                            Ver Todas as Datas
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -2949,6 +3088,28 @@ ${messageWithPlaceholder}`;
                 }}
                 invoice={boletoModal.invoice}
             />
+
+            {showPendingAlertModal && (
+                <PendingPaymentsAlertModal
+                    isOpen={showPendingAlertModal}
+                    onClose={() => setShowPendingAlertModal(false)}
+                    invoices={invoices}
+                    charges={charges}
+                    onOpenBoletoModal={(inv) => {
+                        setShowPendingAlertModal(false);
+                        setBoletoModal({ isOpen: true, invoice: inv });
+                    }}
+                    onNavigateToInvoice={handleNavigateToInvoiceFromAlert}
+                    onOpenSendModal={(inv, type) => {
+                        setShowPendingAlertModal(false);
+                        if (type === 'whatsapp') {
+                            handleOpenSendWhatsApp(inv);
+                        } else {
+                            handleOpenSendEmail(inv);
+                        }
+                    }}
+                />
+            )}
 
             <ResultModal
                 isOpen={resultModal.isOpen}
