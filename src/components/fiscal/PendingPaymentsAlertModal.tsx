@@ -463,7 +463,7 @@ export function PendingPaymentsAlertModal({
             subtitle="Monitore e acompanhe notas fiscais e boletos a vencer ou vencidos, inclusive de meses anteriores"
             icon={CalendarClock}
             variant={stats.overdueCount > 0 ? 'danger' : stats.dueSoonCount > 0 ? 'warning' : 'primary'}
-            maxWidth="max-w-6xl"
+            maxWidth="max-w-7xl 2xl:max-w-[1400px]"
         >
             <div className="space-y-5">
                 {/* 1. Header KPI Cards */}
@@ -741,16 +741,16 @@ export function PendingPaymentsAlertModal({
 
                 {/* 4. Table / List of Items */}
                 <div className="border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                    <div className="overflow-x-auto max-h-[50vh] scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
-                        <table className="w-full text-left text-xs border-collapse">
+                    <div className="overflow-y-auto max-h-[52vh] overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
+                        <table className="w-full table-fixed text-left text-xs border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/80 sticky top-0 z-10 backdrop-blur-sm">
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400">Status / Vencimento</th>
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400">Cliente / Tomador</th>
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400">Documento / Nota</th>
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400">Valor</th>
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400">Cobrança</th>
-                                    <th className="py-3 px-4 font-black text-[10px] uppercase tracking-wider text-gray-400 text-right">Ações Rápidas</th>
+                                    <th className="py-2.5 px-3 w-[18%] font-black text-[10px] uppercase tracking-wider text-gray-400">Status / Vencimento</th>
+                                    <th className="py-2.5 px-3 w-[27%] font-black text-[10px] uppercase tracking-wider text-gray-400">Cliente / Tomador</th>
+                                    <th className="py-2.5 px-3 w-[14%] font-black text-[10px] uppercase tracking-wider text-gray-400">Documento / Nota</th>
+                                    <th className="py-2.5 px-3 w-[12%] font-black text-[10px] uppercase tracking-wider text-gray-400">Valor</th>
+                                    <th className="py-2.5 px-3 w-[14%] font-black text-[10px] uppercase tracking-wider text-gray-400">Cobrança</th>
+                                    <th className="py-2.5 px-3 w-[15%] font-black text-[10px] uppercase tracking-wider text-gray-400 text-right">Ações Rápidas</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60 font-medium">
@@ -782,7 +782,7 @@ export function PendingPaymentsAlertModal({
                                                 )}
                                             >
                                                 {/* Vencimento e Status Pill */}
-                                                <td className="py-3 px-4">
+                                                <td className="py-2.5 px-3 min-w-0">
                                                     <div className="flex flex-col gap-1 items-start">
                                                         {item.status === 'paid' ? (
                                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
@@ -828,7 +828,7 @@ export function PendingPaymentsAlertModal({
                                                 </td>
 
                                                 {/* Cliente */}
-                                                <td className="py-3 px-4 max-w-[220px]">
+                                                <td className="py-2.5 px-3 min-w-0">
                                                     <div className="font-extrabold text-gray-900 dark:text-white truncate" title={item.clientName}>
                                                         {item.clientName}
                                                     </div>
@@ -840,7 +840,7 @@ export function PendingPaymentsAlertModal({
                                                 </td>
 
                                                 {/* Documento / Nota Fiscal */}
-                                                <td className="py-3 px-4 whitespace-nowrap">
+                                                <td className="py-2.5 px-3 min-w-0">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 rounded text-[9px] font-black uppercase border border-gray-200 dark:border-slate-700">
                                                             {item.invoiceType.toUpperCase()}
@@ -857,40 +857,40 @@ export function PendingPaymentsAlertModal({
                                                 </td>
 
                                                 {/* Valor */}
-                                                <td className="py-3 px-4 whitespace-nowrap">
+                                                <td className="py-2.5 px-3 min-w-0">
                                                     <div className="font-black text-sm text-gray-900 dark:text-white">
                                                         {item.formattedAmount}
                                                     </div>
                                                 </td>
 
                                                 {/* Cobrança / Método */}
-                                                <td className="py-3 px-4 whitespace-nowrap">
+                                                <td className="py-2.5 px-3 min-w-0">
                                                     {item.paymentMethod === 'boleto' ? (
-                                                        <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold text-xs bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded-lg border border-purple-200/60 dark:border-purple-800/40 w-fit">
-                                                            <FileText size={13} />
-                                                            <span>Boleto Bancário</span>
+                                                        <div className="inline-flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold text-[11px] bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded-lg border border-purple-200/60 dark:border-purple-800/40 max-w-full truncate">
+                                                            <FileText size={12} className="flex-shrink-0" />
+                                                            <span className="truncate">Boleto Bancário</span>
                                                         </div>
                                                     ) : item.paymentMethod === 'pix' ? (
-                                                        <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400 font-bold text-xs bg-teal-50 dark:bg-teal-950/30 px-2 py-1 rounded-lg border border-teal-200/60 dark:border-teal-800/40 w-fit">
-                                                            <QrCode size={13} />
-                                                            <span>Cobrança Pix</span>
+                                                        <div className="inline-flex items-center gap-1.5 text-teal-600 dark:text-teal-400 font-bold text-[11px] bg-teal-50 dark:bg-teal-950/30 px-2 py-1 rounded-lg border border-teal-200/60 dark:border-teal-800/40 max-w-full truncate">
+                                                            <QrCode size={12} className="flex-shrink-0" />
+                                                            <span className="truncate">Cobrança Pix</span>
                                                         </div>
                                                     ) : item.paymentMethod === 'credit_card' ? (
-                                                        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-xs bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded-lg border border-blue-200/60 dark:border-blue-800/40 w-fit">
-                                                            <CreditCard size={13} />
-                                                            <span>Cartão de Crédito</span>
+                                                        <div className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-[11px] bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded-lg border border-blue-200/60 dark:border-blue-800/40 max-w-full truncate">
+                                                            <CreditCard size={12} className="flex-shrink-0" />
+                                                            <span className="truncate">Cartão</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold text-xs bg-rose-50 dark:bg-rose-950/30 px-2 py-1 rounded-lg border border-rose-200/60 dark:border-rose-800/40 w-fit">
-                                                            <AlertCircle size={13} />
-                                                            <span>Sem Cobrança</span>
+                                                        <div className="inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold text-[11px] bg-rose-50 dark:bg-rose-950/30 px-2 py-1 rounded-lg border border-rose-200/60 dark:border-rose-800/40 max-w-full truncate">
+                                                            <AlertCircle size={12} className="flex-shrink-0" />
+                                                            <span className="truncate">Sem Cobrança</span>
                                                         </div>
                                                     )}
                                                 </td>
 
                                                 {/* Ações */}
-                                                <td className="py-3 px-4 text-right whitespace-nowrap">
-                                                    <div className="flex items-center justify-end gap-1.5">
+                                                <td className="py-2.5 px-3 text-right min-w-0">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         {/* Botão Gerenciar Boleto */}
                                                         {item.invoice && (
                                                             <Tooltip content={item.charge ? "Ver / Gerenciar Boleto e Cobrança" : "Gerar Boleto para esta Nota Fiscal"}>
@@ -899,15 +899,15 @@ export function PendingPaymentsAlertModal({
                                                                         onOpenBoletoModal(item.invoice);
                                                                     }}
                                                                     className={clsx(
-                                                                        "p-1.5 rounded-lg border transition-all cursor-pointer font-bold text-xs flex items-center gap-1",
+                                                                        "px-2 py-1 rounded-lg border transition-all cursor-pointer font-bold text-[11px] flex items-center gap-1 shrink-0",
                                                                         item.charge
                                                                             ? "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
                                                                             : "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-sm"
                                                                     )}
                                                                 >
-                                                                    <FileText size={13} />
-                                                                    <span className="hidden sm:inline">
-                                                                        {item.charge ? "Boleto" : "Gerar Boleto"}
+                                                                    <FileText size={12} />
+                                                                    <span className="hidden xl:inline">
+                                                                        {item.charge ? "Boleto" : "Gerar"}
                                                                     </span>
                                                                 </button>
                                                             </Tooltip>
@@ -918,9 +918,9 @@ export function PendingPaymentsAlertModal({
                                                             <Tooltip content="Copiar Pix Copia e Cola">
                                                                 <button
                                                                     onClick={() => handleCopy(item.qrCode!, item.id + '-pix', 'Código Pix')}
-                                                                    className="p-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 rounded-lg transition-all cursor-pointer"
+                                                                    className="p-1 sm:p-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 rounded-lg transition-all cursor-pointer shrink-0"
                                                                 >
-                                                                    {copiedId === item.id + '-pix' ? <Check size={13} className="text-emerald-500" /> : <QrCode size={13} />}
+                                                                    {copiedId === item.id + '-pix' ? <Check size={12} className="text-emerald-500" /> : <QrCode size={12} />}
                                                                 </button>
                                                             </Tooltip>
                                                         )}
@@ -929,9 +929,9 @@ export function PendingPaymentsAlertModal({
                                                             <Tooltip content="Copiar Link de Pagamento">
                                                                 <button
                                                                     onClick={() => handleCopy(item.paymentLink!, item.id + '-link', 'Link de Pagamento')}
-                                                                    className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 rounded-lg transition-all cursor-pointer"
+                                                                    className="p-1 sm:p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 rounded-lg transition-all cursor-pointer shrink-0"
                                                                 >
-                                                                    {copiedId === item.id + '-link' ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                                                                    {copiedId === item.id + '-link' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                                                                 </button>
                                                             </Tooltip>
                                                         )}
@@ -941,9 +941,9 @@ export function PendingPaymentsAlertModal({
                                                             <Tooltip content="Enviar cobrança via WhatsApp">
                                                                 <button
                                                                     onClick={() => onOpenSendModal(item.invoice, 'whatsapp')}
-                                                                    className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 rounded-lg transition-all cursor-pointer"
+                                                                    className="p-1 sm:p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 rounded-lg transition-all cursor-pointer shrink-0"
                                                                 >
-                                                                    <MessageCircle size={13} />
+                                                                    <MessageCircle size={12} />
                                                                 </button>
                                                             </Tooltip>
                                                         )}
@@ -953,9 +953,9 @@ export function PendingPaymentsAlertModal({
                                                             <Tooltip content="Localizar esta nota no histórico principal">
                                                                 <button
                                                                     onClick={() => onNavigateToInvoice(item.invoice)}
-                                                                    className="p-1.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-200 rounded-lg transition-all cursor-pointer"
+                                                                    className="p-1 sm:p-1.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-200 rounded-lg transition-all cursor-pointer shrink-0"
                                                                 >
-                                                                    <ArrowUpRight size={13} />
+                                                                    <ArrowUpRight size={12} />
                                                                 </button>
                                                             </Tooltip>
                                                         )}
