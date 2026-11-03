@@ -72,28 +72,37 @@ serve(async (req) => {
             sandbox: settings?.platform_billing_sandbox
         })
 
-        let provider = settings?.platform_billing_provider || "asaas"
+        let provider = settings?.platform_billing_provider || 'asaas'
         let configData: any = {}
-        let env = "production"
+        let env = 'production'
         let isSandbox = false
+
+        const extractGatewayApiKey = (cfg: any, isSb: boolean): string | null => {
+            if (!cfg || typeof cfg !== 'object') return null
+            if (isSb) {
+                return (cfg.sandbox_api_key || cfg.api_key || cfg.apiKey || cfg.token || cfg.prod_api_key || '').toString().trim() || null
+            } else {
+                return (cfg.prod_api_key || cfg.production_api_key || cfg.api_key || cfg.apiKey || cfg.token || cfg.sandbox_api_key || '').toString().trim() || null
+            }
+        }
 
         if (settings) {
             isSandbox = settings.platform_billing_sandbox === true
-            env = isSandbox ? "sandbox" : "production"
+            env = isSandbox ? 'sandbox' : 'production'
             configData = settings.platform_billing_config?.[provider]?.[env] || {}
 
             // Legacy fallbacks if JSONB is empty for this provider
-            if (provider === "asaas" && !configData.api_key) {
+            if (provider === 'asaas' && !configData.api_key) {
                 configData = {
                     api_key: settings.platform_asaas_api_key,
                     wallet_id: settings.platform_asaas_wallet_id
                 }
-            } else if (provider === "stripe" && !configData.secret_key) {
+            } else if (provider === 'stripe' && !configData.secret_key) {
                 configData = {
                     secret_key: settings.platform_stripe_api_key,
                     publishable_key: settings.platform_stripe_publishable_key
                 }
-            } else if (provider === "mercadopago" && !configData.access_token) {
+            } else if (provider === 'mercadopago' && !configData.access_token) {
                 configData = {
                     access_token: settings.platform_mercadopago_api_key,
                     public_key: settings.platform_mercadopago_public_key
@@ -102,147 +111,122 @@ serve(async (req) => {
         }
 
         // Se a chave nao estiver configurada diretamente em app_settings,
-        // busca as credenciais no gateway da conta Master (labfacilsuporte@gmail.com / carloscleton.nat@gmail.com / SERVICE LINE INFORMATICA)
-        const hasDirectKey = !!(configData.api_key || configData.access_token || configData.secret_key);
-        if (!hasDirectKey) {
-            console.log("🔍 Chave direta em app_settings ausente. Buscando nas credenciais master (labfacilsuporte@gmail.com / SERVICE LINE)...");
+        // busca nas credenciais do gateway Asaas configurado na conta master (SERVICE LINE INFORMATICA / labfacilsuporte@gmail.com)
+        let directKey = extractGatewayApiKey(configData, isSandbox) || configData.access_token || configData.secret_key
+        let candidatesChecked = 0
 
-            const masterEmails = ["labfacilsuporte@gmail.com", "carloscleton.nat@gmail.com"];
-            const masterCompanyIds: string[] = [];
+        if (!directKey) {
+            console.log('🔍 Chave direta em app_settings ausente. Buscando nas credenciais master (labfacilsuporte@gmail.com / SERVICE LINE)...')
 
-            // 1. Buscar empresas ligadas aos e-mails master
-            for (const email of masterEmails) {
-                const { data: adminProfiles } = await supabaseAdmin
-                    .from("profiles")
-                    .select("id")
-                    .ilike("email", email.trim());
+            // 1. Busca direta na empresa SERVICE LINE INFORMATICA (84d1586e-5d0c-456f-aa12-aefc5a9364a7)
+            const { data: directGateways } = await supabaseAdmin
+                .from('company_payment_gateways')
+                .select('*')
+                .eq('company_id', '84d1586e-5d0c-456f-aa12-aefc5a9364a7')
 
-                if (adminProfiles && adminProfiles.length > 0) {
-                    for (const prof of adminProfiles) {
-                        const { data: adminMembers } = await supabaseAdmin
-                            .from("company_members")
-                            .select("company_id")
-                            .eq("user_id", prof.id);
+            // 2. Busca qualquer gateway Asaas configurado no sistema
+            const { data: allAsaasGateways } = await supabaseAdmin
+                .from('company_payment_gateways')
+                .select('*')
+                .eq('provider', 'asaas')
+                .order('is_active', { ascending: false })
 
-                        if (adminMembers && adminMembers.length > 0) {
-                            for (const m of adminMembers) {
-                                if (m.company_id && !masterCompanyIds.includes(m.company_id)) {
-                                    masterCompanyIds.push(m.company_id);
-                                }
-                            }
-                        }
-                    }
+            // 3. Fallback: qualquer gateway ativo
+            const { data: anyActiveGateways } = await supabaseAdmin
+                .from('company_payment_gateways')
+                .select('*')
+                .eq('is_active', true)
+
+            const allCandidates = [
+                ...(directGateways || []),
+                ...(allAsaasGateways || []),
+                ...(anyActiveGateways || [])
+            ]
+            candidatesChecked = allCandidates.length
+
+            let chosenGw: any = null
+            let chosenApiKey: string | null = null
+
+            for (const gw of allCandidates) {
+                const gwSandbox = gw.is_sandbox === true
+                const extracted = extractGatewayApiKey(gw.config, gwSandbox)
+                if (extracted) {
+                    chosenGw = gw
+                    chosenApiKey = extracted
+                    break
                 }
             }
 
-            // 2. Buscar empresa SERVICE LINE INFORMATICA
-            const { data: serviceLineComp } = await supabaseAdmin
-                .from("companies")
-                .select("id")
-                .or("trade_name.ilike.%SERVICE LINE%,legal_name.ilike.%CARLOSCLETON%");
-
-            if (serviceLineComp && serviceLineComp.length > 0) {
-                for (const c of serviceLineComp) {
-                    if (c.id && !masterCompanyIds.includes(c.id)) {
-                        masterCompanyIds.push(c.id);
-                    }
+            if (chosenGw && chosenApiKey) {
+                provider = chosenGw.provider || 'asaas'
+                isSandbox = chosenGw.is_sandbox === true
+                env = isSandbox ? 'sandbox' : 'production'
+                configData = {
+                    api_key: chosenApiKey,
+                    wallet_id: chosenGw.config?.wallet_id || chosenGw.config?.prod_wallet_id || chosenGw.config?.walletId || null
                 }
-            }
+                directKey = chosenApiKey
 
-            // 3. Fallback: ID fixo conhecido da SERVICE LINE INFORMATICA
-            if (!masterCompanyIds.includes("84d1586e-5d0c-456f-aa12-aefc5a9364a7")) {
-                masterCompanyIds.push("84d1586e-5d0c-456f-aa12-aefc5a9364a7");
-            }
-
-            console.log("Empresas master identificadas para busca de gateway:", masterCompanyIds);
-
-            let masterGateway: any = null;
-            for (const compId of masterCompanyIds) {
-                const { data: gateways } = await supabaseAdmin
-                    .from("company_payment_gateways")
-                    .select("*")
-                    .eq("company_id", compId)
-                    .order("is_default", { ascending: false });
-
-                if (gateways && gateways.length > 0) {
-                    const asaasGw = gateways.find((g: any) => g.provider === "asaas" && g.config?.api_key);
-                    if (asaasGw) {
-                        masterGateway = asaasGw;
-                        break;
-                    }
-                    const anyValidGw = gateways.find((g: any) => g.config?.api_key || g.config?.access_token || g.config?.secret_key);
-                    if (anyValidGw) {
-                        masterGateway = anyValidGw;
-                        break;
-                    }
-                }
-            }
-
-            // 4. Se ainda nao achou, busca qualquer gateway Asaas ativo na tabela inteira
-            if (!masterGateway) {
-                const { data: allAsaas } = await supabaseAdmin
-                    .from("company_payment_gateways")
-                    .select("*")
-                    .eq("provider", "asaas")
-                    .order("updated_at", { ascending: false })
-                    .limit(5);
-
-                const validAsaas = allAsaas?.find((g: any) => g.config?.api_key);
-                if (validAsaas) {
-                    masterGateway = validAsaas;
-                }
-            }
-
-            if (masterGateway && masterGateway.config) {
-                provider = masterGateway.provider || "asaas";
-                configData = masterGateway.config;
-                isSandbox = masterGateway.is_sandbox === true;
-                env = isSandbox ? "sandbox" : "production";
-
-                console.log("✅ Gateway da conta master (labfacilsuporte / SERVICE LINE) carregado com sucesso:", {
+                console.log('✅ Gateway Asaas da conta master carregado com sucesso:', {
                     provider,
                     env,
-                    company_id: masterGateway.company_id,
-                    hasApiKey: !!(configData.api_key || configData.access_token || configData.secret_key)
-                });
+                    company_id: chosenGw.company_id,
+                    hasApiKey: true
+                })
 
-                // Persiste em app_settings para proximas chamadas
+                // Persiste em app_settings para acelerar futuras requisicoes
                 try {
-                    const curBillingConfig = settings?.platform_billing_config || {};
-                    if (!curBillingConfig[provider]) curBillingConfig[provider] = {};
-                    curBillingConfig[provider][env] = configData;
+                    const curBillingConfig = settings?.platform_billing_config || {}
+                    if (!curBillingConfig[provider]) curBillingConfig[provider] = {}
+                    if (!curBillingConfig[provider].production) curBillingConfig[provider].production = {}
+                    if (!curBillingConfig[provider].sandbox) curBillingConfig[provider].sandbox = {}
+
+                    curBillingConfig[provider].production = {
+                        api_key: chosenApiKey,
+                        wallet_id: configData.wallet_id
+                    }
+                    curBillingConfig[provider].sandbox = {
+                        api_key: chosenApiKey,
+                        wallet_id: configData.wallet_id
+                    }
 
                     await supabaseAdmin
-                        .from("app_settings")
+                        .from('app_settings')
                         .update({
                             platform_billing_provider: provider,
                             platform_billing_sandbox: isSandbox,
+                            platform_asaas_api_key: chosenApiKey,
                             platform_billing_config: curBillingConfig
                         })
-                        .eq("id", 1);
-                    console.log("✅ Configuracao salva em app_settings permanentemente.");
+                        .eq('id', 1)
+                    console.log('✅ Chave Asaas sincronizada em app_settings com sucesso.')
                 } catch (syncErr) {
-                    console.warn("Aviso: Erro ao persistir app_settings:", syncErr);
+                    console.warn('Aviso: Falha ao salvar em app_settings:', syncErr)
                 }
+            }
+        } else {
+            // Garante que configData.api_key tem a chave extraida
+            if (provider === 'asaas') {
+                configData.api_key = directKey
             }
         }
 
-        if (!provider || !(configData.api_key || configData.access_token || configData.secret_key)) {
-            throw new Error(`Platform Billing is not configured! Provider: ${provider || 'none'}. Please set it in Super Admin > Sistema > Cobrança.`)
+        if (!provider || !directKey) {
+            throw new Error(`Platform Billing is not configured! Provider: ${provider || 'none'}. Please set it in Super Admin > Sistema > Cobrança. (Candidatos avaliados: ${candidatesChecked})`)
         }
 
         // Security: Get REAL amount from landing_plans to prevent tampering
         let amount = company.next_billing_value || 97.00
         if (settings?.landing_plans && Array.isArray(settings.landing_plans)) {
-            const planDetails = settings.landing_plans.find((p: any) => p.name === company.subscription_plan);
+            const planDetails = settings.landing_plans.find((p: any) => p.name === company.subscription_plan)
             if (planDetails && planDetails.price) {
-                const priceStr = planDetails.price.toString().replace('R$', '').replace('.', '').replace(',', '.').trim();
-                const realPrice = parseFloat(priceStr);
+                const priceStr = planDetails.price.toString().replace('R$', '').replace('.', '').replace(',', '.').trim()
+                const realPrice = parseFloat(priceStr)
                 if (!isNaN(realPrice) && realPrice > 0) {
-                    amount = realPrice;
+                    amount = realPrice
                     // Auto-correct company in background if wrong
                     if (company.next_billing_value !== amount) {
-                        supabaseAdmin.from('companies').update({ next_billing_value: amount }).eq('id', company.id).then();
+                        supabaseAdmin.from('companies').update({ next_billing_value: amount }).eq('id', company.id).then()
                     }
                 }
             }
@@ -275,7 +259,7 @@ serve(async (req) => {
             }
         }
 
-        let checkoutUrl = '';
+        let checkoutUrl = ''
 
         if (provider === 'asaas') {
             const apiKey = configData.api_key
