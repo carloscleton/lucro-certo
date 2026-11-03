@@ -62,14 +62,40 @@ serve(async (req) => {
                 nextBillingDate.setDate(nextBillingDate.getDate() + 30);
             }
 
-            // 3. Update Company Status and Billing Cycle
+            // 3. Update Company Status, Billing Cycle and mark setup fee paid
+            const existingSettings = company.settings || {};
+            const adminBilling = existingSettings.admin_fiscal_billing || {};
+            let updatedSettings = existingSettings;
+
+            if (adminBilling.setup_fee && !adminBilling.setup_fee_paid) {
+                updatedSettings = {
+                    ...existingSettings,
+                    admin_fiscal_billing: {
+                        ...adminBilling,
+                        setup_fee_paid: true,
+                        setup_fee_paid_at: new Date().toISOString()
+                    }
+                };
+            }
+
+            const updatePayload: any = {
+                subscription_status: 'active',
+                subscription_plan: 'pro',
+                current_period_end: nextBillingDate.toISOString(),
+                settings: updatedSettings
+            };
+
+            const fixedFee = adminBilling.tiered_enabled
+                ? adminBilling.tiered_fixed_fee
+                : (adminBilling.tecnospeed?.fixed_fee ?? adminBilling.nfeio?.fixed_fee ?? adminBilling.national?.fixed_fee ?? adminBilling.other?.fixed_fee);
+
+            if (typeof fixedFee === 'number' && fixedFee > 0) {
+                updatePayload.next_billing_value = fixedFee;
+            }
+
             const { error: updateError } = await supabase
                 .from('companies')
-                .update({
-                    subscription_status: 'active',
-                    subscription_plan: 'pro', // Assume pro after payment
-                    current_period_end: nextBillingDate.toISOString(),
-                })
+                .update(updatePayload)
                 .eq('id', companyId)
 
             if (updateError) {
