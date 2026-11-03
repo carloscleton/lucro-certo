@@ -398,11 +398,18 @@ export function LandingPage() {
                     <button
                         type="button"
                         onClick={() => setIsCityModalOpen(true)}
-                        className="nav-link inline-flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50/80 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 transition-all cursor-pointer text-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 shadow-md shadow-emerald-500/35 hover:shadow-emerald-500/55 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-emerald-300/40 whitespace-nowrap"
                         title="Verifique se o município da sua empresa já aceita NFS-e Nacional"
                     >
-                        <Building2 size={13} />
-                        <span>Testar Cidade</span>
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                        </span>
+                        <Building2 size={13} className="text-white drop-shadow-sm" />
+                        <span className="tracking-wide">Testar Cidade</span>
+                        <span className="px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider bg-white/25 text-white rounded-full">
+                            Grátis
+                        </span>
                     </button>
                     
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-lg border border-gray-200 dark:border-slate-700 ml-4">

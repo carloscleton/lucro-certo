@@ -267,60 +267,60 @@
 }
 
 .btn-check-city {
-    background: rgba(99, 102, 241, 0.08);
+    background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
     padding: 0.85rem 1.6rem;
     border-radius: 12px;
-    color: #4f46e5;
-    font-weight: 700;
-    border: 1.5px solid rgba(99, 102, 241, 0.3);
+    color: #ffffff;
+    font-weight: 800;
+    border: 1.5px solid rgba(16, 185, 129, 0.4);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     font-size: 0.95rem;
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.06);
+    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.28);
 }
 
 .btn-check-city svg {
-    color: #4f46e5;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+    color: #ffffff;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .btn-check-city:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: #4f46e5;
-    color: #4338ca;
+    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+    border-color: #34d399;
+    color: #ffffff;
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.18);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
 }
 
 .btn-check-city:hover svg {
     transform: scale(1.2) rotate(-8deg);
-    color: #4338ca;
+    color: #ffffff;
 }
 
 .btn-check-city:active {
     transform: translateY(0);
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.08);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
 }
 
 .dark .btn-check-city {
-    background: rgba(99, 102, 241, 0.18);
-    color: #a5b4fc;
-    border-color: rgba(165, 180, 252, 0.35);
+    background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+    color: #ffffff;
+    border-color: rgba(52, 211, 153, 0.4);
+    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
 }
 
 .dark .btn-check-city svg {
-    color: #a5b4fc;
+    color: #ffffff;
 }
 
 .dark .btn-check-city:hover {
-    background: rgba(99, 102, 241, 0.28);
-    color: #c7d2fe;
-    border-color: #818cf8;
+    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+    color: #ffffff;
+    border-color: #6ee7b7;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5);
 }
 
 
