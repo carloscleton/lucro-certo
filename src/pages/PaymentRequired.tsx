@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
 import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import logoFull from '../assets/logo-full.png';
 import { Modal } from '../components/ui/Modal';
 import { whatsappService } from '../services/whatsappService';
@@ -36,6 +36,70 @@ export function PaymentRequired() {
     const [bypassStatusMessage, setBypassStatusMessage] = useState('');
     const [masterPhone, setMasterPhone] = useState('');
     const [showManualButton, setShowManualButton] = useState(false);
+    const [companyData, setCompanyData] = useState<any>(null);
+    const [companyBillingConfig, setCompanyBillingConfig] = useState<any>(null);
+
+    // Carrega dados da empresa e configuracoes customizadas por cliente (Imagem 2)
+    useEffect(() => {
+        const fetchCompanyBilling = async () => {
+            const targetId = currentEntity?.type === 'personal'
+                ? (currentEntity.associated_company_id || profile?.company_id)
+                : currentEntity?.id;
+
+            if (targetId && targetId !== 'personal') {
+                const { data } = await supabase
+                    .from('companies')
+                    .select('id, trade_name, settings, subscription_plan, next_billing_value, currency, cnpj, cpf, phone')
+                    .eq('id', targetId)
+                    .maybeSingle();
+
+                if (data) {
+                    setCompanyData(data);
+                    setCompanyBillingConfig(data.settings?.admin_fiscal_billing || null);
+                }
+            }
+        };
+        fetchCompanyBilling();
+    }, [currentEntity, profile]);
+
+    // Calculo dinamico do resumo financeiro (Imagem 1 & Imagem 2)
+    const { monthlyPrice, pendingSetupFee, totalInitial } = useMemo(() => {
+        let price = 0;
+        if (selectedPlan?.price) {
+            const priceStr = selectedPlan.price.toString().replace('R$', '').replace('.', '').replace(',', '.').trim();
+            price = parseFloat(priceStr) || 0;
+        }
+
+        // Se houver valor fixo mensal customizado para a empresa em admin_fiscal_billing
+        const activeFiscalProvider = companyData?.settings?.fiscal_provider || 'tecnospeed';
+        const clientBilling = companyBillingConfig || companyData?.settings?.admin_fiscal_billing;
+
+        if (clientBilling && clientBilling.fixed_enabled !== false) {
+            const customFixed = clientBilling[activeFiscalProvider]?.fixed_fee ?? clientBilling.other?.fixed_fee;
+            if (typeof customFixed === 'number' && customFixed > 0) {
+                price = customFixed;
+            }
+        } else if (companyData?.next_billing_value && Number(companyData.next_billing_value) > 0) {
+            price = Number(companyData.next_billing_value);
+        }
+
+        // Taxa de implantacao configurada para o cliente (ou padrao do plano se nao houver no cliente)
+        const rawSetup = typeof clientBilling?.setup_fee === 'number'
+            ? clientBilling.setup_fee
+            : parseFloat(selectedPlan?.setup_fee || '0');
+        const isPaid = clientBilling?.setup_fee_paid === true;
+        const setup = (!isPaid && rawSetup > 0) ? rawSetup : 0;
+
+        return {
+            monthlyPrice: price,
+            pendingSetupFee: setup,
+            totalInitial: price + setup
+        };
+    }, [selectedPlan, companyBillingConfig, companyData]);
+
+    const formatAmount = (val: number) => {
+        return Number.isInteger(val) ? val.toString() : val.toFixed(2);
+    };
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -480,13 +544,21 @@ export function PaymentRequired() {
                     .single();
                 
                 const companySettings = compSettingsData?.settings || {};
+                const existingAdminFiscal = companySettings.admin_fiscal_billing || {};
+                const finalSetupFee = existingAdminFiscal.setup_fee !== undefined
+                    ? existingAdminFiscal.setup_fee
+                    : (setupFeeValue > 0 ? setupFeeValue : (planFiscalBillingConfig?.setup_fee ?? 0.00));
+                const finalSetupPaid = existingAdminFiscal.setup_fee_paid !== undefined
+                    ? existingAdminFiscal.setup_fee_paid
+                    : (planFiscalBillingConfig?.setup_fee_paid ?? false);
+
                 updatedCompanySettings = {
                     ...companySettings,
                     admin_fiscal_billing: {
-                        ...(companySettings.admin_fiscal_billing || {}),
                         ...(planFiscalBillingConfig || {}),
-                        setup_fee: setupFeeValue > 0 ? setupFeeValue : (planFiscalBillingConfig?.setup_fee ?? 0.00),
-                        setup_fee_paid: planFiscalBillingConfig?.setup_fee_paid ?? false
+                        ...existingAdminFiscal,
+                        setup_fee: finalSetupFee,
+                        setup_fee_paid: finalSetupPaid
                     }
                 };
             } catch (setErr) {
@@ -685,14 +757,46 @@ export function PaymentRequired() {
                                 </div>
                             </div>
 
-                            <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Plano Selecionado</span>
-                                    <span className="text-[10px] text-slate-900 font-black">{selectedPlan?.name || '-'}</span>
+                            {/* Billing Summary Box - Idêntico ao cadastro (Imagem 1) e configurado por cliente (Imagem 2) */}
+                            <div className="mb-6 p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 leading-none mb-1">
+                                            Assinatura Selecionada
+                                        </p>
+                                        <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase">
+                                            {selectedPlan?.name || '-'}
+                                        </h4>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-lg font-black text-blue-600">
+                                            {currencySymbol} {formatAmount(monthlyPrice)}
+                                        </span>
+                                        <p className="text-[10px] font-bold text-slate-400 leading-none">/mês</p>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-900 tracking-widest uppercase">Total a Pagar</span>
-                                    <span className="text-2xl font-black text-blue-600">{currencySymbol} {selectedPlan?.price || '0'}</span>
+
+                                {pendingSetupFee > 0 && (
+                                    <div className="flex items-center justify-between pt-2 border-t border-blue-100/50 dark:border-blue-900/10">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">
+                                                Taxa de Implantação
+                                            </p>
+                                            <span className="text-[10px] text-slate-500 font-medium">Cobrança única</span>
+                                        </div>
+                                        <span className="text-sm font-black text-slate-700 dark:text-slate-300">
+                                            {currencySymbol} {formatAmount(pendingSetupFee)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between pt-2 border-t border-blue-100/50 dark:border-blue-900/10 bg-blue-100/30 dark:bg-blue-950/20 px-3 py-2 rounded-xl">
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-blue-700">
+                                        Total Inicial
+                                    </span>
+                                    <span className="text-lg font-black text-blue-800 dark:text-blue-300">
+                                        {currencySymbol} {formatAmount(totalInitial)}
+                                    </span>
                                 </div>
                             </div>
 

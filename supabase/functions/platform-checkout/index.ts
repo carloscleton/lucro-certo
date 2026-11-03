@@ -232,6 +232,31 @@ serve(async (req) => {
             }
         }
 
+        // Custom client fixed fee from admin_fiscal_billing if configured (Imagem 2)
+        const adminBilling = company.settings?.admin_fiscal_billing
+        const fiscalProvider = company.settings?.fiscal_provider || 'tecnospeed'
+        if (adminBilling && adminBilling.fixed_enabled !== false) {
+            const providerFixed = adminBilling[fiscalProvider]?.fixed_fee ?? adminBilling.other?.fixed_fee
+            if (typeof providerFixed === 'number' && providerFixed > 0) {
+                amount = providerFixed
+            }
+        }
+
+        // Check if there is an unpaid setup fee (Taxa de Implantação) configured for this client (Imagem 1 & 2)
+        const rawSetupFee = typeof adminBilling?.setup_fee === 'number' ? adminBilling.setup_fee : 0
+        const isSetupPaid = adminBilling?.setup_fee_paid === true
+        let setupFeeToAdd = 0
+
+        if (!isSetupPaid && rawSetupFee > 0) {
+            setupFeeToAdd = rawSetupFee
+            amount += setupFeeToAdd
+            console.log(`[platform-checkout] Adicionada Taxa de Implantação de R$ ${setupFeeToAdd} para empresa ${company.id}. Total a cobrar: R$ ${amount}`)
+        }
+
+        const chargeDescription = setupFeeToAdd > 0
+            ? `Assinatura Lucro Certo - ${company.subscription_plan || 'Plano'} + Taxa de Implantação (${company.trade_name})`
+            : `Assinatura Lucro Certo - ${company.trade_name}`
+
         // 3. Proration Logic (Pro-rata)
         let discount = 0
         if (company.subscription_status === 'active' && company.current_period_end) {
@@ -318,7 +343,7 @@ serve(async (req) => {
                 billingType: 'UNDEFINED',
                 value: amount,
                 dueDate: dueDate.toISOString().split('T')[0],
-                description: `Assinatura Lucro Certo - ${company.trade_name}`,
+                description: chargeDescription,
                 externalReference: company.id
             }
 
@@ -353,7 +378,7 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                     items: [{
-                        title: `Assinatura Lucro Certo - ${company.trade_name}`,
+                        title: chargeDescription,
                         quantity: 1,
                         unit_price: amount,
                         currency_id: 'BRL'
@@ -382,7 +407,7 @@ serve(async (req) => {
                 line_items: [{
                     price_data: {
                         currency: (company.currency || 'brl').toLowerCase(),
-                        product_data: { name: `Assinatura Lucro Certo - ${company.trade_name}` },
+                        product_data: { name: chargeDescription },
                         unit_amount: Math.round(amount * 100),
                     },
                     quantity: 1,
