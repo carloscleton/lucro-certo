@@ -72,74 +72,157 @@ serve(async (req) => {
             sandbox: settings?.platform_billing_sandbox
         })
 
-        let provider = settings?.platform_billing_provider
+        let provider = settings?.platform_billing_provider || "asaas"
         let configData: any = {}
-        let env = 'production'
+        let env = "production"
         let isSandbox = false
 
-        if (provider) {
-            isSandbox = settings.platform_billing_sandbox !== false
-            env = isSandbox ? 'sandbox' : 'production'
+        if (settings) {
+            isSandbox = settings.platform_billing_sandbox === true
+            env = isSandbox ? "sandbox" : "production"
             configData = settings.platform_billing_config?.[provider]?.[env] || {}
 
             // Legacy fallbacks if JSONB is empty for this provider
-            if (provider === 'asaas' && !configData.api_key) {
+            if (provider === "asaas" && !configData.api_key) {
                 configData = {
                     api_key: settings.platform_asaas_api_key,
                     wallet_id: settings.platform_asaas_wallet_id
                 }
-            } else if (provider === 'stripe' && !configData.secret_key) {
+            } else if (provider === "stripe" && !configData.secret_key) {
                 configData = {
                     secret_key: settings.platform_stripe_api_key,
                     publishable_key: settings.platform_stripe_publishable_key
                 }
-            } else if (provider === 'mercadopago' && !configData.access_token) {
+            } else if (provider === "mercadopago" && !configData.access_token) {
                 configData = {
                     access_token: settings.platform_mercadopago_api_key,
                     public_key: settings.platform_mercadopago_public_key
                 }
             }
+        }
 
-            console.log('Using Platform Billing Provider:', {
-                provider,
-                env,
-                fromJSONB: !!(settings.platform_billing_config?.[provider]?.[env]),
-                hasApiKey: !!(configData.api_key || configData.access_token || configData.secret_key)
-            })
-        } else {
-            // Find the owner with the email from the super admin policy
-            const { data: adminProfile } = await supabaseAdmin
-                .from('profiles')
-                .select('id')
-                .eq('email', 'carloscleton.nat@gmail.com')
-                .single()
+        // Se a chave nao estiver configurada diretamente em app_settings,
+        // busca as credenciais no gateway da conta Master (labfacilsuporte@gmail.com / carloscleton.nat@gmail.com / SERVICE LINE INFORMATICA)
+        const hasDirectKey = !!(configData.api_key || configData.access_token || configData.secret_key);
+        if (!hasDirectKey) {
+            console.log("🔍 Chave direta em app_settings ausente. Buscando nas credenciais master (labfacilsuporte@gmail.com / SERVICE LINE)...");
 
-            let masterId: any = null
-            if (adminProfile) {
-                const { data: adminMember } = await supabaseAdmin
-                    .from('company_members')
-                    .select('company_id')
-                    .eq('user_id', adminProfile.id)
-                    .eq('role', 'owner')
-                    .limit(1)
-                    .single()
-                masterId = adminMember?.company_id
+            const masterEmails = ["labfacilsuporte@gmail.com", "carloscleton.nat@gmail.com"];
+            const masterCompanyIds: string[] = [];
+
+            // 1. Buscar empresas ligadas aos e-mails master
+            for (const email of masterEmails) {
+                const { data: adminProfiles } = await supabaseAdmin
+                    .from("profiles")
+                    .select("id")
+                    .ilike("email", email.trim());
+
+                if (adminProfiles && adminProfiles.length > 0) {
+                    for (const prof of adminProfiles) {
+                        const { data: adminMembers } = await supabaseAdmin
+                            .from("company_members")
+                            .select("company_id")
+                            .eq("user_id", prof.id);
+
+                        if (adminMembers && adminMembers.length > 0) {
+                            for (const m of adminMembers) {
+                                if (m.company_id && !masterCompanyIds.includes(m.company_id)) {
+                                    masterCompanyIds.push(m.company_id);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            if (masterId) {
+            // 2. Buscar empresa SERVICE LINE INFORMATICA
+            const { data: serviceLineComp } = await supabaseAdmin
+                .from("companies")
+                .select("id")
+                .or("trade_name.ilike.%SERVICE LINE%,legal_name.ilike.%CARLOSCLETON%");
+
+            if (serviceLineComp && serviceLineComp.length > 0) {
+                for (const c of serviceLineComp) {
+                    if (c.id && !masterCompanyIds.includes(c.id)) {
+                        masterCompanyIds.push(c.id);
+                    }
+                }
+            }
+
+            // 3. Fallback: ID fixo conhecido da SERVICE LINE INFORMATICA
+            if (!masterCompanyIds.includes("84d1586e-5d0c-456f-aa12-aefc5a9364a7")) {
+                masterCompanyIds.push("84d1586e-5d0c-456f-aa12-aefc5a9364a7");
+            }
+
+            console.log("Empresas master identificadas para busca de gateway:", masterCompanyIds);
+
+            let masterGateway: any = null;
+            for (const compId of masterCompanyIds) {
                 const { data: gateways } = await supabaseAdmin
-                    .from('company_payment_gateways')
-                    .select('*')
-                    .eq('company_id', masterId)
-                    .eq('is_active', true)
-                    .limit(1)
+                    .from("company_payment_gateways")
+                    .select("*")
+                    .eq("company_id", compId)
+                    .order("is_default", { ascending: false });
 
                 if (gateways && gateways.length > 0) {
-                    provider = gateways[0].provider
-                    configData = gateways[0].config
-                    isSandbox = gateways[0].is_sandbox !== false
-                    env = isSandbox ? 'sandbox' : 'production'
-                    console.log('Using Master Company Gateway:', { provider, masterId })
+                    const asaasGw = gateways.find((g: any) => g.provider === "asaas" && g.config?.api_key);
+                    if (asaasGw) {
+                        masterGateway = asaasGw;
+                        break;
+                    }
+                    const anyValidGw = gateways.find((g: any) => g.config?.api_key || g.config?.access_token || g.config?.secret_key);
+                    if (anyValidGw) {
+                        masterGateway = anyValidGw;
+                        break;
+                    }
+                }
+            }
+
+            // 4. Se ainda nao achou, busca qualquer gateway Asaas ativo na tabela inteira
+            if (!masterGateway) {
+                const { data: allAsaas } = await supabaseAdmin
+                    .from("company_payment_gateways")
+                    .select("*")
+                    .eq("provider", "asaas")
+                    .order("updated_at", { ascending: false })
+                    .limit(5);
+
+                const validAsaas = allAsaas?.find((g: any) => g.config?.api_key);
+                if (validAsaas) {
+                    masterGateway = validAsaas;
+                }
+            }
+
+            if (masterGateway && masterGateway.config) {
+                provider = masterGateway.provider || "asaas";
+                configData = masterGateway.config;
+                isSandbox = masterGateway.is_sandbox === true;
+                env = isSandbox ? "sandbox" : "production";
+
+                console.log("✅ Gateway da conta master (labfacilsuporte / SERVICE LINE) carregado com sucesso:", {
+                    provider,
+                    env,
+                    company_id: masterGateway.company_id,
+                    hasApiKey: !!(configData.api_key || configData.access_token || configData.secret_key)
+                });
+
+                // Persiste em app_settings para proximas chamadas
+                try {
+                    const curBillingConfig = settings?.platform_billing_config || {};
+                    if (!curBillingConfig[provider]) curBillingConfig[provider] = {};
+                    curBillingConfig[provider][env] = configData;
+
+                    await supabaseAdmin
+                        .from("app_settings")
+                        .update({
+                            platform_billing_provider: provider,
+                            platform_billing_sandbox: isSandbox,
+                            platform_billing_config: curBillingConfig
+                        })
+                        .eq("id", 1);
+                    console.log("✅ Configuracao salva em app_settings permanentemente.");
+                } catch (syncErr) {
+                    console.warn("Aviso: Erro ao persistir app_settings:", syncErr);
                 }
             }
         }
