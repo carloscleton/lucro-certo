@@ -18,7 +18,8 @@ import {
     AlertTriangle,
     ChevronLeft,
     ChevronRight,
-    RefreshCw
+    RefreshCw,
+    Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
@@ -41,6 +42,7 @@ import bannerMulticompany from '../assets/landing/landing_hero_multicompany.png'
 import bannerCertificado from '../assets/landing/landing_hero_certificado_digital.png';
 
 import { HeroCarousel } from '../components/landing/HeroCarousel';
+import { CityHomologationModal } from '../components/landing/CityHomologationModal';
 
 import '../styles/LandingPage.css';
 const getContrastColor = (hexColor: string) => {
@@ -160,6 +162,7 @@ export function LandingPage() {
     
     const isUnpaid = !isAdmin && !isExempt && !isBypassed && (['unpaid', 'past_due'].includes(currentEntity?.subscription_status || '') || isTrialExpired);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    const [isCityModalOpen, setIsCityModalOpen] = useState(false);
     const [landingPlans, setLandingPlans] = useState<any[]>([]);
     const [landingCampaigns, setLandingCampaigns] = useState<any[]>([]);
     const [activePopupIndex, setActivePopupIndex] = useState(0);
@@ -392,6 +395,15 @@ export function LandingPage() {
                     <a href="#features" className="nav-link">{t('landing.nav.features')}</a>
                     <a href="#ai" className="nav-link">{t('landing.nav.ai')}</a>
                     {landingPlans.length > 0 && <a href="#pricing" className="nav-link">{t('landing.nav.plans')}</a>}
+                    <button
+                        type="button"
+                        onClick={() => setIsCityModalOpen(true)}
+                        className="nav-link inline-flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50/80 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 transition-all cursor-pointer text-xs"
+                        title="Verifique se o município da sua empresa já aceita NFS-e Nacional"
+                    >
+                        <Building2 size={13} />
+                        <span>Testar Cidade</span>
+                    </button>
                     
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-lg border border-gray-200 dark:border-slate-700 ml-4">
                         {['BRL', 'USD', 'EUR', 'PYG', 'GBP'].map(code => {
@@ -446,6 +458,7 @@ export function LandingPage() {
                 session={session} 
                 setIsVideoModalOpen={setIsVideoModalOpen} 
                 landingCampaigns={landingCampaigns} 
+                onCheckCityClick={() => setIsCityModalOpen(true)}
                 onTrialClick={() => {
                     setTrialOnlyMode(true);
                     const pricingSec = document.getElementById('pricing');
@@ -814,6 +827,16 @@ export function LandingPage() {
                             <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p3')}</li>
                             <li><CheckCircle2 size={18} className="check-icon" /> {t('landing.detailed_features.fiscal.p4')}</li>
                         </ul>
+                        <div className="mt-6">
+                            <button
+                                type="button"
+                                onClick={() => setIsCityModalOpen(true)}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-sm active:scale-95"
+                            >
+                                <Building2 size={16} />
+                                <span>Consultar Homologação da sua Cidade (NFS-e)</span>
+                            </button>
+                        </div>
                     </div>
                     <div className="visual-image-container">
                         <img
@@ -1482,6 +1505,19 @@ export function LandingPage() {
             )}
 
             {isUnpaid && <PaymentRequired />}
+
+            <CityHomologationModal
+                isOpen={isCityModalOpen}
+                onClose={() => setIsCityModalOpen(false)}
+                onStartTrial={() => {
+                    setIsCityModalOpen(false);
+                    setTrialOnlyMode(true);
+                    const pricingSec = document.getElementById('pricing');
+                    if (pricingSec) {
+                        pricingSec.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }}
+            />
 
             <PlanDetailsModal
                 isOpen={!!selectedPlanForDetails}

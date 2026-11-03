@@ -266,6 +266,63 @@
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.05);
 }
 
+.btn-check-city {
+    background: rgba(99, 102, 241, 0.08);
+    padding: 0.85rem 1.6rem;
+    border-radius: 12px;
+    color: #4f46e5;
+    font-weight: 700;
+    border: 1.5px solid rgba(99, 102, 241, 0.3);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.06);
+}
+
+.btn-check-city svg {
+    color: #4f46e5;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
+}
+
+.btn-check-city:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #4f46e5;
+    color: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.18);
+}
+
+.btn-check-city:hover svg {
+    transform: scale(1.2) rotate(-8deg);
+    color: #4338ca;
+}
+
+.btn-check-city:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.08);
+}
+
+.dark .btn-check-city {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+    border-color: rgba(165, 180, 252, 0.35);
+}
+
+.dark .btn-check-city svg {
+    color: #a5b4fc;
+}
+
+.dark .btn-check-city:hover {
+    background: rgba(99, 102, 241, 0.28);
+    color: #c7d2fe;
+    border-color: #818cf8;
+}
+
 
 .hero-image-container {
     position: relative;
@@ -1002,7 +1059,8 @@
     
     .carousel-global-actions .btn-primary,
     .carousel-global-actions .btn-secondary,
-    .carousel-global-actions .btn-watch-video {
+    .carousel-global-actions .btn-watch-video,
+    .carousel-global-actions .btn-check-city {
         width: 100%;
         justify-content: center;
     }

@@ -6515,6 +6515,49 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
     }
 });
 
+// Endpoint publico para consulta rapida de homologacao municipal (landing page / teste publico)
+app.get(['/fiscal-module/public/cidades/:codigoIbge', '/api/fiscal-module/public/cidades/:codigoIbge'], async (req, res) => {
+    const { codigoIbge } = req.params;
+    const cleanIbge = String(codigoIbge).replace(/\D/g, "");
+
+    if (!cleanIbge || cleanIbge.length < 6) {
+        return res.status(400).json({ error: "Codigo IBGE invalido" });
+    }
+
+    try {
+        const apiKey = "2da392a6-79d2-4304-a8b7-959572c7e44d";
+        const baseUrl = "https://api.plugnotas.com.br";
+
+        console.log(`🔍 [FISCAL-PUBLIC-CIDADES] Consultando cidade IBGE publica: ${cleanIbge}...`);
+
+        const response = await axios.get(`${baseUrl}/nfse/cidades/${cleanIbge}`, {
+            headers: { 
+                "x-api-key": apiKey,
+                "X-API-KEY": apiKey
+            },
+            timeout: 8000
+        });
+
+        return res.json(response.data);
+    } catch (error: any) {
+        const errorDetail = error.response?.data || error.message;
+        const statusCode = error.response?.status || 500;
+        
+        if (statusCode === 404) {
+            return res.json({
+                id: cleanIbge,
+                codigoIbge: cleanIbge,
+                homologado: false,
+                ativo: false,
+                message: "Municipio em processo de homologacao / adesao ao Padrao Nacional."
+            });
+        }
+
+        console.error(`❌ Erro ao consultar cidade publica ${codigoIbge}:`, errorDetail);
+        return res.status(statusCode).json({ error: "Erro ao consultar cidade publica", detail: errorDetail });
+    }
+});
+
 app.get(['/fiscal-module/nfeio/prefectures/:codigoIbge', '/api/fiscal-module/nfeio/prefectures/:codigoIbge'], authenticate, async (req, res) => {
     const { codigoIbge } = req.params;
     const { companyId } = req.query;

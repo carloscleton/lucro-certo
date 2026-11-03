@@ -15,7 +15,8 @@ import {
     ArrowRight,
     Award,
     Receipt,
-    ShieldCheck
+    ShieldCheck,
+    Building2
 } from 'lucide-react';
 
 // Import banner images
@@ -100,9 +101,10 @@ interface HeroCarouselProps {
     setIsVideoModalOpen: (open: boolean) => void;
     landingCampaigns?: any[];
     onTrialClick?: () => void;
+    onCheckCityClick?: () => void;
 }
 
-export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns, onTrialClick }: HeroCarouselProps) {
+export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns, onTrialClick, onCheckCityClick }: HeroCarouselProps) {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -438,6 +440,15 @@ export function HeroCarousel({ session, setIsVideoModalOpen, landingCampaigns, o
                                                 <button onClick={() => setIsVideoModalOpen(true)} className="btn-watch-video">
                                                     <PlayCircle size={18} />
                                                     {t('landing.hero.learn_system')}
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => onCheckCityClick && onCheckCityClick()}
+                                                    className="btn-check-city"
+                                                    title="Verifique se o seu município já está integrado ao Portal Nacional (ADN) ou aceita emissão NFS-e"
+                                                >
+                                                    <Building2 size={18} />
+                                                    <span>Testar Cidade Homologada</span>
                                                 </button>
                                             </>
                                         )}
