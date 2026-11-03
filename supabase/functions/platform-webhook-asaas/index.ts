@@ -62,19 +62,24 @@ serve(async (req) => {
                 nextBillingDate.setDate(nextBillingDate.getDate() + 30);
             }
 
-            // 3. Update Company Status, Billing Cycle and mark setup fee paid
+            // 3. Update Company Status, Billing Cycle, Setup Fee and 1-Year Annual License
             const existingSettings = company.settings || {};
             const adminBilling = existingSettings.admin_fiscal_billing || {};
-            let updatedSettings = existingSettings;
+            let updatedSettings = { ...existingSettings };
+
+            // Atribui automaticamente 1 ano de anuidade/licença no primeiro pagamento ou se não estiver definida/expirada
+            const oneYearFromNow = new Date();
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+            if (!updatedSettings.license_expires_at || new Date(updatedSettings.license_expires_at) < new Date()) {
+                updatedSettings.license_expires_at = oneYearFromNow.toISOString();
+            }
 
             if (adminBilling.setup_fee && !adminBilling.setup_fee_paid) {
-                updatedSettings = {
-                    ...existingSettings,
-                    admin_fiscal_billing: {
-                        ...adminBilling,
-                        setup_fee_paid: true,
-                        setup_fee_paid_at: new Date().toISOString()
-                    }
+                updatedSettings.admin_fiscal_billing = {
+                    ...adminBilling,
+                    setup_fee_paid: true,
+                    setup_fee_paid_at: new Date().toISOString()
                 };
             }
 

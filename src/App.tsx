@@ -162,8 +162,12 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Is temporary bypass active (24 hours)?
   const bypassUntil = currentEntity.settings?.bypass_until;
   const isBypassed = bypassUntil && new Date(bypassUntil) > new Date();
+
+  // Verifica se a anuidade / licença de uso anual expirou
+  const isLicenseExpired = currentEntity.settings?.license_expires_at && 
+                           new Date(currentEntity.settings.license_expires_at) < new Date();
   
-  if (!isAdmin && !isExempt && !isBypassed && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked)) {
+  if (!isAdmin && !isExempt && !isBypassed && (['unpaid', 'past_due'].includes(status) || isTrialExpired || isBlocked || isLicenseExpired)) {
     return <Navigate to="/payment-required" replace />;
   }
 

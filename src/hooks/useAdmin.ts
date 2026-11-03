@@ -199,6 +199,14 @@ export function useAdmin() {
         console.log('Updating Company Config:', { companyId, fiscal, payments, banking, crm, marketing, loyalty, warranty, allowedTypes, settings, loyaltyFee, loyaltySplit });
 
         try {
+            // Se a anuidade/licença ainda não tiver sido definida, define automaticamente para 1 ano
+            const updatedSettings = { ...(settings || {}) };
+            if (!updatedSettings.license_expires_at) {
+                const oneYearFromNow = new Date();
+                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                updatedSettings.license_expires_at = oneYearFromNow.toISOString();
+            }
+
             const { error } = await supabase.rpc('admin_update_company_config', {
                 target_company_id: companyId,
                 fiscal_enabled: fiscal,
@@ -211,15 +219,15 @@ export function useAdmin() {
                 loyalty_enabled: loyalty,
                 warranty_enabled: warranty,
                 allowed_types: allowedTypes,
-                settings_input: settings,
+                settings_input: updatedSettings,
                 loyalty_fee_input: loyaltyFee,
                 loyalty_split_enabled_input: loyaltySplit
             });
 
             if (error) throw error;
 
-            if (settings?.monthly_fee !== undefined && settings?.monthly_fee !== null) {
-                const numericMonthly = Number(settings.monthly_fee);
+            if (updatedSettings?.monthly_fee !== undefined && updatedSettings?.monthly_fee !== null) {
+                const numericMonthly = Number(updatedSettings.monthly_fee);
                 if (!isNaN(numericMonthly) && numericMonthly >= 0) {
                     await supabase.from('companies').update({ next_billing_value: numericMonthly }).eq('id', companyId);
                 }
@@ -240,7 +248,7 @@ export function useAdmin() {
                         loyalty_module_enabled: loyalty,
                         warranty_module_enabled: warranty,
                         allowed_entity_types: allowedTypes,
-                        settings: settings || c.settings,
+                        settings: updatedSettings,
                         loyalty_platform_fee: loyaltyFee,
                         loyalty_split_enabled: loyaltySplit
                     } 
@@ -353,13 +361,34 @@ export function useAdmin() {
         if (!isAdmin) return { error: 'Unauthorized' };
 
         try {
+            const { data: comp } = await supabase
+                .from('companies')
+                .select('settings')
+                .eq('id', companyId)
+                .single();
+
+            const existingSettings = comp?.settings || {};
+            const oneYearFromNow = new Date();
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+            let licenseExpires = existingSettings.license_expires_at;
+            if (!licenseExpires || new Date(licenseExpires) < new Date()) {
+                licenseExpires = oneYearFromNow.toISOString();
+            }
+
+            const updatedSettings = {
+                ...existingSettings,
+                license_expires_at: licenseExpires
+            };
+
             const { error } = await supabase
                 .from('companies')
                 .update({
                     subscription_status: 'active',
                     subscription_plan: 'pro',
                     status: 'active',
-                    current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                    current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    settings: updatedSettings
                 })
                 .eq('id', companyId);
 

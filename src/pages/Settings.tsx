@@ -2889,9 +2889,16 @@ export function Settings() {
                                                 checked={!!tempCompanyConfig.settings?.billing_exempt}
                                                 onChange={(e) => {
                                                     const newVal = e.target.checked;
+                                                    const curSettings = { ...(tempCompanyConfig.settings || {}) };
+                                                    curSettings.billing_exempt = newVal;
+                                                    if (newVal && !curSettings.license_expires_at) {
+                                                        const oneYearFromNow = new Date();
+                                                        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                                                        curSettings.license_expires_at = oneYearFromNow.toISOString().split('T')[0];
+                                                    }
                                                     setTempCompanyConfig({
                                                         ...tempCompanyConfig,
-                                                        settings: { ...(tempCompanyConfig.settings || {}), billing_exempt: newVal }
+                                                        settings: curSettings
                                                     });
                                                 }}
                                             />
@@ -4380,8 +4387,15 @@ export function Settings() {
                                                                         variant="primary"
                                                                         className="h-8 px-2.5 text-[10px] gap-1.5 rounded-lg shadow-lg shadow-blue-500/10 transition-all"
                                                                         onClick={async () => {
+                                                                            const configSettings = { ...(c.settings || {}) };
+                                                                            // Se ainda não tiver vencimento da anuidade/licença, sugere automaticamente 1 ano a partir de hoje
+                                                                            if (!configSettings.license_expires_at) {
+                                                                                const oneYearFromNow = new Date();
+                                                                                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                                                                                configSettings.license_expires_at = oneYearFromNow.toISOString().split('T')[0];
+                                                                            }
                                                                             setSelectedCompanyForConfig(c);
-                                                                            setTempCompanyConfig({ ...c });
+                                                                            setTempCompanyConfig({ ...c, settings: configSettings });
                                                                             const { data } = await supabase
                                                                                 .from('companies')
                                                                                 .select('whatsapp_instance_limit')
