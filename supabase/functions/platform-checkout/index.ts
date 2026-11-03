@@ -47,7 +47,25 @@ serve(async (req) => {
             .eq('company_id', company_id)
             .single()
 
-        if (!membership) throw new Error('Not a member of this company')
+        if (!membership) {
+            // Se o usuário for o dono da empresa, vincula automaticamente como admin
+            const { data: compCheck } = await supabaseAdmin
+                .from('companies')
+                .select('user_id')
+                .eq('id', company_id)
+                .single()
+
+            if (compCheck && compCheck.user_id === userId) {
+                await supabaseAdmin.from('company_members').insert({
+                    company_id: company_id,
+                    user_id: userId,
+                    role: 'admin',
+                    status: 'active'
+                })
+            } else {
+                throw new Error('Not a member of this company')
+            }
+        }
 
         // 1. Fetch Company Info
         const { data: company } = await supabaseAdmin

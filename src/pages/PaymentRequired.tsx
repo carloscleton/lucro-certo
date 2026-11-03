@@ -12,7 +12,7 @@ import { PlanDetailsModal } from '../components/settings/PlanDetailsModal';
 
 export function PaymentRequired() {
     const { user, profile, signOut } = useAuth();
-    const { currentEntity, refresh: refreshEntity } = useEntity();
+    const { currentEntity, availableEntities, refresh: refreshEntity } = useEntity();
     const [loading, setLoading] = useState(false);
     const [appSettings, setAppSettings] = useState<any>(null);
     const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -39,12 +39,74 @@ export function PaymentRequired() {
     const [companyData, setCompanyData] = useState<any>(null);
     const [companyBillingConfig, setCompanyBillingConfig] = useState<any>(null);
 
+    const resolveTargetCompanyId = async (): Promise<string | null> => {
+        // 1. Empresa selecionada no contexto
+        if (currentEntity?.type === 'company' && currentEntity.id && currentEntity.id !== 'personal') {
+            return currentEntity.id;
+        }
+
+        // 2. Primeira empresa disponível em availableEntities
+        if (availableEntities && availableEntities.length > 0) {
+            const comp = availableEntities.find(e => e.type === 'company' && e.id && e.id !== 'personal');
+            if (comp?.id) return comp.id;
+        }
+
+        // 3. profile.company_id
+        if (profile?.company_id && profile.company_id !== 'personal') {
+            return profile.company_id;
+        }
+
+        // 4. company_members pelo user.id
+        if (user?.id) {
+            const { data: memberRows } = await supabase
+                .from('company_members')
+                .select('company_id')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (memberRows && memberRows.length > 0 && memberRows[0].company_id) {
+                return memberRows[0].company_id;
+            }
+        }
+
+        // 5. companies pelo user_id do dono
+        if (user?.id) {
+            const { data: ownerComp } = await supabase
+                .from('companies')
+                .select('id')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (ownerComp && ownerComp.length > 0 && ownerComp[0].id) {
+                return ownerComp[0].id;
+            }
+        }
+
+        // 6. companies pelo documento digitado na tela
+        const clean = documentStr.replace(/\D/g, '');
+        if (clean.length === 11 || clean.length === 14) {
+            const isCnpj = clean.length === 14;
+            const { data: docComp } = await supabase
+                .from('companies')
+                .select('id')
+                .eq(isCnpj ? 'cnpj' : 'cpf', clean)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (docComp && docComp.length > 0 && docComp[0].id) {
+                return docComp[0].id;
+            }
+        }
+
+        return null;
+    };
+
     // Carrega dados da empresa e configuracoes customizadas por cliente (Imagem 2)
     useEffect(() => {
         const fetchCompanyBilling = async () => {
-            const targetId = currentEntity?.type === 'personal'
-                ? (currentEntity.associated_company_id || profile?.company_id)
-                : currentEntity?.id;
+            const targetId = await resolveTargetCompanyId();
 
             if (targetId && targetId !== 'personal') {
                 const { data } = await supabase
@@ -60,7 +122,7 @@ export function PaymentRequired() {
             }
         };
         fetchCompanyBilling();
-    }, [currentEntity, profile]);
+    }, [currentEntity, profile, user, availableEntities]);
 
     // Calculo dinamico do resumo financeiro (Imagem 1 & Imagem 2)
     const { monthlyPrice, pendingSetupFee, totalInitial } = useMemo(() => {
@@ -490,30 +552,44 @@ export function PaymentRequired() {
             return;
         }        setLoading(true);
         try {
-            let targetId = currentEntity.type === 'personal'
-                ? (currentEntity.associated_company_id || profile?.company_id)
-                : currentEntity.id;
+            let targetId = await resolveTargetCompanyId();
 
-            // ✅ AUTO-CRIAÇÃO: Se não existe empresa, cria uma PF na hora
+            // Se realmente não existir nenhuma empresa para este usuário, cria com user_id explícito
             if (!targetId || targetId === 'personal') {
-                const userName = profile?.full_name || 'Conta Pessoal';
-                console.log('DEBUG: Criando PF para:', userName);
-                const { data: createData, error: createError } = await supabase.rpc('create_company', {
-                    name_input: userName,
-                    trade_name_input: userName,
-                    cnpj_input: '',
-                    entity_type_input: 'PF',
-                    cpf_input: null,
-                    email_input: profile?.email || '',
-                    phone_input: profile?.phone || '',
-                    slug_input: null
-                });
-                
-                if (createError || !createData?.success) {
-                    throw new Error(createData?.message || createError?.message || 'Erro ao criar conta.');
+                const userName = profile?.full_name || user?.email?.split('@')[0] || 'Minha Empresa';
+                const isCnpj = cleanDoc.length === 14;
+                console.log('Criando empresa com user_id explícito:', user?.id);
+
+                const { data: newComp, error: insertError } = await supabase
+                    .from('companies')
+                    .insert({
+                        legal_name: userName,
+                        trade_name: userName,
+                        user_id: user?.id,
+                        entity_type: isCnpj ? 'PJ' : 'PF',
+                        [isCnpj ? 'cnpj' : 'cpf']: cleanDoc,
+                        phone: cleanPhone,
+                        email: profile?.email || user?.email || '',
+                        subscription_plan: selectedPlan.name,
+                        currency: selectedCurrency
+                    })
+                    .select('id')
+                    .single();
+
+                if (insertError || !newComp?.id) {
+                    throw new Error(insertError?.message || 'Falha ao vincular empresa para pagamento.');
                 }
-                targetId = createData.company_id;
-                console.log('DEBUG: Empresa PF criada! ID:', targetId);
+                targetId = newComp.id;
+
+                // Garante a membresia do usuário como admin
+                if (user?.id) {
+                    await supabase.from('company_members').insert({
+                        company_id: newComp.id,
+                        user_id: user.id,
+                        role: 'admin',
+                        status: 'active'
+                    });
+                }
             }
 
             // Fetch target plan configuration from app_settings
