@@ -11,7 +11,7 @@ import { whatsappService } from '../services/whatsappService';
 import { PlanDetailsModal } from '../components/settings/PlanDetailsModal';
 
 export function PaymentRequired() {
-    const { user, profile, signOut } = useAuth();
+    const { user, session: authSession, profile, signOut } = useAuth();
     const { currentEntity, availableEntities, refresh: refreshEntity } = useEntity();
     const [loading, setLoading] = useState(false);
     const [appSettings, setAppSettings] = useState<any>(null);
@@ -660,19 +660,30 @@ export function PaymentRequired() {
             
             if (updateError) throw updateError;
 
-            // 2. Chamar o Checkout
-            const { data: { session } } = await supabase.auth.getSession();
+            // 2. Chamar o Checkout com token e user_id
+            const { data: sessionData } = await supabase.auth.getSession();
+            let activeToken = sessionData?.session?.access_token || authSession?.access_token;
+            if (!activeToken) {
+                try {
+                    const { data: refreshData } = await supabase.auth.refreshSession();
+                    activeToken = refreshData?.session?.access_token;
+                } catch (refErr) {
+                    console.warn('Erro ao atualizar sessão:', refErr);
+                }
+            }
+
             const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/platform-checkout`;
             const response = await fetch(functionUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                    'Authorization': `Bearer ${activeToken || import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
                 body: JSON.stringify({
                     company_id: targetId,
-                    access_token: session?.access_token,
+                    access_token: activeToken,
+                    user_id: user?.id,
                     currency: selectedCurrency
                 })
             });
