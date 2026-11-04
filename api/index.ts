@@ -2679,9 +2679,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 ? customerRetTipo
                 : (nat.tp_ret_issqn !== undefined ? Number(nat.tp_ret_issqn) : 1);
             const simplesNacionalDefault = nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (nat.simples_nacional !== false ? (nat.reg_esp_trib === 6 ? 2 : 3) : 1);
-            const isSimplesSemRetencao = (simplesNacionalDefault === 2 || simplesNacionalDefault === 3) && tpRetISSQNDefault === 1;
-            // finalPAliq: só enviar se tiver retenção (tpRetISSQN=2) OU se o usuário configurou um valor > 0
-            const finalPAliq = isSimplesSemRetencao ? 0 : (!isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0);
+            // Regras E0625 e E0617 da NFS-e Nacional:
+            // - Simples Nacional sem retenção: proíbe pAliq (E0625)
+            // - Regime Normal com município ATIVO: proíbe pAliq (E0617), o próprio Sefin Nacional calcula a alíquota
+            // Portanto, no padrão nacional a alíquota de ISS (pAliq) SÓ é enviada na DPS quando houver retenção de ISS pelo tomador (tpRetISSQN=2)
+            const shouldSendPAliqDefault = tpRetISSQNDefault === 2;
+            const finalPAliq = shouldSendPAliqDefault && !isNaN(pAliqValDefault) && pAliqValDefault > 0 ? pAliqValDefault : 0;
             const finalPTotTribSN = !isNaN(pTotTribSNValDefault) ? pTotTribSNValDefault : 6.00;
 
             // Determina o próximo número sequencial da DPS consultando o último invoice no banco.
@@ -2781,8 +2784,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             ...(finalPAliq > 0 ? { pAliq: finalPAliq } : {})
                         };
                     } else {
-                        // Remove pAliq se existir e não deve ser enviado
-                        if (isSimplesSemRetencao) {
+                        // Remove pAliq se não for retenção (previne E0625 no Simples e E0617 no Normal com município ATIVO)
+                        if (adnPayload.infDPS.valores.trib.tribMun.tpRetISSQN !== 2) {
                             delete adnPayload.infDPS.valores.trib.tribMun.pAliq;
                         } else if (adnPayload.infDPS.valores.trib.tribMun.pAliq === undefined && finalPAliq > 0) {
                             adnPayload.infDPS.valores.trib.tribMun.pAliq = finalPAliq;
@@ -2934,8 +2937,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 tribMun: {
                                     tribISSQN: nat.trib_issqn !== undefined ? Number(nat.trib_issqn) : 1,
                                     tpRetISSQN: tpRetISSQNDefault,
-                                    // E0625: NÃO enviar pAliq para Simples Nacional sem retenção (tpRetISSQN=1)
-                                    ...(finalPAliq > 0 ? { pAliq: finalPAliq } : {})
+                                    // pAliq só deve ser enviada se houver retenção (tpRetISSQN=2). Sem retenção, o Portal Nacional proíbe (E0625 e E0617)
+                                    ...(tpRetISSQNDefault === 2 && finalPAliq > 0 ? { pAliq: finalPAliq } : {})
                                 },
                                 ...(adnTribFed ? { tribFed: adnTribFed } : {}),
                                 totTrib: {
@@ -3177,8 +3180,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Para optantes do Simples Nacional (opSimpNac = 2 ou 3), a alíquota de ISS só é informada se houver retenção (tpRetISSQN = 2).
             // Se não houver retenção (tpRetISSQN = 1), o Portal Nacional proíbe informar alíquota (regra E0625).
             const pAliqVal = tribMun.pAliq !== undefined ? Number(tribMun.pAliq) : (nat.default_iss_aliquota ? Number(nat.default_iss_aliquota) : 5.00);
-            const isSimplesNac = opSimpNac === 2 || opSimpNac === 3;
-            const shouldSendPAliq = isSimplesNac ? (tpRetISSQN === 2) : (pAliqVal > 0);
+            // Regras E0625 e E0617 do Portal Nacional:
+            // - Optante do Simples (opSimpNac 2 ou 3) sem retenção: proíbe pAliq (E0625)
+            // - Regime Normal (opSimpNac 1) com município ATIVO (Cuiabá, etc.): proíbe pAliq (E0617), o sistema nacional calcula automaticamente
+            // Portanto, pAliq SÓ é enviada na DPS quando houver retenção de ISS pelo tomador (tpRetISSQN = 2)
+            const shouldSendPAliq = tpRetISSQN === 2 && pAliqVal > 0;
             const pAliqXml = shouldSendPAliq ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
             // tribFed (PIS, COFINS, CSLL, IRRF conforme XSD Oficial da NFS-e Nacional NT 007/2026)
