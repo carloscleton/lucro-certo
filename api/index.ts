@@ -2990,10 +2990,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const tomadorEnd = firstItem?.tomador?.endereco;
                 if (tomadorEnd && adnPayload.infDPS?.toma) {
                     const endToma: any = {};
-                    if (tomadorEnd.logradouro) endToma.xLgr = tomadorEnd.logradouro;
-                    if (tomadorEnd.numero) endToma.nro = tomadorEnd.numero;
-                    if (tomadorEnd.complemento) endToma.xCpl = tomadorEnd.complemento;
-                    if (tomadorEnd.bairro) endToma.xBairro = tomadorEnd.bairro;
+                    if (tomadorEnd.logradouro) endToma.xLgr = String(tomadorEnd.logradouro).replace(/[\t\r\n]+/g, ' ').trim();
+                    if (tomadorEnd.numero) endToma.nro = String(tomadorEnd.numero).replace(/[\t\r\n]+/g, ' ').trim();
+                    if (tomadorEnd.complemento) {
+                        const cleanCpl = String(tomadorEnd.complemento).replace(/[\t\r\n]+/g, ' ').trim();
+                        if (cleanCpl) endToma.xCpl = cleanCpl;
+                    }
+                    if (tomadorEnd.bairro) endToma.xBairro = String(tomadorEnd.bairro).replace(/[\t\r\n]+/g, ' ').trim();
                     
                     // Endereço Nacional exige agrupamento de cMun e CEP dentro do objeto endNac
                     const cMunToma = String(tomadorEnd.codigoCidade || tomadorEnd.cMun || '').replace(/\D/g, '');
@@ -3121,7 +3124,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
             }
 
-            const tomadorEndXml = tomadorEnd ? `<end>${endNacXml}${tomadorEnd.xLgr ? `<xLgr>${tomadorEnd.xLgr}</xLgr>` : ''}${tomadorEnd.nro ? `<nro>${tomadorEnd.nro}</nro>` : ''}${tomadorEnd.xCpl ? `<xCpl>${tomadorEnd.xCpl}</xCpl>` : ''}${tomadorEnd.xBairro ? `<xBairro>${tomadorEnd.xBairro}</xBairro>` : ''}</end>` : '';
+            const cleanTomaLgr = tomadorEnd?.xLgr ? String(tomadorEnd.xLgr).replace(/[\t\r\n]+/g, ' ').trim() : '';
+            const cleanTomaNro = tomadorEnd?.nro ? String(tomadorEnd.nro).replace(/[\t\r\n]+/g, ' ').trim() : '';
+            const cleanTomaCpl = tomadorEnd?.xCpl ? String(tomadorEnd.xCpl).replace(/[\t\r\n]+/g, ' ').trim() : '';
+            const cleanTomaBairro = tomadorEnd?.xBairro ? String(tomadorEnd.xBairro).replace(/[\t\r\n]+/g, ' ').trim() : '';
+
+            const tomadorEndXml = tomadorEnd ? `<end>${endNacXml}${cleanTomaLgr ? `<xLgr>${cleanTomaLgr}</xLgr>` : ''}${cleanTomaNro ? `<nro>${cleanTomaNro}</nro>` : ''}${cleanTomaCpl ? `<xCpl>${cleanTomaCpl}</xCpl>` : ''}${cleanTomaBairro ? `<xBairro>${cleanTomaBairro}</xBairro>` : ''}</end>` : '';
 
             const servLocXml = inf.serv?.locPrest?.cLocPrestacao 
                 ? `<locPrest><cLocPrestacao>${inf.serv.locPrest.cLocPrestacao}</cLocPrestacao></locPrest>` 
@@ -3373,7 +3381,8 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cleanFirstTomaEmail = rawTomaEmail ? rawTomaEmail.split(/[,;\n]+/)[0]?.trim() : '';
             // No Portal Nacional da NFS-e (ADN), quando não há identificação do tomador (consumidor final),
             // a tag <toma> é opcional (minOccurs=0 no XSD) e deve ser omitida para evitar rejeição E0240 com endereços fictícios.
-            const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${inf.toma.xNome}</xNome>${tomadorEndXml}${cleanFirstTomaEmail ? `<email>${cleanFirstTomaEmail}</email>` : ''}</toma>`;
+            const cleanTomaNome = String(inf.toma?.xNome || '').replace(/[\t\r\n]+/g, ' ').trim();
+            const tomaXml = isNoTomadorXml ? '' : `<toma>${tomadorDocXml}<xNome>${cleanTomaNome}</xNome>${tomadorEndXml}${cleanFirstTomaEmail ? `<email>${cleanFirstTomaEmail}</email>` : ''}</toma>`;
 
             // Reforma Tributária 2026 (IBS/CBS) para o Portal Nacional
             const isReformaAtiva = !!(nat.reforma_tributaria_calculadora_ativa ?? config.reforma_tributaria_calculadora_ativa);
