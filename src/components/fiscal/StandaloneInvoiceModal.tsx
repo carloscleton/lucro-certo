@@ -673,6 +673,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         };
     }, [items, config]);
 
+    const formatCurrencyInput = (rawValue: string): string => {
+        const cleanNumbers = String(rawValue || '').replace(/\D/g, '');
+        if (!cleanNumbers) return '';
+        const numberValue = parseInt(cleanNumbers, 10) / 100;
+        return numberValue.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
+
     const addItem = () => {
         setItems([...items, { id: crypto.randomUUID(), description: '', taxCode: '', amount: '', quantity: 1 }]);
     };
@@ -686,6 +696,10 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
         setItems(items.map(i => {
             if (i.id === id) {
                 const updated = { ...i, [field]: value };
+
+                if (field === 'amount') {
+                    updated.amount = formatCurrencyInput(value);
+                }
                 
                 // Mapeamento automático de cTribNac (6 dígitos) para NBS (9 dígitos)
                 // usando tabela centralizada em src/constants/fiscal.ts
@@ -2440,6 +2454,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Valor Unitário</label>
                                         <Input
                                             type="text"
+                                            inputMode="numeric"
                                             value={item.amount}
                                             onChange={(e: any) => updateItem(item.id, 'amount', e.target.value)}
                                             placeholder="0,00"
