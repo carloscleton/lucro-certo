@@ -3148,15 +3148,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const fallbackItemNotes = String(firstItem?.notes || firstItem?.observacoes || '').trim();
 
             let baseInfComp = '';
-            if (companyDefaultInfComp) {
+            if (callerInfComp) {
+                baseInfComp = callerInfComp;
+            } else if (companyDefaultInfComp) {
                 baseInfComp = companyDefaultInfComp;
-                // Se houver anotação específica enviada pelo chamador que NÃO seja o detalhamento de itens/preços da proposta
-                const isItemPricingList = /R\$\s*[\d.,]+/i.test(callerInfComp) || /\t/.test(callerInfComp) || callerInfComp.includes('PROJETO/ENGENHARIA');
-                if (callerInfComp && !isItemPricingList && callerInfComp !== companyDefaultInfComp && !companyDefaultInfComp.includes(callerInfComp)) {
-                    baseInfComp = `${companyDefaultInfComp} | ${callerInfComp}`;
-                }
             } else {
-                baseInfComp = callerInfComp || fallbackItemNotes || '';
+                baseInfComp = fallbackItemNotes || '';
             }
 
             let infCompText = typeof baseInfComp === 'string' ? baseInfComp : '';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown, Maximize2, Minimize2, X } from 'lucide-react';
+import { AlertCircle, Receipt, Plus, Trash2, Globe, ShieldCheck, Mail, MessageCircle, Pencil, Award, ChevronDown, Maximize2, Minimize2, X, Eye, EyeOff, FileText, RotateCcw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -300,6 +300,8 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
     const [waInstances, setWaInstances] = useState<any[]>([]);
     const [notes, setNotes] = useState(initialNotes || '');
     const [isExpandedNotes, setIsExpandedNotes] = useState(false);
+    const [informacoesComplementares, setInformacoesComplementares] = useState<string>('');
+    const [showInfComp, setShowInfComp] = useState<boolean>(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [selectedRegimeEspecial, setSelectedRegimeEspecial] = useState<string>('');
 
@@ -486,6 +488,13 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
     const isNacional = activeProvider === 'national' || (activeProvider === 'nfeio' ? false : (config?.nfse_nacional || config?.nfse?.config?.nfseNacional || false));
     const isRegimeNormal = config?.regime_tributario === '3';
+    const defaultCompanyInfComp = (config as any)?.default_inf_comp || '';
+
+    useEffect(() => {
+        if (defaultCompanyInfComp && !informacoesComplementares) {
+            setInformacoesComplementares(defaultCompanyInfComp);
+        }
+    }, [defaultCompanyInfComp]);
 
     const proactiveFiscalValidation = useMemo(() => {
         const errors: string[] = [];
@@ -1036,14 +1045,16 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                     const itemNotes = notes?.trim() || '';
                     const cleanDesc = (firstItem?.description || '').trim();
-                    const fullDescription = cleanDesc || itemNotes || 'Prestação de serviços';
+                    const fullDescription = itemNotes 
+                        ? (cleanDesc && cleanDesc.toLowerCase() !== itemNotes.toLowerCase() && !cleanDesc.includes(itemNotes) ? `${cleanDesc}\n${itemNotes}` : itemNotes) 
+                        : (cleanDesc || 'Prestação de serviços');
 
                     const cleanTaxCode = String(firstItem?.taxCode || '').replace(/\D/g, '').trim();
                     const cleanNatCode = String(firstItem?.codigoTributacaoNacional || firstItem?.taxationCode || '').replace(/\D/g, '').trim();
                     const cTribNac6 = (cleanTaxCode.length === 6) ? cleanTaxCode : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
                     const cNBS9 = cleanNatCode.length === 9 ? cleanNatCode : (cleanTaxCode.length === 9 ? cleanTaxCode : undefined);
 
-                    let finalNotes = notes || (config as any)?.default_inf_comp || '';
+                    let finalNotes = (informacoesComplementares || defaultCompanyInfComp || '').trim();
                     if (cNBS9 && !finalNotes.includes(`NBS: ${cNBS9}`)) {
                         finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cNBS9}` : `NBS: ${cNBS9}`;
                     }
@@ -1260,7 +1271,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         payload.prestador.regimeEspecialTributacao = defaultReg;
                     }
 
-                    let finalNotes = notes || (config as any)?.default_inf_comp || '';
+                    let finalNotes = (informacoesComplementares || defaultCompanyInfComp || '').trim();
                     const firstItemNbs = items[0]?.codigoTributacaoNacional || items[0]?.taxationCode;
                     if (isNacional && firstItemNbs && firstItemNbs.replace(/\D/g, '').length === 9) {
                         const cleanNbs = firstItemNbs.replace(/\D/g, '');
@@ -2366,7 +2377,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between ml-1">
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            Corpo da Nota / Informações Complementares (Detalhamento do Serviço)
+                                            Corpo da Nota (Detalhamento do Serviço)
                                         </label>
                                         <div className="flex items-center gap-3">
                                             {notes && (
@@ -2397,6 +2408,71 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                         rows={isExpandedNotes ? 10 : 4}
                                         className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-gray-900 dark:text-white text-xs font-semibold shadow-sm hover:border-violet-400 focus:border-violet-600 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-violet-500/15 transition-all outline-none resize-y min-h-[100px]"
                                     />
+                                </div>
+
+                                {/* Seção Informações Complementares (xInfComp) abaixo do Detalhamento */}
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/60 p-3.5 space-y-2.5 transition-all">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                <FileText size={13} className="text-violet-500" />
+                                                Informações Complementares da Nota (xInfComp)
+                                            </span>
+                                            {defaultCompanyInfComp && (
+                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                                    Padrão da Empresa Ativo
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowInfComp(!showInfComp)}
+                                            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+                                        >
+                                            {showInfComp ? (
+                                                <>
+                                                    <EyeOff size={13} />
+                                                    <span>Ocultar Mensagem</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Eye size={13} />
+                                                    <span>Mostrar Mensagem</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {showInfComp ? (
+                                        <div className="space-y-2 animate-in fade-in duration-200 pt-1">
+                                            <textarea
+                                                value={informacoesComplementares}
+                                                onChange={(e) => setInformacoesComplementares(e.target.value)}
+                                                placeholder="Texto complementar exibido no rodapé da NFS-e (PROCON, Leis da Transparência, etc.)..."
+                                                rows={3}
+                                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 text-xs font-medium shadow-inner focus:border-violet-500 focus:ring-2 focus:ring-violet-400/20 transition-all outline-none resize-y"
+                                            />
+                                            <div className="flex items-center justify-between text-[11px] flex-wrap gap-2">
+                                                <span className="text-gray-400">
+                                                    Texto exibido nas Informações Complementares no rodapé da NFS-e.
+                                                </span>
+                                                {defaultCompanyInfComp && informacoesComplementares !== defaultCompanyInfComp && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setInformacoesComplementares(defaultCompanyInfComp)}
+                                                        className="text-violet-600 dark:text-violet-400 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        <RotateCcw size={11} />
+                                                        <span>Restaurar Padrão da Empresa</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate font-medium">
+                                            {informacoesComplementares || defaultCompanyInfComp || 'Nenhuma informação complementar configurada na empresa.'}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className={`grid grid-cols-1 ${isNacional && type === 'nfse' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
