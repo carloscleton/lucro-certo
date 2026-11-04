@@ -218,7 +218,9 @@ export function Invoices() {
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
-    const isPaymentsEnabled = !!(currentCompany?.payments_module_enabled ?? (currentEntity as any)?.payments_module_enabled);
+    const isPaymentsEnabled = currentCompany 
+        ? currentCompany.payments_module_enabled === true 
+        : (currentEntity as any)?.payments_module_enabled === true;
 
     const userRole = currentEntity.type === 'company' ? (currentEntity.role || 'member') : 'admin';
     const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
@@ -3069,7 +3071,10 @@ ${messageWithPlaceholder}`;
                     invoice={selectedInvoiceDetail}
                     onRefresh={refresh}
                     company={companies.find(c => c.id === selectedInvoiceDetail.company_id) || currentCompany}
-                    onGenerateBoleto={(inv) => setBoletoModal({ isOpen: true, invoice: inv })}
+                    onGenerateBoleto={(inv) => {
+                        if (!isPaymentsEnabled) return;
+                        setBoletoModal({ isOpen: true, invoice: inv });
+                    }}
                 />
             )}
 

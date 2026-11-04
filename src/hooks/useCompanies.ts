@@ -58,6 +58,10 @@ export interface Company {
 
 const companiesCache = new Map<string, Company[]>();
 
+export const clearCompaniesCache = () => {
+    companiesCache.clear();
+};
+
 export function useCompanies() {
     const { user } = useAuth();
     const cacheKey = user?.id || 'guest';

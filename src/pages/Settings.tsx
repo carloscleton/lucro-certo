@@ -13,7 +13,7 @@ import { usePresence } from '../hooks/usePresence';
 import { useTeam } from '../hooks/useTeam';
 import { useTechnicians } from '../hooks/useTechnicians';
 import { useEntity } from '../context/EntityContext';
-import { useCompanies } from '../hooks/useCompanies';
+import { useCompanies, clearCompaniesCache } from '../hooks/useCompanies';
 import { supabase } from '../lib/supabase';
 import { SETTINGS_TABS, APP_MODULES, getTabPermission, getModulePermission } from '../config/permissions';
 import { WebhookSettings } from './WebhookSettings';
@@ -3711,6 +3711,7 @@ export function Settings() {
                                             );
                                             if (error) throw new Error(error);
 
+                                            clearCompaniesCache();
                                             // Se for a empresa atual, atualiza o contexto
                                             if (tempCompanyConfig.id === currentEntity?.id) {
                                                 refreshEntity();

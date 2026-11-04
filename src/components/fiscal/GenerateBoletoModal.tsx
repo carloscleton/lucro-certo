@@ -29,7 +29,9 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
     const { currentEntity } = useEntity();
     const { companies } = useCompanies();
     const currentCompany = companies.find(c => c.id === (invoice?.company_id || currentEntity?.id)) || currentEntity;
-    const isPaymentsEnabled = !!(currentCompany?.payments_module_enabled ?? (currentEntity as any)?.payments_module_enabled);
+    const isPaymentsEnabled = currentCompany 
+        ? currentCompany.payments_module_enabled === true 
+        : (currentEntity as any)?.payments_module_enabled === true;
     const { contacts } = useContacts();
     const { gateways, defaultGateway } = usePaymentGateways();
     const { createCharge } = useCharges();
@@ -647,11 +649,18 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                                     Fechar
                                 </Button>
                                 <Button
+                                    disabled={!isPaymentsEnabled}
                                     onClick={() => {
+                                        if (!isPaymentsEnabled) return;
                                         onClose();
                                         navigate('/dashboard/settings?tab=payments');
                                     }}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-emerald-500/20"
+                                    className={clsx(
+                                        "font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all",
+                                        !isPaymentsEnabled
+                                            ? "bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60 shadow-none hover:bg-gray-200"
+                                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-pointer"
+                                    )}
                                 >
                                     Ir para Configurações de Gateways
                                 </Button>

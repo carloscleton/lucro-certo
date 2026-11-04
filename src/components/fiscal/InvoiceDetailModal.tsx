@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 import { fiscalService } from '../../services/fiscalService';
 import { Button } from '../ui/Button';
 import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
+import { Tooltip } from '../ui/Tooltip';
 import { API_BASE_URL } from '../../lib/constants';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
@@ -27,11 +28,9 @@ interface InvoiceDetailModalProps {
 
 export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company, onGenerateBoleto }: InvoiceDetailModalProps) {
     const { currentEntity } = useEntity();
-    const isPaymentsEnabled = !!(
-        company?.payments_module_enabled ?? 
-        (invoice as any)?.company?.payments_module_enabled ?? 
-        (currentEntity as any)?.payments_module_enabled
-    );
+    const isPaymentsEnabled = company 
+        ? company.payments_module_enabled === true 
+        : (currentEntity as any)?.payments_module_enabled === true;
     const modalRef = useRef<HTMLDivElement>(null);
     const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
@@ -720,11 +719,18 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                 Visualizando Documento Auxiliar DANFSe
                             </span>
                             <div className="flex items-center gap-2">
-                                {isPaymentsEnabled && (
+                                <Tooltip content={!isPaymentsEnabled ? "Módulo de Pagamentos desabilitado nas Configurações da Empresa" : "Gerar Boleto ou Cobrança Pix"}>
                                     <Button
                                         size="sm"
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 font-bold shadow-sm"
+                                        disabled={!isPaymentsEnabled}
+                                        className={clsx(
+                                            "text-xs py-1.5 font-bold shadow-sm transition-all",
+                                            !isPaymentsEnabled
+                                                ? "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-slate-700 opacity-60 hover:bg-gray-100 shadow-none"
+                                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-pointer"
+                                        )}
                                         onClick={() => {
+                                            if (!isPaymentsEnabled) return;
                                             if (onGenerateBoleto) {
                                                 onGenerateBoleto(invoice);
                                             } else {
@@ -739,9 +745,9 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                         }}
                                     >
                                         <FileText size={14} className="mr-1" />
-                                        Gerar Boleto / Cobrança
+                                        Gerar Boleto Banco Inter
                                     </Button>
-                                )}
+                                </Tooltip>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -1176,14 +1182,25 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                             : "Módulo de Pagamentos desabilitado nas Configurações da Empresa."
                                         }
                                     </p>
-                                    {isPaymentsEnabled && onGenerateBoleto && (
-                                        <Button
-                                            onClick={() => onGenerateBoleto(invoice)}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 rounded-xl shadow-sm"
-                                        >
-                                            <DollarSign size={14} className="mr-1" />
-                                            Gerar Boleto Bancário / Pix
-                                        </Button>
+                                    {onGenerateBoleto && (
+                                        <Tooltip content={!isPaymentsEnabled ? "Módulo de Pagamentos desabilitado nas Configurações da Empresa" : "Gerar Boleto Bancário ou Pix"}>
+                                            <Button
+                                                disabled={!isPaymentsEnabled}
+                                                onClick={() => {
+                                                    if (!isPaymentsEnabled) return;
+                                                    onGenerateBoleto(invoice);
+                                                }}
+                                                className={clsx(
+                                                    "text-xs font-bold h-9 px-4 rounded-xl shadow-sm transition-all",
+                                                    !isPaymentsEnabled
+                                                        ? "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-slate-700 opacity-60 hover:bg-gray-100"
+                                                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-pointer"
+                                                )}
+                                            >
+                                                <DollarSign size={14} className="mr-1" />
+                                                Gerar Boleto Bancário / Pix
+                                            </Button>
+                                        </Tooltip>
                                     )}
                                 </div>
                             )}
