@@ -2872,24 +2872,23 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
                 let adnTribFed: any = null;
                 if (simplesNacional === 1) {
-                    adnTribFed = {
-                        tpRetPisCofins,
-                        ...(cstPISCOFINS ? { cstPISCOFINS } : {}),
-                        ...(vRetCSLL > 0 ? { vRetCSLL: parseFloat(vRetCSLL.toFixed(2)) } : {}),
-                        ...(pIRRFVal > 0 ? { pIRRF: pIRRFVal, vIRRF: parseFloat((valorTotal * pIRRFVal / 100).toFixed(2)) } : {})
-                    };
-
-                    if (pPISVal > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 5) {
-                        adnTribFed.pPIS = pPISVal;
-                        adnTribFed.vPIS = parseFloat(vPISVal.toFixed(2));
-                    }
-                    if (pCOFINSVal > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 6) {
-                        adnTribFed.pCOFINS = pCOFINSVal;
-                        adnTribFed.vCOFINS = parseFloat(vCOFINSVal.toFixed(2));
-                    }
-                    if (pCSLLVal > 0 && tpRetPisCofins !== 3) {
-                        adnTribFed.pCSLL = pCSLLVal;
-                        adnTribFed.vCSLL = parseFloat(vCSLLVal.toFixed(2));
+                    const cstFinal = cstPISCOFINS || (pPISVal > 0 || pCOFINSVal > 0 ? "01" : "");
+                    if (cstFinal || pPISVal > 0 || pCOFINSVal > 0 || vRetCSLL > 0) {
+                        adnTribFed = {};
+                        if (cstFinal || pPISVal > 0 || pCOFINSVal > 0) {
+                            adnTribFed.piscofins = {
+                                CST: cstFinal || "01",
+                                ...(valorTotal > 0 ? { vBCPisCofins: parseFloat(valorTotal.toFixed(2)) } : {}),
+                                ...(pPISVal > 0 ? { pAliqPis: pPISVal } : {}),
+                                ...(pCOFINSVal > 0 ? { pAliqCofins: pCOFINSVal } : {}),
+                                ...(vPISVal > 0 ? { vPis: parseFloat(vPISVal.toFixed(2)) } : {}),
+                                ...(vCOFINSVal > 0 ? { vCofins: parseFloat(vCOFINSVal.toFixed(2)) } : {}),
+                                tpRetPisCofins
+                            };
+                        }
+                        if (vRetCSLL > 0) {
+                            adnTribFed.vRetCSLL = parseFloat(vRetCSLL.toFixed(2));
+                        }
                     }
                 }
 
@@ -3177,77 +3176,118 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const shouldSendPAliq = isSimplesNac ? (tpRetISSQN === 2) : (pAliqVal > 0);
             const pAliqXml = shouldSendPAliq ? `<pAliq>${pAliqVal.toFixed(2)}</pAliq>` : '';
 
-            // tribFed (PIS, COFINS, CSLL, IRRF no Regime Normal com regras de CST/Retenção NT 007/2026)
+            // tribFed (PIS, COFINS, CSLL, IRRF conforme XSD Oficial da NFS-e Nacional NT 007/2026)
+            // Ordem estrita exigida pelo XSD http://www.sped.fazenda.gov.br/nfse:
+            // 1. <piscofins> (CST, vBCPisCofins, pAliqPis, pAliqCofins, vPis, vCofins, tpRetPisCofins)
+            // 2. <vRetCP> (INSS Retido)
+            // 3. <vRetIRRF> (IRRF Retido pelo Tomador)
+            // 4. <vRetCSLL> (Retenção Consolidada PIS/COFINS/CSLL)
             let tribFedXml = '';
             const tribFed = trib.tribFed || {};
-            const pPIS = tribFed.pPIS !== undefined ? Number(tribFed.pPIS) : (nat.default_pis_aliquota ? Number(nat.default_pis_aliquota) : 0);
-            const pCOFINS = tribFed.pCOFINS !== undefined ? Number(tribFed.pCOFINS) : (nat.default_cofins_aliquota ? Number(nat.default_cofins_aliquota) : 0);
+            const pPIS = tribFed.pPIS !== undefined 
+                ? Number(tribFed.pPIS) 
+                : (tribFed.piscofins?.pAliqPis !== undefined ? Number(tribFed.piscofins.pAliqPis) : (nat.default_pis_aliquota ? Number(nat.default_pis_aliquota) : 0));
+            const pCOFINS = tribFed.pCOFINS !== undefined 
+                ? Number(tribFed.pCOFINS) 
+                : (tribFed.piscofins?.pAliqCofins !== undefined ? Number(tribFed.piscofins.pAliqCofins) : (nat.default_cofins_aliquota ? Number(nat.default_cofins_aliquota) : 0));
             const pCSLL = tribFed.pCSLL !== undefined ? Number(tribFed.pCSLL) : (nat.default_csll_aliquota ? Number(nat.default_csll_aliquota) : 0);
-            const pIRRF = tribFed.pIRRF !== undefined ? Number(tribFed.pIRRF) : (nat.default_irrf_aliquota ? Number(nat.default_irrf_aliquota) : 0);
 
             const vServ = Number(inf.valores?.vServPrest?.vServ || 0);
             if (opSimpNac === 1) {
-                // Obter CST e Tipo de Retenção das configurações da empresa
-                const cstPISCOFINS = nat.pis_cofins_situacao_tributaria && nat.pis_cofins_situacao_tributaria !== '00' 
-                    ? String(nat.pis_cofins_situacao_tributaria) 
-                    : '';
+                // Obter CST e Tipo de Retenção das configurações da empresa ou do payload
+                const rawCst = tribFed.piscofins?.CST || tribFed.cstPISCOFINS || nat.pis_cofins_situacao_tributaria;
+                const cstPISCOFINS = rawCst && rawCst !== '00' ? String(rawCst) : '';
                 
-                const rawRetTipo = nat.pis_cofins_csll_retencao_tipo || '1';
+                const rawRetTipo = tribFed.piscofins?.tpRetPisCofins !== undefined 
+                    ? String(tribFed.piscofins.tpRetPisCofins) 
+                    : (tribFed.tpRetPisCofins !== undefined ? String(tribFed.tpRetPisCofins) : (nat.pis_cofins_csll_retencao_tipo || '1'));
+                
                 let tpRetPisCofins = 0; // 0 = Não Retidos
-                if (rawRetTipo === '2') tpRetPisCofins = 3;
-                else if (rawRetTipo === '3') tpRetPisCofins = 4;
-                else if (rawRetTipo === '4') tpRetPisCofins = 5;
-                else if (rawRetTipo === '5') tpRetPisCofins = 6;
+                if (rawRetTipo === '2' || rawRetTipo === '3') tpRetPisCofins = 3;
+                else if (rawRetTipo === '3' || rawRetTipo === '4') tpRetPisCofins = 4;
+                else if (rawRetTipo === '4' || rawRetTipo === '5') tpRetPisCofins = 5;
+                else if (rawRetTipo === '5' || rawRetTipo === '6') tpRetPisCofins = 6;
+                else if (!isNaN(Number(rawRetTipo)) && Number(rawRetTipo) >= 0 && Number(rawRetTipo) <= 9) {
+                    tpRetPisCofins = Number(rawRetTipo);
+                }
 
                 const vPISVal = vServ * (pPIS / 100);
                 const vCOFINSVal = vServ * (pCOFINS / 100);
                 const vCSLLVal = vServ * (pCSLL / 100);
 
-                let vRetCSLL = 0;
-                if (tpRetPisCofins === 3) {
-                    vRetCSLL = vPISVal + vCOFINSVal + vCSLLVal;
-                } else if (tpRetPisCofins === 4) {
-                    vRetCSLL = vPISVal + vCOFINSVal;
-                } else if (tpRetPisCofins === 5) {
-                    vRetCSLL = vPISVal;
-                } else if (tpRetPisCofins === 6) {
-                    vRetCSLL = vCOFINSVal;
+                let vRetCSLL = tribFed.vRetCSLL !== undefined ? Number(tribFed.vRetCSLL) : 0;
+                if (vRetCSLL === 0) {
+                    if (tpRetPisCofins === 3) {
+                        vRetCSLL = vPISVal + vCOFINSVal + vCSLLVal;
+                    } else if (tpRetPisCofins === 4) {
+                        vRetCSLL = vPISVal + vCOFINSVal;
+                    } else if (tpRetPisCofins === 5) {
+                        vRetCSLL = vPISVal;
+                    } else if (tpRetPisCofins === 6) {
+                        vRetCSLL = vCOFINSVal;
+                    }
                 }
 
                 let innerXml = '';
                 
-                if (cstPISCOFINS) {
-                    innerXml += `<cstPISCOFINS>${cstPISCOFINS}</cstPISCOFINS>`;
+                // 1. <piscofins>
+                const cstFinal = cstPISCOFINS || (pPIS > 0 || pCOFINS > 0 ? '01' : '');
+                if (cstFinal || pPIS > 0 || pCOFINS > 0) {
+                    let piscoInner = `<CST>${cstFinal || '01'}</CST>`;
+                    if (vServ > 0) {
+                        piscoInner += `<vBCPisCofins>${vServ.toFixed(2)}</vBCPisCofins>`;
+                    }
+                    if (pPIS > 0) {
+                        piscoInner += `<pAliqPis>${pPIS.toFixed(2)}</pAliqPis>`;
+                    }
+                    if (pCOFINS > 0) {
+                        piscoInner += `<pAliqCofins>${pCOFINS.toFixed(2)}</pAliqCofins>`;
+                    }
+                    if (vPISVal > 0) {
+                        piscoInner += `<vPis>${vPISVal.toFixed(2)}</vPis>`;
+                    }
+                    if (vCOFINSVal > 0) {
+                        piscoInner += `<vCofins>${vCOFINSVal.toFixed(2)}</vCofins>`;
+                    }
+                    piscoInner += `<tpRetPisCofins>${tpRetPisCofins}</tpRetPisCofins>`;
+                    innerXml += `<piscofins>${piscoInner}</piscofins>`;
                 }
-                
-                innerXml += `<tpRetPisCofins>${tpRetPisCofins}</tpRetPisCofins>`;
 
-                // Se houver retenção consolidada, envia vRetCSLL
+                // 2. <vRetCP> (INSS Retido)
+                const vRetCP = Number(tribFed.vRetCP || 0);
+                if (vRetCP > 0) {
+                    innerXml += `<vRetCP>${vRetCP.toFixed(2)}</vRetCP>`;
+                }
+
+                // 3. <vRetIRRF> (IRRF Retido pelo Tomador)
+                const vRetIRRF = Number(tribFed.vRetIRRF || 0);
+                if (vRetIRRF > 0) {
+                    innerXml += `<vRetIRRF>${vRetIRRF.toFixed(2)}</vRetIRRF>`;
+                }
+
+                // 4. <vRetCSLL> (Retenção Consolidada PIS/COFINS/CSLL)
                 if (vRetCSLL > 0) {
                     innerXml += `<vRetCSLL>${vRetCSLL.toFixed(2)}</vRetCSLL>`;
                 }
 
-                // Envia PIS se não estiver retido
-                if (pPIS > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 5) {
-                    innerXml += `<pPIS>${pPIS.toFixed(2)}</pPIS><vPIS>${vPISVal.toFixed(2)}</vPIS>`;
+                if (innerXml) {
+                    tribFedXml = `<tribFed>${innerXml}</tribFed>`;
                 }
-
-                // Envia COFINS se não estiver retido
-                if (pCOFINS > 0 && tpRetPisCofins !== 3 && tpRetPisCofins !== 4 && tpRetPisCofins !== 6) {
-                    innerXml += `<pCOFINS>${pCOFINS.toFixed(2)}</pCOFINS><vCOFINS>${vCOFINSVal.toFixed(2)}</vCOFINS>`;
+            } else {
+                // Simples Nacional: sem apuração própria, apenas retenções se existirem
+                let innerXml = '';
+                const vRetCP = Number(tribFed.vRetCP || 0);
+                if (vRetCP > 0) {
+                    innerXml += `<vRetCP>${vRetCP.toFixed(2)}</vRetCP>`;
                 }
-
-                // Envia CSLL se não estiver retida (só está retida no tipo 3)
-                if (pCSLL > 0 && tpRetPisCofins !== 3) {
-                    innerXml += `<pCSLL>${pCSLL.toFixed(2)}</pCSLL><vCSLL>${vCSLLVal.toFixed(2)}</vCSLL>`;
+                const vRetIRRF = Number(tribFed.vRetIRRF || 0);
+                if (vRetIRRF > 0) {
+                    innerXml += `<vRetIRRF>${vRetIRRF.toFixed(2)}</vRetIRRF>`;
                 }
-
-                // Envia IRRF
-                if (pIRRF > 0) {
-                    const vIRRFVal = vServ * (pIRRF / 100);
-                    innerXml += `<pIRRF>${pIRRF.toFixed(2)}</pIRRF><vIRRF>${vIRRFVal.toFixed(2)}</vIRRF>`;
+                const vRetCSLL = Number(tribFed.vRetCSLL || 0);
+                if (vRetCSLL > 0) {
+                    innerXml += `<vRetCSLL>${vRetCSLL.toFixed(2)}</vRetCSLL>`;
                 }
-
                 if (innerXml) {
                     tribFedXml = `<tribFed>${innerXml}</tribFed>`;
                 }
@@ -6127,8 +6167,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     },
                     impostos: {
                         issqn: Number(val.trib?.tribMun?.vISSQN || 0),
-                        pis: Number(val.trib?.tribFed?.vPIS || 0),
-                        cofins: Number(val.trib?.tribFed?.vCOFINS || 0)
+                        pis: Number(val.trib?.tribFed?.piscofins?.vPis || val.trib?.tribFed?.vPIS || 0),
+                        cofins: Number(val.trib?.tribFed?.piscofins?.vCofins || val.trib?.tribFed?.vCOFINS || 0)
                     },
                     ambiente: adnAmbienteDl,
                     ambienteGerador: xmlAmbGer || (adnAmbienteDl === 'producao' ? '1' : '2'),
