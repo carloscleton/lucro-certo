@@ -3151,7 +3151,12 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
-            let descFinal = String(inf.serv?.cServ?.xDescServ || descricao || nat.default_xDescServ || 'Prestação de serviços').replace(/\|/g, '\n').trim().substring(0, 2000);
+            // Sanitização de xDescServ para o padrão SPED (sem tabs \t e sem quebras de linha corrompidas)
+            let descFinal = String(inf.serv?.cServ?.xDescServ || descricao || nat.default_xDescServ || 'Prestação de serviços')
+                .replace(/\t/g, ' ')
+                .replace(/\r/g, '')
+                .trim()
+                .substring(0, 2000);
 
             // Conforme XSD NFS-e Nacional v1.01: a sequência exata em <cServ> é <cTribNac>, <cTribMun>, <CNAE>, <xDescServ>, <cNBS>
             const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ>${cNbsXml}</cServ>` : '';
@@ -3161,8 +3166,21 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             if (cNbsVal && cNbsVal.length >= 7 && !finalInfComp.includes(cNbsVal)) {
                 finalInfComp = finalInfComp ? `NBS: ${cNbsVal} | ${finalInfComp}` : `NBS: ${cNbsVal}`;
             }
+
+            // Sanitização rigorosa de xInfComp conforme XSD SPED TSDescInfCompl (padrão regex [!-ÿ]{1}[ -ÿ]{0,}[!-ÿ]{1})
+            // Proíbe expressamente tabs (\t), quebras de linha (\r\n), pipes vazios (||) e controle (< 32)
+            const cleanInfComp = finalInfComp
+                .replace(/\t/g, ' ')
+                .replace(/[\r\n]+/g, ' | ')
+                .replace(/\s*\|\s*/g, ' | ')
+                .replace(/(\s*\|\s*){2,}/g, ' | ')
+                .replace(/[^\x20-\x7E\xA0-\xFF]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .replace(/^[\s|]+|[\s|]+$/g, '')
+                .substring(0, 2000);
+
             // Conforme XSD NFS-e Nacional v1.01: <infoCompl> é filho de <serv>, não de <infDPS>
-            const infoComplXml = finalInfComp ? `<infoCompl><xInfComp>${finalInfComp.replace(/\n/g, ' | ').substring(0, 2000)}</xInfComp></infoCompl>` : '';
+            const infoComplXml = cleanInfComp ? `<infoCompl><xInfComp>${cleanInfComp}</xInfComp></infoCompl>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
