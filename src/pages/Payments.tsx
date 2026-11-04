@@ -546,42 +546,58 @@ export function Payments() {
     };
 
     return (
-        <div className="space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
-                            <CreditCard size={24} className="text-indigo-600 dark:text-indigo-400" />
+        <div className="flex flex-col gap-2.5 sm:gap-3 max-w-full animate-in fade-in duration-150 select-none">
+            {/* Header Card with Title, Actions & Date Period Control */}
+            <div className="flex flex-col gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-gray-100 dark:border-slate-800 shadow-xs">
+                {/* Top Row: Title & Action */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-100 dark:border-indigo-900/30">
+                            <CreditCard size={18} />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            Faturamento
-                        </h1>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
+                                    Faturamento e Pagamentos
+                                </h1>
+                                <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-extrabold rounded-full border border-indigo-100 dark:border-indigo-900/30">
+                                    Cobranças
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                Gestão de links de pagamento e conciliação em tempo real
+                            </p>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-11">
-                        Gestão de links de pagamento e conciliação em tempo real.
-                    </p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    <Button
-                        className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105 active:scale-95 flex items-center"
-                        onClick={() => {
-                            setSelectedProvider(activeGateways[0]?.provider || '');
-                            setIsModalOpen(true);
-                        }}
-                    >
-                        <Plus size={20} className="mr-2" />
-                        Novo Link de Pagamento
-                    </Button>
-                </div>
-            </div>
 
-            {/* Date Period Filter Bar */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
-                        <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mr-1 font-semibold">
-                            <Calendar size={16} className="text-indigo-600 dark:text-indigo-400" />
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="h-8 px-2.5 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer shadow-xs"
+                            title="Atualizar lista"
+                        >
+                            <RefreshCw size={13} className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Atualizar</span>
+                        </button>
+                        <Button
+                            className="h-8 px-3 bg-indigo-600 hover:bg-indigo-700 shadow-xs rounded-lg font-bold text-xs text-white transition-all flex items-center"
+                            onClick={() => {
+                                setSelectedProvider(activeGateways[0]?.provider || '');
+                                setIsModalOpen(true);
+                            }}
+                        >
+                            <Plus size={15} className="mr-1" />
+                            Novo Link de Pagamento
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Bottom Row: Date Period Filter Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-slate-800/60">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+                        <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mr-1 text-xs">
+                            <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
                             Filtrar Período:
                         </span>
 
@@ -598,9 +614,9 @@ export function Payments() {
                                 type="button"
                                 onClick={() => setSelectedPeriodFilter(period.id as any)}
                                 className={clsx(
-                                    "px-3.5 py-2 rounded-xl transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5",
+                                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5",
                                     selectedPeriodFilter === period.id
-                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-[1.02]"
+                                        ? "bg-indigo-600 text-white shadow-xs"
                                         : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
                                 )}
                             >
@@ -608,22 +624,13 @@ export function Payments() {
                             </button>
                         ))}
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={() => window.location.reload()}
-                        className="px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer ml-auto"
-                    >
-                        <RefreshCw size={14} className="text-indigo-600 dark:text-indigo-400" />
-                        <span>Atualizar Lista</span>
-                    </button>
                 </div>
 
                 {/* Custom Date Inputs */}
                 {selectedPeriodFilter === 'custom' && (
-                    <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800/60 animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Por Mês:</label>
+                    <div className="flex flex-wrap items-center gap-2 pt-2 animate-in fade-in duration-200 border-t border-gray-100/60 dark:border-slate-800/40">
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Mês:</label>
                             <input
                                 type="month"
                                 value={selectedMonthFilter}
@@ -632,11 +639,11 @@ export function Payments() {
                                     setCustomStartDate('');
                                     setCustomEndDate('');
                                 }}
-                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>
-                        <span className="text-xs font-bold text-gray-400">ou por Intervalo:</span>
-                        <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-400">ou</span>
+                        <div className="flex items-center gap-1.5">
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400">De:</label>
                             <input
                                 type="date"
@@ -645,7 +652,7 @@ export function Payments() {
                                     setCustomStartDate(e.target.value);
                                     setSelectedMonthFilter('');
                                 }}
-                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Até:</label>
                             <input
@@ -655,7 +662,7 @@ export function Payments() {
                                     setCustomEndDate(e.target.value);
                                     setSelectedMonthFilter('');
                                 }}
-                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>
                         {(selectedMonthFilter || customStartDate || customEndDate) && (
@@ -668,56 +675,55 @@ export function Payments() {
                                 }}
                                 className="text-xs font-bold text-rose-500 hover:text-rose-600 underline ml-2 cursor-pointer"
                             >
-                                Limpar Filtros Customizados
+                                Limpar
                             </button>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat) => (
-                    <div
-                        key={stat.id}
-                        className={clsx(
-                            "relative group bg-white dark:bg-slate-900 p-6 rounded-[2.2rem] border border-gray-100 dark:border-slate-800/80 shadow-lg shadow-gray-200/40 dark:shadow-none hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden",
-                            stat.glow
-                        )}
-                    >
-                        {/* Top Accent Line */}
-                        <div className={clsx("absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r opacity-90 group-hover:opacity-100 transition-opacity", stat.gradient)} />
-                        
-                        {/* Subtle background glow effect on hover */}
-                        <div className={clsx("absolute -right-8 -top-8 w-28 h-28 rounded-full bg-gradient-to-br opacity-5 group-hover:opacity-15 blur-xl transition-all duration-500 pointer-events-none", stat.gradient)} />
+            {/* Stats Grid - Ultra-Compacto e Controlado pelo Botão Ocultar */}
+            {showMetricsCards && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 select-none animate-in fade-in duration-200">
+                    {stats.map((stat) => (
+                        <div
+                            key={stat.id}
+                            className={clsx(
+                                "relative group bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-gray-100 dark:border-slate-800 shadow-xs hover:border-gray-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between overflow-hidden",
+                                stat.glow
+                            )}
+                        >
+                            {/* Top Accent Line */}
+                            <div className={clsx("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-90", stat.gradient)} />
 
-                        <div className="flex items-center justify-between mb-4">
-                            <div className={clsx("p-3.5 rounded-2xl bg-gradient-to-br text-white shadow-md shadow-gray-400/20 group-hover:scale-110 transition-transform duration-300", stat.gradient)}>
-                                <stat.icon size={22} />
+                            <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className={clsx("p-1 rounded-md text-white bg-gradient-to-br shrink-0", stat.gradient)}>
+                                        <stat.icon size={13} />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                                        {stat.label}
+                                    </span>
+                                </div>
+                                <span className={clsx("text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border shrink-0", stat.badgeBg)}>
+                                    {stat.badge}
+                                </span>
                             </div>
-                            <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border", stat.badgeBg)}>
-                                {stat.badge}
-                            </span>
+
+                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                                <p className="text-sm sm:text-base font-black text-gray-900 dark:text-white tabular-nums tracking-tight leading-tight">
+                                    {stat.value}
+                                </p>
+                                {stat.subValue && (
+                                    <span className="text-[9px] font-semibold text-gray-400 dark:text-slate-500 truncate hidden xl:inline">
+                                        {stat.subValue}
+                                    </span>
+                                )}
+                            </div>
                         </div>
-
-                        <h3 className="text-[11px] font-black text-gray-400 dark:text-slate-400 uppercase tracking-widest">{stat.label}</h3>
-                        
-                        <p className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mt-1.5 tabular-nums tracking-tight">
-                            {stat.value}
-                        </p>
-
-                        {stat.subValue ? (
-                            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-800/60 flex items-center text-xs font-semibold text-gray-500 dark:text-slate-400">
-                                <span className="truncate">{stat.subValue}</span>
-                            </div>
-                        ) : (
-                            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-800/60 flex items-center text-xs font-medium text-gray-400 dark:text-slate-500">
-                                <span>{stat.id === 'pending' ? 'Cobranças aguardando pagamento' : stat.id === 'active_links' ? 'Links de cobrança ativos' : 'Visão geral'}</span>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* List Control */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col">
