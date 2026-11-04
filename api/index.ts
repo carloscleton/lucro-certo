@@ -5565,8 +5565,18 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     else if (prestEmail.length > 25) prestEmailFontSize = 5.2;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(prestEmailFontSize);
-    doc.text('Optante - Microempresa ou Empresa de ...', margin + 2, y + 21);
-    doc.text('Regime de apuração dos tributos federais e municipal pelo Simples Nacional', margin + 65, y + 21);
+    const opSimpVal = String(data.opSimpNac ?? prest.opSimpNac ?? '1').trim();
+    let descSimpCompetencia = 'Não optante';
+    let descRegimeSN = 'Não optante';
+    if (opSimpVal === '2') {
+        descSimpCompetencia = 'Optante - Microempreendedor Individual (MEI)';
+        descRegimeSN = 'Regime de apuração dos tributos federais e municipal pelo Simples Nacional (MEI)';
+    } else if (opSimpVal === '3') {
+        descSimpCompetencia = 'Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)';
+        descRegimeSN = 'Regime de apuração dos tributos federais e municipal pelo Simples Nacional';
+    }
+    doc.text(descSimpCompetencia, margin + 2, y + 21);
+    doc.text(descRegimeSN, margin + 65, y + 21);
     doc.text(prestEmail, margin + 145, y + 21);
 
     y += 22;
@@ -5674,9 +5684,20 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Tipo de Tributação do ISSQN', margin + 2, y + 3.2);
     doc.text('Município / Sigla UF / País de Incidência do ISSQN', margin + 65, y + 3.2);
 
+    const tipoTribIssMap: Record<string, string> = {
+        '1': 'Operação Tributável',
+        '2': 'Imunidade',
+        '3': 'Exportação de serviço',
+        '4': 'Não Incidência'
+    };
+    const tipoTribIssDesc = tipoTribIssMap[String(data.tribISSQN || '1')] || 'Operação Tributável';
+    const locIncidCity = data.xLocalidadeIncid || data.cidadeIncidencia || serv.cidadePrestacao || prestCity;
+    const locIncidUf = data.ufIncidencia || serv.ufPrestacao || prestUf;
+    const locIncidStr = `${locIncidCity} / ${locIncidUf} / Brasil`;
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text('Operação Tributável', margin + 2, y + 6.5);
-    doc.text(`${serv.cidadePrestacao || prestCity} / ${serv.ufPrestacao || prestUf} / -`, margin + 65, y + 6.5);
+    doc.text(tipoTribIssDesc, margin + 2, y + 6.5);
+    doc.text(locIncidStr, margin + 65, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
     doc.text('BC ISSQN', margin + 2, y + 9.8);
@@ -5684,11 +5705,26 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Retenção do ISSQN', margin + 95, y + 9.8);
     doc.text('ISSQN Apurado', margin + 145, y + 9.8);
 
+    const retIssMap: Record<string, string> = {
+        '1': 'Não Retido',
+        '2': 'Retido pelo Tomador',
+        '3': 'Retido pelo Intermediário'
+    };
+    const retIssDesc = retIssMap[String(data.tpRetISSQN || '1')] || 'Não Retido';
+
+    const vBcIssNum = (data.vBC_ISSQN !== undefined && data.vBC_ISSQN !== '') ? parseFloat(String(data.vBC_ISSQN)) : (data.impostos?.vBC ? parseFloat(String(data.impostos.vBC)) : null);
+    const pAliqIssNum = (data.pAliqAplic !== undefined && data.pAliqAplic !== '') ? parseFloat(String(data.pAliqAplic)) : (data.aliquotaIss ? parseFloat(String(data.aliquotaIss)) : null);
+    const vIssNum = (data.vISSQN !== undefined && data.vISSQN !== '') ? parseFloat(String(data.vISSQN)) : (data.impostos?.issqn ? parseFloat(String(data.impostos.issqn)) : null);
+
+    const vBcIssFmt = vBcIssNum !== null && !isNaN(vBcIssNum) ? formatCurrency(vBcIssNum) : '-';
+    const pAliqIssFmt = pAliqIssNum !== null && !isNaN(pAliqIssNum) ? `${pAliqIssNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %` : '-';
+    const vIssFmt = vIssNum !== null && !isNaN(vIssNum) ? formatCurrency(vIssNum) : '-';
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text('-', margin + 2, y + 11.5);
-    doc.text('-', margin + 45, y + 11.5);
-    doc.text('Não Retido', margin + 95, y + 11.5);
-    doc.text('-', margin + 145, y + 11.5);
+    doc.text(vBcIssFmt, margin + 2, y + 11.5);
+    doc.text(pAliqIssFmt, margin + 45, y + 11.5);
+    doc.text(retIssDesc, margin + 95, y + 11.5);
+    doc.text(vIssFmt, margin + 145, y + 11.5);
 
     y += 12;
 
@@ -5702,20 +5738,36 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Contribuição Previdenciária - Retida', margin + 45, y + 3.2);
     doc.text('Contribuições Sociais - Retidas', margin + 125, y + 3.2);
 
+    const vIrrfNum = data.vIRRF ? parseFloat(String(data.vIRRF)) : 0;
+    const vCpNum = data.vCP ? parseFloat(String(data.vCP)) : 0;
+    const vCsllNum = data.vRetCSLL ? parseFloat(String(data.vRetCSLL)) : 0;
+
+    const vIrrfFmt = vIrrfNum > 0 ? formatCurrency(vIrrfNum) : '-';
+    const vCpFmt = vCpNum > 0 ? formatCurrency(vCpNum) : '-';
+    const vCsllFmt = vCsllNum > 0 ? formatCurrency(vCsllNum) : '-';
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text('-', margin + 2, y + 6.5);
-    doc.text('-', margin + 45, y + 6.5);
-    doc.text('-', margin + 125, y + 6.5);
+    doc.text(vIrrfFmt, margin + 2, y + 6.5);
+    doc.text(vCpFmt, margin + 45, y + 6.5);
+    doc.text(vCsllFmt, margin + 125, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
     doc.text('PIS - Débito Apuração Própria', margin + 2, y + 9.8);
     doc.text('COFINS - Débito Apuração Própria', margin + 45, y + 9.8);
     doc.text('Descrição Contrib. Sociais - Retidas', margin + 125, y + 9.8);
 
+    const vPisVal = (data.vPis !== undefined && data.vPis !== '') ? parseFloat(String(data.vPis)) : (data.impostos?.pis ? parseFloat(String(data.impostos.pis)) : null);
+    const vCofinsVal = (data.vCofins !== undefined && data.vCofins !== '') ? parseFloat(String(data.vCofins)) : (data.impostos?.cofins ? parseFloat(String(data.impostos.cofins)) : null);
+
+    const vPisFmt = vPisVal !== null && !isNaN(vPisVal) ? formatCurrency(vPisVal) : '-';
+    const vCofinsFmt = vCofinsVal !== null && !isNaN(vCofinsVal) ? formatCurrency(vCofinsVal) : '-';
+    const tpRetPisCofinsStr = String(data.tpRetPisCofins ?? '0');
+    const descRetCs = (tpRetPisCofinsStr === '0') ? 'PIS/COFINS/CSLL Não Retidos' : ((tpRetPisCofinsStr === '2') ? 'PIS/COFINS Não Retido' : ((tpRetPisCofinsStr === '1') ? 'PIS/COFINS Retido' : '-'));
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text('-', margin + 2, y + 11.5);
-    doc.text('-', margin + 45, y + 11.5);
-    doc.text('-', margin + 125, y + 11.5);
+    doc.text(vPisFmt, margin + 2, y + 11.5);
+    doc.text(vCofinsFmt, margin + 45, y + 11.5);
+    doc.text(descRetCs, margin + 125, y + 11.5);
 
     y += 12;
 
@@ -5728,12 +5780,16 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('CST / cClassTrib', margin + 2, y + 3.2);
     doc.text('Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF', margin + 65, y + 3.2);
 
+    const cstVal = data.cstIbsCbs || data.cst || '200';
+    const cClassTribVal = data.cClassTrib || '200052';
+    const cIndOpVal = data.cIndOp || '100301';
+    const incIbge = data.cLocalidadeIncid || tomaIbgeVal || prest.cMun || '5103403';
+    const incCity = data.xLocalidadeIncid || (tomaCityName !== '-' ? tomaCityName : (prestCity || 'Cuiabá'));
+    const incUf = data.ufIncidencia || tomaUfCode || prestUf || 'MT';
+
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text('000 / 000001', margin + 2, y + 6.5);
-    const incIbge = tomaIbgeVal || '4125506';
-    const incCity = tomaCityName !== '-' ? tomaCityName : 'São José dos Pinhais';
-    const incUf = tomaUfCode || 'PR';
-    doc.text(`100101 / ${incIbge} / ${incCity} / ${incUf}`, margin + 65, y + 6.5);
+    doc.text(`${cstVal} / ${cClassTribVal}`, margin + 2, y + 6.5);
+    doc.text(`${cIndOpVal} / ${incIbge} / ${incCity} / ${incUf}`, margin + 65, y + 6.5);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Exclusões e Reduções da Base de Cálculo', margin + 2, y + 10.2);
@@ -5741,24 +5797,37 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Red. Alíquota IBS / Red. Alíquota CBS', margin + 110, y + 10.2);
     doc.text('Alíquota - IBS UF / IBS Mun', margin + 155, y + 10.2);
 
-    const amountVal = parseFloat(String(serv.valor || data.valorTotal || data.amount || 0.09));
-        
-    // Alíquotas dinâmicas configuradas pela empresa (pIBS / pCBS)
-    const rateIbs = parseFloat(String(data.pIBS ?? data.aliquotaIbs ?? data.reforma_tributaria_ibs_aliquota ?? 0.10));
-    const rateCbs = parseFloat(String(data.pCBS ?? data.aliquotaCbs ?? data.reforma_tributaria_cbs_aliquota ?? 0.90));
-    
-    const valIbsEstadual = (amountVal * rateIbs) / 100;
-    const valCbs = (amountVal * rateCbs) / 100;
-    const totalIbsCbs = valIbsEstadual + valCbs;
+    const amountVal = parseFloat(String(serv.valor || data.valorTotal || data.amount || 1.00));
+    const vBcIbsCbsVal = (data.vBcIbsCbs !== undefined && data.vBcIbsCbs !== '') ? parseFloat(String(data.vBcIbsCbs)) : amountVal;
+    const exclusoesBcVal = (data.vCalcReeRepRes !== undefined && data.vCalcReeRepRes !== '') ? parseFloat(String(data.vCalcReeRepRes)) : Math.max(0, parseFloat((amountVal - vBcIbsCbsVal).toFixed(2)));
 
-    const rateIbsFmt = `${rateIbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
-    const rateCbsFmt = `${rateCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+    const redUf = (data.pRedAliqUF !== undefined && data.pRedAliqUF !== '') ? parseFloat(String(data.pRedAliqUF)) : 30.00;
+    const redMun = (data.pRedAliqMun !== undefined && data.pRedAliqMun !== '') ? parseFloat(String(data.pRedAliqMun)) : 30.00;
+    const redCbs = (data.pRedAliqCBS !== undefined && data.pRedAliqCBS !== '') ? parseFloat(String(data.pRedAliqCBS)) : 30.00;
+    const redAliqFmt = `${redUf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} % / ${redMun.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} % / ${redCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+
+    const rateIbsUf = (data.pIBSUF !== undefined && data.pIBSUF !== '') ? parseFloat(String(data.pIBSUF)) : parseFloat(String(data.pIBS ?? 0.10));
+    const rateIbsMun = (data.pIBSMun !== undefined && data.pIBSMun !== '') ? parseFloat(String(data.pIBSMun)) : 0.00;
+    const rateCbs = (data.pCBS !== undefined && data.pCBS !== '') ? parseFloat(String(data.pCBS)) : parseFloat(String(data.reforma_tributaria_cbs_aliquota ?? 0.90));
+
+    const aliqEfetIbsMun = (data.pAliqEfetMun !== undefined && data.pAliqEfetMun !== '') ? parseFloat(String(data.pAliqEfetMun)) : 0.00;
+    const vIbsMunVal = (data.vIBSMun !== undefined && data.vIBSMun !== '') ? parseFloat(String(data.vIBSMun)) : 0.00;
+
+    const aliqEfetIbsUf = (data.pAliqEfetUF !== undefined && data.pAliqEfetUF !== '') ? parseFloat(String(data.pAliqEfetUF)) : parseFloat((rateIbsUf * (1 - redUf / 100)).toFixed(2));
+    const vIbsUfVal = (data.vIBSUF !== undefined && data.vIBSUF !== '') ? parseFloat(String(data.vIBSUF)) : parseFloat((vBcIbsCbsVal * aliqEfetIbsUf / 100).toFixed(2));
+
+    const vIbsTotVal = (data.vIBSTot !== undefined && data.vIBSTot !== '') ? parseFloat(String(data.vIBSTot)) : (vIbsMunVal + vIbsUfVal);
+
+    const aliqEfetCbs = (data.pAliqEfetCBS !== undefined && data.pAliqEfetCBS !== '') ? parseFloat(String(data.pAliqEfetCBS)) : parseFloat((rateCbs * (1 - redCbs / 100)).toFixed(2));
+    const vCbsVal = (data.vCBS !== undefined && data.vCBS !== '') ? parseFloat(String(data.vCBS)) : parseFloat((vBcIbsCbsVal * aliqEfetCbs / 100).toFixed(2));
+
+    const totalIbsCbs = vIbsTotVal + vCbsVal;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(formatCurrency(0), margin + 2, y + 13.7);
-    doc.text(formatCurrency(amountVal), margin + 55, y + 13.7);
-    doc.text('- / - / -', margin + 110, y + 13.7);
-    doc.text(`${rateIbsFmt} / 0,00 %`, margin + 155, y + 13.7);
+    doc.text(formatCurrency(exclusoesBcVal), margin + 2, y + 13.7);
+    doc.text(formatCurrency(vBcIbsCbsVal), margin + 55, y + 13.7);
+    doc.text(redAliqFmt, margin + 110, y + 13.7);
+    doc.text(`${rateIbsUf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} % / ${rateIbsMun.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`, margin + 155, y + 13.7);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Aliq. Efetiva Municipal - IBS', margin + 2, y + 17.4);
@@ -5767,10 +5836,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Valor Apurado Estadual - IBS', margin + 155, y + 17.4);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text('0,00 %', margin + 2, y + 20.9);
-    doc.text(formatCurrency(0), margin + 55, y + 20.9);
-    doc.text('0,10 %', margin + 110, y + 20.9);
-    doc.text(formatCurrency(valIbsEstadual), margin + 155, y + 20.9);
+    doc.text(`${aliqEfetIbsMun.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`, margin + 2, y + 20.9);
+    doc.text(formatCurrency(vIbsMunVal), margin + 55, y + 20.9);
+    doc.text(`${aliqEfetIbsUf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`, margin + 110, y + 20.9);
+    doc.text(formatCurrency(vIbsUfVal), margin + 155, y + 20.9);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
     doc.text('Valor Total Apurado - IBS', margin + 2, y + 24.6);
@@ -5779,10 +5848,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('Valor Total Apurado - CBS', margin + 155, y + 24.6);
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
-    doc.text(formatCurrency(valIbsEstadual), margin + 2, y + 28.1);
-    doc.text('0,90 %', margin + 55, y + 28.1);
-    doc.text('0,90 %', margin + 110, y + 28.1);
-    doc.text(formatCurrency(valCbs), margin + 155, y + 28.1);
+    doc.text(formatCurrency(vIbsTotVal), margin + 2, y + 28.1);
+    doc.text(`${rateCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`, margin + 55, y + 28.1);
+    doc.text(`${aliqEfetCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`, margin + 110, y + 28.1);
+    doc.text(formatCurrency(vCbsVal), margin + 155, y + 28.1);
 
     y += 30;
 
@@ -5796,6 +5865,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('VALOR DA OPERAÇÃO / SERVIÇO', margin + 55, y + 3.5);
     doc.text('Desconto Incondicionado', margin + 110, y + 3.5);
     doc.text('Desconto Condicionado', margin + 155, y + 3.5);
+
+    const vLiqVal = (data.vLiq !== undefined && data.vLiq !== '') ? parseFloat(String(data.vLiq)) : amountVal;
+    const vTotNfVal = (data.vTotNF !== undefined && data.vTotNF !== '') ? parseFloat(String(data.vTotNF)) : amountVal;
+    const retencoesTot = vIrrfNum + vCpNum + vCsllNum;
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
     doc.text(formatCurrency(amountVal), margin + 2, y + 7.2);
@@ -5811,10 +5884,10 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     doc.text('VALOR LÍQUIDO DA NFS-e + IBS/CBS', margin + 150, y + 11.2);
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
-    doc.text('-', margin + 2, y + 14.8);
-    doc.text(formatCurrency(amountVal), margin + 55, y + 14.8);
+    doc.text(retencoesTot > 0 ? formatCurrency(retencoesTot) : '-', margin + 2, y + 14.8);
+    doc.text(formatCurrency(vLiqVal), margin + 55, y + 14.8);
     doc.setFont('helvetica', 'normal'); doc.text(formatCurrency(totalIbsCbs), margin + 110, y + 14.8);
-    doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(amountVal), margin + 150, y + 14.8);
+    doc.setFont('helvetica', 'bold'); doc.text(formatCurrency(vTotNfVal), margin + 150, y + 14.8);
 
     y += 16;
 
@@ -5822,8 +5895,19 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     drawHeaderBox(margin, y, pageWidth, 4.5, 'INFORMAÇÕES COMPLEMENTARES');
     y += 4.5;
     
-    const customInfComp = data.infComp || data.informacoesComplementares || '';
-    const baseInfComp = `Inf. Cont.: NBS: ${formatNbs(serv.cNbs || '115013000')}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -;`;
+    const customInfComp = data.xInfComp || data.infComp || data.informacoesComplementares || '';
+    const nbsFmt = formatNbs(serv.cNbs || serv.nbs || '114032400');
+    
+    // Totais aproximados dos tributos (IBPT / Lei 12.741)
+    const fedTribVal = (data.pTotTribFed !== undefined && data.pTotTribFed !== '') ? parseFloat(String(data.pTotTribFed)) : null;
+    const estTribVal = (data.pTotTribEst !== undefined && data.pTotTribEst !== '') ? parseFloat(String(data.pTotTribEst)) : null;
+    const munTribVal = (data.pTotTribMun !== undefined && data.pTotTribMun !== '') ? parseFloat(String(data.pTotTribMun)) : null;
+
+    const fedTribStr = fedTribVal !== null ? `Federais: ${formatCurrency((amountVal * fedTribVal) / 100)} (${fedTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Federais: -';
+    const estTribStr = estTribVal !== null ? `Estaduais: ${formatCurrency((amountVal * estTribVal) / 100)} (${estTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Estaduais: -';
+    const munTribStr = munTribVal !== null ? `Municipais: ${formatCurrency((amountVal * munTribVal) / 100)} (${munTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Municipais: -';
+    
+    const baseInfComp = `Inf. Cont.: NBS: ${nbsFmt}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`;
     const fullInfCompText = customInfComp ? `${baseInfComp}\n${customInfComp.replace(/\|/g, '\n')}` : baseInfComp;
     const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
     
@@ -6091,10 +6175,23 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     return '';
                 };
 
-                const emitBlock = getXmlBlock(savedXml, 'emit') || getXmlBlock(savedXml, 'prest') || savedXml;
-                const tomaBlock = getXmlBlock(savedXml, 'toma') || getXmlBlock(savedXml, 'dest') || savedXml;
-                const servBlock = getXmlBlock(savedXml, 'serv') || getXmlBlock(savedXml, 'cServ') || savedXml;
-                const valBlock = getXmlBlock(savedXml, 'valores') || getXmlBlock(savedXml, 'vServPrest') || savedXml;
+                const nfseBlock = getXmlBlock(savedXml, 'infNFSe') || savedXml;
+                const dpsBlock = getXmlBlock(savedXml, 'DPS') || getXmlBlock(savedXml, 'infDPS') || savedXml;
+                const infDpsBlock = getXmlBlock(dpsBlock, 'infDPS') || dpsBlock;
+
+                const emitBlock = getXmlBlock(nfseBlock, 'emit') || getXmlBlock(infDpsBlock, 'prest') || savedXml;
+                const tomaBlock = getXmlBlock(nfseBlock, 'toma') || getXmlBlock(infDpsBlock, 'toma') || savedXml;
+                const servBlock = getXmlBlock(infDpsBlock, 'serv') || getXmlBlock(nfseBlock, 'serv') || savedXml;
+                const nfseValoresBlock = getXmlBlock(nfseBlock, 'valores');
+                const dpsValoresBlock = getXmlBlock(infDpsBlock, 'valores');
+                const nfseIbsCbsBlock = getXmlBlock(nfseBlock, 'IBSCBS');
+                const dpsIbsCbsBlock = getXmlBlock(infDpsBlock, 'IBSCBS');
+                const tribMunBlock = getXmlBlock(dpsValoresBlock, 'tribMun') || getXmlBlock(savedXml, 'tribMun');
+                const tribFedBlock = getXmlBlock(dpsValoresBlock, 'tribFed') || getXmlBlock(savedXml, 'tribFed');
+                const piscofinsBlock = getXmlBlock(tribFedBlock, 'piscofins') || getXmlBlock(savedXml, 'piscofins');
+                const totTribBlock = getXmlBlock(savedXml, 'totTrib');
+                const regTribBlock = getXmlBlock(infDpsBlock, 'regTrib') || getXmlBlock(emitBlock, 'regTrib') || getXmlBlock(savedXml, 'regTrib');
+                const infoComplBlock = getXmlBlock(infDpsBlock, 'infoCompl') || getXmlBlock(savedXml, 'infoCompl');
 
                 const xmlNfse = getXmlVal(savedXml, 'nNFSe');
                 const xmlDps = getXmlVal(savedXml, 'nDPS');
@@ -6107,7 +6204,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlXTribNac = getXmlVal(savedXml, 'xTribNac');
                 const xmlDesc = getXmlVal(servBlock, 'xDescServ') || getXmlVal(savedXml, 'xDescServ');
                 const xmlNbs = getXmlVal(servBlock, 'cNBS') || getXmlVal(savedXml, 'cNBS');
-                const xmlVServ = getXmlVal(valBlock, 'vServ') || getXmlVal(savedXml, 'vServ') || getXmlVal(savedXml, 'vServPrest') || getXmlVal(savedXml, 'vLiq');
+                const xmlVServ = getXmlVal(nfseValoresBlock, 'vBC') || getXmlVal(dpsValoresBlock, 'vServ') || getXmlVal(savedXml, 'vServ') || getXmlVal(savedXml, 'vServPrest') || getXmlVal(nfseValoresBlock, 'vLiq');
                 const xmlAmbGer = getXmlVal(savedXml, 'ambGer');
                 const xmlTpAmb = getXmlVal(savedXml, 'tpAmb');
 
@@ -6125,7 +6222,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                                   invPayload.valorTotal || 
                                   invPayload.servicesAmount ||
                                   dbInvoiceRecord?.amount || 
-                                  '1160.00';
+                                  '1.00';
                 const parseBrlFloat = (valStr: any): number => {
                     const clean = String(valStr).replace('R$', '').trim();
                     if (clean.includes(',')) {
@@ -6133,7 +6230,7 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     }
                     return parseFloat(clean) || 0;
                 };
-                const amountVal = parseBrlFloat(rawAmount) || 1160.00;
+                const amountVal = parseBrlFloat(rawAmount) || 1.00;
 
                 // Prestador extraído do XML assinado ou payload
                 const enderEmitBlock = getXmlBlock(emitBlock, 'enderNac') || getXmlBlock(emitBlock, 'enderEmit') || emitBlock;
@@ -6169,6 +6266,68 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const chaveNfseNum = (chNFSe && chNFSe.length === 50) ? String(parseInt(chNFSe.substring(23, 36), 10) || '') : '';
                 const finalNfseNum = xmlNfse || dbInvoiceRecord?.invoice_number || dbInvoiceRecord?.dps_number || inf.nDPS || chaveNfseNum || '62';
 
+                // Campos dinâmicos do Simples Nacional, ISSQN, PIS, COFINS, IBS e CBS
+                const xmlOpSimpNac = getXmlVal(regTribBlock, 'opSimpNac') || prest.regTrib?.opSimpNac || nat.opSimpNac || '1';
+                const xmlTribISSQN = getXmlVal(tribMunBlock, 'tribISSQN') || val.trib?.tribMun?.tribISSQN || '1';
+                const xmlTpRetISSQN = getXmlVal(tribMunBlock, 'tpRetISSQN') || val.trib?.tribMun?.tpRetISSQN || '1';
+                const xmlVBC_ISSQN = getXmlVal(nfseValoresBlock, 'vBC') || getXmlVal(dpsValoresBlock, 'vBC') || val.trib?.tribMun?.vBCISSQN;
+                const xmlPAliqAplic = getXmlVal(nfseValoresBlock, 'pAliqAplic') || val.trib?.tribMun?.pAliqISSQN;
+                const xmlVISSQN = getXmlVal(nfseValoresBlock, 'vISSQN') || val.trib?.tribMun?.vISSQN;
+                const xmlVLiq = getXmlVal(nfseValoresBlock, 'vLiq') || val.vLiq;
+
+                const xmlPisCst = getXmlVal(piscofinsBlock, 'CST') || val.trib?.tribFed?.piscofins?.CST;
+                const xmlVBCPisCofins = getXmlVal(piscofinsBlock, 'vBCPisCofins') || val.trib?.tribFed?.piscofins?.vBCPisCofins;
+                const xmlPAliqPis = getXmlVal(piscofinsBlock, 'pAliqPis') || val.trib?.tribFed?.piscofins?.pAliqPis;
+                const xmlPAliqCofins = getXmlVal(piscofinsBlock, 'pAliqCofins') || val.trib?.tribFed?.piscofins?.pAliqCofins;
+                const xmlVPis = getXmlVal(piscofinsBlock, 'vPis') || val.trib?.tribFed?.piscofins?.vPis;
+                const xmlVCofins = getXmlVal(piscofinsBlock, 'vCofins') || val.trib?.tribFed?.piscofins?.vCofins;
+                const xmlTpRetPisCofins = getXmlVal(piscofinsBlock, 'tpRetPisCofins') || val.trib?.tribFed?.piscofins?.tpRetPisCofins || '0';
+
+                const xmlVIrrf = getXmlVal(dpsValoresBlock, 'vRetIRRF') || getXmlVal(dpsValoresBlock, 'vIRRF');
+                const xmlVCp = getXmlVal(dpsValoresBlock, 'vRetCP') || getXmlVal(dpsValoresBlock, 'vCP');
+                const xmlVCsll = getXmlVal(dpsValoresBlock, 'vRetCSLL') || getXmlVal(dpsValoresBlock, 'vCSLL');
+
+                const gIbsCbsBlock = getXmlBlock(dpsIbsCbsBlock, 'gIBSCBS') || getXmlBlock(savedXml, 'gIBSCBS');
+                const xmlCstIbsCbs = getXmlVal(gIbsCbsBlock, 'CST') || getXmlVal(savedXml, 'CST') || '200';
+                const xmlCClassTrib = getXmlVal(gIbsCbsBlock, 'cClassTrib') || getXmlVal(savedXml, 'cClassTrib') || '200052';
+                const xmlCIndOp = getXmlVal(dpsIbsCbsBlock, 'cIndOp') || getXmlVal(savedXml, 'cIndOp') || '100301';
+                const xmlCLocIncid = getXmlVal(nfseIbsCbsBlock, 'cLocalidadeIncid') || getXmlVal(savedXml, 'cLocIncid') || prestCMun;
+                const xmlXLocIncid = getXmlVal(nfseIbsCbsBlock, 'xLocalidadeIncid') || getXmlVal(savedXml, 'xLocIncid') || prestCidade;
+
+                const ibsCbsValoresBlock = getXmlBlock(nfseIbsCbsBlock, 'valores');
+                const ibsUfBlock = getXmlBlock(ibsCbsValoresBlock, 'uf');
+                const ibsMunBlock = getXmlBlock(ibsCbsValoresBlock, 'mun');
+                const cbsFedBlock = getXmlBlock(ibsCbsValoresBlock, 'fed');
+                const totCibsBlock = getXmlBlock(nfseIbsCbsBlock, 'totCIBS');
+                const gIbsTotBlock = getXmlBlock(totCibsBlock, 'gIBS');
+
+                const xmlBcIbsCbs = getXmlVal(ibsCbsValoresBlock, 'vBC');
+                const xmlCalcReeRepRes = getXmlVal(ibsCbsValoresBlock, 'vCalcReeRepRes');
+
+                const xmlPIbsUf = getXmlVal(ibsUfBlock, 'pIBSUF');
+                const xmlPRedAliqUf = getXmlVal(ibsUfBlock, 'pRedAliqUF');
+                const xmlPAliqEfetUf = getXmlVal(ibsUfBlock, 'pAliqEfetUF');
+
+                const xmlPIbsMun = getXmlVal(ibsMunBlock, 'pIBSMun');
+                const xmlPRedAliqMun = getXmlVal(ibsMunBlock, 'pRedAliqMun');
+                const xmlPAliqEfetMun = getXmlVal(ibsMunBlock, 'pAliqEfetMun');
+
+                const xmlPCbs = getXmlVal(cbsFedBlock, 'pCBS');
+                const xmlPRedAliqCbs = getXmlVal(cbsFedBlock, 'pRedAliqCBS');
+                const xmlPAliqEfetCbs = getXmlVal(cbsFedBlock, 'pAliqEfetCBS');
+
+                const xmlVTotNf = getXmlVal(totCibsBlock, 'vTotNF');
+                const xmlVIbsTot = getXmlVal(gIbsTotBlock, 'vIBSTot');
+                const xmlVIbsUf = getXmlVal(getXmlBlock(gIbsTotBlock, 'gIBSUFTot'), 'vIBSUF');
+                const xmlVIbsMun = getXmlVal(getXmlBlock(gIbsTotBlock, 'gIBSMunTot'), 'vIBSMun');
+                const xmlVCbs = getXmlVal(getXmlBlock(totCibsBlock, 'gCBS'), 'vCBS');
+
+                const xmlPTotTribFed = getXmlVal(totTribBlock, 'pTotTribFed');
+                const xmlPTotTribEst = getXmlVal(totTribBlock, 'pTotTribEst');
+                const xmlPTotTribMun = getXmlVal(totTribBlock, 'pTotTribMun');
+
+                const xmlXInfComp = getXmlVal(infoComplBlock, 'xInfComp') || getXmlVal(savedXml, 'xInfComp');
+
                 return await generateServerDanfseBuffer({
                     nNfse: finalNfseNum,
                     serie: xmlSerie || dbInvoiceRecord?.dps_serie || inf.serie || '1',
@@ -6177,6 +6336,48 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     dhEmi: xmlDhEmi || xmlDhProc || inf.dhEmi || dbInvoiceRecord?.created_at || new Date().toISOString(),
                     dhProc: xmlDhProc || xmlDhEmi || dbInvoiceRecord?.created_at || new Date().toISOString(),
                     dCompet: xmlDCompet || inf.dCompet || xmlDhEmi || '08/08/2026',
+                    opSimpNac: xmlOpSimpNac,
+                    tribISSQN: xmlTribISSQN,
+                    tpRetISSQN: xmlTpRetISSQN,
+                    vBC_ISSQN: xmlVBC_ISSQN,
+                    pAliqAplic: xmlPAliqAplic,
+                    vISSQN: xmlVISSQN,
+                    vLiq: xmlVLiq,
+                    vIRRF: xmlVIrrf,
+                    vCP: xmlVCp,
+                    vRetCSLL: xmlVCsll,
+                    vPis: xmlVPis,
+                    vCofins: xmlVCofins,
+                    pAliqPis: xmlPAliqPis,
+                    pAliqCofins: xmlPAliqCofins,
+                    vBCPisCofins: xmlVBCPisCofins,
+                    tpRetPisCofins: xmlTpRetPisCofins,
+                    cstIbsCbs: xmlCstIbsCbs,
+                    cClassTrib: xmlCClassTrib,
+                    cIndOp: xmlCIndOp,
+                    cLocalidadeIncid: xmlCLocIncid,
+                    xLocalidadeIncid: xmlXLocIncid,
+                    ufIncidencia: prestUf,
+                    vBcIbsCbs: xmlBcIbsCbs,
+                    vCalcReeRepRes: xmlCalcReeRepRes,
+                    pIBSUF: xmlPIbsUf,
+                    pRedAliqUF: xmlPRedAliqUf,
+                    pAliqEfetUF: xmlPAliqEfetUf,
+                    pIBSMun: xmlPIbsMun,
+                    pRedAliqMun: xmlPRedAliqMun,
+                    pAliqEfetMun: xmlPAliqEfetMun,
+                    pCBS: xmlPCbs,
+                    pRedAliqCBS: xmlPRedAliqCbs,
+                    pAliqEfetCBS: xmlPAliqEfetCbs,
+                    vTotNF: xmlVTotNf,
+                    vIBSTot: xmlVIbsTot,
+                    vIBSUF: xmlVIbsUf,
+                    vIBSMun: xmlVIbsMun,
+                    vCBS: xmlVCbs,
+                    pTotTribFed: xmlPTotTribFed,
+                    pTotTribEst: xmlPTotTribEst,
+                    pTotTribMun: xmlPTotTribMun,
+                    xInfComp: xmlXInfComp,
                     prestador: {
                         cnpj: prestCnpj,
                         nome: prestNome,
@@ -6187,7 +6388,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         cep: prestCep,
                         cMun: prestCMun,
                         telefone: prestTelefone,
-                        email: prestEmail
+                        email: prestEmail,
+                        opSimpNac: xmlOpSimpNac
                     },
                     tomador: {
                         doc: tomaCnpj,
@@ -6203,12 +6405,14 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                         xTribNac: xmlXTribNac || invPayload.xTribNac || 'Suporte técnico em informática, inclusive instalação, configuração e manutenção de programas de computação e bancos de dados.',
                         cNbs: xmlNbs || serv?.cServ?.cNBS || serv?.cNBS || '1.1501.30.00',
                         descricao: xmlDesc || serv?.cServ?.xDescServ || serv?.xDescServ || serv?.descricao || serv?.discriminacao || 'SUPORTE TÉCNICO EM TI / INFORMÁTICA',
-                        valor: amountVal
+                        valor: amountVal,
+                        cidadePrestacao: prestCidade,
+                        ufPrestacao: prestUf
                     },
                     impostos: {
-                        issqn: Number(val.trib?.tribMun?.vISSQN || 0),
-                        pis: Number(val.trib?.tribFed?.piscofins?.vPis || val.trib?.tribFed?.vPIS || 0),
-                        cofins: Number(val.trib?.tribFed?.piscofins?.vCofins || val.trib?.tribFed?.vCOFINS || 0)
+                        issqn: Number(xmlVISSQN || val.trib?.tribMun?.vISSQN || 0),
+                        pis: Number(xmlVPis || val.trib?.tribFed?.piscofins?.vPis || val.trib?.tribFed?.vPIS || 0),
+                        cofins: Number(xmlVCofins || val.trib?.tribFed?.piscofins?.vCofins || val.trib?.tribFed?.vCOFINS || 0)
                     },
                     ambiente: adnAmbienteDl,
                     ambienteGerador: xmlAmbGer || (adnAmbienteDl === 'producao' ? '1' : '2'),
