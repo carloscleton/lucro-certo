@@ -2565,7 +2565,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const tomadorDoc = (firstItem?.tomador?.cpfCnpj || '').replace(/\D/g, '');
             const valorTotal = servicos.reduce((acc: number, s: any) => acc + (Number(s?.valor?.servico) || 0), 0);
             const servItem = servicos[0] || {};
-            const inscricaoMunicipal = String(firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || '').trim();
+            const inscricaoMunicipal = String(firstItem?.prestador?.inscricaoMunicipal || nat.inscricao_municipal || config.inscricao_municipal || '').trim();
             const descVal = String(
                 servItem?.discriminacao || 
                 servItem?.descricao || 
@@ -3016,7 +3016,11 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             // Respeita estritamente o CNPJ informado no JSON (rawPrestCnpj). Caso não venha no JSON, usa o CNPJ do Certificado ou das configurações.
             const prestCnpjClean = rawPrestCnpj || certSubjectCnpj || configuredCnpj || '00893566000190';
 
-            if (inf.prest) inf.prest.CNPJ = prestCnpjClean;
+            if (inf.prest) {
+                inf.prest.CNPJ = prestCnpjClean;
+                const resolvedIM = String(inf.prest.IM || inscricaoMunicipal || nat.inscricao_municipal || config.inscricao_municipal || '').trim();
+                if (resolvedIM) inf.prest.IM = resolvedIM;
+            }
             delete inf.optSN; // optSN não é válido no nó raiz do infDPS do XSD (previne erro E1235)
             
             // Previne erro E1235: A tag <toma> no XSD da DPS (SefinNacional) não aceita <im>, <IM> ou <IE>
@@ -3067,8 +3071,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 : (nat.reg_esp_trib !== undefined ? Number(nat.reg_esp_trib) : 0);
             const regEspTribXml = `<regEspTrib>${regEspTrib}</regEspTrib>`;
 
-            // SefinNacional: <IM> é opcional no XSD (minOccurs=0). Omitir <IM> evita o Erro 500 no SEFIN quando a IM municipal não está associada no cadastro nacional.
-            const prestIM = '';
+            // SefinNacional: <IM> deve ser informada se o município emissor exigir no CNC (Erro E0116)
+            const resolvedPrestIM = String(inf.prest?.IM || inscricaoMunicipal || nat.inscricao_municipal || config.inscricao_municipal || '').trim();
+            const prestIM = resolvedPrestIM ? `<IM>${resolvedPrestIM}</IM>` : '';
             
             const tomadorDocXml = inf.toma?.CPF 
                 ? `<CPF>${inf.toma.CPF}</CPF>` 
