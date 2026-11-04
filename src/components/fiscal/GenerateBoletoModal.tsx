@@ -9,6 +9,8 @@ import { useContacts } from '../../hooks/useContacts';
 import { usePaymentGateways } from '../../hooks/usePaymentGateways';
 import { useCharges } from '../../hooks/useCharges';
 import { useNotification } from '../../context/NotificationContext';
+import { useEntity } from '../../context/EntityContext';
+import { useCompanies } from '../../hooks/useCompanies';
 import { supabase } from '../../lib/supabase';
 import { API_BASE_URL } from '../../lib/constants';
 import axios from 'axios';
@@ -24,6 +26,10 @@ interface GenerateBoletoModalProps {
 
 export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: GenerateBoletoModalProps) {
     const navigate = useNavigate();
+    const { currentEntity } = useEntity();
+    const { companies } = useCompanies();
+    const currentCompany = companies.find(c => c.id === (invoice?.company_id || currentEntity?.id)) || currentEntity;
+    const isPaymentsEnabled = !!(currentCompany?.payments_module_enabled ?? (currentEntity as any)?.payments_module_enabled);
     const { contacts } = useContacts();
     const { gateways, defaultGateway } = usePaymentGateways();
     const { createCharge } = useCharges();
@@ -571,7 +577,43 @@ export function GenerateBoletoModal({ isOpen, onClose, onSuccess, invoice }: Gen
                     <span className="text-xs font-black uppercase tracking-widest text-gray-500">Verificando boletos no Banco Inter...</span>
                 </div>
             ) : !activeCharge ? (
-                activeGateways.length === 0 ? (
+                !isPaymentsEnabled ? (
+                    /* ALERTA DE MÓDULO DE PAGAMENTOS DESABILITADO */
+                    <div className="py-4 space-y-5 animate-in fade-in duration-300">
+                        <div className="p-6 bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-4 my-2">
+                            <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-500 shadow-sm">
+                                <AlertCircle size={32} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                    Módulo de Pagamentos Desabilitado
+                                </h3>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                                    Para emitir boletos bancários ou cobranças Pix, o Módulo de Pagamentos precisa estar liberado nas configurações da empresa.
+                                </p>
+                            </div>
+
+                            <div className="p-3.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 inline-block text-left">
+                                <p className="font-bold flex items-center gap-1.5 mb-0.5">
+                                    <span>📍</span> Onde habilitar:
+                                </p>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                                    Acesse <strong>Empresas &gt; Configurar Empresa</strong> e ative a opção <strong>Módulo Pagamentos</strong>.
+                                </p>
+                            </div>
+
+                            <div className="pt-2 flex justify-center">
+                                <Button
+                                    variant="ghost"
+                                    onClick={onClose}
+                                    className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    Fechar
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : activeGateways.length === 0 ? (
                     /* ALERTA DE GATEWAY NÃO CONFIGURADO */
                     <div className="py-4 space-y-5 animate-in fade-in duration-300">
                         <div className="p-6 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl text-center space-y-4 my-2">

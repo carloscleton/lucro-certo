@@ -13,6 +13,7 @@ import { DeleteProtectionModal } from '../transactions/DeleteProtectionModal';
 import { API_BASE_URL } from '../../lib/constants';
 import { getInvoiceFilename } from '../../utils/invoiceUtils';
 import { formatXmlString } from '../../utils/xmlFormatter';
+import { useEntity } from '../../context/EntityContext';
 import axios from 'axios';
 
 interface InvoiceDetailModalProps {
@@ -25,6 +26,12 @@ interface InvoiceDetailModalProps {
 }
 
 export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, company, onGenerateBoleto }: InvoiceDetailModalProps) {
+    const { currentEntity } = useEntity();
+    const isPaymentsEnabled = !!(
+        company?.payments_module_enabled ?? 
+        (invoice as any)?.company?.payments_module_enabled ?? 
+        (currentEntity as any)?.payments_module_enabled
+    );
     const modalRef = useRef<HTMLDivElement>(null);
     const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
@@ -713,26 +720,28 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                                 Visualizando Documento Auxiliar DANFSe
                             </span>
                             <div className="flex items-center gap-2">
-                                <Button
-                                    size="sm"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 font-bold shadow-sm"
-                                    onClick={() => {
-                                        if (onGenerateBoleto) {
-                                            onGenerateBoleto(invoice);
-                                        } else {
-                                            const params = new URLSearchParams({
-                                                open: 'true',
-                                                amount: (invoice.amount || (invoice as any).valor || 0).toString(),
-                                                description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
-                                                contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
-                                            });
-                                            window.location.href = `/dashboard/payments?${params.toString()}`;
-                                        }
-                                    }}
-                                >
-                                    <FileText size={14} className="mr-1" />
-                                    Gerar Boleto Banco Inter
-                                </Button>
+                                {isPaymentsEnabled && (
+                                    <Button
+                                        size="sm"
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 font-bold shadow-sm"
+                                        onClick={() => {
+                                            if (onGenerateBoleto) {
+                                                onGenerateBoleto(invoice);
+                                            } else {
+                                                const params = new URLSearchParams({
+                                                    open: 'true',
+                                                    amount: (invoice.amount || (invoice as any).valor || 0).toString(),
+                                                    description: `Ref. Nota Fiscal Nº ${invoice.invoice_number || invoice.external_id?.slice(-6) || ''}`,
+                                                    contact_id: (invoice as any).customer_id || (invoice as any).contact_id || (invoice as any).quote?.contact_id || ''
+                                                });
+                                                window.location.href = `/dashboard/payments?${params.toString()}`;
+                                            }
+                                        }}
+                                    >
+                                        <FileText size={14} className="mr-1" />
+                                        Gerar Boleto / Cobrança
+                                    </Button>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -1162,9 +1171,12 @@ export function InvoiceDetailModal({ isOpen, onClose, invoice, onRefresh, compan
                             ) : (
                                 <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 text-center space-y-2">
                                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                        Nenhum boleto ou cobrança bancária gerada para esta nota fiscal ainda.
+                                        {isPaymentsEnabled 
+                                            ? "Nenhum boleto ou cobrança bancária gerada para esta nota fiscal ainda."
+                                            : "Módulo de Pagamentos desabilitado nas Configurações da Empresa."
+                                        }
                                     </p>
-                                    {onGenerateBoleto && (
+                                    {isPaymentsEnabled && onGenerateBoleto && (
                                         <Button
                                             onClick={() => onGenerateBoleto(invoice)}
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 rounded-xl shadow-sm"

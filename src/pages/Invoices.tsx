@@ -218,6 +218,7 @@ export function Invoices() {
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
+    const isPaymentsEnabled = !!(currentCompany?.payments_module_enabled ?? (currentEntity as any)?.payments_module_enabled);
 
     const userRole = currentEntity.type === 'company' ? (currentEntity.role || 'member') : 'admin';
     const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
@@ -2379,6 +2380,11 @@ ${messageWithPlaceholder}`;
                                                     const activeCharge = getInvoiceCharge(invoice);
                                                     const latestCharge = getInvoiceLatestCharge(invoice);
                                                     const isCancelled = !activeCharge && latestCharge && (latestCharge.status === 'cancelled' || latestCharge.status === 'rejected');
+
+                                                    // Se o módulo de pagamentos estiver desativado na empresa e não houver histórico de cobrança para ver, não renderiza o botão
+                                                    if (!isPaymentsEnabled && !activeCharge && !isCancelled) {
+                                                        return null;
+                                                    }
 
                                                     const method = (activeCharge || latestCharge)?.payment_method || '';
                                                     const isPix = method === 'pix' || !!(activeCharge || latestCharge)?.qr_code;
