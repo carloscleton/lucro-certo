@@ -2134,7 +2134,17 @@ export function FiscalSettings() {
                     pCSLL:   parseFloat(nationalConfig.default_csll_aliquota   || '1.00'),
                     pIRRF:   parseFloat(nationalConfig.default_irrf_aliquota   || '1.50'),
                 };
-                tribBlock.totTrib = { indTotTrib: 0 };
+                const fedAliq = parseFloat(nationalConfig.default_pis_aliquota || '0.65') +
+                                parseFloat(nationalConfig.default_cofins_aliquota || '3.00') +
+                                parseFloat(nationalConfig.default_csll_aliquota || '1.00') +
+                                parseFloat(nationalConfig.default_irrf_aliquota || '1.50');
+                tribBlock.totTrib = {
+                    pTotTrib: {
+                        pTotTribFed: fedAliq,
+                        pTotTribEst: 0,
+                        pTotTribMun: 0
+                    }
+                };
             } else {
                 tribBlock.totTrib = { pTotTribSN: parseFloat(nationalConfig.default_tot_trib_sn || '6.00') };
             }

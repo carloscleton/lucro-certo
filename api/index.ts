@@ -2793,9 +2793,22 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     }
 
                     if (!adnPayload.infDPS.valores.trib.totTrib) {
-                        adnPayload.infDPS.valores.trib.totTrib = { pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0 };
-                    } else if (!adnPayload.infDPS.valores.trib.totTrib.pTotTribSN || adnPayload.infDPS.valores.trib.totTrib.pTotTribSN === 0) {
-                        adnPayload.infDPS.valores.trib.totTrib.pTotTribSN = simplesNacional !== 1 ? finalPTotTribSN : 0;
+                        adnPayload.infDPS.valores.trib.totTrib = {};
+                    }
+                    if (simplesNacional === 1) {
+                        // Não Optante do SN (Regime Normal) - Regra E0713: proíbe pTotTribSN e indTotTrib
+                        delete adnPayload.infDPS.valores.trib.totTrib.pTotTribSN;
+                        delete adnPayload.infDPS.valores.trib.totTrib.indTotTrib;
+                        const fedVal = ((parseFloat(nat.default_pis_aliquota || '0.65') + parseFloat(nat.default_cofins_aliquota || '3.00') + parseFloat(nat.default_csll_aliquota || '1.00') + parseFloat(nat.default_irrf_aliquota || '1.50')) || 6.15);
+                        adnPayload.infDPS.valores.trib.totTrib.pTotTrib = {
+                            pTotTribFed: fedVal,
+                            pTotTribEst: 0,
+                            pTotTribMun: finalPAliq || 0
+                        };
+                    } else {
+                        if (!adnPayload.infDPS.valores.trib.totTrib.pTotTribSN || adnPayload.infDPS.valores.trib.totTrib.pTotTribSN === 0) {
+                            adnPayload.infDPS.valores.trib.totTrib.pTotTribSN = finalPTotTribSN;
+                        }
                     }
                 }
 
@@ -2941,9 +2954,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                     ...(tpRetISSQNDefault === 2 && finalPAliq > 0 ? { pAliq: finalPAliq } : {})
                                 },
                                 ...(adnTribFed ? { tribFed: adnTribFed } : {}),
-                                totTrib: {
-                                    pTotTribSN: simplesNacional !== 1 ? finalPTotTribSN : 0
-                                }
+                                totTrib: simplesNacional === 1
+                                    ? {
+                                        pTotTrib: {
+                                            pTotTribFed: ((parseFloat(nat.default_pis_aliquota || '0.65') + parseFloat(nat.default_cofins_aliquota || '3.00') + parseFloat(nat.default_csll_aliquota || '1.00') + parseFloat(nat.default_irrf_aliquota || '1.50')) || 6.15),
+                                            pTotTribEst: 0,
+                                            pTotTribMun: finalPAliq || 0
+                                        }
+                                    }
+                                    : {
+                                        pTotTribSN: finalPTotTribSN
+                                    }
                             }
                         },
                         IBSCBS: {
@@ -3313,8 +3334,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 const pTotTribSN = totTrib.pTotTribSN !== undefined ? Number(totTrib.pTotTribSN).toFixed(2) : (nat.default_tot_trib_sn !== undefined ? Number(nat.default_tot_trib_sn).toFixed(2) : '0.00');
                 totTribXml = `<totTrib><pTotTribSN>${pTotTribSN}</pTotTribSN></totTrib>`;
             } else {
-                const indTotTrib = totTrib.indTotTrib !== undefined ? Number(totTrib.indTotTrib) : 0;
-                totTribXml = `<totTrib><indTotTrib>${indTotTrib}</indTotTrib></totTrib>`;
+                // opSimpNac === 1 (Não Optante do Simples Nacional / Regime Normal)
+                // Regra E0713: indTotTrib e pTotTribSN não podem ser informados para Não Optante.
+                // Deve-se informar o grupo <pTotTrib> com percentuais por esfera: Fed, Est e Mun.
+                const fedAliq = ((parseFloat(nat.default_pis_aliquota || '0.65') + parseFloat(nat.default_cofins_aliquota || '3.00') + parseFloat(nat.default_csll_aliquota || '1.00') + parseFloat(nat.default_irrf_aliquota || '1.50')) || 6.15);
+                const pFed = totTrib.pTotTrib?.pTotTribFed !== undefined ? Number(totTrib.pTotTrib.pTotTribFed).toFixed(2) : fedAliq.toFixed(2);
+                const pEst = totTrib.pTotTrib?.pTotTribEst !== undefined ? Number(totTrib.pTotTrib.pTotTribEst).toFixed(2) : '0.00';
+                const pMun = totTrib.pTotTrib?.pTotTribMun !== undefined ? Number(totTrib.pTotTrib.pTotTribMun).toFixed(2) : '0.00';
+                totTribXml = `<totTrib><pTotTrib><pTotTribFed>${pFed}</pTotTribFed><pTotTribEst>${pEst}</pTotTribEst><pTotTribMun>${pMun}</pTotTribMun></pTotTrib></totTrib>`;
             }
 
             const valoresXml = inf.valores?.vServPrest?.vServ !== undefined ? `<valores><vServPrest><vServ>${Number(inf.valores.vServPrest.vServ).toFixed(2)}</vServ></vServPrest><trib><tribMun><tribISSQN>${tribISSQN}</tribISSQN><tpRetISSQN>${tpRetISSQN}</tpRetISSQN>${pAliqXml}</tribMun>${tribFedXml}${totTribXml}</trib></valores>` : '';
