@@ -3059,7 +3059,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
             const verAplic = inf.verAplic || '1.0.0';
-            let serieVal = inf.serie !== undefined ? String(inf.serie) : String(nat.serie_dps || '1');
+            let serieVal = (nat.serie_dps && String(nat.serie_dps).trim()) || (inf.serie !== undefined ? String(inf.serie) : '1');
             // Séries 80000 a 89999 são reservadas ao Fisco (Nota Avulsa). Contribuintes normais usam Séries 1 a 999.
             if (serieVal === '80000' || serieVal.startsWith('800')) {
                 console.warn(`⚠️ [ADN-NACIONAL] Série ${serieVal} é reservada ao Fisco. Ajustando para Série 1 para emissão pelo contribuinte.`);
@@ -3151,30 +3151,18 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
 
             const cNbsXml = (cNbsVal.length >= 7 && cNbsVal.length <= 9) ? `<cNBS>${cNbsVal}</cNBS>` : '';
 
-            let descFinal = String(inf.serv?.cServ?.xDescServ || descricao || 'Prestação de serviços').replace(/\|/g, '\n').trim();
-
-            if (infCompText && typeof infCompText === 'string') {
-                const cleanInfComp = infCompText.replace(/\|/g, '\n').trim();
-                const infCompWithoutNbs = cleanInfComp.replace(/NBS:\s*\d+/gi, '').trim();
-                if (infCompWithoutNbs && !descFinal.includes(infCompWithoutNbs)) {
-                    descFinal = `${descFinal}\n${infCompWithoutNbs}`;
-                }
-            }
-            descFinal = descFinal.substring(0, 2000);
+            let descFinal = String(inf.serv?.cServ?.xDescServ || descricao || nat.default_xDescServ || 'Prestação de serviços').replace(/\|/g, '\n').trim().substring(0, 2000);
 
             // Conforme XSD NFS-e Nacional v1.01: a sequência exata em <cServ> é <cTribNac>, <cTribMun>, <CNAE>, <xDescServ>, <cNBS>
             const servItemXml = inf.serv?.cServ ? `<cServ><cTribNac>${inf.serv.cServ.cTribNac}</cTribNac>${cTribMunXml}${cnaeXml}<xDescServ>${descFinal}</xDescServ>${cNbsXml}</cServ>` : '';
 
-            if (nbsMatch) {
-                infCompText = `NBS: ${nbsMatch[1]}`;
-            } else if (cNbsVal && cNbsVal.length >= 7) {
-                infCompText = `NBS: ${cNbsVal}`;
-            } else {
-                infCompText = '';
+            // Preservar informações complementares completas (PROCON, leis, dados adicionais) + NBS
+            let finalInfComp = infCompText ? infCompText.trim() : '';
+            if (cNbsVal && cNbsVal.length >= 7 && !finalInfComp.includes(cNbsVal)) {
+                finalInfComp = finalInfComp ? `NBS: ${cNbsVal} | ${finalInfComp}` : `NBS: ${cNbsVal}`;
             }
             // Conforme XSD NFS-e Nacional v1.01: <infoCompl> é filho de <serv>, não de <infDPS>
-            // Não existe <infComp> no nível de infDPS - a tag correta dentro de serv é <infoCompl>
-            const infoComplXml = infCompText ? `<infoCompl><xInfComp>${infCompText.replace(/\n/g, '|').substring(0, 2000)}</xInfComp></infoCompl>` : '';
+            const infoComplXml = finalInfComp ? `<infoCompl><xInfComp>${finalInfComp.replace(/\n/g, ' | ').substring(0, 2000)}</xInfComp></infoCompl>` : '';
 
             // Extrair ou inicializar tributação municipal
             const trib = inf.valores?.trib || {};
