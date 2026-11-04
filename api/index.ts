@@ -2859,12 +2859,17 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     ? String(nat.pis_cofins_situacao_tributaria) 
                     : '';
                 
-                const rawRetTipo = nat.pis_cofins_csll_retencao_tipo || '1';
+                const rawRetTipo = String(nat.pis_cofins_csll_retencao_tipo || '0');
                 let tpRetPisCofins = 0; // 0 = Não Retidos
-                if (rawRetTipo === '2') tpRetPisCofins = 3;
+                if (rawRetTipo === '0' || rawRetTipo === '1') tpRetPisCofins = 0;
+                else if (rawRetTipo === '2') tpRetPisCofins = 3;
                 else if (rawRetTipo === '3') tpRetPisCofins = 4;
                 else if (rawRetTipo === '4') tpRetPisCofins = 5;
                 else if (rawRetTipo === '5') tpRetPisCofins = 6;
+                else if (!isNaN(Number(rawRetTipo))) {
+                    const n = Number(rawRetTipo);
+                    tpRetPisCofins = n === 1 ? 0 : n;
+                }
 
                 const pPISVal = nat.default_pis_aliquota ? parseFloat(nat.default_pis_aliquota) : 0;
                 const pCOFINSVal = nat.default_cofins_aliquota ? parseFloat(nat.default_cofins_aliquota) : 0;
@@ -3232,15 +3237,25 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 
                 const rawRetTipo = tribFed.piscofins?.tpRetPisCofins !== undefined 
                     ? String(tribFed.piscofins.tpRetPisCofins) 
-                    : (tribFed.tpRetPisCofins !== undefined ? String(tribFed.tpRetPisCofins) : (nat.pis_cofins_csll_retencao_tipo || '1'));
+                    : (tribFed.tpRetPisCofins !== undefined ? String(tribFed.tpRetPisCofins) : String(nat.pis_cofins_csll_retencao_tipo || '0'));
                 
-                let tpRetPisCofins = 0; // 0 = Não Retidos
-                if (rawRetTipo === '2' || rawRetTipo === '3') tpRetPisCofins = 3;
-                else if (rawRetTipo === '3' || rawRetTipo === '4') tpRetPisCofins = 4;
-                else if (rawRetTipo === '4' || rawRetTipo === '5') tpRetPisCofins = 5;
-                else if (rawRetTipo === '5' || rawRetTipo === '6') tpRetPisCofins = 6;
-                else if (!isNaN(Number(rawRetTipo)) && Number(rawRetTipo) >= 0 && Number(rawRetTipo) <= 9) {
-                    tpRetPisCofins = Number(rawRetTipo);
+                // Sefin Nacional (Regra E0724):
+                // '0 - PIS/COFINS/CSLL Não Retidos' ou '2 - PIS/COFINS Não Retido' dispensam vRetCSLL.
+                // Se for retido (3, 4, 5, 6, etc.), vRetCSLL é obrigatório.
+                let tpRetPisCofins = 0;
+                if (rawRetTipo === '0' || rawRetTipo === '1') {
+                    tpRetPisCofins = 0; // 0 = PIS/COFINS/CSLL Não Retidos
+                } else if (rawRetTipo === '2') {
+                    tpRetPisCofins = 3; // 3 = PIS/COFINS/CSLL Retidos
+                } else if (rawRetTipo === '3') {
+                    tpRetPisCofins = 4; // 4 = PIS/COFINS Retidos, CSLL Não Retido
+                } else if (rawRetTipo === '4') {
+                    tpRetPisCofins = 5; // 5 = PIS Retido, COFINS/CSLL Não Retido
+                } else if (rawRetTipo === '5') {
+                    tpRetPisCofins = 6; // 6 = COFINS Retido, PIS/CSLL Não Retido
+                } else if (!isNaN(Number(rawRetTipo))) {
+                    const n = Number(rawRetTipo);
+                    tpRetPisCofins = n === 1 ? 0 : n;
                 }
 
                 const vPISVal = vServ * (pPIS / 100);
@@ -3298,7 +3313,13 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                 }
 
                 // 4. <vRetCSLL> (Retenção Consolidada PIS/COFINS/CSLL)
-                if (vRetCSLL > 0) {
+                // Regra E0724: se tpRetPisCofins != 0 e != 2, vRetCSLL é OBRIGATÓRIO
+                if (tpRetPisCofins !== 0 && tpRetPisCofins !== 2) {
+                    if (vRetCSLL <= 0) {
+                        vRetCSLL = vPISVal + vCOFINSVal + vCSLLVal;
+                    }
+                    innerXml += `<vRetCSLL>${vRetCSLL.toFixed(2)}</vRetCSLL>`;
+                } else if (vRetCSLL > 0) {
                     innerXml += `<vRetCSLL>${vRetCSLL.toFixed(2)}</vRetCSLL>`;
                 }
 
