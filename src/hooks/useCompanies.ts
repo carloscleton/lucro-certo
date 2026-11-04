@@ -255,6 +255,7 @@ export function useCompanies() {
             .eq('id', id);
 
         if (error) throw error;
+        clearCompaniesCache();
         await fetchCompanies();
     };
 

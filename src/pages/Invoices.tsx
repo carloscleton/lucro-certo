@@ -8,7 +8,6 @@ import { useCompanies } from '../hooks/useCompanies';
 import { fiscalService } from '../services/fiscalService';
 import { whatsappService } from '../services/whatsappService';
 import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/constants';
 import axios from 'axios';
 import { StandaloneInvoiceModal } from '../components/fiscal/StandaloneInvoiceModal';
@@ -214,7 +213,6 @@ export function Invoices() {
     const { companies } = useCompanies();
     const { gateways } = usePaymentGateways();
     const { charges, fetchCharges } = useCharges();
-    const navigate = useNavigate();
 
     const hasActiveGateway = gateways.some((g: any) => g.is_active);
     const currentCompany = companies.find(c => c.id === currentEntity.id);
@@ -226,10 +224,20 @@ export function Invoices() {
     const roleForMatrix = userRole === 'owner' ? 'admin' : userRole;
     const hasEmailTabPermission = currentEntity.type === 'personal' || getTabPermission('email', roleForMatrix as any, currentEntity.settings || {});
 
-    const resendConfig = currentCompany?.settings?.resend_config || {};
-    const isEmailConfigured = !!(
-        (resendConfig.provider === 'smtp' && resendConfig.smtp_host && resendConfig.smtp_user) ||
-        (resendConfig.provider !== 'smtp' && resendConfig.apiKey)
+    const resendConfig = currentCompany?.settings?.resend_config || (currentEntity as any)?.settings?.resend_config || {};
+    const isEmailConfigured = Boolean(
+        resendConfig.provider === 'smtp'
+            ? (
+                Boolean(resendConfig.smtp_host && String(resendConfig.smtp_host).trim()) &&
+                Boolean(resendConfig.smtp_port && Number(resendConfig.smtp_port) > 0) &&
+                Boolean(resendConfig.fromEmail && String(resendConfig.fromEmail).trim()) &&
+                Boolean(resendConfig.smtp_user && String(resendConfig.smtp_user).trim()) &&
+                Boolean(resendConfig.smtp_pass && String(resendConfig.smtp_pass).trim())
+            )
+            : (
+                Boolean(resendConfig.apiKey && String(resendConfig.apiKey).trim()) &&
+                Boolean(resendConfig.fromEmail && String(resendConfig.fromEmail).trim())
+            )
     );
 
     const getInvoiceCharge = (invoice: any) => {
@@ -2546,23 +2554,20 @@ ${messageWithPlaceholder}`;
                                                             !hasEmailTabPermission 
                                                                 ? "E-mail indisponível: Você não tem permissão para este serviço." 
                                                                 : !isEmailConfigured 
-                                                                    ? "E-mail indisponível: Servidor de e-mail não configurado. Clique para ir em Configurações > E-mail." 
+                                                                    ? "E-mail indisponível: Servidor de e-mail não configurado. Preencha todos os campos em Configurações > E-mail para ativar." 
                                                                     : "Enviar por E-mail"
                                                         }>
                                                             <button
-                                                                disabled={!hasEmailTabPermission}
+                                                                disabled={!hasEmailTabPermission || !isEmailConfigured}
                                                                 onClick={() => {
-                                                                    if (!hasEmailTabPermission) return;
-                                                                    if (!isEmailConfigured) {
-                                                                        navigate('/dashboard/settings?tab=email');
-                                                                        return;
-                                                                    }
+                                                                    if (!hasEmailTabPermission || !isEmailConfigured) return;
                                                                     handleOpenSendEmail(invoice);
                                                                 }}
                                                                 className={clsx(
                                                                     "h-10 w-10 flex items-center justify-center glass-morphism text-sky-600 dark:text-sky-400 rounded-xl transition-all shadow-sm",
-                                                                    !hasEmailTabPermission && "opacity-40 cursor-not-allowed hover:text-sky-600 dark:hover:text-sky-400",
-                                                                    hasEmailTabPermission && !isEmailConfigured && "border-2 border-dashed border-sky-400/50 hover:bg-sky-50 dark:hover:bg-sky-900/30 animate-pulse"
+                                                                    (!hasEmailTabPermission || !isEmailConfigured) 
+                                                                        ? "opacity-40 cursor-not-allowed hover:text-sky-600 dark:hover:text-sky-400" 
+                                                                        : "hover:bg-sky-50 dark:hover:bg-sky-900/30"
                                                                 )}
                                                             >
                                                                 <Mail size={18} />

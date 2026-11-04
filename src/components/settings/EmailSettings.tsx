@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Mail, Save, ExternalLink, ShieldCheck, AlertCircle, Eye, EyeOff, Sparkles, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { useCompanies } from '../../hooks/useCompanies';
+import { useCompanies, clearCompaniesCache } from '../../hooks/useCompanies';
 import { useEntity } from '../../context/EntityContext';
 import { ResultModal } from '../ui/ResultModal';
 import axios from 'axios';
@@ -490,6 +490,7 @@ export function EmailSettings() {
                 settings: updatedSettings
             });
 
+            clearCompaniesCache();
             await refreshEntity();
 
             setResultModal({
