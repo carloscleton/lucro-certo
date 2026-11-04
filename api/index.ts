@@ -2840,11 +2840,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             trib: {
                                 gIBSCBS: {
                                     CST: nat.ibscbs_cst || '200',
-                                    cClassTrib: nat.ibscbs_cclasstrib || '200052',
-                                    gTribRegular: {
-                                        CSTReg: '000',
-                                        cClassTribReg: '000001'
-                                    }
+                                    cClassTrib: nat.ibscbs_cclasstrib || '200052'
                                 }
                             }
                         }
@@ -2981,11 +2977,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                                 trib: {
                                     gIBSCBS: {
                                         CST: nat.ibscbs_cst || '200',
-                                        cClassTrib: nat.ibscbs_cclasstrib || '200052',
-                                        gTribRegular: {
-                                            CSTReg: '000',
-                                            cClassTribReg: '000001'
-                                        }
+                                        cClassTrib: nat.ibscbs_cclasstrib || '200052'
                                     }
                                 }
                             }
@@ -3424,22 +3416,9 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const vIbsVal = (vServ * pIbsVal) / 100;
             const vCbsVal = (vServ * pCbsVal) / 100;
 
-            // Determinar a classificação tributária regular (cClassTribReg em gTribRegular se reforma ativa):
-            let cClassTribRegVal = '000001';
-            if (opSimpNac === 2) {
-                cClassTribRegVal = '000002';
-            } else if (opSimpNac === 3) {
-                cClassTribRegVal = '000003';
-            }
-
-            // Para CST 410 (Não incidência / período anterior a 2027), Simples Nacional ou tributação integral (000001), gTribRegular NÃO é permitido/necessário (rejeição E0964)
-            const shouldOmitGTribRegular = (opSimpNac === 2 || opSimpNac === 3) || cClassTribVal === '000001' || cstVal === '410';
-            const gTribRegularXml = (isReformaAtiva && !shouldOmitGTribRegular) 
-                ? `<gTribRegular><CSTReg>${cstRegVal}</CSTReg><cClassTribReg>${cClassTribRegVal}</cClassTribReg><pIBS>${pIbsVal.toFixed(2)}</pIBS><vIBS>${vIbsVal.toFixed(2)}</vIBS><pCBS>${pCbsVal.toFixed(2)}</pCBS><vCBS>${vCbsVal.toFixed(2)}</vCBS></gTribRegular>`
-                : '';
-
-            // IBSCBS sempre obrigatório na DPS 1.01 (Reforma Tributária). Renderiza independente da flag isReformaAtiva.
-            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib>${gTribRegularXml}</gIBSCBS></trib></valores></IBSCBS>`;
+            // Na DPS 1.01 da NFS-e Nacional, o grupo gIBSCBS exige apenas CST e cClassTrib.
+            // gTribRegular não faz parte do schema oficial da DPS no Portal Nacional (rejeição E1235) e não deve ser enviado.
+            const ibscbsXml = `<IBSCBS><finNFSe>${finNFSe}</finNFSe><indFinal>${indFinal}</indFinal><cIndOp>${cIndOp}</cIndOp><indDest>${indDest}</indDest><valores><trib><gIBSCBS><CST>${cstVal}</CST><cClassTrib>${cClassTribVal}</cClassTrib></gIBSCBS></trib></valores></IBSCBS>`;
 
             if (adnPayload?.infDPS?.IBSCBS) {
                 (adnPayload.infDPS.IBSCBS as any).cIndOp = cIndOp;
@@ -3447,17 +3426,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                     trib: {
                         gIBSCBS: {
                             CST: cstVal,
-                            cClassTrib: cClassTribVal,
-                            ...((isReformaAtiva && !shouldOmitGTribRegular) ? {
-                                gTribRegular: {
-                                    CSTReg: cstRegVal,
-                                    cClassTribReg: cClassTribRegVal,
-                                    pIBS: pIbsVal,
-                                    vIBS: parseFloat(vIbsVal.toFixed(2)),
-                                    pCBS: pCbsVal,
-                                    vCBS: parseFloat(vCbsVal.toFixed(2))
-                                }
-                            } : {})
+                            cClassTrib: cClassTribVal
                         }
                     }
                 };
