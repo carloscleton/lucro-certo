@@ -46,6 +46,8 @@ export interface ExtractedFiscalData {
   totTribSN: string;
   ibsAliquota: string;
   cbsAliquota: string;
+  cNBS?: string;
+  xInfComp?: string;
 }
 
 const byTag = (scope: Element | Document | null, tag: string): Element | null => {
@@ -164,6 +166,8 @@ function extractNacional(doc: Document): ExtractedFiscalData {
       return ((parseFloat(uf) || 0) + (parseFloat(mun) || 0)).toFixed(2);
     })(),
     cbsAliquota: pct(txt(ibsCbs, 'pCBS')),
+    cNBS: txt(cServ, 'cNBS'),
+    xInfComp: txt(doc, 'xInfComp', 'InfAdic', 'InformacoesComplementares'),
   };
 }
 

@@ -89,6 +89,9 @@ export function mapToNational(d: ExtractedFiscalData): ImportField[] {
     { path: 'reforma_tributaria_ibs_aliquota', label: 'Alíquota IBS (%)', value: d.ibsAliquota },
     { path: 'reforma_tributaria_cbs_aliquota', label: 'Alíquota CBS (%)', value: d.cbsAliquota },
     { path: 'proximo_numero_dps', label: 'Próximo número DPS', value: proximo },
+    { path: 'serie_dps', label: 'Série da DPS', value: d.serie },
+    { path: 'default_cnbs', label: 'Código NBS', value: d.cNBS },
+    { path: 'default_inf_comp', label: 'Informações Complementares', value: d.xInfComp },
   ]);
 }
 
