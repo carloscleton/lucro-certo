@@ -1940,7 +1940,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 <span className="text-[9px] font-medium text-gray-400">ISS:</span>
                                 <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
                                     {activeProvider === 'national' 
-                                        ? `${nationalConfig.default_iss_aliquota || '2.00'}%` 
+                                        ? (Number(nationalConfig.tp_ret_issqn || 1) === 1 ? 'Automático' : `${nationalConfig.default_iss_aliquota || '2.00'}%`)
                                         : `${config.default_iss_aliquota || '2.00'}%`}
                                 </span>
                             </div>

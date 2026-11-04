@@ -2125,7 +2125,7 @@ export function FiscalSettings() {
                 tribISSQN:  Number(nationalConfig.trib_issqn ?? 1),
                 tpRetISSQN: tpRet,
             };
-            if (!isSimplesSemRetencao && pAliq > 0) tribMunBlock.pAliq = pAliq;
+            if (tpRet === 2 && pAliq > 0) tribMunBlock.pAliq = pAliq;
 
             const tribBlock: any = { tribMun: tribMunBlock };
             if (isRegimeNormal) {
@@ -5243,21 +5243,20 @@ export function FiscalSettings() {
                                             
                                             <div>
                                                 {(() => {
-                                                    const isSimples = Number(nationalConfig.op_simp_nac) === 2 || Number(nationalConfig.op_simp_nac) === 3;
-                                                    const isNaoRetido = Number(nationalConfig.tp_ret_issqn) === 1;
-                                                    const isDisabled = isSimples && isNaoRetido;
+                                                    const isNaoRetido = Number(nationalConfig.tp_ret_issqn ?? 1) === 1;
+                                                    const isDisabled = isNaoRetido;
                                                     return (
                                                         <Input
                                                             label="Alíquota ISSQN Padrão (%)"
-                                                            type="number"
+                                                            type={isDisabled ? "text" : "number"}
                                                             step="0.01"
-                                                            value={isDisabled ? '0.00' : (nationalConfig.default_iss_aliquota ?? '')}
+                                                            value={isDisabled ? 'Automática (Portal Nacional)' : (nationalConfig.default_iss_aliquota ?? '')}
                                                             onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_iss_aliquota: e.target.value }))}
-                                                            placeholder={isDisabled ? '0.00' : 'Ex: 2.00'}
+                                                            placeholder={isDisabled ? 'Automática (Portal Nacional)' : 'Ex: 2.00'}
                                                             disabled={isDisabled}
                                                             helpText={isDisabled 
-                                                                ? "Alíquota dispensada (calculada e paga de forma unificada no DAS do Simples Nacional)" 
-                                                                : "Alíquota de ISS do município (pAliq: 2% a 5%)"
+                                                                ? "Dispensada na DPS: calculada e apurada automaticamente pelo Portal Nacional (regras E0617/E0625)" 
+                                                                : "Alíquota de ISS a ser retida pelo tomador do serviço (2% a 5%)"
                                                             }
                                                         />
                                                     );
