@@ -2111,7 +2111,6 @@ export function FiscalSettings() {
             // Regime tributário e bloco de tributos
             const opSN        = Number((nationalConfig as any).op_simp_nac ?? (nationalConfig.simples_nacional ? 3 : 1));
             const tpRet       = Number(nationalConfig.tp_ret_issqn ?? 1);
-            const isSimplesSemRetencao = (opSN === 2 || opSN === 3) && tpRet === 1;
             const isRegimeNormal       = opSN === 1;
             const pAliq       = parseFloat(nationalConfig.default_iss_aliquota || '0');
             const cTribNac    = nationalConfig.default_cTribNac || "010101";
