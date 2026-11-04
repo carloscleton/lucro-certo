@@ -5504,13 +5504,29 @@ export function FiscalSettings() {
                                                 <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-emerald-500/10">
                                                     <div>
                                                         <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">CST do IBS/CBS</label>
-                                                        <input
-                                                            type="text"
+                                                        <select
                                                             value={(nationalConfig as any).ibscbs_cst || '200'}
-                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, ibscbs_cst: e.target.value }))}
-                                                            placeholder="Ex: 200 ou 000"
-                                                            className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100"
-                                                        />
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                let cClass = (nationalConfig as any).ibscbs_cclasstrib || '200052';
+                                                                if (val === '200') cClass = '200052';
+                                                                else if (val === '000') cClass = '000001';
+                                                                else if (val === '410') cClass = '410031';
+                                                                else if (cClass.substring(0, 3) !== val) cClass = val + '001';
+
+                                                                setNationalConfig(prev => ({
+                                                                    ...prev,
+                                                                    ibscbs_cst: val,
+                                                                    ibscbs_cclasstrib: cClass
+                                                                }));
+                                                            }}
+                                                            className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100 font-medium"
+                                                        >
+                                                            <option value="200">200 - Redução de Alíquota (Engenharia / Projetos)</option>
+                                                            <option value="000">000 - Tributação Integral</option>
+                                                            <option value="410">410 - Não Incidência / Transição</option>
+                                                            <option value="100">100 - Alíquota Diferenciada</option>
+                                                        </select>
                                                         <span className="text-[9px] text-gray-400">Nota anterior: 200</span>
                                                     </div>
                                                     <div>
@@ -5522,7 +5538,7 @@ export function FiscalSettings() {
                                                             placeholder="Ex: 200052 ou 000001"
                                                             className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100"
                                                         />
-                                                        <span className="text-[9px] text-gray-400">Nota anterior: 200052</span>
+                                                        <span className="text-[9px] text-gray-400">Nota anterior: 200052 (prefixo deve bater com CST)</span>
                                                     </div>
                                                     <div>
                                                         <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Indicador de Operação (cIndOp)</label>

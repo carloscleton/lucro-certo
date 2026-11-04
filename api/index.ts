@@ -2835,14 +2835,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         indDest: 0,
                         finNFSe: 0,
                         indFinal: 0,
-                        cIndOp: '010101',
+                        cIndOp: nat.ibscbs_cindop || '100301',
                         valores: {
                             trib: {
                                 gIBSCBS: {
-                                    CST: '410',
-                                    cClassTrib: '000001',
+                                    CST: nat.ibscbs_cst || '200',
+                                    cClassTrib: nat.ibscbs_cclasstrib || '200052',
                                     gTribRegular: {
-                                        CSTReg: '410',
+                                        CSTReg: '000',
                                         cClassTribReg: '000001'
                                     }
                                 }
@@ -2976,14 +2976,14 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                             indDest: 0,
                             finNFSe: 0,
                             indFinal: 0,
-                            cIndOp: '010101',
+                            cIndOp: nat.ibscbs_cindop || '100301',
                             valores: {
                                 trib: {
                                     gIBSCBS: {
-                                        CST: '410',
-                                        cClassTrib: '000001',
+                                        CST: nat.ibscbs_cst || '200',
+                                        cClassTrib: nat.ibscbs_cclasstrib || '200052',
                                         gTribRegular: {
-                                            CSTReg: '410',
+                                            CSTReg: '000',
                                             cClassTribReg: '000001'
                                         }
                                     }
@@ -3384,17 +3384,39 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indDest = inf.IBSCBS?.indDest !== undefined ? inf.IBSCBS.indDest : 0;
             const finNFSe = inf.IBSCBS?.finNFSe !== undefined ? inf.IBSCBS.finNFSe : 0;
             const indFinal = isNoTomadorXml ? 1 : (inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0);
-            // cIndOp: Indicador da Operação no Anexo VII da NFS-e Nacional. '100101' é o código para prestação de serviço onerosa no país.
+            // cIndOp: Indicador da Operação no Anexo VII da NFS-e Nacional. '100301' é o código padrão para prestação onerosa de serviços.
             const userIndOp = inf.IBSCBS?.cIndOp;
-            const cIndOp = (userIndOp && userIndOp !== '010101') ? userIndOp : String(nat.ibscbs_cindop || '100101');
+            const cIndOp = (nat.ibscbs_cindop && String(nat.ibscbs_cindop).trim()) 
+                || ((userIndOp && userIndOp !== '010101') ? userIndOp : '100301');
 
             // CST e cClassTrib para IBS/CBS no SefinNacional:
-            // Para prestação de serviços (01.07.01 / NBS), o código de classificação tributária padrão é '000001' com CST '000'
+            // Regra E0959 do Sefin Nacional: cClassTrib DEVE pertencer ao grupo do CST (os 3 primeiros dígitos devem ser idênticos ao CST)
             const userCst = inf.IBSCBS?.valores?.trib?.gIBSCBS?.CST;
             const userClassTrib = inf.IBSCBS?.valores?.trib?.gIBSCBS?.cClassTrib;
             
-            const cstVal = (userCst && userCst !== '410') ? userCst : String(nat.ibscbs_cst || '000');
-            const cClassTribVal = (userClassTrib && userClassTrib !== '410031') ? userClassTrib : String(nat.ibscbs_cclasstrib || '000001');
+            let cstVal = (nat.ibscbs_cst && String(nat.ibscbs_cst).trim()) 
+                || ((userCst && userCst !== '410') ? userCst : '200');
+
+            let cClassTribVal = (nat.ibscbs_cclasstrib && String(nat.ibscbs_cclasstrib).trim())
+                || ((userClassTrib && userClassTrib !== '000001' && userClassTrib !== '410031') ? userClassTrib : '200052');
+
+            // Validação e Alinhamento E0959:
+            // O grupo do CST (3 dígitos) DEVE bater rigorosamente com os 3 primeiros dígitos do cClassTrib (6 dígitos)
+            if (cstVal === '200') {
+                if (!cClassTribVal.startsWith('200')) {
+                    cClassTribVal = (nat.ibscbs_cclasstrib && String(nat.ibscbs_cclasstrib).startsWith('200')) ? String(nat.ibscbs_cclasstrib) : '200052';
+                }
+            } else if (cstVal === '000') {
+                if (!cClassTribVal.startsWith('000')) {
+                    cClassTribVal = '000001';
+                }
+            } else if (cstVal === '410') {
+                if (!cClassTribVal.startsWith('410')) {
+                    cClassTribVal = '410031';
+                }
+            } else if (cClassTribVal.length >= 3 && cClassTribVal.substring(0, 3) !== cstVal) {
+                cClassTribVal = cstVal + '001';
+            }
 
             const cstRegVal = '000';
             const pIbsVal = isReformaAtiva ? pIBS : 0;
