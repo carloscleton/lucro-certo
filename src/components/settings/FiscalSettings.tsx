@@ -249,7 +249,13 @@ export function FiscalSettings() {
         certificado_status: '',
         send_email_automatically: false,
         send_whatsapp_automatically: false,
-        proximo_numero_dps: ''
+        proximo_numero_dps: '',
+        serie_dps: '1',
+        default_cnbs: '1.1403.24.00',
+        default_inf_comp: '',
+        ibscbs_cst: '200',
+        ibscbs_cclasstrib: '200052',
+        ibscbs_cindop: '100301'
     });
 
     useEffect(() => {
@@ -469,7 +475,13 @@ export function FiscalSettings() {
             certificado_status: nat.certificado_status || '',
             send_email_automatically: nat.send_email_automatically || false,
             send_whatsapp_automatically: nat.send_whatsapp_automatically || false,
-            proximo_numero_dps: nat.proximo_numero_dps || ''
+            proximo_numero_dps: nat.proximo_numero_dps || '',
+            serie_dps: nat.serie_dps || '1',
+            default_cnbs: nat.default_cnbs || '1.1403.24.00',
+            default_inf_comp: nat.default_inf_comp || '',
+            ibscbs_cst: nat.ibscbs_cst || '200',
+            ibscbs_cclasstrib: nat.ibscbs_cclasstrib || '200052',
+            ibscbs_cindop: nat.ibscbs_cindop || '100301'
         });
 
         if (nat.certificado_senha) {
@@ -5144,14 +5156,23 @@ export function FiscalSettings() {
                                 onChange={(e: any) => setNationalConfig(prev => ({ ...prev, inscricao_municipal: e.target.value }))}
                                 placeholder="Inscrição Municipal da Empresa"
                             />
-                            <Input
-                                label="Próximo Número da DPS (Sequencial)"
-                                type="number"
-                                value={(nationalConfig as any).proximo_numero_dps || ''}
-                                onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
-                                placeholder="Ex: 30 (Alinhado com a NFS-e)"
-                                helpText="💡 Dica: Para manter a numeração da DPS exatamente IGUAL ao número da Nota Fiscal (NFS-e), informe aqui o número desejado para a próxima emissão (ex: se a última nota foi a 29, informe 30)."
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Próximo Número da DPS (Sequencial)"
+                                    type="number"
+                                    value={(nationalConfig as any).proximo_numero_dps || ''}
+                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, proximo_numero_dps: e.target.value }))}
+                                    placeholder="Ex: 328 (Alinhado com a NFS-e)"
+                                    helpText="Número da próxima DPS a emitir."
+                                />
+                                <Input
+                                    label="Série da DPS (Padrão)"
+                                    value={(nationalConfig as any).serie_dps || ''}
+                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, serie_dps: e.target.value }))}
+                                    placeholder="Ex: 70013 ou 1"
+                                    helpText="Série da DPS da sua empresa (sua nota anterior utilizava 70013)."
+                                />
+                            </div>
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Opção pelo Simples Nacional (Regime Tributário)</label>
@@ -5377,6 +5398,26 @@ export function FiscalSettings() {
                                                     placeholder="Descrição dos serviços prestados"
                                                 />
                                             </div>
+                                            <div>
+                                                <Input
+                                                    label="Código NBS Padrão (cNBS)"
+                                                    value={(nationalConfig as any).default_cnbs || '1.1403.24.00'}
+                                                    onChange={(e: any) => setNationalConfig(prev => ({ ...prev, default_cnbs: e.target.value }))}
+                                                    placeholder="Ex: 1.1403.24.00"
+                                                    helpText="Nomenclatura Brasileira de Serviços"
+                                                />
+                                            </div>
+                                            <div className="col-span-full">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Informações Complementares Padrão (xInfComp)</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={(nationalConfig as any).default_inf_comp || ''}
+                                                    onChange={(e) => setNationalConfig(prev => ({ ...prev, default_inf_comp: e.target.value }))}
+                                                    className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 font-normal"
+                                                    placeholder="Ex: Inf. A. T. Mun.: PROCON Municipal Cuiabá Endereço: R. Joaquim Murtinho, 554 Centro, Cuiabá MT..."
+                                                />
+                                                <p className="text-[10px] text-gray-400 mt-1">Texto complementar obrigatório exibido no rodapé da NFS-e (PROCON Cuiabá, Leis da Transparência, etc.).</p>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -5460,9 +5501,44 @@ export function FiscalSettings() {
                                                     </div>
                                                 </div>
 
+                                                <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-emerald-500/10">
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">CST do IBS/CBS</label>
+                                                        <input
+                                                            type="text"
+                                                            value={(nationalConfig as any).ibscbs_cst || '200'}
+                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, ibscbs_cst: e.target.value }))}
+                                                            placeholder="Ex: 200 ou 000"
+                                                            className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100"
+                                                        />
+                                                        <span className="text-[9px] text-gray-400">Nota anterior: 200</span>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Classif. Tributária (cClassTrib)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={(nationalConfig as any).ibscbs_cclasstrib || '200052'}
+                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, ibscbs_cclasstrib: e.target.value }))}
+                                                            placeholder="Ex: 200052 ou 000001"
+                                                            className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100"
+                                                        />
+                                                        <span className="text-[9px] text-gray-400">Nota anterior: 200052</span>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Indicador de Operação (cIndOp)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={(nationalConfig as any).ibscbs_cindop || '100301'}
+                                                            onChange={(e) => setNationalConfig(prev => ({ ...prev, ibscbs_cindop: e.target.value }))}
+                                                            placeholder="Ex: 100301 ou 100101"
+                                                            className="w-full rounded-lg border border-emerald-500/20 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-800/80 py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-950 dark:text-emerald-100"
+                                                        />
+                                                        <span className="text-[9px] text-gray-400">Nota anterior: 100301</span>
+                                                    </div>
+                                                </div>
                                                 <div className="col-span-2 pt-2 border-t border-emerald-500/10">
                                                     <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 flex items-center gap-1.5 font-medium">
-                                                        💡 <strong>Período de Teste e Transição:</strong> O governo instituiu a alíquota simbólica total de 1% (0,9% CBS + 0,1% IBS) em caráter meramente informativo para homologação técnica dos ERPs, sem gerar cobranças adicionais imediatas.
+                                                        💡 <strong>Período de Teste e Transição:</strong> O governo instituiu a alíquota total de 1% (0,9% CBS + 0,1% IBS) em caráter meramente informativo para homologação técnica dos ERPs, sem gerar cobranças adicionais imediatas.
                                                     </p>
                                                 </div>
                                             </div>

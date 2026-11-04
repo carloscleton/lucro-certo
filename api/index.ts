@@ -2920,7 +2920,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
                         dCompet,
                         cLocEmi,
                         nDPS: String(nextDpsNumber),
-                        serie: '1',
+                        serie: String(nat.serie_dps || '1'),
                         prest: {
                             CNPJ: prestadorCnpj,
                             ...(inscricaoMunicipal ? { IM: inscricaoMunicipal } : {}),
@@ -3067,7 +3067,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const insc = prestCnpjClean.padStart(14, '0').substring(0, 14);
             
             const verAplic = inf.verAplic || '1.0.0';
-            let serieVal = inf.serie !== undefined ? String(inf.serie) : '1';
+            let serieVal = inf.serie !== undefined ? String(inf.serie) : String(nat.serie_dps || '1');
             // Séries 80000 a 89999 são reservadas ao Fisco (Nota Avulsa). Contribuintes normais usam Séries 1 a 999.
             if (serieVal === '80000' || serieVal.startsWith('800')) {
                 console.warn(`⚠️ [ADN-NACIONAL] Série ${serieVal} é reservada ao Fisco. Ajustando para Série 1 para emissão pelo contribuinte.`);
@@ -3142,7 +3142,7 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cTribMunXml = (cTribMunVal.length === 7 && cTribMunVal !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
 
             // Informações Complementares (infComp / xInfComp) e resolução do código NBS
-            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || firstItem?.notes || firstItem?.observacoes || '';
+            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || firstItem?.notes || firstItem?.observacoes || nat.default_inf_comp || '';
             let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
             const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
 
@@ -3386,15 +3386,15 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const indFinal = isNoTomadorXml ? 1 : (inf.IBSCBS?.indFinal !== undefined ? inf.IBSCBS.indFinal : 0);
             // cIndOp: Indicador da Operação no Anexo VII da NFS-e Nacional. '100101' é o código para prestação de serviço onerosa no país.
             const userIndOp = inf.IBSCBS?.cIndOp;
-            const cIndOp = (userIndOp && userIndOp !== '010101') ? userIndOp : '100101';
+            const cIndOp = (userIndOp && userIndOp !== '010101') ? userIndOp : String(nat.ibscbs_cindop || '100101');
 
             // CST e cClassTrib para IBS/CBS no SefinNacional:
             // Para prestação de serviços (01.07.01 / NBS), o código de classificação tributária padrão é '000001' com CST '000'
             const userCst = inf.IBSCBS?.valores?.trib?.gIBSCBS?.CST;
             const userClassTrib = inf.IBSCBS?.valores?.trib?.gIBSCBS?.cClassTrib;
             
-            const cstVal = (userCst && userCst !== '410') ? userCst : '000';
-            const cClassTribVal = (userClassTrib && userClassTrib !== '410031') ? userClassTrib : '000001';
+            const cstVal = (userCst && userCst !== '410') ? userCst : String(nat.ibscbs_cst || '000');
+            const cClassTribVal = (userClassTrib && userClassTrib !== '410031') ? userClassTrib : String(nat.ibscbs_cclasstrib || '000001');
 
             const cstRegVal = '000';
             const pIbsVal = isReformaAtiva ? pIBS : 0;
