@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar, Bell, CalendarClock } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar, Bell, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -259,6 +259,7 @@ export function Invoices() {
     const [showCoopReportModal, setShowCoopReportModal] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
     const [showPendingAlertModal, setShowPendingAlertModal] = useState(false);
+    const [showMetricsCards, setShowMetricsCards] = useState(true);
 
     const isCooperative = useMemo(() => {
         if (!currentCompany) return false;
@@ -1558,7 +1559,7 @@ ${messageWithPlaceholder}`;
             <div className="flex flex-col items-center justify-center h-[70vh] text-center px-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="relative mb-8">
                     <div className="absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-10 animate-pulse"></div>
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-slate-800 relative z-10">
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 relative z-10">
                         <Receipt size={64} className="text-blue-500" />
                     </div>
                 </div>
@@ -1575,9 +1576,9 @@ ${messageWithPlaceholder}`;
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-135px)] max-w-full overflow-hidden gap-4 animate-in fade-in duration-150">
+        <div className="flex flex-col h-[calc(100vh-135px)] max-w-full overflow-hidden gap-2 sm:gap-2.5 animate-in fade-in duration-150">
             {/* Header Card with Title, Actions & Date Period Control */}
-            <div className="flex flex-col gap-3.5 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm select-none">
+            <div className="flex flex-col gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm select-none">
                 {/* Top Row: Title & Primary Actions */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-3">
@@ -1603,7 +1604,7 @@ ${messageWithPlaceholder}`;
                         <Button 
                             variant="ghost" 
                             onClick={refresh} 
-                            className="h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
+                            className="h-8 px-2.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
                             title="Atualizar lista de notas"
                         >
                             <RefreshCw size={14} className={clsx("mr-1.5 text-gray-500", isLoading && "animate-spin")} />
@@ -1612,7 +1613,7 @@ ${messageWithPlaceholder}`;
                         <Button 
                             variant="ghost" 
                             onClick={() => setShowConsultaModal(true)} 
-                            className="h-9 px-3 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
+                            className="h-8 px-2.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm transition-all"
                         >
                             <Search size={14} className="mr-1.5 text-gray-500" />
                             Consultar Notas
@@ -1620,7 +1621,7 @@ ${messageWithPlaceholder}`;
                         <Button 
                             variant="ghost" 
                             onClick={() => setShowBillingModal(true)}
-                            className="h-9 px-3 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
+                            className="h-8 px-2.5 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100/70 dark:hover:bg-blue-900/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 transition-all"
                         >
                             <BarChart3 size={14} className="mr-1.5 text-blue-600 dark:text-blue-400" />
                             Relatório de Cobrança
@@ -1629,7 +1630,7 @@ ${messageWithPlaceholder}`;
                             variant="ghost" 
                             onClick={() => setShowPendingAlertModal(true)} 
                             className={clsx(
-                                "h-9 px-3 font-bold text-xs rounded-xl border transition-all shadow-sm flex items-center gap-1.5",
+                                "h-8 px-2.5 font-bold text-xs rounded-lg border transition-all shadow-sm flex items-center gap-1.5",
                                 pendingAlertStats.overdueCount > 0
                                     ? "bg-rose-50/90 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40"
                                     : pendingAlertStats.dueSoonCount > 0
@@ -1661,7 +1662,7 @@ ${messageWithPlaceholder}`;
                             <Button 
                                 variant="ghost" 
                                 onClick={() => setShowCoopReportModal(true)} 
-                                className="h-9 px-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 transition-all shadow-sm"
+                                className="h-8 px-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 transition-all shadow-sm"
                             >
                                 <Building2 size={14} className="mr-1.5 text-emerald-600 dark:text-emerald-400" />
                                 Fechamento Cooperativa
@@ -1670,7 +1671,7 @@ ${messageWithPlaceholder}`;
                         <Button 
                             variant="ghost" 
                             onClick={() => setShowBatchModal(true)}
-                            className="h-9 px-3.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
+                            className="h-8 px-2.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-bold text-xs hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-xl border border-violet-200/60 dark:border-violet-800/40 transition-all shadow-sm"
                         >
                             <RefreshCw size={14} className="mr-1.5 text-violet-600 dark:text-violet-400" />
                             Faturamento Recorrente
@@ -1678,7 +1679,7 @@ ${messageWithPlaceholder}`;
                         <Button 
                             variant="primary" 
                             onClick={() => setShowNewModal(true)} 
-                            className="h-9 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                            className="h-8 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all"
                         >
                             <Plus size={16} className="mr-1.5" />
                             Nova Nota Avulsa
@@ -1687,7 +1688,7 @@ ${messageWithPlaceholder}`;
                 </div>
 
                 {/* Bottom Row: Date Period Filter Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800/60">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-slate-800/60">
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
                         <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mr-1">
                             <Calendar size={15} className="text-blue-500" />
@@ -1813,8 +1814,8 @@ ${messageWithPlaceholder}`;
                 )}
             </div>
 
-            {/* Rich Metric KPI Grid (Updates Dynamically according to Filtered Invoices) */}
-            {!isLoading && (() => {
+            {/* Rich Metric KPI Grid - Versão Compacta e Arrumada */}
+            {!isLoading && showMetricsCards && (() => {
                 const invoicesForStats = filteredInvoices;
                 
                 const calcVal = (inv: any) => {
@@ -1852,123 +1853,103 @@ ${messageWithPlaceholder}`;
                 const fmtCurr = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
                 return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in slide-in-from-top-4 duration-500 select-none">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 select-none animate-in fade-in duration-200">
                         {/* Autorizadas */}
-                        <div className="bg-gradient-to-br from-white via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm hover:shadow-emerald-500/10 hover:border-emerald-300 dark:hover:border-emerald-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                                        <CheckCircle2 size={18} />
+                        <div className="bg-gradient-to-br from-white to-emerald-50/50 dark:from-slate-900 dark:to-emerald-950/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30 shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700/50 transition-all flex flex-col justify-between">
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="p-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md shrink-0">
+                                        <CheckCircle2 size={13} />
                                     </div>
-                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Autorizadas</span>
+                                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider truncate">Autorizadas</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                                    {authorizedList.length} nota{authorizedList.length !== 1 ? 's' : ''}
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 shrink-0">
+                                    {authorizedList.length}
                                 </span>
                             </div>
-                            <div>
-                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight leading-none">
+                            <div className="mt-1 flex items-baseline justify-between">
+                                <p className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-400 tracking-tight leading-tight">
                                     {fmtCurr(authorizedSum)}
-                                </p>
-                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                    Total aprovado e emitido
                                 </p>
                             </div>
                         </div>
 
                         {/* Processando */}
-                        <div className="bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
-                                        <Clock3 size={18} />
+                        <div className="bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-950/20 px-3 py-2 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-xs hover:border-blue-300 dark:hover:border-blue-700/50 transition-all flex flex-col justify-between">
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="p-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md shrink-0">
+                                        <Clock3 size={13} />
                                     </div>
-                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Processando</span>
+                                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider truncate">Processando</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100/80 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                                    {processingList.length} nota{processingList.length !== 1 ? 's' : ''}
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-100/80 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 shrink-0">
+                                    {processingList.length}
                                 </span>
                             </div>
-                            <div>
-                                <p className="text-xl font-black text-blue-700 dark:text-blue-400 tracking-tight leading-none">
+                            <div className="mt-1 flex items-baseline justify-between">
+                                <p className="text-sm sm:text-base font-black text-blue-700 dark:text-blue-400 tracking-tight leading-tight">
                                     {fmtCurr(processingSum)}
-                                </p>
-                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
-                                    Aguardando prefeitura / SEFIN
                                 </p>
                             </div>
                         </div>
 
                         {/* Canceladas */}
-                        <div className="bg-gradient-to-br from-white via-white to-slate-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-slate-500/10 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-xl">
-                                        <XCircle size={18} />
+                        <div className="bg-gradient-to-br from-white to-slate-50/70 dark:from-slate-900 dark:to-slate-800/40 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="p-1 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-md shrink-0">
+                                        <XCircle size={13} />
                                     </div>
-                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Canceladas</span>
+                                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider truncate">Canceladas</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                    {cancelledList.length} nota{cancelledList.length !== 1 ? 's' : ''}
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 shrink-0">
+                                    {cancelledList.length}
                                 </span>
                             </div>
-                            <div>
-                                <p className="text-xl font-black text-slate-700 dark:text-slate-300 tracking-tight leading-none">
+                            <div className="mt-1 flex items-baseline justify-between">
+                                <p className="text-sm sm:text-base font-black text-slate-700 dark:text-slate-300 tracking-tight leading-tight">
                                     {fmtCurr(cancelledSum)}
-                                </p>
-                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
-                                    Anuladas no período
                                 </p>
                             </div>
                         </div>
 
                         {/* Rejeitadas */}
-                        <div className="bg-gradient-to-br from-white via-white to-rose-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/20 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/30 shadow-sm hover:shadow-rose-500/10 hover:border-rose-300 dark:hover:border-rose-700/50 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
-                                        <AlertTriangle size={18} />
+                        <div className="bg-gradient-to-br from-white to-rose-50/50 dark:from-slate-900 dark:to-rose-950/20 px-3 py-2 rounded-xl border border-rose-100 dark:border-rose-900/30 shadow-xs hover:border-rose-300 dark:hover:border-rose-700/50 transition-all flex flex-col justify-between">
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="p-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md shrink-0">
+                                        <AlertTriangle size={13} />
                                     </div>
-                                    <span className="text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">Rejeitadas</span>
+                                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider truncate">Rejeitadas</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100/80 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                                    {rejectedList.length} nota{rejectedList.length !== 1 ? 's' : ''}
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-100/80 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 shrink-0">
+                                    {rejectedList.length}
                                 </span>
                             </div>
-                            <div>
-                                <p className="text-xl font-black text-rose-700 dark:text-rose-400 tracking-tight leading-none">
+                            <div className="mt-1 flex items-baseline justify-between">
+                                <p className="text-sm sm:text-base font-black text-rose-700 dark:text-rose-400 tracking-tight leading-tight">
                                     {fmtCurr(rejectedSum)}
-                                </p>
-                                <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
-                                    Erros de validação
                                 </p>
                             </div>
                         </div>
 
                         {/* Total Geral (Volume Faturado) */}
-                        <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 text-white p-4 rounded-2xl border border-indigo-700/50 shadow-md shadow-indigo-950/20 hover:shadow-indigo-500/15 hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-white/10 text-indigo-200 rounded-xl backdrop-blur-md">
-                                        <Receipt size={18} />
+                        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-indigo-900 to-slate-900 text-white px-3 py-2 rounded-xl border border-indigo-700/50 shadow-xs hover:border-indigo-500 transition-all flex flex-col justify-between">
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="p-1 bg-white/10 text-indigo-200 rounded-md shrink-0 backdrop-blur-md">
+                                        <Receipt size={13} />
                                     </div>
-                                    <span className="text-[11px] font-black text-indigo-200 uppercase tracking-wider">Volume Faturado</span>
+                                    <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider truncate">Volume Faturado</span>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white backdrop-blur-md">
-                                    {invoicesForStats.length} total
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-white/20 text-white shrink-0 backdrop-blur-md">
+                                    {invoicesForStats.length}
                                 </span>
                             </div>
-                            <div>
-                                <p className="text-xl font-black text-white tracking-tight leading-none">
+                            <div className="mt-1 flex items-baseline justify-between">
+                                <p className="text-sm sm:text-base font-black text-white tracking-tight leading-tight">
                                     {fmtCurr(totalSum)}
-                                </p>
-                                <p className="text-[10px] font-semibold text-indigo-200/80 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                                    Valor acumulado no sistema
                                 </p>
                             </div>
                         </div>
@@ -2004,24 +1985,33 @@ ${messageWithPlaceholder}`;
             )}
 
             {/* Search and List Header */}
-            <div className="flex flex-row items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm w-full select-none">
+            <div className="flex flex-row items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-slate-800 shadow-xs w-full select-none">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={16} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" size={14} />
                     <input 
                         type="text" 
                         placeholder="Buscar nota por cliente, número ou status..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-1.5 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-lg text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                        className="w-full pl-8 pr-4 py-1 bg-gray-50/50 focus:bg-white dark:bg-slate-800/40 dark:focus:bg-slate-900 border border-gray-200/50 dark:border-slate-800/60 rounded-lg text-xs font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
                     />
                 </div>
                 <button
                     type="button"
+                    onClick={() => setShowMetricsCards(!showMetricsCards)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all duration-200 cursor-pointer select-none shrink-0 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
+                    title={showMetricsCards ? "Ocultar Cards de Totais para ver mais notas" : "Exibir Cards de Totais"}
+                >
+                    {showMetricsCards ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    <span className="hidden sm:inline">{showMetricsCards ? "Ocultar Cards" : "Ver Cards"}</span>
+                </button>
+                <button
+                    type="button"
                     onClick={() => setShowDeleted(!showDeleted)}
                     className={clsx(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all duration-200 cursor-pointer select-none shrink-0",
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all duration-200 cursor-pointer select-none shrink-0",
                         showDeleted 
-                            ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-sm" 
+                            ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 shadow-xs" 
                             : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400 dark:hover:bg-slate-800"
                     )}
                 >
@@ -2029,7 +2019,7 @@ ${messageWithPlaceholder}`;
                     <span className="hidden sm:inline">{showDeleted ? "Exibindo Excluídas" : "Ocultando Excluídas"}</span>
                 </button>
                 <div className={clsx(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors shrink-0",
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors shrink-0",
                     searchQuery 
                         ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400"
                         : "bg-gray-50 border-gray-100 text-gray-500 dark:bg-slate-800/40 dark:border-slate-800 dark:text-gray-400"
@@ -2049,13 +2039,13 @@ ${messageWithPlaceholder}`;
                     <table className="w-full min-w-[1100px] text-left text-sm text-gray-600 dark:text-gray-300">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="border-b border-gray-100 dark:border-slate-800">
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Data e Hora</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Tipo</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Cliente / Beneficiário</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Identificação</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Valor / Descrição</th>
-                                <th className="py-5 px-6 font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Status da Emissão</th>
-                                <th className="py-5 px-6 text-right font-bold text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 dark:bg-slate-800">Ações</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Data e Hora</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Tipo</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Cliente / Beneficiário</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Identificação</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Valor / Descrição</th>
+                                <th className="py-2.5 px-4 font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Status da Emissão</th>
+                                <th className="py-2.5 px-4 text-right font-bold text-[10px] uppercase tracking-wider text-gray-400 bg-gray-50 dark:bg-slate-800">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -2125,7 +2115,7 @@ ${messageWithPlaceholder}`;
                                         "group hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300",
                                         invoice.deleted && "opacity-60 bg-rose-50/10 dark:bg-rose-950/5"
                                     )}>
-                                        <td className="py-4 px-6">
+                                        <td className="py-2 px-4">
                                             <div className="font-bold text-gray-900 dark:text-white">
                                                 {new Date(invoice.created_at).toLocaleDateString()}
                                             </div>
@@ -2133,12 +2123,12 @@ ${messageWithPlaceholder}`;
                                                 {new Date(invoice.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </td>
-                                        <td className="py-3 px-6">
+                                        <td className="py-2 px-4">
                                             <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 text-[10px] font-bold rounded-lg border border-gray-200 dark:border-slate-700">
                                                 {invoice.type}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-6">
+                                        <td className="py-2 px-4">
                                             {invoice.quote ? (
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
@@ -2160,7 +2150,7 @@ ${messageWithPlaceholder}`;
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="py-3 px-6">
+                                        <td className="py-2 px-4">
                                             <div className="flex flex-col items-start">
                                                 {(() => {
                                                     const p = invoice.payload;
@@ -2193,7 +2183,7 @@ ${messageWithPlaceholder}`;
                                                 })()}
                                             </div>
                                         </td>
-                                        <td className="py-3 px-6">
+                                        <td className="py-2 px-4">
                                             <div className="flex flex-col items-start">
                                                 <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                                                     {(() => {
@@ -2275,7 +2265,7 @@ ${messageWithPlaceholder}`;
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-6">
+                                        <td className="py-2 px-4">
                                             <div className="flex flex-row items-center gap-1.5 flex-wrap">
                                                 {getStatusBadge(invoice.status)}
 
@@ -2381,7 +2371,7 @@ ${messageWithPlaceholder}`;
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-3 px-6 text-right">
+                                        <td className="py-2 px-4 text-right">
                                             <div className="flex justify-end items-center gap-1.5">
 
                                                 {/* Gerar / Gerenciar Boleto / Cobrança */}
