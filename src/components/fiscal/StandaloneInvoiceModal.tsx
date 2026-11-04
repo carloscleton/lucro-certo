@@ -1022,16 +1022,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
 
                     const itemNotes = notes?.trim() || '';
                     const cleanDesc = (firstItem?.description || '').trim();
-                    const fullDescription = itemNotes 
-                        ? (cleanDesc && !cleanDesc.includes(itemNotes) ? `${cleanDesc}\n${itemNotes}` : itemNotes) 
-                        : cleanDesc;
+                    const fullDescription = cleanDesc || itemNotes || 'Prestação de serviços';
 
                     const cleanTaxCode = String(firstItem?.taxCode || '').replace(/\D/g, '').trim();
                     const cleanNatCode = String(firstItem?.codigoTributacaoNacional || firstItem?.taxationCode || '').replace(/\D/g, '').trim();
                     const cTribNac6 = (cleanTaxCode.length === 6) ? cleanTaxCode : ((cleanNatCode.length === 6) ? cleanNatCode : '010701');
                     const cNBS9 = cleanNatCode.length === 9 ? cleanNatCode : (cleanTaxCode.length === 9 ? cleanTaxCode : undefined);
 
-                    let finalNotes = notes || '';
+                    let finalNotes = notes || (config as any)?.default_inf_comp || '';
                     if (cNBS9 && !finalNotes.includes(`NBS: ${cNBS9}`)) {
                         finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cNBS9}` : `NBS: ${cNBS9}`;
                     }
@@ -1248,7 +1246,7 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                         payload.prestador.regimeEspecialTributacao = defaultReg;
                     }
 
-                    let finalNotes = notes || '';
+                    let finalNotes = notes || (config as any)?.default_inf_comp || '';
                     const firstItemNbs = items[0]?.codigoTributacaoNacional || items[0]?.taxationCode;
                     if (isNacional && firstItemNbs && firstItemNbs.replace(/\D/g, '').length === 9) {
                         const cleanNbs = firstItemNbs.replace(/\D/g, '');

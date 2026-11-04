@@ -946,8 +946,21 @@ export class PDFService {
         const estTribStr = estTribVal !== null ? `Estaduais: ${formatCurrency((amountVal * estTribVal) / 100)} (${estTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Estaduais: -';
         const munTribStr = munTribVal !== null ? `Municipais: ${formatCurrency((amountVal * munTribVal) / 100)} (${munTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Municipais: -';
         
-        const baseInfComp = `Inf. Cont.: NBS: ${nbsFmt}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`;
-        const fullInfCompText = customInfComp ? `${baseInfComp}\n${customInfComp.replace(/\|/g, '\n')}` : baseInfComp;
+        const cleanCustom = customInfComp.trim();
+        const hasNbs = cleanCustom.toUpperCase().includes('NBS:');
+        const hasLei12741 = cleanCustom.toLowerCase().includes('12.741') || cleanCustom.toLowerCase().includes('lei 12741');
+
+        const lines: string[] = [];
+        if (!hasNbs) {
+            lines.push(`Inf. Cont.: NBS: ${nbsFmt}`);
+        }
+        if (!hasLei12741) {
+            lines.push(`Totais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`);
+        }
+        if (cleanCustom) {
+            lines.push(cleanCustom.replace(/\|/g, '\n'));
+        }
+        const fullInfCompText = lines.join('\n');
         const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
         
         const infCompBoxHeight = Math.max(16, 4 + (splitInfComp.length * 3.5));

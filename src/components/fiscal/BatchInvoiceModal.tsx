@@ -776,7 +776,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     const tomaCep = charge.contact.zip_code?.replace(/\D/g, '');
 
                     // Informações complementares (NBS)
-                    let finalNotes = chargeNotes;
+                    let finalNotes = chargeNotes || config?.default_inf_comp || '';
                     if (cNBS9 && !finalNotes.includes(`NBS: ${cNBS9}`)) {
                         finalNotes = finalNotes ? `${finalNotes}\nNBS: ${cNBS9}` : `NBS: ${cNBS9}`;
                     }

@@ -3142,16 +3142,32 @@ app.post(['/fiscal-module/emitir', '/api/fiscal-module/emitir'], authenticate, a
             const cTribMunXml = (cTribMunVal.length === 7 && cTribMunVal !== String(inf.serv?.cServ?.cTribNac)) ? `<cTribMun>${cTribMunVal}</cTribMun>` : '';
 
             // Informações Complementares (infComp / xInfComp) e resolução do código NBS
-            const rawInfComp = inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || firstItem?.notes || firstItem?.observacoes || nat.default_inf_comp || '';
-            let infCompText = typeof rawInfComp === 'string' ? rawInfComp : '';
+            // Prioriza SEMPRE o texto das Configurações do Ambiente da Empresa (PROCON, Leis de Transparência, etc.)
+            const companyDefaultInfComp = String(nat.default_inf_comp || (config as any)?.default_inf_comp || '').trim();
+            const callerInfComp = String(inf.infComp?.xInfComp || inf.informacoesComplementares || payload.informacoesComplementares || '').trim();
+            const fallbackItemNotes = String(firstItem?.notes || firstItem?.observacoes || '').trim();
+
+            let baseInfComp = '';
+            if (companyDefaultInfComp) {
+                baseInfComp = companyDefaultInfComp;
+                // Se houver anotação específica enviada pelo chamador que NÃO seja o detalhamento de itens/preços da proposta
+                const isItemPricingList = /R\$\s*[\d.,]+/i.test(callerInfComp) || /\t/.test(callerInfComp) || callerInfComp.includes('PROJETO/ENGENHARIA');
+                if (callerInfComp && !isItemPricingList && callerInfComp !== companyDefaultInfComp && !companyDefaultInfComp.includes(callerInfComp)) {
+                    baseInfComp = `${companyDefaultInfComp} | ${callerInfComp}`;
+                }
+            } else {
+                baseInfComp = callerInfComp || fallbackItemNotes || '';
+            }
+
+            let infCompText = typeof baseInfComp === 'string' ? baseInfComp : '';
             const nbsMatch = infCompText.match(/NBS:\s*(\d+)/i);
 
             let cNbsVal = String(inf.serv?.cServ?.cNBS || servItem?.cNBS || servItem?.codigoTributacaoNacional || servItem?.taxationCode || '').replace(/\D/g, '');
             if (!cNbsVal && nbsMatch) {
                 cNbsVal = nbsMatch[1].replace(/\D/g, '');
             }
-            if (!cNbsVal && (nat.default_nbs || config.default_nbs)) {
-                cNbsVal = String(nat.default_nbs || config.default_nbs).replace(/\D/g, '');
+            if (!cNbsVal && (nat.default_nbs || (config as any)?.default_nbs)) {
+                cNbsVal = String(nat.default_nbs || (config as any)?.default_nbs).replace(/\D/g, '');
             }
             if (cNbsVal && inf.serv?.cServ) {
                 inf.serv.cServ.cNBS = cNbsVal;
@@ -5934,8 +5950,21 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const estTribStr = estTribVal !== null ? `Estaduais: ${formatCurrency((amountVal * estTribVal) / 100)} (${estTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Estaduais: -';
     const munTribStr = munTribVal !== null ? `Municipais: ${formatCurrency((amountVal * munTribVal) / 100)} (${munTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Municipais: -';
     
-    const baseInfComp = `Inf. Cont.: NBS: ${nbsFmt}\nTotais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`;
-    const fullInfCompText = customInfComp ? `${baseInfComp}\n${customInfComp.replace(/\|/g, '\n')}` : baseInfComp;
+    const cleanCustom = customInfComp.trim();
+    const hasNbs = cleanCustom.toUpperCase().includes('NBS:');
+    const hasLei12741 = cleanCustom.toLowerCase().includes('12.741') || cleanCustom.toLowerCase().includes('lei 12741');
+
+    const lines: string[] = [];
+    if (!hasNbs) {
+        lines.push(`Inf. Cont.: NBS: ${nbsFmt}`);
+    }
+    if (!hasLei12741) {
+        lines.push(`Totais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`);
+    }
+    if (cleanCustom) {
+        lines.push(cleanCustom.replace(/\|/g, '\n'));
+    }
+    const fullInfCompText = lines.join('\n');
     const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
     
     const infCompBoxHeight = Math.max(16, 4 + (splitInfComp.length * 3.5));
@@ -6353,7 +6382,15 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlPTotTribEst = getXmlVal(totTribBlock, 'pTotTribEst');
                 const xmlPTotTribMun = getXmlVal(totTribBlock, 'pTotTribMun');
 
-                const xmlXInfComp = getXmlVal(infoComplBlock, 'xInfComp') || getXmlVal(savedXml, 'xInfComp');
+                let xmlXInfComp = getXmlVal(infoComplBlock, 'xInfComp') || getXmlVal(savedXml, 'xInfComp') || '';
+                const companyDefaultInf = (nat.default_inf_comp || '').trim();
+                if (companyDefaultInf) {
+                    if (!xmlXInfComp || xmlXInfComp.includes('PROJETO/ENGENHARIA') || xmlXInfComp.includes('KIT DE MATERIAL') || xmlXInfComp.includes('ADAPTADOR PLACAS')) {
+                        xmlXInfComp = companyDefaultInf;
+                    } else if (!xmlXInfComp.includes(companyDefaultInf.substring(0, 30))) {
+                        xmlXInfComp = `${companyDefaultInf} | ${xmlXInfComp}`;
+                    }
+                }
 
                 return await generateServerDanfseBuffer({
                     nNfse: finalNfseNum,
