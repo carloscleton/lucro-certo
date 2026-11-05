@@ -5647,7 +5647,6 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const tomaIbgeVal = toma.cMun || toma.codigoCidade || '';
     const tomaUfCode = toma.uf || getUfFromIbge(tomaIbgeVal) || '';
     const tomaCityUf = tomaCityName !== '-' ? `${tomaCityName}${tomaUfCode ? ' / ' + tomaUfCode : ''}` : '-';
-    const tomaIbgeVal = toma.cMun || toma.codigoCidade || '';
     const tomaCepVal = toma.cep || '';
     const tomaIbgeCep = (tomaIbgeVal || tomaCepVal) ? `${formatIbge(tomaIbgeVal)}${tomaIbgeVal && tomaCepVal ? ' / ' : ''}${formatCep(tomaCepVal)}` : '-';
 
