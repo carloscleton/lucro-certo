@@ -730,7 +730,7 @@ export class PDFService {
         // 7. TRIBUTAÇÃO MUNICIPAL (ISSQN)
         drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO MUNICIPAL (ISSQN)');
         y += 4.5;
-        drawBox(margin, y, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
+        drawBox(margin, y, pageWidth, 15.5, [255, 255, 255], [0, 0, 0]);
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
         doc.text('Tipo de Tributação do ISSQN', margin + 2, y + 3.2);
@@ -752,10 +752,10 @@ export class PDFService {
         doc.text(locIncidStr, margin + 65, y + 6.5);
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
-        doc.text('BC ISSQN', margin + 2, y + 9.8);
-        doc.text('Alíquota Aplicada', margin + 45, y + 9.8);
-        doc.text('Retenção do ISSQN', margin + 95, y + 9.8);
-        doc.text('ISSQN Apurado', margin + 145, y + 9.8);
+        doc.text('BC ISSQN', margin + 2, y + 10.2);
+        doc.text('Alíquota Aplicada', margin + 45, y + 10.2);
+        doc.text('Retenção do ISSQN', margin + 95, y + 10.2);
+        doc.text('ISSQN Apurado', margin + 145, y + 10.2);
 
         const retIssMap: Record<string, string> = {
             '1': 'Não Retido',
@@ -773,17 +773,17 @@ export class PDFService {
         const vIssFmt = vIssNum !== null && !isNaN(vIssNum) ? formatCurrency(vIssNum) : '-';
 
         doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-        doc.text(vBcIssFmt, margin + 2, y + 11.5);
-        doc.text(pAliqIssFmt, margin + 45, y + 11.5);
-        doc.text(retIssDesc, margin + 95, y + 11.5);
-        doc.text(vIssFmt, margin + 145, y + 11.5);
+        doc.text(vBcIssFmt, margin + 2, y + 13.8);
+        doc.text(pAliqIssFmt, margin + 45, y + 13.8);
+        doc.text(retIssDesc, margin + 95, y + 13.8);
+        doc.text(vIssFmt, margin + 145, y + 13.8);
 
-        y += 12;
+        y += 15.5;
 
         // 8. TRIBUTAÇÃO FEDERAL (EXCETO CBS)
         drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO FEDERAL (EXCETO CBS)');
         y += 4.5;
-        drawBox(margin, y, pageWidth, 12, [255, 255, 255], [0, 0, 0]);
+        drawBox(margin, y, pageWidth, 15.5, [255, 255, 255], [0, 0, 0]);
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8); doc.setTextColor(0, 0, 0);
         doc.text('IRRF', margin + 2, y + 3.2);
@@ -804,9 +804,9 @@ export class PDFService {
         doc.text(vCsllFmt, margin + 125, y + 6.5);
 
         doc.setFont('helvetica', 'bold'); doc.setFontSize(5.8);
-        doc.text('PIS - Débito Apuração Própria', margin + 2, y + 9.8);
-        doc.text('COFINS - Débito Apuração Própria', margin + 45, y + 9.8);
-        doc.text('Descrição Contrib. Sociais - Retidas', margin + 125, y + 9.8);
+        doc.text('PIS - Débito Apuração Própria', margin + 2, y + 10.2);
+        doc.text('COFINS - Débito Apuração Própria', margin + 45, y + 10.2);
+        doc.text('Descrição Contrib. Sociais - Retidas', margin + 125, y + 10.2);
 
         const vPisVal = (data.vPis !== undefined && data.vPis !== '') ? parseFloat(String(data.vPis)) : (data.impostos?.pis ? parseFloat(String(data.impostos.pis)) : null);
         const vCofinsVal = (data.vCofins !== undefined && data.vCofins !== '') ? parseFloat(String(data.vCofins)) : (data.impostos?.cofins ? parseFloat(String(data.impostos.cofins)) : null);
@@ -817,11 +817,11 @@ export class PDFService {
         const descRetCs = (tpRetPisCofinsStr === '1') ? 'PIS/COFINS Retido' : ((tpRetPisCofinsStr === '3') ? 'PIS/COFINS/CSLL Retidos' : '-');
 
         doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-        doc.text(vPisFmt, margin + 2, y + 11.5);
-        doc.text(vCofinsFmt, margin + 45, y + 11.5);
-        doc.text(descRetCs, margin + 125, y + 11.5);
+        doc.text(vPisFmt, margin + 2, y + 13.8);
+        doc.text(vCofinsFmt, margin + 45, y + 13.8);
+        doc.text(descRetCs, margin + 125, y + 13.8);
 
-        y += 12;
+        y += 15.5;
 
         // 9. TRIBUTAÇÃO IBS/CBS
         drawHeaderBox(margin, y, pageWidth, 4.5, 'TRIBUTAÇÃO IBS/CBS');
