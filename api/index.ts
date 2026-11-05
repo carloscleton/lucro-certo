@@ -5315,6 +5315,19 @@ app.get(['/fiscal-module/consultar/periodo', '/api/fiscal-module/consultar/perio
     }
 });
 
+function getUfFromIbge(val: any): string {
+    if (!val) return '';
+    const s = String(val).replace(/\D/g, '').substring(0, 2);
+    const ufMap: Record<string, string> = {
+        '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
+        '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
+        '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
+        '41': 'PR', '42': 'SC', '43': 'RS',
+        '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
+    };
+    return ufMap[s] || '';
+}
+
 async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const margin = 8;
@@ -5378,18 +5391,6 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         const s = String(val).replace(/\D/g, '');
         if (s.length === 9) return `${s.substring(0, 1)}.${s.substring(1, 5)}.${s.substring(5, 7)}.${s.substring(7, 9)}`;
         return val;
-    };
-    const getUfFromIbge = (val: any): string => {
-        if (!val) return '';
-        const s = String(val).replace(/\D/g, '').substring(0, 2);
-        const ufMap: Record<string, string> = {
-            '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
-            '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
-            '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
-            '41': 'PR', '42': 'SC', '43': 'RS',
-            '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
-        };
-        return ufMap[s] || '';
     };
 
 
