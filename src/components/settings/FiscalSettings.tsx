@@ -467,7 +467,7 @@ export function FiscalSettings() {
             reforma_tributaria_cbs_aliquota: nat.reforma_tributaria_cbs_aliquota || '0.90',
             reforma_tributaria_ibs_aliquota: nat.reforma_tributaria_ibs_aliquota || '0.10',
             pis_cofins_situacao_tributaria: nat.pis_cofins_situacao_tributaria || '00',
-            pis_cofins_csll_retencao_tipo: nat.pis_cofins_csll_retencao_tipo === '1' ? '0' : (nat.pis_cofins_csll_retencao_tipo || '0'),
+            pis_cofins_csll_retencao_tipo: nat.pis_cofins_csll_retencao_tipo || '0',
             certificado_id: nat.certificado_id || '',
             certificado_vencimento: nat.certificado_vencimento || '',
             certificado_sujeito: nat.certificado_sujeito || '',
@@ -5338,11 +5338,13 @@ export function FiscalSettings() {
                                                             Tipo de retenção do PIS/COFINS/CSLL
                                                         </label>
                                                         <select
-                                                            value={nationalConfig.pis_cofins_csll_retencao_tipo === '1' ? '0' : (nationalConfig.pis_cofins_csll_retencao_tipo || '0')}
+                                                            value={nationalConfig.pis_cofins_csll_retencao_tipo || '0'}
                                                             onChange={(e) => setNationalConfig(prev => ({ ...prev, pis_cofins_csll_retencao_tipo: e.target.value }))}
                                                             className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-gray-800 dark:text-gray-200"
                                                         >
                                                             <option value="0">0 - PIS/COFINS/CSLL Não Retidos</option>
+                                                            <option value="1">1 - PIS/COFINS Retidos (Legado)</option>
+                                                            <option value="2">2 - PIS/COFINS Não Retido (Legado)</option>
                                                             <option value="3">3 - PIS/COFINS/CSLL Retidos</option>
                                                             <option value="4">4 - PIS/COFINS Retidos, CSLL Não Retido</option>
                                                             <option value="5">5 - PIS Retido, COFINS/CSLL Não Retido</option>
@@ -5350,8 +5352,6 @@ export function FiscalSettings() {
                                                             <option value="7">7 - PIS Não Retido, COFINS e CSLL Retidos</option>
                                                             <option value="8">8 - PIS e COFINS Não Retidos, CSLL Retido</option>
                                                             <option value="9">9 - COFINS Não Retido, PIS e CSLL Retidos</option>
-                                                            <option value="1">1 - PIS/COFINS Retidos (Legado)</option>
-                                                            <option value="2">2 - PIS/COFINS Não Retido (Legado)</option>
                                                         </select>
                                                     </div>
                                                     <div>
