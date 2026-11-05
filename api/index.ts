@@ -5379,6 +5379,19 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         if (s.length === 9) return `${s.substring(0, 1)}.${s.substring(1, 5)}.${s.substring(5, 7)}.${s.substring(7, 9)}`;
         return val;
     };
+    const getUfFromIbge = (val: any): string => {
+        if (!val) return '';
+        const s = String(val).replace(/\D/g, '').substring(0, 2);
+        const ufMap: Record<string, string> = {
+            '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
+            '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
+            '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
+            '41': 'PR', '42': 'SC', '43': 'RS',
+            '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
+        };
+        return ufMap[s] || '';
+    };
+
 
     const chave = String(data.chaveAcesso || data.chave || '24081022200893566000190000000000004526087773930690').replace(/\D/g, '');
     const nNfseVal = String(data.nNfse || data.nNFSe || '45');
@@ -5631,7 +5644,8 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const tomaImFmt = toma.im || toma.inscricaoMunicipal || '-';
     const tomaEndFmt = toma.endereco || '-';
     const tomaCityName = toma.cidade || toma.xMun || '-';
-    const tomaUfCode = toma.uf || '';
+    const tomaIbgeVal = toma.cMun || toma.codigoCidade || '';
+    const tomaUfCode = toma.uf || getUfFromIbge(tomaIbgeVal) || '';
     const tomaCityUf = tomaCityName !== '-' ? `${tomaCityName}${tomaUfCode ? ' / ' + tomaUfCode : ''}` : '-';
     const tomaIbgeVal = toma.cMun || toma.codigoCidade || '';
     const tomaCepVal = toma.cep || '';
@@ -5731,9 +5745,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
         '4': 'Não Incidência'
     };
     const tipoTribIssDesc = tipoTribIssMap[String(data.tribISSQN || '1')] || 'Operação Tributável';
-    const locIncidCity = data.xLocalidadeIncid || data.cidadeIncidencia || serv.cidadePrestacao || prestCity;
-    const locIncidUf = data.ufIncidencia || serv.ufPrestacao || prestUf;
-    const locIncidStr = `${locIncidCity} / ${locIncidUf} / Brasil`;
+    const locIncidCity = data.xLocIncid || data.cidadeIncidencia || serv.cidadePrestacao || prestCity;
+    const locIncidUf = data.ufIncid || getUfFromIbge(data.cLocIncid) || serv.ufPrestacao || prestUf;
+    const locIncidStr = `${locIncidCity} / ${locIncidUf} / -`;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text(tipoTribIssDesc, margin + 2, y + 6.5);
@@ -5801,8 +5815,8 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
 
     const vPisFmt = vPisVal !== null && !isNaN(vPisVal) ? formatCurrency(vPisVal) : '-';
     const vCofinsFmt = vCofinsVal !== null && !isNaN(vCofinsVal) ? formatCurrency(vCofinsVal) : '-';
-    const tpRetPisCofinsStr = String(data.tpRetPisCofins ?? '0');
-    const descRetCs = (tpRetPisCofinsStr === '0') ? 'PIS/COFINS/CSLL Não Retidos' : ((tpRetPisCofinsStr === '2') ? 'PIS/COFINS Não Retido' : ((tpRetPisCofinsStr === '1') ? 'PIS/COFINS Retido' : '-'));
+    const tpRetPisCofinsStr = String(data.tpRetPisCofins ?? '');
+    const descRetCs = (tpRetPisCofinsStr === '1') ? 'PIS/COFINS Retido' : ((tpRetPisCofinsStr === '3') ? 'PIS/COFINS/CSLL Retidos' : '-');
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text(vPisFmt, margin + 2, y + 11.5);
@@ -5823,9 +5837,9 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const cstVal = data.cstIbsCbs || data.cst || '200';
     const cClassTribVal = data.cClassTrib || '200052';
     const cIndOpVal = data.cIndOp || '100301';
-    const incIbge = data.cLocalidadeIncid || tomaIbgeVal || prest.cMun || '5103403';
-    const incCity = data.xLocalidadeIncid || (tomaCityName !== '-' ? tomaCityName : (prestCity || 'Cuiabá'));
-    const incUf = data.ufIncidencia || tomaUfCode || prestUf || 'MT';
+    const incIbge = data.cLocalidadeIncid || tomaIbgeVal || prest.cMun || '';
+    const incCity = data.xLocalidadeIncid || (tomaCityName !== '-' ? tomaCityName : prestCity);
+    const incUf = data.ufIncidencia || getUfFromIbge(incIbge) || tomaUfCode || prestUf;
 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
     doc.text(`${cstVal} / ${cClassTribVal}`, margin + 2, y + 6.5);
@@ -5841,10 +5855,17 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const vBcIbsCbsVal = (data.vBcIbsCbs !== undefined && data.vBcIbsCbs !== '') ? parseFloat(String(data.vBcIbsCbs)) : amountVal;
     const exclusoesBcVal = (data.vCalcReeRepRes !== undefined && data.vCalcReeRepRes !== '') ? parseFloat(String(data.vCalcReeRepRes)) : Math.max(0, parseFloat((amountVal - vBcIbsCbsVal).toFixed(2)));
 
-    const redUf = (data.pRedAliqUF !== undefined && data.pRedAliqUF !== '') ? parseFloat(String(data.pRedAliqUF)) : 30.00;
-    const redMun = (data.pRedAliqMun !== undefined && data.pRedAliqMun !== '') ? parseFloat(String(data.pRedAliqMun)) : 30.00;
-    const redCbs = (data.pRedAliqCBS !== undefined && data.pRedAliqCBS !== '') ? parseFloat(String(data.pRedAliqCBS)) : 30.00;
-    const redAliqFmt = `${redUf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} % / ${redMun.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} % / ${redCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+    const redUf = (data.pRedAliqUF !== undefined && data.pRedAliqUF !== '' && data.pRedAliqUF !== null) ? parseFloat(String(data.pRedAliqUF)) : null;
+    const redMun = (data.pRedAliqMun !== undefined && data.pRedAliqMun !== '' && data.pRedAliqMun !== null) ? parseFloat(String(data.pRedAliqMun)) : null;
+    const redCbs = (data.pRedAliqCBS !== undefined && data.pRedAliqCBS !== '' && data.pRedAliqCBS !== null) ? parseFloat(String(data.pRedAliqCBS)) : null;
+
+    let redAliqFmt = '- / - / -';
+    if (redUf !== null || redMun !== null || redCbs !== null) {
+        const u = redUf !== null ? `${redUf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %` : '-';
+        const m = redMun !== null ? `${redMun.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %` : '-';
+        const c = redCbs !== null ? `${redCbs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %` : '-';
+        redAliqFmt = `${u} / ${m} / ${c}`;
+    }
 
     const rateIbsUf = (data.pIBSUF !== undefined && data.pIBSUF !== '') ? parseFloat(String(data.pIBSUF)) : parseFloat(String(data.pIBS ?? 0.10));
     const rateIbsMun = (data.pIBSMun !== undefined && data.pIBSMun !== '') ? parseFloat(String(data.pIBSMun)) : 0.00;
@@ -5853,12 +5874,12 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const aliqEfetIbsMun = (data.pAliqEfetMun !== undefined && data.pAliqEfetMun !== '') ? parseFloat(String(data.pAliqEfetMun)) : 0.00;
     const vIbsMunVal = (data.vIBSMun !== undefined && data.vIBSMun !== '') ? parseFloat(String(data.vIBSMun)) : 0.00;
 
-    const aliqEfetIbsUf = (data.pAliqEfetUF !== undefined && data.pAliqEfetUF !== '') ? parseFloat(String(data.pAliqEfetUF)) : parseFloat((rateIbsUf * (1 - redUf / 100)).toFixed(2));
+    const aliqEfetIbsUf = (data.pAliqEfetUF !== undefined && data.pAliqEfetUF !== '') ? parseFloat(String(data.pAliqEfetUF)) : parseFloat((rateIbsUf * (1 - (redUf || 0) / 100)).toFixed(2));
     const vIbsUfVal = (data.vIBSUF !== undefined && data.vIBSUF !== '') ? parseFloat(String(data.vIBSUF)) : parseFloat((vBcIbsCbsVal * aliqEfetIbsUf / 100).toFixed(2));
 
     const vIbsTotVal = (data.vIBSTot !== undefined && data.vIBSTot !== '') ? parseFloat(String(data.vIBSTot)) : (vIbsMunVal + vIbsUfVal);
 
-    const aliqEfetCbs = (data.pAliqEfetCBS !== undefined && data.pAliqEfetCBS !== '') ? parseFloat(String(data.pAliqEfetCBS)) : parseFloat((rateCbs * (1 - redCbs / 100)).toFixed(2));
+    const aliqEfetCbs = (data.pAliqEfetCBS !== undefined && data.pAliqEfetCBS !== '') ? parseFloat(String(data.pAliqEfetCBS)) : parseFloat((rateCbs * (1 - (redCbs || 0) / 100)).toFixed(2));
     const vCbsVal = (data.vCBS !== undefined && data.vCBS !== '') ? parseFloat(String(data.vCBS)) : parseFloat((vBcIbsCbsVal * aliqEfetCbs / 100).toFixed(2));
 
     const totalIbsCbs = vIbsTotVal + vCbsVal;
@@ -5948,18 +5969,14 @@ async function generateServerDanfseBuffer(data: any): Promise<Buffer> {
     const munTribStr = munTribVal !== null ? `Municipais: ${formatCurrency((amountVal * munTribVal) / 100)} (${munTribVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : 'Municipais: -';
     
     const cleanCustom = customInfComp.trim();
-    const hasNbs = cleanCustom.toUpperCase().includes('NBS:');
-    const hasLei12741 = cleanCustom.toLowerCase().includes('12.741') || cleanCustom.toLowerCase().includes('lei 12741');
-
     const lines: string[] = [];
-    if (!hasNbs) {
-        lines.push(`Inf. Cont.: NBS: ${nbsFmt}`);
+    if (cleanCustom) {
+        const withPrefix = cleanCustom.startsWith('Inf. Cont.:') ? cleanCustom : `Inf. Cont.: ${cleanCustom}`;
+        lines.push(withPrefix.replace(/\|/g, '\n'));
     }
+    const hasLei12741 = cleanCustom.toLowerCase().includes('12.741') || cleanCustom.toLowerCase().includes('lei 12741');
     if (!hasLei12741) {
         lines.push(`Totais aproximados dos Tributos cfe. Lei nº 12.741/2012: ${fedTribStr}; ${estTribStr}; ${munTribStr};`);
-    }
-    if (cleanCustom) {
-        lines.push(cleanCustom.replace(/\|/g, '\n'));
     }
     const fullInfCompText = lines.join('\n');
     const splitInfComp = doc.splitTextToSize(fullInfCompText, pageWidth - 4);
@@ -6344,8 +6361,13 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlCstIbsCbs = getXmlVal(gIbsCbsBlock, 'CST') || getXmlVal(savedXml, 'CST') || '200';
                 const xmlCClassTrib = getXmlVal(gIbsCbsBlock, 'cClassTrib') || getXmlVal(savedXml, 'cClassTrib') || '200052';
                 const xmlCIndOp = getXmlVal(dpsIbsCbsBlock, 'cIndOp') || getXmlVal(savedXml, 'cIndOp') || '100301';
-                const xmlCLocIncid = getXmlVal(nfseIbsCbsBlock, 'cLocalidadeIncid') || getXmlVal(savedXml, 'cLocIncid') || prestCMun;
-                const xmlXLocIncid = getXmlVal(nfseIbsCbsBlock, 'xLocalidadeIncid') || getXmlVal(savedXml, 'xLocIncid') || prestCidade;
+                const xmlCLocIncid = getXmlVal(nfseIbsCbsBlock, 'cLocalidadeIncid') || getXmlVal(savedXml, 'cLocIncid') || tomaCMun || prestCMun;
+                const xmlXLocIncid = getXmlVal(nfseIbsCbsBlock, 'xLocalidadeIncid') || getXmlVal(savedXml, 'xLocIncid') || tomaCityName || prestCidade;
+                const xmlUfIncid = getUfFromIbge(xmlCLocIncid) || tomaUf || prestUf;
+
+                const xmlXLocIncidISS = getXmlVal(savedXml, 'xLocIncid') || getXmlVal(savedXml, 'xLocPrestacao') || getXmlVal(savedXml, 'xLocEmi') || prestCidade;
+                const xmlCLocIncidISS = getXmlVal(savedXml, 'cLocIncid') || getXmlVal(savedXml, 'cLocPrestacao') || prestCMun;
+                const xmlUfIncidISS = getUfFromIbge(xmlCLocIncidISS) || prestUf;
 
                 const ibsCbsValoresBlock = getXmlBlock(nfseIbsCbsBlock, 'valores');
                 const ibsUfBlock = getXmlBlock(ibsCbsValoresBlock, 'uf');
@@ -6380,13 +6402,8 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                 const xmlPTotTribMun = getXmlVal(totTribBlock, 'pTotTribMun');
 
                 let xmlXInfComp = getXmlVal(infoComplBlock, 'xInfComp') || getXmlVal(savedXml, 'xInfComp') || '';
-                const companyDefaultInf = (nat.default_inf_comp || '').trim();
-                if (companyDefaultInf) {
-                    if (!xmlXInfComp || xmlXInfComp.includes('PROJETO/ENGENHARIA') || xmlXInfComp.includes('KIT DE MATERIAL') || xmlXInfComp.includes('ADAPTADOR PLACAS')) {
-                        xmlXInfComp = companyDefaultInf;
-                    } else if (!xmlXInfComp.includes(companyDefaultInf.substring(0, 30))) {
-                        xmlXInfComp = `${companyDefaultInf} | ${xmlXInfComp}`;
-                    }
+                if (!xmlXInfComp && !savedXml) {
+                    xmlXInfComp = (nat.default_inf_comp || '').trim();
                 }
 
                 return await generateServerDanfseBuffer({
@@ -6418,7 +6435,10 @@ app.get(['/fiscal-module/:type/:id/pdf', '/api/fiscal-module/:type/:id/pdf', '/f
                     cIndOp: xmlCIndOp,
                     cLocalidadeIncid: xmlCLocIncid,
                     xLocalidadeIncid: xmlXLocIncid,
-                    ufIncidencia: prestUf,
+                    ufIncidencia: xmlUfIncid,
+                    cLocIncid: xmlCLocIncidISS,
+                    xLocIncid: xmlXLocIncidISS,
+                    ufIncid: xmlUfIncidISS,
                     vBcIbsCbs: xmlBcIbsCbs,
                     vCalcReeRepRes: xmlCalcReeRepRes,
                     pIBSUF: xmlPIbsUf,

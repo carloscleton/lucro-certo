@@ -156,6 +156,20 @@ export function formatCep(value: string | null | undefined): string {
   return value;
 }
 
+export function getUfFromIbge(val: any): string {
+  if (!val) return '';
+  const s = String(val).replace(/\D/g, '').substring(0, 2);
+  const ufMap: Record<string, string> = {
+    '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
+    '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE', '29': 'BA',
+    '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
+    '41': 'PR', '42': 'SC', '43': 'RS',
+    '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
+  };
+  return ufMap[s] || '';
+}
+
+
 export function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return '-';
   const s = String(isoDate).trim();
@@ -273,6 +287,7 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
   const gCBS = totCIBS ? totCIBS.getElementsByTagNameNS('*', 'gCBS')[0] || totCIBS.getElementsByTagName('gCBS')[0] : null;
   const gIBSUFTot = gIBS ? gIBS.getElementsByTagNameNS('*', 'gIBSUFTot')[0] || gIBS.getElementsByTagName('gIBSUFTot')[0] : null;
   const gIBSMunTot = gIBS ? gIBS.getElementsByTagNameNS('*', 'gIBSMunTot')[0] || gIBS.getElementsByTagName('gIBSMunTot')[0] : null;
+  const gIBSCBS = getScope('gIBSCBS');
 
   // Atributo Id da chave de acesso
   let idAttr = '';
@@ -351,8 +366,8 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
   const tomaNro = getVal(enderToma, 'nro') || payloadObj.tomador?.endereco?.numero || payloadObj.destinatario?.numero || '';
   const tomaBairro = getVal(enderToma, 'xBairro') || payloadObj.tomador?.endereco?.bairro || payloadObj.destinatario?.bairro || '';
   const tomaMunCode = getVal(enderToma, 'cMun') || payloadObj.tomador?.endereco?.codigoCidade || '41.25506';
-  const tomaMun = getVal(ibsCbsNFSe, 'xLocalidadeIncid') || payloadObj.tomador?.endereco?.cidade || payloadObj.destinatario?.cidade || 'São Paulo';
-  const tomaUf = getVal(enderToma, 'UF') || payloadObj.tomador?.endereco?.uf || payloadObj.destinatario?.uf || 'SP';
+  const tomaUf = getVal(enderToma, 'UF') || getUfFromIbge(tomaMunCode) || payloadObj.tomador?.endereco?.uf || payloadObj.destinatario?.uf || 'PR';
+  const tomaMun = getVal(toma, 'xMun') || getVal(ibsCbsNFSe, 'xLocalidadeIncid') || payloadObj.tomador?.endereco?.cidade || payloadObj.destinatario?.cidade || 'São José dos Pinhais';
   const tomaCep = formatCep(getVal(enderToma, 'CEP') || payloadObj.tomador?.endereco?.cep || payloadObj.destinatario?.cep || '04127-001');
   const tomaEmail = getVal(toma, 'email') || payloadObj.tomador?.email || payloadObj.destinatario?.email || payloadObj.quote?.contact?.email || '-';
 
@@ -436,7 +451,7 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
 
     tributacaoMunicipal: {
       tipoTributacao: 'Operação Tributável',
-      municipioIncidencia: `${emitMun} / ${emitUf} / -`,
+      municipioIncidencia: `${getVal(infNFSe, 'xLocIncid') || emitMun} / ${getUfFromIbge(getVal(infNFSe, 'cLocIncid')) || emitUf} / -`,
       bcIssqn: '-',
       aliquotaAplicada: '-',
       retencaoIssqn: 'Não Retido',
@@ -453,8 +468,8 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
     },
 
     tributacaoIbsCbs: {
-      cstClassTrib: '000 / 000001',
-      indicadorOperacaoIbgeMunUf: `100101 / ${tomaMunCode} / ${tomaMun} / ${tomaUf}`,
+      cstClassTrib: `${getVal(gIBSCBS, 'CST') || '000'} / ${getVal(gIBSCBS, 'cClassTrib') || '000001'}`,
+      indicadorOperacaoIbgeMunUf: `${getVal(infDPS, 'cIndOp') || '100101'} / ${getVal(ibsCbsNFSe, 'cLocalidadeIncid') || tomaMunCode} / ${tomaMun} / ${getUfFromIbge(getVal(ibsCbsNFSe, 'cLocalidadeIncid') || tomaMunCode) || tomaUf}`,
       exclusoesReducoesBC: formatCurrency(0),
       baseCalculoAposExclusoes: formatCurrency(vServ),
       redAliquotaIbsCbs: '- / - / -',
@@ -481,7 +496,10 @@ export function parseDanfseXml(xmlInput: string | any, invoiceFallback?: any): D
     },
 
     informacoesComplementares: {
-      infCont: getVal(serv, 'xInfComp') || `Inf. Cont.: NBS: ${getVal(serv, 'cNBS') || '115013000'}`,
+      infCont: (() => {
+        const raw = getVal(doc, 'xInfComp') || getVal(serv, 'xInfComp') || (getVal(serv, 'cNBS') ? `NBS: ${getVal(serv, 'cNBS')}` : '');
+        return raw ? (raw.startsWith('Inf. Cont.:') ? raw : `Inf. Cont.: ${raw}`) : 'Inf. Cont.: -';
+      })(),
       tributosAproximados: 'Totais aproximados dos Tributos cfe. Lei n° 12.741/2012: Federais: -; Estaduais: -; Municipais: -;',
     },
 
