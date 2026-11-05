@@ -8,6 +8,7 @@ export interface FiscalInvoice {
     quote_id?: string;
     external_id?: string;
     type: 'nfe' | 'nfse';
+    provider?: string;
     status: string;
     amount?: number;
     valor?: number;

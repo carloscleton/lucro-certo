@@ -47,7 +47,7 @@ const renderInvoiceRates = (invoice: any, fiscalSettings?: any) => {
 
     // Detecta se esta nota é do Portal Nacional (ADN)
     const isNationalInvoice = String(invoice.type || '').toLowerCase() === 'national' || 
-                              invoice.provider === 'national' || 
+                              (invoice as any).provider === 'national' || 
                               Boolean(p.infDPS) || 
                               Boolean(p.regTrib) ||
                               fiscalSettings?.provider === 'national' ||
@@ -239,7 +239,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
             
             // Detecta se esta nota é do Portal Nacional (ADN)
             const isNationalInvoice = String(i.type || '').toLowerCase() === 'national' || 
-                                      i.provider === 'national' || 
+                                      (i as any).provider === 'national' || 
                                       Boolean(p.infDPS) || 
                                       Boolean(p.regTrib) ||
                                       fiscalSettings?.provider === 'national' ||
