@@ -48,6 +48,7 @@ export function mapToTecnoSpeed(d: ExtractedFiscalData): ImportField[] {
     { path: 'pis_cofins_situacao_tributaria', label: 'CST PIS/COFINS', value: d.pisCofinsCst },
     { path: 'reforma_tributaria_ibs_aliquota', label: 'Alíquota IBS (%)', value: d.ibsAliquota },
     { path: 'reforma_tributaria_cbs_aliquota', label: 'Alíquota CBS (%)', value: d.cbsAliquota },
+    { path: 'reforma_tributaria_calculadora_ativa', label: 'Destaque Automático de IBS/CBS', value: (d.ibsAliquota || d.cbsAliquota) ? true : '' },
   ]);
 }
 
@@ -61,13 +62,15 @@ export function mapToNfeio(d: ExtractedFiscalData): ImportField[] {
     { path: 'cityServiceCode', label: 'Código de Serviço Municipal', value: d.codigoTributacaoMunicipio || d.codigoServico },
     { path: 'reforma_tributaria_ibs_aliquota', label: 'Alíquota IBS (%)', value: d.ibsAliquota },
     { path: 'reforma_tributaria_cbs_aliquota', label: 'Alíquota CBS (%)', value: d.cbsAliquota },
+    { path: 'reforma_tributaria_calculadora_ativa', label: 'Destaque Automático de IBS/CBS', value: (d.ibsAliquota || d.cbsAliquota) ? true : '' },
   ]);
 }
 
 // ---------------- Portal Nacional (state: nationalConfig) ----------------
 export function mapToNational(d: ExtractedFiscalData): ImportField[] {
   const num = (v: string) => (v === '' ? '' : Number(v));
-  const proximo = d.layout === 'nacional' && d.numeroNota ? String(Number(d.numeroNota) + 1) : '';
+  const refNum = d.numeroDps || d.numeroNota;
+  const proximo = d.layout === 'nacional' && refNum ? String(Number(refNum) + 1) : '';
   return keep([
     { path: 'cnpj', label: 'CNPJ', value: d.cnpj },
     { path: 'inscricao_municipal', label: 'Inscrição Municipal', value: d.inscricaoMunicipal },
@@ -88,6 +91,10 @@ export function mapToNational(d: ExtractedFiscalData): ImportField[] {
     { path: 'pis_cofins_situacao_tributaria', label: 'CST PIS/COFINS', value: d.pisCofinsCst },
     { path: 'reforma_tributaria_ibs_aliquota', label: 'Alíquota IBS (%)', value: d.ibsAliquota },
     { path: 'reforma_tributaria_cbs_aliquota', label: 'Alíquota CBS (%)', value: d.cbsAliquota },
+    { path: 'ibscbs_cst', label: 'CST IBS/CBS', value: d.cstIbsCbs },
+    { path: 'ibscbs_cclasstrib', label: 'Classificação Tributária (cClassTrib)', value: d.cClassTrib },
+    { path: 'ibscbs_cindop', label: 'Indicador de Operação (cIndOp)', value: d.cIndOp },
+    { path: 'reforma_tributaria_calculadora_ativa', label: 'Destaque Automático de IBS/CBS', value: (d.ibsAliquota || d.cbsAliquota || d.cstIbsCbs) ? true : '' },
     { path: 'proximo_numero_dps', label: 'Próximo número DPS', value: proximo },
     { path: 'serie_dps', label: 'Série da DPS', value: d.serie },
     { path: 'default_cnbs', label: 'Código NBS', value: d.cNBS },

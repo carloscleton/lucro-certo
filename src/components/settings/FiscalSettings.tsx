@@ -3099,7 +3099,7 @@ export function FiscalSettings() {
                     <div className="flex justify-end mb-4">
                         <Button type="button" variant="outline" onClick={() => setImportXmlOpen(true)}>
                             <ExternalLink size={16} className="mr-2" />
-                            Importar de Nota Fiscal (XML)
+                            Importar de Nota Fiscal (XML / PDF)
                         </Button>
                         <ImportFromInvoiceModal
                             isOpen={importXmlOpen}

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { FileUp, X, Check, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { extractFiscalDataFromXml } from '../../utils/invoiceConfigExtractor';
+import { extractFiscalDataFromXml, extractFiscalDataFromPdf } from '../../utils/invoiceConfigExtractor';
 import {
   mapToTecnoSpeed, mapToNfeio, mapToNational, getAtPath, type ImportField,
 } from '../../utils/fiscalImportMappers';
@@ -27,28 +27,43 @@ export function ImportFromInvoiceModal({ isOpen, provider, currentState, onClose
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const reset = () => { setFields([]); setSelected({}); setError(''); setInfo(''); };
+  const reset = () => { setFields([]); setSelected({}); setError(''); setInfo(''); setLoading(false); };
   const close = () => { reset(); onClose(); };
 
   const handleFile = async (file?: File) => {
     reset();
     if (!file) return;
-    if (!/\.xml$/i.test(file.name) && file.type !== 'text/xml' && file.type !== 'application/xml') {
-      setError('Envie o arquivo XML da nota fiscal (.xml).');
+
+    const isXml = /\.xml$/i.test(file.name) || file.type === 'text/xml' || file.type === 'application/xml';
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+
+    if (!isXml && !isPdf) {
+      setError('Envie um arquivo XML (.xml) ou PDF (.pdf) da NFS-e.');
       return;
     }
+
+    setLoading(true);
     try {
-      const data = extractFiscalDataFromXml(await file.text());
+      const data = isPdf
+        ? await extractFiscalDataFromPdf(await file.arrayBuffer())
+        : extractFiscalDataFromXml(await file.text());
+
       const mapped = MAPPERS[provider](data);
-      if (!mapped.length) { setError('Nenhum campo aproveitável foi encontrado neste XML.'); return; }
+      if (!mapped.length) {
+        setError('Nenhum campo aproveitável foi encontrado neste arquivo.');
+        return;
+      }
       setFields(mapped);
       setSelected(Object.fromEntries(mapped.map(f => [f.path, String(getAtPath(currentState, f.path) ?? '') !== String(f.value)])));
-      setInfo(`Layout ${data.layout === 'nacional' ? 'NFS-e Padrão Nacional' : 'ABRASF'} • ${data.razaoSocial || data.cnpj}`);
+      setInfo(`${isPdf ? 'PDF' : 'XML'} • Layout ${data.layout === 'nacional' ? 'NFS-e Padrão Nacional (DANFSe)' : 'ABRASF'} • ${data.razaoSocial || data.cnpj}`);
     } catch (e: any) {
-      setError(e?.message || 'Falha ao ler o XML.');
+      setError(e?.message || `Falha ao ler o arquivo ${isPdf ? 'PDF' : 'XML'}.`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,7 +79,7 @@ export function ImportFromInvoiceModal({ isOpen, provider, currentState, onClose
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-white">Importar configuração de Nota Fiscal (XML)</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white">Importar configuração de Nota Fiscal (XML ou PDF)</h3>
             <p className="text-xs text-gray-500 dark:text-slate-400">Provedor: {PROVIDER_NAME[provider]} — os campos serão apenas preenchidos; revise e clique em Salvar.</p>
           </div>
           <button type="button" onClick={close} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"><X size={18} /></button>
@@ -75,14 +90,25 @@ export function ImportFromInvoiceModal({ isOpen, provider, currentState, onClose
             onClick={() => inputRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files?.[0]); }}
-            className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400"
+            className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
           >
             <FileUp className="mx-auto mb-2 text-blue-500" />
-            <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">Clique ou arraste o XML da NFS-e</p>
-            <p className="text-xs text-gray-500">Padrão Nacional ou ABRASF</p>
-            <input ref={inputRef} type="file" accept=".xml,text/xml,application/xml" className="hidden"
-              onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
+            <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">Clique ou arraste o XML ou PDF da NFS-e</p>
+            <p className="text-xs text-gray-500">Padrão Nacional (DANFSe) ou XML Nacional / ABRASF</p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xml,text/xml,application/xml,.pdf,application/pdf"
+              className="hidden"
+              onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }}
+            />
           </div>
+
+          {loading && (
+            <div className="text-center py-2 text-xs text-blue-600 dark:text-blue-400 font-semibold animate-pulse">
+              Lendo e analisando nota fiscal...
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg"><AlertCircle size={16} />{error}</div>
@@ -116,7 +142,7 @@ export function ImportFromInvoiceModal({ isOpen, provider, currentState, onClose
 
         <div className="flex justify-end gap-2 p-4 border-t border-gray-100 dark:border-slate-700">
           <Button type="button" variant="outline" onClick={close}>Cancelar</Button>
-          <Button type="button" onClick={apply} disabled={!count}><Check size={16} className="mr-1" />Aplicar {count} campo(s)</Button>
+          <Button type="button" onClick={apply} disabled={!count || loading}><Check size={16} className="mr-1" />Aplicar {count} campo(s)</Button>
         </div>
       </div>
     </div>
