@@ -277,7 +277,9 @@ export function Invoices() {
         const isRegime1 = (currentCompany as any).regime_tributario === '1' || currentCompany.tecnospeed_config?.regime_tributario === '1';
         const hasReg4 = currentCompany.tecnospeed_config?.reg_esp_trib === '4' || 
                        (currentCompany as any)?.settings?.national_config?.reg_esp_trib === '4' ||
-                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === 4;
+                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === 4 ||
+                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === '1' ||
+                       (currentCompany as any)?.settings?.national_config?.reg_esp_trib === 1;
         return isRegime1 && hasReg4;
     }, [currentCompany]);
     const [boletoModal, setBoletoModal] = useState<{ isOpen: boolean; invoice: any }>({ isOpen: false, invoice: null });

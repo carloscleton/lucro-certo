@@ -2258,13 +2258,14 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                                 disabled
                                 className="w-full h-11 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 text-xs font-bold shadow-sm cursor-not-allowed outline-none"
                             >
-                                <option value="0">0 - Sem Regime Especial (Taxa Adm / Tributado)</option>
-                                <option value="4">4 - Cooperativa (Ato Cooperado / Isento)</option>
-                                <option value="1">1 - Microempresa municipal</option>
+                                <option value="0">0 - Sem Regime Especial (Tributado)</option>
+                                <option value="1">1 - Ato Cooperado (Cooperativa)</option>
                                 <option value="2">2 - Estimativa</option>
-                                <option value="3">3 - Sociedade de profissionais</option>
-                                <option value="5">5 - Microempresário Individual (MEI)</option>
-                                <option value="6">6 - Microempresa ou EPP (ME/EPP)</option>
+                                <option value="3">3 - Microempresa Municipal</option>
+                                <option value="4">4 - Notário ou Registrador (Cartório / Cooperativa Legada)</option>
+                                <option value="5">5 - Profissional Autônomo</option>
+                                <option value="6">6 - Sociedade de Profissionais</option>
+                                <option value="9">9 - Outros (Incentivo Fiscal Municipal / PROEMP)</option>
                             </select>
                             <p className="text-[10px] text-gray-400 ml-1 mt-1">
                                 Definido automaticamente pelo Cadastro do Serviço ou pelas Configurações Fiscais da Empresa.
