@@ -2636,6 +2636,25 @@ ${messageWithPlaceholder}`;
                 const activeProv = currentCompany?.settings?.fiscal_provider || 'tecnospeed';
                 const resolvedSettings = (() => {
                     const tecno = currentCompany?.tecnospeed_config || {};
+                    const nat = (currentCompany as any)?.settings?.national_config || {};
+                    if (activeProv === 'national' || nat.cnpj || nat.op_simp_nac !== undefined) {
+                        const isSimples = nat.op_simp_nac === 2 || nat.op_simp_nac === 3 || nat.simples_nacional === true;
+                        return {
+                            ...tecno,
+                            ...nat,
+                            provider: 'national',
+                            is_national: true,
+                            simples_nacional: isSimples,
+                            regime_tributario: isSimples ? '1' : '3',
+                            op_simp_nac: nat.op_simp_nac !== undefined ? Number(nat.op_simp_nac) : (isSimples ? 2 : 1),
+                            default_pis_aliquota: nat.default_pis_aliquota || '0.65',
+                            default_cofins_aliquota: nat.default_cofins_aliquota || '3.00',
+                            default_csll_aliquota: nat.default_csll_aliquota || '1.00',
+                            default_irrf_aliquota: nat.default_irrf_aliquota || '1.50',
+                            default_iss_aliquota: nat.default_iss_aliquota || '2.00',
+                            default_tot_trib_sn: nat.default_tot_trib_sn,
+                        };
+                    }
                     if (activeProv === 'nfeio') {
                         const nfe = currentCompany?.settings?.nfeio_config || {};
                         return {

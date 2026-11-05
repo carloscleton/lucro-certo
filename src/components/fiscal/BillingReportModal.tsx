@@ -40,27 +40,51 @@ export const isInvoiceRejected = (inv: FiscalInvoice): boolean => {
     return ['erro', 'rejeitado'].includes(s) && !isInvoiceCancelled(inv);
 };
 
-const renderInvoiceRates = (invoice: any) => {
+const renderInvoiceRates = (invoice: any, fiscalSettings?: any) => {
     const p = invoice.payload || {};
     const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
     const serviceItem = servicos[0];
 
-    // Resolve o regime tributário específico deste documento fiscal
-    const invoiceRegime = p.prestador?.regimeTributario !== undefined 
-        ? String(p.prestador.regimeTributario)
-        : (p.retorno?.prestador?.regimeTributario !== undefined 
-            ? String(p.retorno.prestador.regimeTributario)
-            : '1');
-            
-    const isInvoiceSimples = ['1', '2', '4'].includes(invoiceRegime);
+    // Detecta se esta nota é do Portal Nacional (ADN)
+    const isNationalInvoice = String(invoice.type || '').toLowerCase() === 'national' || 
+                              invoice.provider === 'national' || 
+                              Boolean(p.infDPS) || 
+                              Boolean(p.regTrib) ||
+                              fiscalSettings?.provider === 'national' ||
+                              Boolean(fiscalSettings?.is_national);
+
+    // Determina se a nota é Simples Nacional ou Regime Normal (Lucro Presumido / Real)
+    const isInvoiceSimples = isNationalInvoice
+        ? (() => {
+            const op = p.infDPS?.prest?.regTrib?.opSimpNac ?? p.regTrib?.opSimpNac ?? p.opSimpNac ?? fiscalSettings?.op_simp_nac;
+            if (op !== undefined && op !== null) {
+                return Number(op) === 2 || Number(op) === 3;
+            }
+            if (fiscalSettings?.simples_nacional !== undefined) {
+                return Boolean(fiscalSettings.simples_nacional);
+            }
+            return false;
+          })()
+        : (() => {
+            const invoiceRegime = p.prestador?.regimeTributario !== undefined 
+                ? String(p.prestador.regimeTributario)
+                : (p.retorno?.prestador?.regimeTributario !== undefined 
+                    ? String(p.retorno.prestador.regimeTributario)
+                    : String(fiscalSettings?.regime_tributario || '1'));
+            return ['1', '2', '4'].includes(invoiceRegime);
+          })();
 
     // ISS
     let issRate = 0;
     if (serviceItem?.iss?.aliquota !== undefined && serviceItem?.iss?.aliquota !== null && serviceItem?.iss?.aliquota !== '') {
         issRate = Number(serviceItem.iss.aliquota);
+    } else if (p.infDPS?.valores?.trib?.tribMun?.pAliq !== undefined && p.infDPS?.valores?.trib?.tribMun?.pAliq !== null && p.infDPS?.valores?.trib?.tribMun?.pAliq !== '') {
+        issRate = Number(p.infDPS.valores.trib.tribMun.pAliq);
     } else if (p.issRate !== undefined && p.issRate !== null && p.issRate !== '') {
         const rawIss = Number(p.issRate);
         issRate = rawIss < 1 ? rawIss * 100 : rawIss;
+    } else if (fiscalSettings?.default_iss_aliquota !== undefined && fiscalSettings?.default_iss_aliquota !== null && fiscalSettings?.default_iss_aliquota !== '') {
+        issRate = Number(fiscalSettings.default_iss_aliquota);
     }
 
     if (isInvoiceSimples) {
@@ -75,9 +99,13 @@ const renderInvoiceRates = (invoice: any) => {
     let pisRate = 0;
     if (serviceItem?.pis?.aliquota !== undefined && serviceItem?.pis?.aliquota !== null && serviceItem?.pis?.aliquota !== '') {
         pisRate = Number(serviceItem.pis.aliquota);
+    } else if (p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqPis !== undefined && p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqPis !== null) {
+        pisRate = Number(p.infDPS.valores.trib.tribFed.piscofins.pAliqPis);
     } else if (p.pisRate !== undefined && p.pisRate !== null && p.pisRate !== '') {
         const rawPis = Number(p.pisRate);
         pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
+    } else if (fiscalSettings?.default_pis_aliquota !== undefined && fiscalSettings?.default_pis_aliquota !== null && fiscalSettings?.default_pis_aliquota !== '') {
+        pisRate = Number(fiscalSettings.default_pis_aliquota);
     } else {
         pisRate = 0.65;
     }
@@ -86,9 +114,13 @@ const renderInvoiceRates = (invoice: any) => {
     let cofinsRate = 0;
     if (serviceItem?.cofins?.aliquota !== undefined && serviceItem?.cofins?.aliquota !== null && serviceItem?.cofins?.aliquota !== '') {
         cofinsRate = Number(serviceItem.cofins.aliquota);
+    } else if (p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqCofins !== undefined && p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqCofins !== null) {
+        cofinsRate = Number(p.infDPS.valores.trib.tribFed.piscofins.pAliqCofins);
     } else if (p.cofinsRate !== undefined && p.cofinsRate !== null && p.cofinsRate !== '') {
         const rawCofins = Number(p.cofinsRate);
         cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
+    } else if (fiscalSettings?.default_cofins_aliquota !== undefined && fiscalSettings?.default_cofins_aliquota !== null && fiscalSettings?.default_cofins_aliquota !== '') {
+        cofinsRate = Number(fiscalSettings.default_cofins_aliquota);
     } else {
         cofinsRate = 3;
     }
@@ -100,6 +132,8 @@ const renderInvoiceRates = (invoice: any) => {
     } else if (p.csllRate !== undefined && p.csllRate !== null && p.csllRate !== '') {
         const rawCsll = Number(p.csllRate);
         csllRate = rawCsll < 1 ? rawCsll * 100 : rawCsll;
+    } else if (fiscalSettings?.default_csll_aliquota !== undefined && fiscalSettings?.default_csll_aliquota !== null && fiscalSettings?.default_csll_aliquota !== '') {
+        csllRate = Number(fiscalSettings.default_csll_aliquota);
     } else {
         csllRate = 1;
     }
@@ -111,6 +145,8 @@ const renderInvoiceRates = (invoice: any) => {
     } else if (p.irRate !== undefined && p.irRate !== null && p.irRate !== '') {
         const rawIr = Number(p.irRate);
         irRate = rawIr < 1 ? rawIr * 100 : rawIr;
+    } else if (fiscalSettings?.default_irrf_aliquota !== undefined && fiscalSettings?.default_irrf_aliquota !== null && fiscalSettings?.default_irrf_aliquota !== '') {
+        irRate = Number(fiscalSettings.default_irrf_aliquota);
     } else {
         irRate = 1.5;
     }
@@ -201,19 +237,41 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
             const servicos = Array.isArray(p.servico) ? p.servico : (p.servico ? [p.servico] : []);
             const serviceItem = servicos[0];
             
-            // Resolve o regime tributário específico deste documento fiscal
-            const invoiceRegime = p.prestador?.regimeTributario !== undefined 
-                ? String(p.prestador.regimeTributario)
-                : (p.retorno?.prestador?.regimeTributario !== undefined 
-                    ? String(p.retorno.prestador.regimeTributario)
-                    : String(fiscalSettings?.regime_tributario || '1'));
+            // Detecta se esta nota é do Portal Nacional (ADN)
+            const isNationalInvoice = String(i.type || '').toLowerCase() === 'national' || 
+                                      i.provider === 'national' || 
+                                      Boolean(p.infDPS) || 
+                                      Boolean(p.regTrib) ||
+                                      fiscalSettings?.provider === 'national' ||
+                                      Boolean(fiscalSettings?.is_national);
+
+            // Determina se a nota é Simples Nacional ou Regime Normal
+            const isInvoiceSimples = isNationalInvoice
+                ? (() => {
+                    const op = p.infDPS?.prest?.regTrib?.opSimpNac ?? p.regTrib?.opSimpNac ?? p.opSimpNac ?? fiscalSettings?.op_simp_nac;
+                    if (op !== undefined && op !== null) {
+                        return Number(op) === 2 || Number(op) === 3;
+                    }
+                    if (fiscalSettings?.simples_nacional !== undefined) {
+                        return Boolean(fiscalSettings.simples_nacional);
+                    }
+                    return false;
+                  })()
+                : (() => {
+                    const invoiceRegime = p.prestador?.regimeTributario !== undefined 
+                        ? String(p.prestador.regimeTributario)
+                        : (p.retorno?.prestador?.regimeTributario !== undefined 
+                            ? String(p.retorno.prestador.regimeTributario)
+                            : String(fiscalSettings?.regime_tributario || '1'));
+                    return ['1', '2', '4'].includes(invoiceRegime);
+                  })();
             
-            const isInvoiceSimples = ['1', '2', '4'].includes(invoiceRegime);
-            
-            // ISS — payload da nota > configuração da empresa
+            // ISS — payload da nota > infDPS > configuração da empresa
             let issRate: number;
             if (serviceItem?.iss?.aliquota !== undefined && serviceItem?.iss?.aliquota !== null && serviceItem?.iss?.aliquota !== '') {
                 issRate = Number(serviceItem.iss.aliquota);
+            } else if (p.infDPS?.valores?.trib?.tribMun?.pAliq !== undefined && p.infDPS?.valores?.trib?.tribMun?.pAliq !== null && p.infDPS?.valores?.trib?.tribMun?.pAliq !== '') {
+                issRate = Number(p.infDPS.valores.trib.tribMun.pAliq);
             } else if (p.issRate !== undefined && p.issRate !== null && p.issRate !== '') {
                 const rawIss = Number(p.issRate);
                 issRate = rawIss < 1 ? rawIss * 100 : rawIss;
@@ -224,35 +282,39 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
             }
             totalIss += amount * (issRate / 100);
 
-            // PIS — payload da nota > configuração da empresa
+            // PIS — payload da nota > infDPS > configuração da empresa
             let pisRate: number;
             if (isInvoiceSimples) {
                 pisRate = 0;
             } else if (serviceItem?.pis?.aliquota !== undefined && serviceItem?.pis?.aliquota !== null && serviceItem?.pis?.aliquota !== '') {
                 pisRate = Number(serviceItem.pis.aliquota);
+            } else if (p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqPis !== undefined && p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqPis !== null) {
+                pisRate = Number(p.infDPS.valores.trib.tribFed.piscofins.pAliqPis);
             } else if (p.pisRate !== undefined && p.pisRate !== null && p.pisRate !== '') {
                 const rawPis = Number(p.pisRate);
                 pisRate = rawPis < 1 ? rawPis * 100 : rawPis;
             } else if (cfgPis !== null) {
                 pisRate = cfgPis;
             } else {
-                pisRate = 0;
+                pisRate = 0.65;
             }
             totalPis += amount * (pisRate / 100);
 
-            // COFINS — payload da nota > configuração da empresa
+            // COFINS — payload da nota > infDPS > configuração da empresa
             let cofinsRate: number;
             if (isInvoiceSimples) {
                 cofinsRate = 0;
             } else if (serviceItem?.cofins?.aliquota !== undefined && serviceItem?.cofins?.aliquota !== null && serviceItem?.cofins?.aliquota !== '') {
                 cofinsRate = Number(serviceItem.cofins.aliquota);
+            } else if (p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqCofins !== undefined && p.infDPS?.valores?.trib?.tribFed?.piscofins?.pAliqCofins !== null) {
+                cofinsRate = Number(p.infDPS.valores.trib.tribFed.piscofins.pAliqCofins);
             } else if (p.cofinsRate !== undefined && p.cofinsRate !== null && p.cofinsRate !== '') {
                 const rawCofins = Number(p.cofinsRate);
                 cofinsRate = rawCofins < 1 ? rawCofins * 100 : rawCofins;
             } else if (cfgCofins !== null) {
                 cofinsRate = cfgCofins;
             } else {
-                cofinsRate = 0;
+                cofinsRate = 3.00;
             }
             totalCofins += amount * (cofinsRate / 100);
 
@@ -268,7 +330,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
             } else if (cfgCsll !== null) {
                 csllRate = cfgCsll;
             } else {
-                csllRate = 0;
+                csllRate = 1.00;
             }
             totalCsll += amount * (csllRate / 100);
 
@@ -284,7 +346,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
             } else if (cfgIrrf !== null) {
                 irRate = cfgIrrf;
             } else {
-                irRate = 0;
+                irRate = 1.50;
             }
             totalIr += amount * (irRate / 100);
         });
@@ -636,7 +698,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
                             fullLabel: 'PIS',
                             desc: 'Prog. de Integração Social',
                             value: summary.totalPis,
-                            rate: fiscalSettings?.default_pis_aliquota ? Number(fiscalSettings.default_pis_aliquota) : null,
+                            rate: fiscalSettings?.default_pis_aliquota ? Number(fiscalSettings.default_pis_aliquota) : 0.65,
                             color: 'from-violet-500/10 to-violet-500/5',
                             border: 'border-violet-200 dark:border-violet-800/40',
                             textColor: 'text-violet-700 dark:text-violet-400',
@@ -648,7 +710,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
                             fullLabel: 'COFINS',
                             desc: 'Contrib. p/ Financ. da Seguridade',
                             value: summary.totalCofins,
-                            rate: fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : null,
+                            rate: fiscalSettings?.default_cofins_aliquota ? Number(fiscalSettings.default_cofins_aliquota) : 3.00,
                             color: 'from-blue-500/10 to-blue-500/5',
                             border: 'border-blue-200 dark:border-blue-800/40',
                             textColor: 'text-blue-700 dark:text-blue-400',
@@ -660,7 +722,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
                             fullLabel: 'CSLL',
                             desc: 'Contrib. Social sobre Lucro Líquido',
                             value: summary.totalCsll,
-                            rate: fiscalSettings?.default_csll_aliquota ? Number(fiscalSettings.default_csll_aliquota) : null,
+                            rate: fiscalSettings?.default_csll_aliquota ? Number(fiscalSettings.default_csll_aliquota) : 1.00,
                             color: 'from-orange-500/10 to-orange-500/5',
                             border: 'border-orange-200 dark:border-orange-800/40',
                             textColor: 'text-orange-700 dark:text-orange-400',
@@ -672,7 +734,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
                             fullLabel: 'IRRF',
                             desc: 'Imposto de Renda Retido na Fonte',
                             value: summary.totalIr,
-                            rate: fiscalSettings?.default_irrf_aliquota ? Number(fiscalSettings.default_irrf_aliquota) : null,
+                            rate: fiscalSettings?.default_irrf_aliquota ? Number(fiscalSettings.default_irrf_aliquota) : 1.50,
                             color: 'from-rose-500/10 to-rose-500/5',
                             border: 'border-rose-200 dark:border-rose-800/40',
                             textColor: 'text-rose-700 dark:text-rose-400',
@@ -881,7 +943,7 @@ export function BillingReportModal({ isOpen, onClose, invoices, fiscalSettings, 
                                                         <span className="font-bold text-gray-900 dark:text-white text-xs">
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)}
                                                         </span>
-                                                        {renderInvoiceRates(invoice)}
+                                                        {renderInvoiceRates(invoice, fiscalSettings)}
                                                         {onOpenBoletoModal && (
                                                             <button
                                                                 onClick={() => onOpenBoletoModal(invoice)}
