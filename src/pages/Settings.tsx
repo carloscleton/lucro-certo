@@ -4313,7 +4313,7 @@ export function Settings() {
                                                                         {c.subscription_status?.toUpperCase() || 'Pendente'}
                                                                     </span>
                                                                     {(() => {
-                                                                        const isTrial = c.subscription_plan === 'trial' || c.settings?.subscription_plan === 'trial';
+                                                                        const isTrial = c.subscription_plan === 'trial' || c.settings?.subscription_plan === 'trial' || c.subscription_plan?.toLowerCase().includes('teste') || c.subscription_plan?.toLowerCase().includes('trial') || Boolean(c.trial_ends_at);
                                                                         const isExpired = isTrial && c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
                                                                         const isBlocked = c.status === 'blocked';
                                                                         

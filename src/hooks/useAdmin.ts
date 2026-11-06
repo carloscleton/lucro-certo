@@ -401,25 +401,82 @@ export function useAdmin() {
         }
     };
 
-    const setCompanyTrial = async (companyId: string, days: number = 7) => {
+    const setCompanyTrial = async (companyId: string, options: number | {
+        days?: number;
+        customDate?: string;
+        expireNow?: boolean;
+        plan?: string;
+        status?: string;
+    } = 7) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
-        try {
-            const { error } = await supabase
-                .from('companies')
-                .update({
-                    subscription_status: 'active',
-                    subscription_plan: 'trial',
-                    trial_ends_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-                })
-                .eq('id', companyId);
+        const opts = typeof options === 'number'
+            ? { days: options }
+            : (options || { days: 7 });
 
-            if (error) throw error;
+        const numDays = typeof opts.days === 'number' && opts.days > 0 ? opts.days : 7;
+        let targetTrialEndsAt: string;
+        let targetStatus = opts.status || 'active';
+        const targetPlan = opts.plan || 'trial';
+
+        if (opts.expireNow) {
+            targetTrialEndsAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            targetStatus = 'unpaid';
+        } else if (opts.customDate) {
+            targetTrialEndsAt = new Date(opts.customDate).toISOString();
+            if (new Date(opts.customDate) < new Date()) {
+                targetStatus = 'unpaid';
+            }
+        } else {
+            targetTrialEndsAt = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        // Optimistic UI update
+        const previousList = [...companiesList];
+        setCompaniesList(prev => prev.map(c =>
+            c.id === companyId
+                ? {
+                    ...c,
+                    trial_ends_at: targetTrialEndsAt,
+                    subscription_status: targetStatus,
+                    subscription_plan: targetPlan
+                }
+                : c
+        ));
+
+        try {
+            // First: invoke secure edge function with service role
+            const { data, error: fnError } = await supabase.functions.invoke('admin-set-trial', {
+                body: {
+                    company_id: companyId,
+                    days: opts.days,
+                    custom_date: opts.customDate,
+                    expire_now: opts.expireNow,
+                    plan: opts.plan,
+                    status: opts.status
+                }
+            });
+
+            if (fnError || data?.error) {
+                console.warn('Edge function failed, trying direct update fallback:', fnError || data?.error);
+                const { error: directError } = await supabase
+                    .from('companies')
+                    .update({
+                        subscription_status: targetStatus,
+                        subscription_plan: targetPlan,
+                        trial_ends_at: targetTrialEndsAt
+                    })
+                    .eq('id', companyId);
+
+                if (directError) throw directError;
+            }
+
             await fetchAdminData(true);
-            return { error: null };
+            return { error: null, trial_ends_at: targetTrialEndsAt, status: targetStatus };
         } catch (err: any) {
             console.error('Error setting trial:', err);
-            return { error: err.message };
+            setCompaniesList(previousList);
+            return { error: err.message || 'Falha ao aplicar período de teste' };
         }
     };
 

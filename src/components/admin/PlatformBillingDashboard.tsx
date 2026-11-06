@@ -60,6 +60,9 @@ export function PlatformBillingDashboard() {
     const [selectedCompanyName, setSelectedCompanyName] = useState<string>('');
     const [billingHistory, setBillingHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [selectedCompanyForTrial, setSelectedCompanyForTrial] = useState<any | null>(null);
+    const [customTrialDate, setCustomTrialDate] = useState<string>('');
+    const [updatingTrial, setUpdatingTrial] = useState<boolean>(false);
 
     const { notify } = useNotification();
     const { testPlatformConnection, fetchCompanyCharges } = useAdmin();
@@ -152,11 +155,81 @@ export function PlatformBillingDashboard() {
         }
     };
 
+    const handleApplyTrial = async (days: number) => {
+        if (!selectedCompanyForTrial) return;
+        setUpdatingTrial(true);
+        try {
+            const res = await setCompanyTrial(selectedCompanyForTrial.id, { days, plan: 'trial', status: 'active' });
+            if (res?.error) {
+                notify('error', res.error, 'Erro ao atualizar teste');
+            } else {
+                notify('success', `Período de teste de ${days} dias aplicado com sucesso!`, 'Teste Atualizado');
+                setSelectedCompanyForTrial(null);
+            }
+        } catch (err: any) {
+            notify('error', err.message || 'Falha ao atualizar teste', 'Erro');
+        } finally {
+            setUpdatingTrial(false);
+        }
+    };
+
+    const handleApplyCustomDate = async () => {
+        if (!selectedCompanyForTrial || !customTrialDate) {
+            notify('warning', 'Por favor, selecione uma data válida.', 'Atenção');
+            return;
+        }
+        setUpdatingTrial(true);
+        try {
+            const isPast = new Date(customTrialDate + 'T23:59:59').getTime() < Date.now();
+            const res = await setCompanyTrial(selectedCompanyForTrial.id, {
+                customDate: customTrialDate + 'T23:59:59.000Z',
+                status: isPast ? 'unpaid' : 'active',
+                plan: 'trial'
+            });
+            if (res?.error) {
+                notify('error', res.error, 'Erro ao definir data');
+            } else {
+                notify('success', `Data de expiração definida para ${new Date(customTrialDate + 'T12:00:00').toLocaleDateString()}!`, 'Data Atualizada');
+                setSelectedCompanyForTrial(null);
+            }
+        } catch (err: any) {
+            notify('error', err.message || 'Falha ao definir data', 'Erro');
+        } finally {
+            setUpdatingTrial(false);
+        }
+    };
+
+    const handleExpireNow = async () => {
+        if (!selectedCompanyForTrial) return;
+        if (!confirm(`Deseja expirar o período de teste de "${selectedCompanyForTrial.trade_name}" agora mesmo? O cliente será direcionado para pagar a assinatura ao acessar o sistema.`)) {
+            return;
+        }
+        setUpdatingTrial(true);
+        try {
+            const res = await setCompanyTrial(selectedCompanyForTrial.id, { expireNow: true });
+            if (res?.error) {
+                notify('error', res.error, 'Erro ao expirar teste');
+            } else {
+                notify('success', `Teste expirado com sucesso! ${selectedCompanyForTrial.trade_name} agora exigirá pagamento imediato.`, 'Cobrança Ativada');
+                setSelectedCompanyForTrial(null);
+            }
+        } catch (err: any) {
+            notify('error', err.message || 'Falha ao expirar teste', 'Erro');
+        } finally {
+            setUpdatingTrial(false);
+        }
+    };
+
     // Stats calc
     const stats = {
         totalActive: companiesList.filter(c => c.subscription_status === 'active' && c.subscription_plan !== 'trial').length,
-        totalTrials: companiesList.filter(c => c.subscription_plan === 'trial').length,
-        totalPastDue: companiesList.filter(c => c.subscription_status === 'past_due').length,
+        totalTrials: companiesList.filter(c => 
+            c.subscription_plan === 'trial' || 
+            c.subscription_plan?.toLowerCase().includes('teste') || 
+            c.subscription_plan?.toLowerCase().includes('trial') ||
+            (c.trial_ends_at && new Date(c.trial_ends_at) > new Date())
+        ).length,
+        totalPastDue: companiesList.filter(c => c.subscription_status === 'past_due' || (c.trial_ends_at && new Date(c.trial_ends_at) < new Date() && c.subscription_status !== 'active_paid')).length,
         estimatedRevenue: companiesList
             .filter(c => c.subscription_status === 'active' && c.subscription_plan !== 'trial')
             .reduce((acc, c) => acc + (Number(c.next_billing_value) || 0), 0)
@@ -165,8 +238,12 @@ export function PlatformBillingDashboard() {
     const filteredCompanies = companiesList.filter(c => {
         const matchesSearch = c.trade_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.owner_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const isTrialCompany = c.subscription_plan === 'trial' || 
+            c.subscription_plan?.toLowerCase().includes('teste') || 
+            c.subscription_plan?.toLowerCase().includes('trial') ||
+            (c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
         const matchesFilter = filterStatus === 'all' ||
-            (filterStatus === 'trial' ? c.subscription_plan === 'trial' : c.subscription_status === filterStatus);
+            (filterStatus === 'trial' ? isTrialCompany : c.subscription_status === filterStatus);
         return matchesSearch && matchesFilter;
     });
 
@@ -564,14 +641,24 @@ export function PlatformBillingDashboard() {
                                                             {c.subscription_status?.toUpperCase() || 'Pendente'}
                                                         </span>
                                                         {(() => {
-                                                            const isTrial = c.subscription_plan === 'trial';
-                                                            const isExpired = isTrial && c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
                                                             const isBlocked = c.status === 'blocked';
+                                                            const isTrial = c.subscription_plan === 'trial' || 
+                                                                c.subscription_plan?.toLowerCase().includes('teste') || 
+                                                                c.subscription_plan?.toLowerCase().includes('trial') || 
+                                                                Boolean(c.trial_ends_at);
+                                                            const isExpired = isTrial && c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
                                                             
-                                                            if (isBlocked || isExpired) {
+                                                            if (isBlocked) {
                                                                 return (
                                                                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-red-600 text-white uppercase animate-pulse">
-                                                                        {isBlocked ? 'Bloqueada' : 'Expirada'}
+                                                                        Bloqueada
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (isExpired) {
+                                                                return (
+                                                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-600 text-white uppercase">
+                                                                        Expirada
                                                                     </span>
                                                                 );
                                                             }
@@ -581,20 +668,24 @@ export function PlatformBillingDashboard() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <div className="flex flex-col items-center gap-1.5">
-                                                        <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-gray-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-slate-700">
+                                                        <div className="flex items-center justify-between w-full max-w-[140px] text-[10px] bg-gray-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-slate-700">
                                                             <span className="text-gray-500 font-medium">Início:</span>
                                                             <span className="text-gray-900 dark:text-gray-100 font-bold">{new Date(c.created_at).toLocaleDateString()}</span>
                                                         </div>
-                                                        {c.trial_ends_at && c.subscription_plan === 'trial' && (
-                                                            <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-amber-50 dark:bg-amber-900/10 px-2 py-1 rounded-md border border-amber-100 dark:border-amber-900/30">
-                                                                <span className="text-amber-600/70 font-medium">Expira:</span>
-                                                                <span className="text-amber-600 font-bold">{new Date(c.trial_ends_at).toLocaleDateString()}</span>
+                                                        {c.trial_ends_at && (
+                                                            <div className={`flex items-center justify-between w-full max-w-[140px] text-[10px] px-2 py-1 rounded-md border ${
+                                                                new Date(c.trial_ends_at) < new Date()
+                                                                    ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 text-red-600 font-semibold'
+                                                                    : 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30 text-amber-600 font-semibold'
+                                                            }`}>
+                                                                <span className="opacity-80">{new Date(c.trial_ends_at) < new Date() ? 'Expirou:' : 'Expira:'}</span>
+                                                                <span>{new Date(c.trial_ends_at).toLocaleDateString()}</span>
                                                             </div>
                                                         )}
-                                                        {c.current_period_end && c.subscription_plan !== 'trial' && (
-                                                            <div className="flex items-center justify-between w-full max-w-[130px] text-[10px] bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900/30">
-                                                                <span className="text-blue-500/70 font-medium">Vence:</span>
-                                                                <span className="text-blue-500 font-bold">{new Date(c.current_period_end).toLocaleDateString()}</span>
+                                                        {c.current_period_end && (
+                                                            <div className={`flex items-center justify-between w-full max-w-[140px] text-[10px] bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900/30 font-semibold text-blue-600`}>
+                                                                <span className="opacity-80">Vence:</span>
+                                                                <span>{new Date(c.current_period_end).toLocaleDateString()}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -614,16 +705,23 @@ export function PlatformBillingDashboard() {
                                                                 <span className="text-[10px] font-bold uppercase">Renovar</span>
                                                             </button>
                                                         )}
-                                                        {c.subscription_plan !== 'trial' && (
-                                                            <button
-                                                                onClick={() => setCompanyTrial(c.id)}
-                                                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100"
-                                                                title={t('lead_radar.set_trial')}
-                                                            >
-                                                                <ZapIcon size={14} />
-                                                                <span className="text-[10px] font-bold uppercase">Trial</span>
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedCompanyForTrial(c);
+                                                                if (c.trial_ends_at) {
+                                                                    setCustomTrialDate(new Date(c.trial_ends_at).toISOString().split('T')[0]);
+                                                                } else {
+                                                                    const nextWeek = new Date();
+                                                                    nextWeek.setDate(nextWeek.getDate() + 7);
+                                                                    setCustomTrialDate(nextWeek.toISOString().split('T')[0]);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100"
+                                                            title="Gerenciar período de teste / expiração"
+                                                        >
+                                                            <ZapIcon size={14} />
+                                                            <span className="text-[10px] font-bold uppercase">Trial</span>
+                                                        </button>
                                                         <button
                                                             onClick={() => handleViewHistory(c.id, c.trade_name)}
                                                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
@@ -744,6 +842,148 @@ export function PlatformBillingDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Gerenciamento de Trial */}
+            {selectedCompanyForTrial && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-200 dark:border-slate-700">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-amber-50/50 dark:bg-amber-900/10">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <ZapIcon className="text-amber-500 fill-amber-500" size={20} />
+                                    Gerenciar Período de Teste (Trial)
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    Empresa: <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedCompanyForTrial.trade_name}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedCompanyForTrial(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-6">
+                            {/* Current Trial Info */}
+                            <div className="p-4 bg-gray-50 dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs text-gray-500 block">Expiração Atual</span>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                        {selectedCompanyForTrial.trial_ends_at 
+                                            ? new Date(selectedCompanyForTrial.trial_ends_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                            : 'Não definida'}
+                                    </span>
+                                </div>
+                                <div>
+                                    {selectedCompanyForTrial.trial_ends_at && new Date(selectedCompanyForTrial.trial_ends_at) < new Date() ? (
+                                        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase">
+                                            Expirado
+                                        </span>
+                                    ) : (
+                                        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase">
+                                            Em Teste
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Quick Add Days */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-2.5">
+                                    Prolongar Teste (A partir de hoje)
+                                </label>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                    <button
+                                        type="button"
+                                        disabled={updatingTrial}
+                                        onClick={() => handleApplyTrial(7)}
+                                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition-all hover:scale-[1.02] flex items-center justify-center gap-1.5"
+                                    >
+                                        <ZapIcon size={14} /> +7 Dias
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingTrial}
+                                        onClick={() => handleApplyTrial(15)}
+                                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition-all hover:scale-[1.02] flex items-center justify-center gap-1.5"
+                                    >
+                                        <ZapIcon size={14} /> +15 Dias
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingTrial}
+                                        onClick={() => handleApplyTrial(30)}
+                                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition-all hover:scale-[1.02] flex items-center justify-center gap-1.5"
+                                    >
+                                        <ZapIcon size={14} /> +30 Dias
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Specific Date */}
+                            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+                                <label className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider block mb-2">
+                                    Ou Escolha a Data Exata de Expiração
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="date"
+                                        value={customTrialDate}
+                                        onChange={(e) => setCustomTrialDate(e.target.value)}
+                                        className="flex-1 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 dark:text-white"
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={updatingTrial || !customTrialDate}
+                                        onClick={handleApplyCustomDate}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                    >
+                                        {updatingTrial ? 'Salvando...' : 'Aplicar Data'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Force Expire (Immediate Payment) */}
+                            <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-900/30">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-red-700 dark:text-red-400 uppercase">
+                                            Expirar Teste Imediatamente
+                                        </h4>
+                                        <p className="text-[11px] text-red-600/80 dark:text-red-300 mt-0.5">
+                                            Bloqueia o período de teste e direciona o cliente para a tela de pagamento para ativar o plano.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        disabled={updatingTrial}
+                                        onClick={handleExpireNow}
+                                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shrink-0 transition-all hover:scale-105"
+                                    >
+                                        Expirar Agora
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-end">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedCompanyForTrial(null)}
+                            >
+                                Fechar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
