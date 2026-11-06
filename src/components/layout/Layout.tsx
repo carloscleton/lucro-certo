@@ -21,6 +21,8 @@ import {
     Building2,
     ChevronDown,
     Gift,
+    Clock,
+    CreditCard,
     ZoomIn,
     Minus,
     Plus,
@@ -288,6 +290,86 @@ export function Layout() {
 
     // Filter Logic
     // Filter Logic - Check current entity OR any other company for trial status
+    // Calcula status e contagem regressiva para pagamento da plataforma
+    const billingInfo = useMemo(() => {
+        if (!currentEntity || currentEntity.type !== 'company') {
+            return { shouldShow: false, label: '', buttonText: '', isExpired: false, isUrgent: false };
+        }
+
+        const now = Date.now();
+        const subStatus = (currentEntity.subscription_status || '').toLowerCase();
+        const planName = (currentEntity.subscription_plan || '').toLowerCase();
+        const trialEnd = currentEntity.trial_ends_at ? new Date(currentEntity.trial_ends_at).getTime() : null;
+        const periodEnd = (currentEntity as any).current_period_end ? new Date((currentEntity as any).current_period_end).getTime() : null;
+
+        const isTrialPlan = planName.includes('trial') || planName.includes('teste') || Boolean(trialEnd);
+
+        // 1. Status Inadimplente / Não Pago
+        if (['unpaid', 'past_due', 'canceled'].includes(subStatus)) {
+            return {
+                shouldShow: true,
+                label: 'Assinatura Pendente',
+                buttonText: 'Pagar Agora',
+                isExpired: true,
+                isUrgent: true
+            };
+        }
+
+        // 2. Período de Teste (Trial)
+        if (trialEnd) {
+            const diffDays = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 0) {
+                return {
+                    shouldShow: true,
+                    label: 'Teste Grátis Expirado',
+                    buttonText: 'Ativar Plano',
+                    isExpired: true,
+                    isUrgent: true
+                };
+            }
+            return {
+                shouldShow: true,
+                label: `Teste: ${diffDays} ${diffDays === 1 ? 'dia restante' : 'dias restantes'}`,
+                buttonText: 'Assinar Plano',
+                isExpired: false,
+                isUrgent: diffDays <= 3
+            };
+        } else if (isTrialPlan) {
+            return {
+                shouldShow: true,
+                label: 'Em Teste Grátis',
+                buttonText: 'Assinar Plano',
+                isExpired: false,
+                isUrgent: false
+            };
+        }
+
+        // 3. Assinante Recorrente próximo do vencimento (<= 10 dias)
+        if (periodEnd) {
+            const diffDays = Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 0) {
+                return {
+                    shouldShow: true,
+                    label: 'Assinatura Vencida',
+                    buttonText: 'Renovar Agora',
+                    isExpired: true,
+                    isUrgent: true
+                };
+            }
+            if (diffDays <= 10) {
+                return {
+                    shouldShow: true,
+                    label: `Vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`,
+                    buttonText: 'Pagar Mensalidade',
+                    isExpired: false,
+                    isUrgent: diffDays <= 5
+                };
+            }
+        }
+
+        return { shouldShow: false, label: '', buttonText: '', isExpired: false, isUrgent: false };
+    }, [currentEntity]);
+
     const isTrial = useMemo(() => {
         if (isSystemAdmin) return false;
         
@@ -780,28 +862,40 @@ export function Layout() {
                                 <Gift size={13} />
                                 Indique e Ganhe
                             </button>
-                            
-                            {/* Unified Trial Banner */}
-                            {currentEntity.subscription_plan === 'trial' && currentEntity.trial_ends_at && (
-                                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-5 py-2.5 rounded-2xl ml-4 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500 w-full max-w-4xl">
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <span className="text-xl">🚀</span>
-                                        <span className="text-sm font-medium text-blue-800 dark:text-blue-100">
-                                            Você está em teste gratuito: <span className="font-bold text-blue-600 dark:text-blue-400">
-                                                {(() => {
-                                                    const diff = new Date(currentEntity.trial_ends_at!).getTime() - Date.now();
-                                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                                    return days > 0 ? `${days} ${days === 1 ? 'dia restante' : 'dias restantes'}` : 'Expirado';
-                                                })()}
-                                            </span>. Aproveite todas as ferramentas!
-                                        </span>
+
+                            {/* Botão de Pagamento / Regularização da Plataforma no Topo */}
+                            {billingInfo.shouldShow && (
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all shadow-sm ml-2.5 animate-in fade-in slide-in-from-top-1 duration-300 ${
+                                    billingInfo.isExpired 
+                                        ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300' 
+                                        : billingInfo.isUrgent 
+                                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300'
+                                            : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300'
+                                }`}>
+                                    <div className="flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
+                                        {billingInfo.isExpired ? (
+                                            <span className="flex h-2 w-2 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                            </span>
+                                        ) : (
+                                            <Clock size={13} className={billingInfo.isUrgent ? 'text-amber-500' : 'text-blue-500'} />
+                                        )}
+                                        <span>{billingInfo.label}</span>
                                     </div>
-                                    <button 
-                                        onClick={handleUpgrade}
-                                        disabled={loadingCheckout}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap disabled:opacity-70"
+
+                                    <button
+                                        onClick={() => navigate('/payment-required')}
+                                        className={`flex items-center gap-1 text-[11px] font-black px-3 py-1 rounded-lg text-white shadow-sm transition-all hover:scale-105 active:scale-95 whitespace-nowrap ${
+                                            billingInfo.isExpired 
+                                                ? 'bg-red-600 hover:bg-red-700 animate-pulse'
+                                                : billingInfo.isUrgent 
+                                                    ? 'bg-amber-600 hover:bg-amber-700' 
+                                                    : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
                                     >
-                                        {loadingCheckout ? '...' : 'Assinar Agora →'}
+                                        <CreditCard size={12} />
+                                        {billingInfo.buttonText}
                                     </button>
                                 </div>
                             )}

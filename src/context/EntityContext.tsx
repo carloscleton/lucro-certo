@@ -37,6 +37,7 @@ export interface Entity {
     subscription_status?: string;
     subscription_plan?: string;
     trial_ends_at?: string;
+    current_period_end?: string;
     created_at?: string;
     phone?: string;
     associated_company_id?: string; // Links personal context to its main billing company
@@ -110,6 +111,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                         subscription_status,
                         subscription_plan,
                         trial_ends_at,
+                        current_period_end,
                         created_at,
                         phone,
                         currency,
@@ -158,6 +160,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
                     subscription_status: item.company.subscription_status,
                     subscription_plan: item.company.subscription_plan,
                     trial_ends_at: item.company.trial_ends_at,
+                    current_period_end: item.company.current_period_end,
                     created_at: item.company.created_at,
                     phone: item.company.phone,
                     currency: item.company.currency,
