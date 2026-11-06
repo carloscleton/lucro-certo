@@ -6861,11 +6861,12 @@ app.get(['/fiscal-module/cidades/:codigoIbge', '/api/fiscal-module/cidades/:codi
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
         
-        if (statusCode === 404) {
+        if (statusCode === 404 || statusCode === 400) {
             return res.json({
                 codigoIbge: cleanIbge,
                 homologado: false,
                 ativo: true,
+                padrao: 'PADRÃO NACIONAL (ADN)',
                 message: 'Cidade sem parâmetros customizados (padrão nacional)'
             });
         }
@@ -6903,13 +6904,14 @@ app.get(['/fiscal-module/public/cidades/:codigoIbge', '/api/fiscal-module/public
         const errorDetail = error.response?.data || error.message;
         const statusCode = error.response?.status || 500;
         
-        if (statusCode === 404) {
+        if (statusCode === 404 || statusCode === 400) {
             return res.json({
                 id: cleanIbge,
                 codigoIbge: cleanIbge,
-                homologado: false,
-                ativo: false,
-                message: "Municipio em processo de homologacao / adesao ao Padrao Nacional."
+                homologado: true,
+                ativo: true,
+                padrao: "PADRÃO NACIONAL (ADN)",
+                message: "Município atende no Padrão Nacional (ADN)."
             });
         }
 

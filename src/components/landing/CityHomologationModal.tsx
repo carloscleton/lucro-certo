@@ -149,65 +149,66 @@ export function CityHomologationModal({ isOpen, onClose, onStartTrial }: CityHom
         setAdhesionTestResult(null);
 
         try {
-            // First try public endpoint on backend
-            const publicUrl = `${API_BASE_URL}/fiscal-module/public/cidades/${cleanCode}`;
-            const res = await axios.get(publicUrl, { timeout: 6000 });
-            const data = res.data?.data || res.data;
+            // Consulta direto o status de adesão no Portal Nacional (ADN / SEFIN)
+            const adhesionRes = await axios.get(
+                `${API_BASE_URL}/fiscal-module/check-municipality-adhesion?cMun=${cleanCode}&cidade=${encodeURIComponent(cityName || 'Cidade')}&uf=${state || searchUf}`,
+                { timeout: 6000 }
+            );
 
-            if (data) {
+            if (adhesionRes.data?.success) {
+                const adere = !!adhesionRes.data.adereWebservicePJ;
                 setCityInfo({
-                    ...data,
-                    nome: data.nome || data.name || cityName,
-                    uf: data.uf || data.state || state || searchUf
+                    id: cleanCode,
+                    codigoIbge: cleanCode,
+                    nome: cityName || `Município ${cleanCode}`,
+                    uf: state || searchUf,
+                    homologado: adere,
+                    ativo: adere,
+                    padrao: 'PADRÃO NACIONAL (ADN)'
                 });
-
-                if (data.homologado === false && data.message) {
-                    setCityNotHomologatedMessage(data.message);
+                if (!adere) {
+                    setCityNotHomologatedMessage(adhesionRes.data.message || 'Município em fase de integração ao Portal Nacional.');
                 }
+                return;
             }
-        } catch (err: any) {
-            console.warn('Consulta pública direta na API retornou status:', err.response?.status);
-            
-            // Check if we can fallback to SEFIN / ADN check directly
+        } catch {
+            // Em caso de falha temporária no endpoint SEFIN, tenta endpoint público de cidades
             try {
-                const adhesionRes = await axios.get(
-                    `${API_BASE_URL}/fiscal-module/check-municipality-adhesion?cMun=${cleanCode}&cidade=${encodeURIComponent(cityName || 'Cidade')}&uf=${state || searchUf}`,
-                    { timeout: 5000 }
-                );
+                const publicUrl = `${API_BASE_URL}/fiscal-module/public/cidades/${cleanCode}`;
+                const res = await axios.get(publicUrl, { timeout: 5000 });
+                const data = res.data?.data || res.data;
 
-                if (adhesionRes.data?.success) {
-                    const adere = !!adhesionRes.data.adereWebservicePJ;
+                if (data) {
                     setCityInfo({
-                        id: cleanCode,
-                        codigoIbge: cleanCode,
-                        nome: cityName || `Município ${cleanCode}`,
-                        uf: state || searchUf,
-                        homologado: adere,
-                        ativo: adere,
-                        padrao: 'PADRÃO NACIONAL (ADN)'
+                        ...data,
+                        nome: data.nome || data.name || cityName,
+                        uf: data.uf || data.state || state || searchUf,
+                        padrao: data.padrao || 'PADRÃO NACIONAL (ADN)'
                     });
-                    if (!adere) {
-                        setCityNotHomologatedMessage(adhesionRes.data.message || 'Município em fase de integração ao Portal Nacional.');
+
+                    if (data.homologado === false && data.message) {
+                        setCityNotHomologatedMessage(data.message);
                     }
                     return;
                 }
-            } catch (adhesionErr) {
-                console.warn('Fallback SEFIN também não respondeu:', adhesionErr);
+            } catch {
+                // Silencioso para não gerar erros no console do navegador
             }
-
-            // Fallback: standard result assuming active national coverage
-            setCityInfo({
-                id: cleanCode,
-                codigoIbge: cleanCode,
-                nome: cityName || `Município ${cleanCode}`,
-                uf: state || searchUf,
-                homologado: true,
-                ativo: true,
-                padrao: 'PADRÃO NACIONAL (ADN)'
-            });
         } finally {
             setSearchingCity(false);
         }
+
+        // Fallback: resultado padrão assumindo cobertura nacional
+        setCityInfo({
+            id: cleanCode,
+            codigoIbge: cleanCode,
+            nome: cityName || `Município ${cleanCode}`,
+            uf: state || searchUf,
+            homologado: true,
+            ativo: true,
+            padrao: 'PADRÃO NACIONAL (ADN)'
+        });
+        setSearchingCity(false);
     };
 
     // Test direct PJ adhesion via SEFIN/ADN
