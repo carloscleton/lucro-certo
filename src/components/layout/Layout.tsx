@@ -885,7 +885,7 @@ export function Layout() {
                                     </div>
 
                                     <button
-                                        onClick={() => navigate('/payment-required')}
+                                        onClick={handleUpgrade}
                                         className={`flex items-center gap-1 text-[11px] font-black px-3 py-1 rounded-lg text-white shadow-sm transition-all hover:scale-105 active:scale-95 whitespace-nowrap ${
                                             billingInfo.isExpired 
                                                 ? 'bg-red-600 hover:bg-red-700 animate-pulse'
