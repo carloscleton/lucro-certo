@@ -47,7 +47,16 @@ interface InvoiceItem {
 interface ItemComboboxProps {
     value: string;
     onChange: (value: string) => void;
-    options: Array<{ id: string; name: string; price: number; description?: string }>;
+    options: Array<{
+        id: string;
+        name: string;
+        price: number;
+        description?: string;
+        codigo_servico_municipal?: string;
+        codigo_tributacao_nacional?: string;
+        item_lista_servico?: string;
+        ncm?: string;
+    }>;
     placeholder?: string;
 }
 
@@ -70,14 +79,37 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const resolveCodes = (opt: any) => {
+        let trib = opt.codigo_servico_municipal || opt.item_lista_servico || '';
+        let nbs = opt.codigo_tributacao_nacional || '';
+        const cleanTrib = trib.replace(/\D/g, '');
+        const cleanNbs = nbs.replace(/\D/g, '');
+
+        if (!cleanTrib && cleanNbs.length === 6) {
+            trib = cleanNbs;
+            nbs = CTRIBNAC_NBS_MAP[cleanNbs] || '';
+        } else if (cleanTrib.length === 6 && (!cleanNbs || cleanNbs.length !== 9)) {
+            if (CTRIBNAC_NBS_MAP[cleanTrib]) {
+                nbs = CTRIBNAC_NBS_MAP[cleanTrib];
+            }
+        }
+        return { trib, nbs };
+    };
+
     const filteredOptions = useMemo(() => {
         // Quando abre o dropdown com um valor ja selecionado ou campo limpo, exibe TODOS os servicos
         if (!filterText || filterText === value) return options;
         const clean = filterText.toLowerCase();
-        return options.filter(o =>
-            o.name.toLowerCase().includes(clean) ||
-            (o.description && o.description.toLowerCase().includes(clean))
-        );
+        return options.filter(o => {
+            const { trib, nbs } = resolveCodes(o);
+            return (
+                o.name.toLowerCase().includes(clean) ||
+                (o.description && o.description.toLowerCase().includes(clean)) ||
+                (trib && trib.toLowerCase().includes(clean)) ||
+                (nbs && nbs.toLowerCase().includes(clean)) ||
+                (o.ncm && o.ncm.toLowerCase().includes(clean))
+            );
+        });
     }, [options, filterText, value]);
 
     return (
@@ -125,28 +157,78 @@ function ItemCombobox({ value, onChange, options, placeholder }: ItemComboboxPro
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl py-1 animate-in fade-in zoom-in-95 duration-150 custom-scrollbar">
+                <div className="absolute z-50 left-0 right-0 mt-1 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl py-1 animate-in fade-in zoom-in-95 duration-150 custom-scrollbar">
                     {filteredOptions.length > 0 ? (
-                        filteredOptions.map(opt => (
-                            <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                    setFilterText(opt.name);
-                                    onChange(opt.name);
-                                    setIsOpen(false);
-                                }}
-                                className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs transition-colors flex flex-col gap-0.5 ${opt.name === value ? 'bg-blue-50/60 dark:bg-blue-950/20 font-bold text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'}`}
-                            >
-                                <span className="font-bold text-sm text-gray-900 dark:text-white">{opt.name}</span>
-                                {opt.description && (
-                                    <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{opt.description}</span>
-                                )}
-                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(opt.price)}
-                                </span>
-                            </button>
-                        ))
+                        filteredOptions.map(opt => {
+                            const { trib, nbs } = resolveCodes(opt);
+                            const isSelected = opt.name === value;
+
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setFilterText(opt.name);
+                                        onChange(opt.name);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-950/40 text-xs transition-colors flex flex-col gap-1 border-b border-gray-100 dark:border-slate-800 last:border-b-0 ${
+                                        isSelected 
+                                            ? 'bg-violet-50/80 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' 
+                                            : 'text-gray-700 dark:text-gray-200'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-bold text-sm text-gray-900 dark:text-white leading-tight">
+                                            {opt.name}
+                                        </span>
+                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(opt.price)}
+                                        </span>
+                                    </div>
+
+                                    {opt.description && (
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">
+                                            {opt.description}
+                                        </span>
+                                    )}
+
+                                    {/* Badges de Códigos Fiscais (NBS e Cód. Tributação 6 dígs) */}
+                                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                                        {trib ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 text-[10px] font-semibold">
+                                                <span className="opacity-75">Cód. Tributação (6 dígs):</span>
+                                                <span className="font-mono font-bold">{trib}</span>
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 text-[10px] font-medium">
+                                                <span className="opacity-75">Cód. Tributação:</span>
+                                                <span className="italic">Não informado</span>
+                                            </span>
+                                        )}
+
+                                        {nbs ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60 text-[10px] font-semibold">
+                                                <span className="opacity-75">Código NBS:</span>
+                                                <span className="font-mono font-bold">{nbs}</span>
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 text-[10px] font-medium">
+                                                <span className="opacity-75">Código NBS:</span>
+                                                <span className="italic">Não informado</span>
+                                            </span>
+                                        )}
+
+                                        {opt.ncm && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 text-[10px] font-semibold">
+                                                <span className="opacity-75">NCM:</span>
+                                                <span className="font-mono font-bold">{opt.ncm}</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })
                     ) : (
                         <div className="px-4 py-3 text-xs text-gray-400 text-center">
                             Nenhum item encontrado no catálogo.
@@ -727,9 +809,23 @@ export function StandaloneInvoiceModal({ onClose, onSuccess, initialData, initia
                     if (type === 'nfse') {
                         const service = services.find(s => s.name === value);
                         if (service) {
-                            updated.taxCode = service.codigo_servico_municipal || service.item_lista_servico || '';
-                            updated.taxationCode = service.codigo_servico_municipal || service.item_lista_servico || '';
-                            updated.codigoTributacaoNacional = service.codigo_tributacao_nacional || '';
+                            let trib = service.codigo_servico_municipal || service.item_lista_servico || '';
+                            let nbs = service.codigo_tributacao_nacional || '';
+                            const cleanTrib = trib.replace(/\D/g, '');
+                            const cleanNbs = nbs.replace(/\D/g, '');
+
+                            if (!cleanTrib && cleanNbs.length === 6) {
+                                trib = cleanNbs;
+                                nbs = CTRIBNAC_NBS_MAP[cleanNbs] || '';
+                            } else if (cleanTrib.length === 6 && (!cleanNbs || cleanNbs.length !== 9)) {
+                                if (CTRIBNAC_NBS_MAP[cleanTrib]) {
+                                    nbs = CTRIBNAC_NBS_MAP[cleanTrib];
+                                }
+                            }
+
+                            updated.taxCode = trib;
+                            updated.taxationCode = trib;
+                            updated.codigoTributacaoNacional = nbs;
                             if (service.regime_especial_tributacao !== undefined && service.regime_especial_tributacao !== null && service.regime_especial_tributacao !== '') {
                                 setSelectedRegimeEspecial(String(service.regime_especial_tributacao));
                             }
