@@ -573,6 +573,8 @@ export function LandingPage() {
                             src="/images/landing/financial-management.png"
                             alt="Gestão Financeira Lucro Certo"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                         />
                     </div>
                 </div>
@@ -598,6 +600,8 @@ export function LandingPage() {
                             src="/images/landing/ai-radar.png"
                             alt="AI Radar Feature"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                         />
                     </div>
                 </div>
@@ -623,6 +627,8 @@ export function LandingPage() {
                             src={bannerMarketingCopilot}
                             alt="Marketing Copilot Feature"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(99, 102, 241, 0.3)' }}
                         />
                     </div>
@@ -650,6 +656,8 @@ export function LandingPage() {
                             src={bannerCRM}
                             alt="CRM e Vendas"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(236, 72, 153, 0.2)' }}
                         />
                     </div>
@@ -677,6 +685,8 @@ export function LandingPage() {
                             src={bannerQuotes}
                             alt="Orçamentos Profissionais"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(245, 158, 11, 0.3)' }}
                         />
                     </div>
@@ -704,6 +714,8 @@ export function LandingPage() {
                             src={bannerWhatsApp}
                             alt="Automação WhatsApp"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(20, 184, 166, 0.2)' }}
                         />
                     </div>
@@ -731,6 +743,8 @@ export function LandingPage() {
                             src={bannerMulticompany}
                             alt="Multi-Empresas"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(75, 85, 99, 0.3)' }}
                         />
                     </div>
@@ -758,6 +772,8 @@ export function LandingPage() {
                             src={bannerMulticurrency}
                             alt="Multi-Currency Feature"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(212, 175, 55, 0.2)' }}
                         />
                     </div>
@@ -785,6 +801,8 @@ export function LandingPage() {
                             src="/images/landing/platform-billing.png"
                             alt="Faturamento da Plataforma"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(236, 72, 153, 0.2)' }}
                         />
                     </div>
@@ -812,6 +830,8 @@ export function LandingPage() {
                             src={bannerLoyalty}
                             alt="Clube de Fidelidade"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(79, 70, 229, 0.3)' }}
                         />
                     </div>
@@ -850,6 +870,8 @@ export function LandingPage() {
                             src={bannerFiscal}
                             alt="Gestão Fiscal Lucro Certo"
                             className="visual-image"
+                            loading="lazy"
+                            decoding="async"
                             style={{ borderRadius: '24px', boxShadow: '0 40px 80px -15px rgba(14, 165, 233, 0.2)' }}
                         />
                     </div>
