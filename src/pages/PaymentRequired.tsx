@@ -1,4 +1,4 @@
-﻿import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
@@ -705,6 +705,27 @@ export function PaymentRequired() {
 
     const plans = appSettings?.landing_plans?.filter((p: any) => p.enabled !== false) || [];
 
+    const assignedPlanName = (
+        companyData?.subscription_plan || 
+        currentEntity?.subscription_plan || 
+        companyData?.settings?.subscription_plan || 
+        currentEntity?.settings?.subscription_plan || 
+        ''
+    ).trim();
+
+    // Identifica o plano previamente configurado/atribuído para a empresa
+    const matchedAssignedPlan = useMemo(() => {
+        if (!assignedPlanName || assignedPlanName.toLowerCase() === 'trial') return null;
+        return plans.find((p: any) => p.name?.trim().toLowerCase() === assignedPlanName.toLowerCase()) || null;
+    }, [plans, assignedPlanName]);
+
+    // Garante que o plano selecionado seja sempre o plano configurado quando existir
+    useEffect(() => {
+        if (matchedAssignedPlan) {
+            setSelectedPlan(matchedAssignedPlan);
+        }
+    }, [matchedAssignedPlan]);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f4ff] to-[#ffffff] text-slate-900 selection:bg-blue-500/10 overflow-x-hidden font-sans">
             {/* Minimal Decorative Elements */}
@@ -750,25 +771,63 @@ export function PaymentRequired() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
                     {/* Plans Grid (Left - 7 cols) */}
                     <div className="md:col-span-7 lg:col-span-7 space-y-4">
+                        {matchedAssignedPlan && (
+                            <div className="bg-blue-50/90 border border-blue-200/80 rounded-2xl p-3.5 px-4 flex items-center gap-3 text-blue-950 shadow-sm animate-in fade-in">
+                                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/20">
+                                    <Lock size={15} />
+                                </div>
+                                <div className="text-xs">
+                                    <span className="font-bold text-slate-700">Plano da sua empresa: </span>
+                                    <strong className="font-black text-blue-700 uppercase">{matchedAssignedPlan.name}</strong>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">Para evitar divergências na assinatura, apenas o seu plano contratado está habilitado para pagamento.</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {plans.map((plan: any, idx: number) => (
+                            {plans.map((plan: any, idx: number) => {
+                                const isThisAssigned = matchedAssignedPlan && plan.name?.trim().toLowerCase() === matchedAssignedPlan.name?.trim().toLowerCase();
+                                const isSelected = selectedPlan?.name === plan.name;
+                                const isTrialPlan = plan.price === 0 || plan.name?.toLowerCase().includes('teste') || plan.name?.toLowerCase().includes('trial');
+                                const isLocked = Boolean((matchedAssignedPlan && !isThisAssigned) || (!matchedAssignedPlan && isTrialPlan));
+
+                                return (
                                 <div 
                                     key={idx}
-                                    onClick={() => setSelectedPlan(plan)}
-                                    className={`relative cursor-pointer rounded-2xl p-5 border-2 transition-all duration-300 flex flex-col group ${
-                                        selectedPlan?.name === plan.name 
-                                            ? 'bg-white border-blue-600 shadow-xl shadow-blue-900/10 ring-1 ring-blue-600/10' 
-                                            : 'bg-white/50 border-slate-200 hover:border-blue-300 hover:bg-white'
+                                    onClick={() => {
+                                        if (!isLocked) {
+                                            setSelectedPlan(plan);
+                                        }
+                                    }}
+                                    className={`relative rounded-2xl p-5 border-2 transition-all duration-300 flex flex-col group ${
+                                        isLocked
+                                            ? 'opacity-40 grayscale-[25%] bg-slate-50/80 border-dashed border-slate-200 cursor-not-allowed select-none'
+                                            : isSelected
+                                                ? 'cursor-pointer bg-white border-blue-600 shadow-xl shadow-blue-900/10 ring-2 ring-blue-600/20' 
+                                                : 'cursor-pointer bg-white/50 border-slate-200 hover:border-blue-300 hover:bg-white'
                                     }`}
                                 >
-                                    {plan.is_popular && (
+                                    {isThisAssigned ? (
+                                        <div className="absolute -top-3 left-6 bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1">
+                                            <Check size={10} strokeWidth={3} />
+                                            PLANO VINCULADO
+                                        </div>
+                                    ) : isLocked ? (
+                                        <div className="absolute -top-3 left-6 bg-slate-200 text-slate-500 text-[8px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                            <Lock size={9} />
+                                            BLOQUEADO
+                                        </div>
+                                    ) : plan.is_popular ? (
                                         <div className="absolute -top-3 left-6 bg-blue-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                                             RECOMENDADO
                                         </div>
-                                    )}
+                                    ) : null}
 
                                     <div className="mb-4">
-                                        <h3 className="text-sm font-black text-slate-900 mb-0.5 tracking-tight">{plan.name}</h3>
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <h3 className="text-sm font-black text-slate-900 tracking-tight">{plan.name}</h3>
+                                            {isLocked && <Lock size={13} className="text-slate-400" />}
+                                        </div>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-2xl font-black text-blue-600">{currencySymbol} {plan.price}</span>
                                             <span className="text-slate-400 text-[9px] font-bold uppercase">/{plan.period === 'mensal' ? 'mês' : plan.period}</span>
@@ -778,20 +837,34 @@ export function PaymentRequired() {
                                     <div className="flex-1 space-y-2.5 mb-6">
                                         {plan.features?.map((feat: string, fIdx: number) => (
                                             <div key={fIdx} className="flex items-start gap-2">
-                                                <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5">
-                                                    <Check size={11} className="text-emerald-500" strokeWidth={3} />
+                                                <div className={`w-4 h-4 rounded-full flex items-center justify-center mt-0.5 ${isLocked ? 'bg-slate-200/50' : 'bg-emerald-500/10'}`}>
+                                                    <Check size={11} className={isLocked ? 'text-slate-400' : 'text-emerald-500'} strokeWidth={3} />
                                                 </div>
-                                                <span className="text-slate-600 text-[12px] leading-tight font-medium">{feat.replace(/\*\*/g, '')}</span>
+                                                <span className={`text-[12px] leading-tight font-medium ${isLocked ? 'text-slate-400' : 'text-slate-600'}`}>{feat.replace(/\*\*/g, '')}</span>
                                             </div>
                                         ))}
                                     </div>
 
-                                    <div className={`w-full py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 text-center ${
-                                        selectedPlan?.name === plan.name 
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-300' 
-                                            : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'
+                                    <div className={`w-full py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 text-center flex items-center justify-center gap-1.5 ${
+                                        isLocked
+                                            ? 'bg-slate-200/60 text-slate-400 cursor-not-allowed'
+                                            : isSelected 
+                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-300' 
+                                                : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'
                                     }`}>
-                                        {selectedPlan?.name === plan.name ? 'Selecionado' : 'Escolher este Plano'}
+                                        {isLocked ? (
+                                            <>
+                                                <Lock size={12} strokeWidth={2.5} />
+                                                Plano Bloqueado
+                                            </>
+                                        ) : isSelected ? (
+                                            <>
+                                                <Check size={12} strokeWidth={3} />
+                                                {isThisAssigned ? 'Plano Selecionado' : 'Selecionado'}
+                                            </>
+                                        ) : (
+                                            'Escolher este Plano'
+                                        )}
                                     </div>
 
                                     <button
@@ -800,12 +873,13 @@ export function PaymentRequired() {
                                             e.stopPropagation();
                                             setSelectedPlanForDetails(plan);
                                         }}
-                                        className="text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-2 self-center"
+                                        className="text-[9px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-2 self-center cursor-pointer"
                                     >
                                         Ver Detalhes do Plano
                                     </button>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
