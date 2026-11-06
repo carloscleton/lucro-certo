@@ -75,17 +75,23 @@ serve(async (req) => {
                 updatedSettings.license_expires_at = oneYearFromNow.toISOString();
             }
 
+            const nowIso = new Date().toISOString();
+            const updatedAdminBilling = {
+                ...adminBilling,
+                last_billed_at: nowIso,
+                last_billed_paid_at: nowIso
+            };
+
             if (adminBilling.setup_fee && !adminBilling.setup_fee_paid) {
-                updatedSettings.admin_fiscal_billing = {
-                    ...adminBilling,
-                    setup_fee_paid: true,
-                    setup_fee_paid_at: new Date().toISOString()
-                };
+                updatedAdminBilling.setup_fee_paid = true;
+                updatedAdminBilling.setup_fee_paid_at = nowIso;
             }
+
+            updatedSettings.admin_fiscal_billing = updatedAdminBilling;
 
             const updatePayload: any = {
                 subscription_status: 'active',
-                subscription_plan: 'pro',
+                subscription_plan: company.subscription_plan || 'pro',
                 current_period_end: nextBillingDate.toISOString(),
                 settings: updatedSettings
             };

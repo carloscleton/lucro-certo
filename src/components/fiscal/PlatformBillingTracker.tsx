@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Award, Calendar, FileText, Layers, TrendingUp, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronUp, Award, Calendar, FileText, Layers, TrendingUp, DollarSign, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Modal } from '../ui/Modal';
 
@@ -36,11 +36,21 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
 
     const { cycleStart, cycleEnd } = getBillingCycleDates(cycleStartDay);
 
-    // Filter invoices of the current cycle
+    const lastBilledAt = billingConfig.last_billed_at ? new Date(billingConfig.last_billed_at) : null;
+    const effectiveCycleStart = lastBilledAt && lastBilledAt > cycleStart ? lastBilledAt : cycleStart;
+
+    // Filter invoices of the current cycle (a faturar)
     const currentMonthInvoices = invoices.filter(inv => {
         if (!inv.created_at) return false;
         const d = new Date(inv.created_at);
-        return d >= cycleStart && d < cycleEnd;
+        return d >= effectiveCycleStart && d < cycleEnd;
+    });
+
+    // Invoices já faturadas e quitadas em ciclo anterior
+    const paidInvoices = invoices.filter(inv => {
+        if (!inv.created_at) return false;
+        const d = new Date(inv.created_at);
+        return lastBilledAt ? d <= lastBilledAt : false;
     });
 
     // If neither model is active, hide tracker
@@ -174,12 +184,15 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
         const providerTotal = fixedFeeToApply + notesCost + setupFeeToApply;
         totalCostAllProviders += providerTotal;
 
+        const paidCountForProvider = paidInvoices.filter(inv => getInvoiceProvider(inv) === provider).length;
+
         providersDetails.push({
             provider,
             isActive,
             notesCount: countActive,
             canceledCount: countCanceled,
             totalNotes,
+            paidNotesCount: paidCountForProvider,
             fixedFeeToApply,
             appliedPerNoteFee,
             notesCost,
@@ -355,15 +368,29 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                             </div>
 
                                             <div className="space-y-2">
-                                                {pd.setupFeeToApply > 0 && (
+                                                {pd.setupFeeToApply > 0 ? (
                                                     <div className="flex justify-between items-center py-0.5 text-xs">
                                                         <div className="flex items-center gap-2 text-gray-500 font-medium">
                                                             <DollarSign size={13} className="text-gray-400" />
                                                             <span>Taxa de Implantação (Cobrança única):</span>
                                                         </div>
-                                                        <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.setupFeeToApply)}</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.setupFeeToApply)}</span>
+                                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">A Pagar</span>
+                                                        </div>
                                                     </div>
-                                                )}
+                                                ) : (billingConfig.setup_fee_paid && typeof billingConfig.setup_fee === 'number' && billingConfig.setup_fee > 0) ? (
+                                                    <div className="flex justify-between items-center py-0.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                        <div className="flex items-center gap-2">
+                                                            <Check size={13} className="text-emerald-500" strokeWidth={2.5} />
+                                                            <span>Taxa de Implantação (Cobrança única):</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="font-semibold">{fmt(billingConfig.setup_fee)}</span>
+                                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">Quitada / Paga</span>
+                                                        </div>
+                                                    </div>
+                                                ) : null}
 
                                                 {fixedEnabled && pd.fixedFeeToApply > 0 && (
                                                     <div className="flex justify-between items-center py-0.5 text-xs">
@@ -387,7 +414,10 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
 
                                                 {tieredEnabled ? (
                                                     <div className="space-y-1.5 py-1 border-t border-gray-100 dark:border-slate-850/50 pt-2 mt-1">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550 block">Notas Cobradas por Faixas:</span>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550 block">Notas Cobradas por Faixas (Ciclo Atual):</span>
+                                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">A Faturar</span>
+                                                        </div>
                                                         {pd.tieredBreakdown.map((b: any, idx: number) => (
                                                             <div key={idx} className="flex justify-between items-center pl-3 text-xs">
                                                                 <div className="flex items-center gap-2 text-gray-500">
@@ -397,14 +427,44 @@ export function PlatformBillingTracker({ invoices, companySettings, activeProvid
                                                                 <span className="font-medium text-gray-700 dark:text-slate-350">{fmt(b.cost)}</span>
                                                             </div>
                                                         ))}
+                                                        {pd.paidNotesCount > 0 && (
+                                                            <div className="flex justify-between items-center pl-3 py-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium border-t border-dashed border-gray-150 pt-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Check size={11} className="text-emerald-500" strokeWidth={2.5} />
+                                                                    <span>Notas Quitadas no Ciclo Anterior:</span>
+                                                                </div>
+                                                                <span className="font-bold text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                                    {pd.paidNotesCount} nota{pd.paidNotesCount !== 1 ? 's' : ''} (Pagas)
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <div className="flex justify-between items-center py-0.5 text-xs">
-                                                        <div className="flex items-center gap-2 text-gray-500 font-medium">
-                                                            <FileText size={13} className="text-gray-400" />
-                                                            <span>Notas Emitidas ({pd.totalNotes} x {fmt(pd.appliedPerNoteFee)}/nota):</span>
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between items-center py-0.5 text-xs">
+                                                            <div className="flex items-center gap-2 text-gray-500 font-medium">
+                                                                <FileText size={13} className="text-gray-400" />
+                                                                <span>Notas do Ciclo Atual ({pd.totalNotes} x {fmt(pd.appliedPerNoteFee)}/nota):</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.notesCost)}</span>
+                                                                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">A Faturar</span>
+                                                            </div>
                                                         </div>
-                                                        <span className="font-semibold text-gray-800 dark:text-slate-200">{fmt(pd.notesCost)}</span>
+
+                                                        {pd.paidNotesCount > 0 && (
+                                                            <div className="flex justify-between items-center py-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium border-t border-dashed border-gray-150 dark:border-slate-850/60 pt-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Check size={12} className="text-emerald-500" strokeWidth={2.5} />
+                                                                    <span>Notas Quitadas no Ciclo Anterior:</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="font-bold text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                                                                        {pd.paidNotesCount} nota{pd.paidNotesCount !== 1 ? 's' : ''} (Pagas)
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 

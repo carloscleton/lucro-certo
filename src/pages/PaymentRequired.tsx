@@ -125,6 +125,56 @@ export function PaymentRequired() {
     }, [currentEntity, profile, user, availableEntities]);
 
     // Calculo dinamico do resumo financeiro (Imagem 1 & Imagem 2)
+    const [cycleNotesCount, setCycleNotesCount] = useState(0);
+    const [cycleNotesCost, setCycleNotesCost] = useState(0);
+
+    useEffect(() => {
+        const fetchCycleNotes = async () => {
+            const targetId = await resolveTargetCompanyId();
+            if (!targetId || targetId === 'personal') return;
+
+            const clientBilling = companyBillingConfig || companyData?.settings?.admin_fiscal_billing || {};
+            const cycleStartDay = typeof clientBilling.billing_cycle_start_day === 'number'
+                ? clientBilling.billing_cycle_start_day
+                : 1;
+
+            const today = new Date();
+            let cycleStart = new Date(today.getFullYear(), today.getMonth(), cycleStartDay, 0, 0, 0, 0);
+            if (today.getDate() < cycleStartDay) {
+                cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, cycleStartDay, 0, 0, 0, 0);
+            }
+
+            const lastBilledAt = clientBilling.last_billed_at ? new Date(clientBilling.last_billed_at) : null;
+            const effectiveStart = lastBilledAt && lastBilledAt > cycleStart ? lastBilledAt : cycleStart;
+
+            const { data: invData } = await supabase
+                .from('invoices')
+                .select('id, status, created_at, type')
+                .eq('company_id', targetId)
+                .gte('created_at', effectiveStart.toISOString());
+
+            if (invData && invData.length > 0) {
+                const activeFiscalProvider = companyData?.settings?.fiscal_provider || 'national';
+                const providerCfg = clientBilling[activeFiscalProvider] || clientBilling.national || clientBilling.tecnospeed || {};
+                const perNoteFee = typeof providerCfg.per_note_fee === 'number' ? providerCfg.per_note_fee : 0.50;
+
+                const validNotes = invData.filter((i: any) => 
+                    ['concluido', 'autorizada', 'concluído', 'autorizado', 'cancelado', 'cancelada'].includes(String(i.status).toLowerCase())
+                );
+
+                const count = validNotes.length;
+                const cost = count * perNoteFee;
+                setCycleNotesCount(count);
+                setCycleNotesCost(cost);
+            } else {
+                setCycleNotesCount(0);
+                setCycleNotesCost(0);
+            }
+        };
+
+        fetchCycleNotes();
+    }, [companyData, companyBillingConfig]);
+
     const { monthlyPrice, pendingSetupFee, totalInitial } = useMemo(() => {
         let price = 0;
         if (selectedPlan?.price) {
@@ -155,9 +205,9 @@ export function PaymentRequired() {
         return {
             monthlyPrice: price,
             pendingSetupFee: setup,
-            totalInitial: price + setup
+            totalInitial: price + setup + cycleNotesCost
         };
-    }, [selectedPlan, companyBillingConfig, companyData]);
+    }, [selectedPlan, companyBillingConfig, companyData, cycleNotesCost]);
 
     const formatAmount = (val: number) => {
         return Number.isInteger(val) ? val.toString() : val.toFixed(2);
@@ -947,6 +997,20 @@ export function PaymentRequired() {
                                         </div>
                                         <span className="text-sm font-black text-slate-700 dark:text-slate-300">
                                             {currencySymbol} {formatAmount(pendingSetupFee)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {cycleNotesCount > 0 && (
+                                    <div className="flex items-center justify-between pt-2 border-t border-blue-100/50 dark:border-blue-900/10">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">
+                                                Notas Emitidas no Ciclo
+                                            </p>
+                                            <span className="text-[10px] text-slate-500 font-medium">{cycleNotesCount} nota(s) a faturar</span>
+                                        </div>
+                                        <span className="text-sm font-black text-slate-700 dark:text-slate-300">
+                                            {currencySymbol} {formatAmount(cycleNotesCost)}
                                         </span>
                                     </div>
                                 )}

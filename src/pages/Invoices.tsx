@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar, Bell, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Receipt, Plus, FileText, Download, AlertCircle, AlertTriangle, RefreshCw, Building2, Eye, FileCode, CheckCircle2, Clock3, XCircle, Trash2, ExternalLink, Search, MessageCircle, Mail, BarChart3, Sparkles, CreditCard, QrCode, Calendar, Bell, CalendarClock, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/ui/Button';
 import { useInvoices } from '../hooks/useInvoices';
@@ -2281,6 +2281,37 @@ ${messageWithPlaceholder}`;
                                         <td className="py-2 px-4">
                                             <div className="flex flex-row items-center gap-1.5 flex-wrap">
                                                 {getStatusBadge(invoice.status)}
+
+                                                {/* Badge da Tarifa da Plataforma: Paga vs Ciclo Atual */}
+                                                {(() => {
+                                                    const adminBilling = currentCompany?.settings?.admin_fiscal_billing;
+                                                    if (!adminBilling) return null;
+                                                    const lastBilledAt = adminBilling.last_billed_at ? new Date(adminBilling.last_billed_at) : null;
+                                                    const invDate = new Date(invoice.created_at);
+                                                    const isTariffPaid = Boolean(lastBilledAt && invDate <= lastBilledAt);
+
+                                                    if (isTariffPaid) {
+                                                        return (
+                                                            <span 
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40"
+                                                                title={`Tarifa desta nota foi quitada na mensalidade anterior (${lastBilledAt?.toLocaleDateString('pt-BR')})`}
+                                                            >
+                                                                <Check size={9} strokeWidth={3} />
+                                                                Tarifa Paga
+                                                            </span>
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <span 
+                                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40"
+                                                                title="Esta nota será cobrada na fatura do próximo ciclo"
+                                                            >
+                                                                <Clock3 size={9} />
+                                                                Ciclo Atual
+                                                            </span>
+                                                        );
+                                                    }
+                                                })()}
 
                                                 {/* Badge Visual da Cobrança Criada (Pix, Cartão ou Boleto) */}
                                                 {(() => {

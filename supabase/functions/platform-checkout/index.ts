@@ -277,9 +277,47 @@ serve(async (req) => {
             console.log(`[platform-checkout] Adicionada Taxa de Implantação de R$ ${setupFeeToAdd} para empresa ${company.id}. Total a cobrar: R$ ${amount}`)
         }
 
-        const chargeDescription = setupFeeToAdd > 0
-            ? `Assinatura Lucro Certo - ${company.subscription_plan || 'Plano'} + Taxa de Implantação (${company.trade_name})`
-            : `Assinatura Lucro Certo - ${company.trade_name}`
+        // Check notes emitted in the current billing cycle
+        let notesFeeToAdd = 0
+        let cycleNotesCount = 0
+        try {
+            const cycleStartDay = typeof adminBilling?.billing_cycle_start_day === 'number' ? adminBilling.billing_cycle_start_day : 1
+            const today = new Date()
+            let cycleStart = new Date(today.getFullYear(), today.getMonth(), cycleStartDay, 0, 0, 0, 0)
+            if (today.getDate() < cycleStartDay) {
+                cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, cycleStartDay, 0, 0, 0, 0)
+            }
+            const lastBilledAt = adminBilling?.last_billed_at ? new Date(adminBilling.last_billed_at) : null
+            const effectiveStart = lastBilledAt && lastBilledAt > cycleStart ? lastBilledAt : cycleStart
+
+            const { data: invRows } = await supabaseAdmin
+                .from('invoices')
+                .select('id, status, created_at')
+                .eq('company_id', company.id)
+                .gte('created_at', effectiveStart.toISOString())
+
+            if (invRows && invRows.length > 0) {
+                const validInv = invRows.filter((i: any) => 
+                    ['concluido', 'autorizada', 'concluído', 'autorizado', 'cancelado', 'cancelada'].includes(String(i.status).toLowerCase())
+                )
+                cycleNotesCount = validInv.length
+                const providerCfg = adminBilling?.[fiscalProvider] || adminBilling?.national || adminBilling?.tecnospeed || {}
+                const perNote = typeof providerCfg.per_note_fee === 'number' ? providerCfg.per_note_fee : 0.50
+                notesFeeToAdd = cycleNotesCount * perNote
+                if (notesFeeToAdd > 0) {
+                    amount += notesFeeToAdd
+                    console.log(`[platform-checkout] Adicionadas ${cycleNotesCount} notas fiscais do ciclo (R$ ${notesFeeToAdd}). Total a cobrar: R$ ${amount}`)
+                }
+            }
+        } catch (noteErr) {
+            console.warn('[platform-checkout] Erro ao calcular notas do ciclo:', noteErr)
+        }
+
+        const descParts = [`Assinatura Lucro Certo - ${company.subscription_plan || 'Plano'}`]
+        if (setupFeeToAdd > 0) descParts.push('Taxa de Implantação')
+        if (notesFeeToAdd > 0) descParts.push(`${cycleNotesCount} Notas Fiscais`)
+        descParts.push(`(${company.trade_name})`)
+        const chargeDescription = descParts.join(' + ')
 
         // 3. Proration Logic (Pro-rata)
         let discount = 0
