@@ -1,4 +1,3 @@
-import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { storageService } from '../lib/storageService';
 
@@ -45,6 +44,7 @@ export class PDFService {
      * Generate PDF for a quote
      */
     static async generateQuotePDF(data: QuotePDFData): Promise<Blob> {
+        const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -325,6 +325,7 @@ export class PDFService {
      * Generate DANFSE (Documento Auxiliar da NFS-e Nacional) PDF v2.0
      */
     static async generateDanfsePDF(data: any): Promise<Blob> {
+        const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
         const margin = 8;
         let y = 8;

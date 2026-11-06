@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react';
 // Force refresh
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -16,22 +16,32 @@ import { useEntity } from '../context/EntityContext';
 import { useCompanies, clearCompaniesCache } from '../hooks/useCompanies';
 import { supabase } from '../lib/supabase';
 import { SETTINGS_TABS, APP_MODULES, getTabPermission, getModulePermission } from '../config/permissions';
-import { WebhookSettings } from './WebhookSettings';
-import { WhatsApp } from './WhatsApp';
-import { EmailSettings } from '../components/settings/EmailSettings';
-import { FiscalSettings } from '../components/settings/FiscalSettings';
-import { PaymentSettings } from '../components/settings/PaymentSettings';
-import { BankingSettings } from '../components/settings/BankingSettings';
-import { SubscriptionSettings } from '../components/settings/SubscriptionSettings';
-import { PlatformBillingDashboard } from '../components/admin/PlatformBillingDashboard';
 import { useCharges } from '../hooks/useCharges';
 import { useAuth } from '../context/AuthContext';
 import { formatPhoneInput, cleanPhoneNumber, formatPhoneFromDB } from '../utils/phoneUtils';
-import { LandingPlansEditor } from '../components/admin/LandingPlansEditor';
-import { AdminAffiliatesManager } from '../components/affiliates/AdminAffiliatesManager';
 import axios from 'axios';
-import jsPDF from 'jspdf';
 import { API_BASE_URL } from '../lib/constants';
+
+// Lazy loading das abas pesadas para acelerar o carregamento inicial da página de Configurações
+const WebhookSettings = lazy(() => import('./WebhookSettings').then(m => ({ default: m.WebhookSettings })));
+const WhatsApp = lazy(() => import('./WhatsApp').then(m => ({ default: m.WhatsApp })));
+const EmailSettings = lazy(() => import('../components/settings/EmailSettings').then(m => ({ default: m.EmailSettings })));
+const FiscalSettings = lazy(() => import('../components/settings/FiscalSettings').then(m => ({ default: m.FiscalSettings })));
+const PaymentSettings = lazy(() => import('../components/settings/PaymentSettings').then(m => ({ default: m.PaymentSettings })));
+const BankingSettings = lazy(() => import('../components/settings/BankingSettings').then(m => ({ default: m.BankingSettings })));
+const SubscriptionSettings = lazy(() => import('../components/settings/SubscriptionSettings').then(m => ({ default: m.SubscriptionSettings })));
+const PlatformBillingDashboard = lazy(() => import('../components/admin/PlatformBillingDashboard').then(m => ({ default: m.PlatformBillingDashboard })));
+const LandingPlansEditor = lazy(() => import('../components/admin/LandingPlansEditor').then(m => ({ default: m.LandingPlansEditor })));
+const AdminAffiliatesManager = lazy(() => import('../components/affiliates/AdminAffiliatesManager').then(m => ({ default: m.AdminAffiliatesManager })));
+
+function TabLoader() {
+    return (
+        <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mb-3" />
+            <span className="text-xs text-gray-400 font-medium animate-pulse">Carregando configurações...</span>
+        </div>
+    );
+}
 
 export function Settings() {
     const { t } = useTranslation();
@@ -435,8 +445,9 @@ export function Settings() {
         }
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         if (!selectedCompanyNotesMetadata) return;
+        const { default: jsPDF } = await import('jspdf');
         const sim = selectedCompanyNotesMetadata;
 
         const doc = new jsPDF();
@@ -659,12 +670,13 @@ export function Settings() {
         doc.save(fileName);
     };
 
-    const handleGenerateBatchPDF = () => {
+    const handleGenerateBatchPDF = async () => {
         if (selectedBillingCompanyIds.length === 0) return;
 
         const selectedRows = billingSimulation.filter(s => selectedBillingCompanyIds.includes(s.companyId));
         if (selectedRows.length === 0) return;
 
+        const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -1290,7 +1302,9 @@ export function Settings() {
                 ) : (
                     <>
                         {activeTab === 'subscription' && (
-                            <SubscriptionSettings />
+                            <Suspense fallback={<TabLoader />}>
+                                <SubscriptionSettings />
+                            </Suspense>
                         )}
 
 
@@ -2027,29 +2041,31 @@ export function Settings() {
                     </div>
                 )}
 
-                {activeTab === 'webhooks' && (
-                    <WebhookSettings />
-                )}
+                <Suspense fallback={<TabLoader />}>
+                    {activeTab === 'webhooks' && (
+                        <WebhookSettings />
+                    )}
 
-                {activeTab === 'whatsapp' && (
-                    <WhatsApp />
-                )}
+                    {activeTab === 'whatsapp' && (
+                        <WhatsApp />
+                    )}
 
-                {activeTab === 'email' && (
-                    <EmailSettings />
-                )}
+                    {activeTab === 'email' && (
+                        <EmailSettings />
+                    )}
 
-                {activeTab === 'fiscal' && (
-                    <FiscalSettings />
-                )}
+                    {activeTab === 'fiscal' && (
+                        <FiscalSettings />
+                    )}
 
-                {activeTab === 'payments' && (
-                    <PaymentSettings />
-                )}
+                    {activeTab === 'payments' && (
+                        <PaymentSettings />
+                    )}
 
-                {activeTab === 'banking' && (
-                    <BankingSettings />
-                )}
+                    {activeTab === 'banking' && (
+                        <BankingSettings />
+                    )}
+                </Suspense>
 
                 {activeTab === 'loyalty' && currentCompany?.loyalty_module_enabled && (
                     <div className="space-y-6">
@@ -4540,7 +4556,9 @@ export function Settings() {
                                     </div>
                                 </div>
                                 <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-8">
-                                    <LandingPlansEditor />
+                                    <Suspense fallback={<TabLoader />}>
+                                        <LandingPlansEditor />
+                                    </Suspense>
                                 </div>
                             </div>
                         )}
@@ -4809,7 +4827,9 @@ export function Settings() {
                         {adminSubTab === 'referrals' && (
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Administração do Indique e Ganhe</h3>
-                                <AdminAffiliatesManager appSettings={appSettings} updateAppSettings={updateAppSettings} />
+                                <Suspense fallback={<TabLoader />}>
+                                    <AdminAffiliatesManager appSettings={appSettings} updateAppSettings={updateAppSettings} />
+                                </Suspense>
                             </div>
                         )}
                     </div>
@@ -4826,7 +4846,9 @@ export function Settings() {
                                 <p className="text-gray-500">Gestão global de assinaturas, gateways e cobranças de empresas.</p>
                             </div>
                         </div>
-                        <PlatformBillingDashboard />
+                        <Suspense fallback={<TabLoader />}>
+                            <PlatformBillingDashboard />
+                        </Suspense>
                     </div>
                 )}
                     </>
