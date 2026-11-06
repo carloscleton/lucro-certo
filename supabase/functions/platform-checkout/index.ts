@@ -291,7 +291,7 @@ serve(async (req) => {
             const effectiveStart = lastBilledAt && lastBilledAt > cycleStart ? lastBilledAt : cycleStart
 
             const { data: invRows } = await supabaseAdmin
-                .from('invoices')
+                .from('fiscal_invoices')
                 .select('id, status, created_at')
                 .eq('company_id', company.id)
                 .gte('created_at', effectiveStart.toISOString())

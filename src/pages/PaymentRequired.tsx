@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
-import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle } from 'lucide-react';
+import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useMemo } from 'react';
 import logoFull from '../assets/logo-full.png';
@@ -130,10 +130,10 @@ export function PaymentRequired() {
 
     useEffect(() => {
         const fetchCycleNotes = async () => {
-            const targetId = await resolveTargetCompanyId();
+            const targetId = companyData?.id || (await resolveTargetCompanyId());
             if (!targetId || targetId === 'personal') return;
 
-            const clientBilling = companyBillingConfig || companyData?.settings?.admin_fiscal_billing || {};
+            const clientBilling = companyBillingConfig || companyData?.settings?.admin_fiscal_billing || currentEntity?.settings?.admin_fiscal_billing || {};
             const cycleStartDay = typeof clientBilling.billing_cycle_start_day === 'number'
                 ? clientBilling.billing_cycle_start_day
                 : 1;
@@ -147,19 +147,23 @@ export function PaymentRequired() {
             const lastBilledAt = clientBilling.last_billed_at ? new Date(clientBilling.last_billed_at) : null;
             const effectiveStart = lastBilledAt && lastBilledAt > cycleStart ? lastBilledAt : cycleStart;
 
-            const { data: invData } = await supabase
-                .from('invoices')
-                .select('id, status, created_at, type')
+            const { data: invData, error: invErr } = await supabase
+                .from('fiscal_invoices')
+                .select('id, status, created_at, type, deleted')
                 .eq('company_id', targetId)
                 .gte('created_at', effectiveStart.toISOString());
 
+            if (invErr) {
+                console.warn('[PaymentRequired] Erro ao buscar fiscal_invoices:', invErr);
+            }
+
             if (invData && invData.length > 0) {
-                const activeFiscalProvider = companyData?.settings?.fiscal_provider || 'national';
-                const providerCfg = clientBilling[activeFiscalProvider] || clientBilling.national || clientBilling.tecnospeed || {};
+                const activeFiscalProvider = companyData?.settings?.fiscal_provider || currentEntity?.settings?.fiscal_provider || 'national';
+                const providerCfg = clientBilling[activeFiscalProvider] || clientBilling.national || clientBilling.tecnospeed || clientBilling.other || {};
                 const perNoteFee = typeof providerCfg.per_note_fee === 'number' ? providerCfg.per_note_fee : 0.50;
 
                 const validNotes = invData.filter((i: any) => 
-                    ['concluido', 'autorizada', 'concluído', 'autorizado', 'cancelado', 'cancelada'].includes(String(i.status).toLowerCase())
+                    !i.deleted && ['concluido', 'autorizada', 'concluído', 'autorizado', 'cancelado', 'cancelada'].includes(String(i.status).toLowerCase())
                 );
 
                 const count = validNotes.length;
@@ -173,7 +177,7 @@ export function PaymentRequired() {
         };
 
         fetchCycleNotes();
-    }, [companyData, companyBillingConfig]);
+    }, [companyData, companyBillingConfig, currentEntity, documentStr]);
 
     const { monthlyPrice, pendingSetupFee, totalInitial } = useMemo(() => {
         let price = 0;
@@ -882,6 +886,22 @@ export function PaymentRequired() {
                                             <span className="text-2xl font-black text-blue-600">{currencySymbol} {plan.price}</span>
                                             <span className="text-slate-400 text-[9px] font-bold uppercase">/{plan.period === 'mensal' ? 'mês' : plan.period}</span>
                                         </div>
+                                        {isThisAssigned && cycleNotesCount > 0 && (
+                                            <div className="mt-2 p-2 rounded-xl bg-blue-50/80 border border-blue-200/80 text-left">
+                                                <div className="flex items-center justify-between text-[11px] font-bold text-blue-900">
+                                                    <span className="flex items-center gap-1 text-[10px] text-blue-700">
+                                                        <FileText size={11} className="text-blue-600 shrink-0" />
+                                                        Notas no ciclo:
+                                                    </span>
+                                                    <span className="font-black text-blue-700 text-xs">
+                                                        +{currencySymbol} {formatAmount(cycleNotesCost)}
+                                                    </span>
+                                                </div>
+                                                <div className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                                    {cycleNotesCount} nota{cycleNotesCount !== 1 ? 's' : ''} a faturar junto à mensalidade
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex-1 space-y-2.5 mb-6">
