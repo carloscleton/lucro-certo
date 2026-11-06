@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEntity } from '../context/EntityContext';
 import { Button } from '../components/ui/Button';
-import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle, FileText } from 'lucide-react';
+import { CreditCard, AlertTriangle, Check, Sparkles, Building2, ShieldAlert, Lock, Unlock, Send, XCircle, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect, useMemo } from 'react';
 import logoFull from '../assets/logo-full.png';
@@ -789,6 +789,26 @@ export function PaymentRequired() {
             </div>
 
             <div className="relative z-10 max-w-6xl mx-auto px-4 py-4 lg:py-8">
+                {/* Navigation Bar */}
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard')}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-slate-750 hover:text-blue-600 border border-slate-200/90 shadow-sm text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
+                    >
+                        <ArrowLeft size={16} />
+                        Voltar ao Sistema
+                    </button>
+                    
+                    <button
+                        type="button"
+                        onClick={async () => { await signOut(); navigate('/'); }}
+                        className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                        Sair da Conta
+                    </button>
+                </div>
+
                 {/* Logo & Compact Header */}
                 <div className="text-center mb-8 animate-in fade-in slide-in-from-top-2 duration-700">
                     <div className="flex justify-center mb-6">
@@ -1054,6 +1074,15 @@ export function PaymentRequired() {
                                 CONCLUIR E PAGAR
                             </Button>
 
+                            <button
+                                type="button"
+                                onClick={() => navigate('/dashboard')}
+                                className="w-full h-12 mt-3 rounded-2xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-slate-200/80 shadow-sm"
+                            >
+                                <ArrowLeft size={16} />
+                                Voltar ao Sistema
+                            </button>
+
                             <div className="mt-8 flex justify-center pt-6 border-t border-slate-100">
                                 <div className="flex items-center gap-2 text-slate-400 text-[9px] font-bold uppercase tracking-widest">
                                     <AlertTriangle size={12} className="text-amber-500/60" />
@@ -1078,12 +1107,23 @@ export function PaymentRequired() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={async () => { await signOut(); navigate('/'); }}
-                            className="w-full mt-6 text-center text-slate-400 hover:text-blue-600 transition-colors text-[9px] font-black uppercase tracking-[0.4em]"
-                        >
-                            Sair e Voltar depois
-                        </button>
+                        <div className="mt-6 flex flex-col items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/dashboard')}
+                                className="text-blue-600 hover:text-blue-700 hover:underline text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <ArrowLeft size={14} />
+                                Voltar ao Sistema
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => { await signOut(); navigate('/'); }}
+                                className="text-center text-slate-400 hover:text-slate-600 transition-colors text-[9px] font-black uppercase tracking-[0.3em] cursor-pointer"
+                            >
+                                Sair da Conta
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
