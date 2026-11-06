@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Users,
     AlertTriangle,
@@ -15,7 +15,8 @@ import {
     CreditCard,
     Calendar,
     ExternalLink,
-    X
+    X,
+    Loader2
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { CampaignsManager } from './CampaignsManager';
@@ -37,6 +38,7 @@ export function PlatformBillingDashboard() {
         biStats,
         manualRenewSubscription,
         setCompanyTrial,
+        changeCompanyPlan,
         toggleCompanyBlock
     } = useAdmin();
 
@@ -63,9 +65,57 @@ export function PlatformBillingDashboard() {
     const [selectedCompanyForTrial, setSelectedCompanyForTrial] = useState<any | null>(null);
     const [customTrialDate, setCustomTrialDate] = useState<string>('');
     const [updatingTrial, setUpdatingTrial] = useState<boolean>(false);
+    const [updatingPlanCompanyId, setUpdatingPlanCompanyId] = useState<string | null>(null);
 
     const { notify } = useNotification();
     const { testPlatformConnection, fetchCompanyCharges } = useAdmin();
+
+    const parsePlanPrice = (price: any): number => {
+        if (typeof price === 'number') return isNaN(price) ? 0 : price;
+        if (!price) return 0;
+        const cleanStr = String(price).replace(/[^\d.,]/g, '').trim();
+        if (cleanStr.includes(',') && cleanStr.includes('.')) {
+            return parseFloat(cleanStr.replace(/\./g, '').replace(',', '.')) || 0;
+        }
+        if (cleanStr.includes(',')) {
+            return parseFloat(cleanStr.replace(',', '.')) || 0;
+        }
+        return parseFloat(cleanStr) || 0;
+    };
+
+    const activePlans = useMemo(() => {
+        if (!appSettings?.landing_plans || !Array.isArray(appSettings.landing_plans)) {
+            return [
+                { name: "Essencial", price: 97, enabled: true },
+                { name: "Profissional + IA", price: 197, enabled: true },
+                { name: "Empresarial", price: 497, enabled: true }
+            ];
+        }
+        return appSettings.landing_plans.filter((p: any) => p && p.enabled !== false && p.name);
+    }, [appSettings?.landing_plans]);
+
+    const handlePlanChange = async (companyId: string, companyName: string, newPlanName: string) => {
+        const selectedPlan = activePlans.find((p: any) => p.name.toLowerCase() === newPlanName.toLowerCase());
+        const newPrice = selectedPlan ? parsePlanPrice(selectedPlan.price) : 0;
+
+        setUpdatingPlanCompanyId(companyId);
+        try {
+            const res = await changeCompanyPlan(companyId, newPlanName, newPrice);
+            if (res.error) {
+                notify('error', 'Erro ao alterar plano: ' + res.error, 'Erro');
+            } else {
+                const formattedPrice = new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', {
+                    style: 'currency',
+                    currency: window.__CURRENCY_CODE__ || 'BRL'
+                }).format(newPrice);
+                notify('success', `Plano da empresa "${companyName}" alterado para ${newPlanName} (${formattedPrice}) com sucesso!`, 'Plano Atualizado');
+            }
+        } catch (err: any) {
+            notify('error', err.message || 'Falha ao alterar plano', 'Erro');
+        } finally {
+            setUpdatingPlanCompanyId(null);
+        }
+    };
 
     // Sync local keys when appSettings loads - Triggering fresh Vercel build
     useEffect(() => {
@@ -628,9 +678,47 @@ export function PlatformBillingDashboard() {
                                                     <div className="text-[10px] text-gray-500">{c.owner_name}</div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.subscription_plan === 'trial' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                        {c.subscription_plan?.toUpperCase() || 'PADRÃO'}
-                                                    </span>
+                                                    <div className="relative inline-flex items-center justify-center">
+                                                        {updatingPlanCompanyId === c.id ? (
+                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold">
+                                                                <Loader2 size={12} className="animate-spin" />
+                                                                <span>Salvando...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <select
+                                                                value={
+                                                                    activePlans.find((p: any) => p.name.toLowerCase() === (c.subscription_plan || '').toLowerCase())
+                                                                        ? activePlans.find((p: any) => p.name.toLowerCase() === (c.subscription_plan || '').toLowerCase())?.name
+                                                                        : (c.subscription_plan || '')
+                                                                }
+                                                                onChange={(e) => handlePlanChange(c.id, c.trade_name, e.target.value)}
+                                                                className={`text-[11px] font-bold rounded-lg px-2.5 py-1 cursor-pointer transition-all border shadow-sm outline-none focus:ring-2 focus:ring-emerald-500/30 ${
+                                                                    c.subscription_plan === 'trial' || c.subscription_plan?.toLowerCase().includes('teste')
+                                                                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                                                }`}
+                                                                title="Clique para mudar o plano desta empresa"
+                                                            >
+                                                                {c.subscription_plan && !activePlans.some((p: any) => p.name.toLowerCase() === c.subscription_plan?.toLowerCase()) && (
+                                                                    <option value={c.subscription_plan}>
+                                                                        {c.subscription_plan.toUpperCase()} (Atual)
+                                                                    </option>
+                                                                )}
+                                                                {activePlans.map((plan: any) => {
+                                                                    const priceNum = parsePlanPrice(plan.price);
+                                                                    const formatted = new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', {
+                                                                        style: 'currency',
+                                                                        currency: window.__CURRENCY_CODE__ || 'BRL'
+                                                                    }).format(priceNum);
+                                                                    return (
+                                                                        <option key={plan.name} value={plan.name}>
+                                                                            {plan.name} ({formatted})
+                                                                        </option>
+                                                                    );
+                                                                })}
+                                                            </select>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <div className="flex flex-col items-center gap-1">
@@ -691,7 +779,7 @@ export function PlatformBillingDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center font-bold text-gray-900 dark:text-white">
-                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(c.next_billing_value || 97)}
+                                                    {new Intl.NumberFormat(window.__CURRENCY_LOCALE__ || 'pt-BR', { style: 'currency', currency: window.__CURRENCY_CODE__ || 'BRL' }).format(typeof c.next_billing_value === 'number' ? c.next_billing_value : 97)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">

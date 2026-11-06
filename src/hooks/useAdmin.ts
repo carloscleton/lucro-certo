@@ -480,6 +480,52 @@ export function useAdmin() {
         }
     };
 
+    const changeCompanyPlan = async (companyId: string, planName: string, planPrice: number) => {
+        if (!isAdmin) return { error: 'Unauthorized' };
+
+        const previousList = [...companiesList];
+        setCompaniesList(prev => prev.map(c =>
+            c.id === companyId
+                ? {
+                    ...c,
+                    subscription_plan: planName,
+                    next_billing_value: planPrice
+                }
+                : c
+        ));
+
+        try {
+            const { data, error: fnError } = await supabase.functions.invoke('admin-set-trial', {
+                body: {
+                    company_id: companyId,
+                    plan: planName,
+                    next_billing_value: planPrice,
+                    plan_only: true
+                }
+            });
+
+            if (fnError || data?.error) {
+                console.warn('Edge function failed, trying direct update fallback:', fnError || data?.error);
+                const { error: directError } = await supabase
+                    .from('companies')
+                    .update({
+                        subscription_plan: planName,
+                        next_billing_value: planPrice
+                    })
+                    .eq('id', companyId);
+
+                if (directError) throw directError;
+            }
+
+            await fetchAdminData(true);
+            return { error: null };
+        } catch (err: any) {
+            console.error('Error changing company plan:', err);
+            setCompaniesList(previousList);
+            return { error: err.message || 'Falha ao alterar plano da empresa' };
+        }
+    };
+
     const updateUserLimit = async (userId: string, newLimit: number) => {
         if (!isAdmin) return { error: 'Unauthorized' };
 
@@ -653,6 +699,7 @@ export function useAdmin() {
         deleteCompany,
         manualRenewSubscription,
         setCompanyTrial,
+        changeCompanyPlan,
         testPlatformConnection,
         fetchCompanyCharges,
         biStats,

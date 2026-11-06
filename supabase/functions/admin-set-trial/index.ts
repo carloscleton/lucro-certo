@@ -13,7 +13,7 @@ serve(async (req) => {
 
     try {
         const body = await req.json()
-        const { company_id, days, custom_date, expire_now, status, plan } = body
+        const { company_id, days, custom_date, expire_now, status, plan, next_billing_value, plan_only } = body
 
         const authHeader = req.headers.get('Authorization')
         if (!authHeader) {
@@ -44,37 +44,49 @@ serve(async (req) => {
         // Use service role to bypass RLS
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-        let targetDate: Date
-        let targetStatus = status || 'active'
-        let targetPlan = plan || 'trial'
+        const updatePayload: any = {}
 
         if (expire_now) {
-            targetDate = new Date(Date.now() - 60 * 60 * 1000)
-            targetStatus = 'unpaid'
+            updatePayload.trial_ends_at = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+            updatePayload.subscription_status = 'unpaid'
         } else if (custom_date) {
-            targetDate = new Date(custom_date)
+            const targetDate = new Date(custom_date)
             if (isNaN(targetDate.getTime())) {
                 throw new Error('Data personalizada inválida')
             }
+            updatePayload.trial_ends_at = targetDate.toISOString()
             if (targetDate < new Date()) {
-                targetStatus = 'unpaid'
+                updatePayload.subscription_status = 'unpaid'
+            } else if (status) {
+                updatePayload.subscription_status = status
             }
-        } else {
-            const numDays = typeof days === 'number' && days > 0 ? days : 7
-            targetDate = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000)
+        } else if (typeof days === 'number') {
+            const numDays = days > 0 ? days : 7
+            updatePayload.trial_ends_at = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000).toISOString()
+            if (status) updatePayload.subscription_status = status
+        } else if (!plan_only && (days !== undefined || (status !== undefined && !plan))) {
+            const numDays = 7
+            updatePayload.trial_ends_at = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000).toISOString()
+            if (status) updatePayload.subscription_status = status
         }
 
-        const updatePayload: any = {
-            trial_ends_at: targetDate.toISOString(),
-            subscription_status: targetStatus,
-            subscription_plan: targetPlan
+        if (status && !updatePayload.subscription_status) {
+            updatePayload.subscription_status = status
+        }
+
+        if (plan) {
+            updatePayload.subscription_plan = plan
+        }
+
+        if (typeof next_billing_value === 'number') {
+            updatePayload.next_billing_value = next_billing_value
         }
 
         const { data: updated, error: updateError } = await supabaseAdmin
             .from('companies')
             .update(updatePayload)
             .eq('id', company_id)
-            .select('id, trade_name, subscription_plan, subscription_status, trial_ends_at')
+            .select('id, trade_name, subscription_plan, subscription_status, trial_ends_at, next_billing_value')
             .single()
 
         if (updateError) {
